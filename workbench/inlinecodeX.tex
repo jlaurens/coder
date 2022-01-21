@@ -1,0 +1,32 @@
+% !TEX program=lualatex
+\documentclass{article}
+\RequirePackage{inlinecode}
+\InlineCodeSetup{
+  minted,
+  minted style=autumn,
+  post processor=post-minted.py,
+  post processor args= InlineCodeEmph MyMarvelousCommand,
+}
+\InlineCodeStorePreamble {\myPreamble}{./sty-preamble.tex}%
+\InlineCodeFile [preamble = \myPreamble] {bealoverX.sty} {sty}%
+
+\begin{document}
+%\setminted {
+%  autogobble,
+%}
+%ABC
+%DEF\\
+\begin{InlineCode}{sty}
+XXXXX
+\end{InlineCode}
+\begin{InlineCode}*{sty}
+\newcommand[1]{\MyMarvelousCommand}{
+  \texttt{Do something with \LaTeX}
+}
+\end{InlineCode}
+\begin{InlineCode}*{sty}
+\newcommand[1]{\MyMarvelousCommand}{
+  \texttt{Do something with \LaTeX}
+}
+\end{InlineCode}
+\end{document}

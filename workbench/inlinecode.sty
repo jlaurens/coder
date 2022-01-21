@@ -1,0 +1,449 @@
+% !TeX root=...
+%%
+%% This is file `inlinecode.sty',
+%% soon generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% inlinecode.dtx (with options: `sty')
+%% 
+%% inlinecode documentation class
+%%
+%% Copyright (C) 2021 by Jérôme Laurens <jerome.laurens@u-bourgogne.fr>
+%%
+%% This work may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either version 1.3
+%% of this license or (at your option) any later version.
+%% The latest version of this license is in
+%%  http://www.latex-project.org/lppl.txt
+%% and version 1.3 or later is part of all distributions of LaTeX
+%% version 2005/12/01 or later.
+%%
+%% This work has the LPPL maintenance status `maintained'.
+%%
+%% The Current Maintainer of this work is Jérôme Laurens.
+%%
+%% This work consists of the files inlinecode.dtx
+\ProvidesExplPackage{inlinecode}
+  {2022/01/21}
+  {1.0a}
+  {inlinecode package}
+
+\RequirePackage{needspace, xcolor, verbatim}
+
+\msg_new:nnn { inlinecode } { :n } { #1 }
+
+\bool_new:N \g__NLNCD_minted_bool
+\bool_gset_false:N \g__NLNCD_minted_bool
+
+\bool_new:N \g__NLNCD_use_minted_bool
+\bool_gset_false:N \g__NLNCD_use_minted_bool
+
+\bool_new:N \g__NLNCD_in_example_bool
+\bool_gset_false:N \g__NLNCD_in_example_bool
+
+\bool_new:N \g__NLNCD_with_implementation_bool
+\bool_gset_true:N \g__NLNCD_with_implementation_bool
+
+\bool_new:N \g__NLNCD_in_implementation_bool
+\bool_gset_false:N \g__NLNCD_in_implementation_bool
+
+\prg_new_conditional:Nnn\__NLNCD_if_print_code: { T } {
+  \bool_if:nTF {
+    \g__NLNCD_in_implementation_bool &&
+    !\g__NLNCD_with_implementation_bool
+  } {
+    \prg_return_false:
+  } {
+    \prg_return_true:
+  }
+}
+
+\prg_new_conditional:Nnn \__NLNCD_if_use_minted: {
+  T, F, TF
+}{
+  \bool_if:NTF \g__NLNCD_use_minted_bool {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+
+\tl_new:N \g__NLNCD_post_processor_tl
+\tl_new:N \g__NLNCD_post_processor_args_tl
+  
+\makeatletter
+\keys_define:nn { NLNCD } {
+  sty .code:n = \str_set:Nx \g__NLNCD_sty_str { #1 },
+  sty .default:x = \c_sys_jobname_str,
+  sty .initial:n = ,
+  minted~style .code:n = \AddToHook { begindocument/before } {
+    \usemintedstyle { #1 }
+  },
+  minted .code:n = {
+    \bool_set_true:N \g__NLNCD_minted_bool
+    \RequirePackage{minted}
+    \setkeys { minted@opt@g } { #1 }
+    \minted@def@opt{post~processor}
+    \minted@def@opt{post~processor~args}
+    \pretocmd\minted@inputpyg{%
+      \NLNCD@postprocesspyg
+        {\minted@outputdir\minted@infile}%
+    }{}{\fail}
+% #1 = name of the python script, e.g., "process.py"
+% #2 = input ".pygtex" file, always be "\minted@outputdir\minted@infile"
+    % #3 = more args passed to the python script, possibly empty
+    \newcommand{\NLNCD@postprocesspyg}[1]{%
+      \tl_if_empty:NTF \g__NLNCD_post_processor_tl {
+        DEBUG:~NO~POST~PROCESSING
+      } {
+        % execute "python3 <script.py> <file.pygtex> <more_args>"
+         \exp_args:Nx
+         \sys_shell_now:n {
+           python3\space
+           \g__NLNCD_post_processor_tl\space
+           ##1\space
+           \g__NLNCD_post_processor_args_tl
+         }  
+      }
+    }
+  },
+  post~processor .tl_set_x:N = \g__NLNCD_post_processor_tl,
+  post~processor~args .tl_set_x:N = \g__NLNCD_post_processor_args_tl,
+  font .tl_set:N = \g__NLNCD_font_tl,
+  font .initial:n = \ttfamily,
+  unknown .code:n = \PackageWarning
+    { inlinecode }
+    { Unknown~option~`\l_keys_key_str' },
+}
+
+\newcommand{\InlineCodeEmph}[1]{\textcolor{red}{#1}}
+
+\NewDocumentCommand \InlineCodeSetup { m } {
+  \keys_set:nn { NLNCD } {#1}
+  \str_if_empty:NF \g__NLNCD_sty_str {
+    \file_if_exist:nT { \g__NLNCD_sty_str.sty } {
+      \RequirePackage{ \g__NLNCD_sty_str }
+    }
+  }
+  \bool_if:NF \g__NLNCD_use_minted_bool {
+    \bool_if:NT \g__NLNCD_minted_bool {
+      \sys_if_shell:TF {
+        \__NLNCD_if_pygmentize:TF {
+          \bool_gset_true:N \g__NLNCD_use_minted_bool
+          \RequirePackage{minted}
+          \renewcommand { \theFancyVerbLine } {
+            \g__NLNCD_font_tl \scriptsize
+            \textcolor { lightgray } {
+              \arabic { FancyVerbLine }
+            }
+          }
+        } {
+          \msg_warning:nnn
+            { inlinecode }
+            { :n }
+            { No~"pygmentize"~found. }
+        }
+      } {
+        \msg_warning:nnn
+          { inlinecode }
+          { :n }
+          { No~unrestricted~shell~escape~for~"pygmentize".}
+      }
+    }
+  }
+}
+\InlineCodeSetup {}
+\AddToHook { begindocument/before } {
+}
+
+\prg_new_conditional:Nnn\__NLNCD_if_pygmentize:{T,F,TF}{
+  \group_begin:
+  \sys_get_shell:nnN {which~pygmentize} {} \l_tmpa_tl
+  \tl_if_empty:NTF \l_tmpa_tl {
+    \tl_set:Nn \l_tmpa_tl { \prg_return_false: }
+  } {
+    \tl_set:Nn \l_tmpa_tl { \prg_return_true: }
+  }
+  \exp_last_unbraced:NV
+  \group_end:
+  \l_tmpa_tl
+}
+
+\ior_new:N \g__NLNCD_in
+\iow_new:N \g__NLNCD_out
+
+\prop_new:N \g__NLNCD_files_prop
+\prop_new:N \g__NLNCD_out_prop
+\prop_new:N \g__NLNCD_preamble_prop
+\prop_new:N \g__NLNCD_chunks_prop
+
+% #2 file name
+% #3 clist of chunk keys
+\DeclareDocumentCommand \InlineCodeFile{ O{} m m }{
+  \group_begin:
+  \tl_set:Nx \g_tmpa_tl { #2 }
+  \keys_define:nn { InlineCodeFile } {
+    preamble .initial:n = ,
+    preamble .code:n = \str_set:Nx \g_tmpb_tl { ##1 },
+  }
+  \exp_args:Nnx
+  \keys_set:nn { InlineCodeFile } { #1 }
+  \exp_args:NNV
+  \prop_if_in:NnT
+    \g__NLNCD_files_prop \g_tmpa_tl {
+    \msg_critical:nnx
+      { inlinecode }
+      { :n }
+      { Duplicate~file "\g_tmpa_tl'' }
+  }
+  \prop_gput:NVx \g__NLNCD_files_prop \g_tmpa_tl { #3 }
+  \str_set:Nx \l_tmpa_str { \str_head:N \g_tmpb_tl }
+  \str_if_empty:NT \l_tmpa_str {
+    \str_set_eq:NN \l_tmpa_str \c_percent_str
+  }
+  \tl_set:Nx \l_tmpb_tl {
+    \l_tmpa_str\l_tmpa_str\space\space
+    This~is~file~`#2',~generated~from~`\c_sys_jobname_str.tex'~with~key~`\g_tmpa_tl'.^^J
+  }
+  \tl_if_empty:NF \g_tmpb_tl {
+    \tl_gput_right:NV \l_tmpb_tl \g_tmpb_tl
+  }
+  \prop_gput:NVV \g__NLNCD_preamble_prop \g_tmpa_tl \l_tmpb_tl
+  \group_end:
+}
+
+\AddToHook { enddocument/end } {
+  \group_begin:
+  \prop_map_inline:Nn \g__NLNCD_files_prop {
+   \iow_open:Nn \g__NLNCD_out {#1}
+   \iow_term:n {Exporting~chunks~#2~to~#1}
+   \prop_get:NnN \g__NLNCD_preamble_prop { #1 } \l_tmpa_tl
+   \exp_args:NNV \iow_now:Nn \g__NLNCD_out \l_tmpa_tl
+   \clist_map_inline:nn { #2 } {
+     \prop_get:NnN \g__NLNCD_chunks_prop { ##1 } \l_tmpa_tl
+     \exp_args:NNV
+     \iow_now:Nn \g__NLNCD_out \l_tmpa_tl
+   }
+   \iow_close:N \g__NLNCD_out
+  }
+  \group_end:
+}
+
+%#2 cs list of key chunks
+\DeclareDocumentEnvironment {NLNCD_verbatim} {sm} {%
+  \clist_set:Nx \l_tmpa_clist {#2}
+  \clist_map_inline:Nn \l_tmpa_clist {
+    \prop_if_in:NnF \g__NLNCD_chunks_prop { ##1 } {
+      \int_zero_new:c { NLNCD@lineno@ ##1 }    
+    }
+    \int_compare:nNnT { \int_use:c {NLNCD@lineno@##1} }=\c_zero_int {
+      \int_gincr:c { NLNCD@lineno@##1 }
+    }
+  }
+  \__NLNCD_if_print_code:T {
+    \bool_if:NF \g__NLNCD_in_example_bool {
+      \IfBooleanF { #1 } {
+        \makebox [0mm] [r] {
+          \g__NLNCD_font_tl
+          \scriptsize\color{gray}
+          $\langle$#2$\rangle$
+          \hspace{6ex}
+        }
+      }
+    }
+    \__NLNCD_if_use_minted:TF {
+      \bool_if:NF \g__NLNCD_in_example_bool {
+        \setkeys{ minted@opt@g } { linenos }
+      }
+      \setkeys { FV } {
+        firstnumber=last,
+      }
+      \iow_open:Nn \minted@code { \jobname.pyg }
+      \Needspace* { 2\baselineskip }
+    } {
+      \bool_if:NF \g__NLNCD_in_example_bool {
+        \@bsphack
+      }
+    }
+  }
+  \def\verbatim@processline {
+    \clist_map_inline:Nn \l_tmpa_clist {
+      \prop_get:NnNTF \g__NLNCD_chunks_prop { ####1 } \l_tmpa_tl {
+        \tl_put_right:Nx \l_tmpa_tl { \the\verbatim@line \iow_newline: }
+        \exp_args:NNnV
+        \prop_gput:Nnn \g__NLNCD_chunks_prop { ####1 } \l_tmpa_tl
+      } {
+        \exp_args:NNnx
+        \prop_gput:Nnn \g__NLNCD_chunks_prop { ####1 }
+          { \the\verbatim@line \iow_newline: }
+      }
+    }
+    \__NLNCD_if_print_code:T {
+      \__NLNCD_if_use_minted:TF {
+        \iow_now:Nx \minted@code { \the\verbatim@line }
+      } {
+        \noindent\leavevmode
+        \bool_if:NF \g__NLNCD_in_example_bool {
+          \hspace*{-5ex}
+        }
+        \begin{minipage}[c][1ex]{\textwidth}
+          \bool_if:nF{
+            \g__NLNCD_in_example_bool &&
+            !\int_compare_p:nNn
+              { \clist_count:N \l_tmpa_clist }>\c_one_int
+          } {
+            \makebox[4ex]{%
+              \leavevmode
+              \sffamily\tiny\color{lightgray}\hfill%
+              \clist_map_inline:Nn \l_tmpa_clist {
+                \int_use:c { NLNCD@lineno@####1 }
+              }
+            }
+            \hspace* { 1ex }
+          } {
+            \g__NLNCD_font_tl
+            \the\verbatim@line
+          }
+        \end{minipage}
+        \par
+      }
+    }
+    \clist_map_inline:Nn \l_tmpa_clist {
+      \int_gincr:c { NLNCD@lineno@####1 }
+    }
+  }
+  \group_begin:
+  \let \do \@makeother
+  \dospecials \catcode `\^^M \active
+  \__NLNCD_if_print_code:T {
+    \__NLNCD_if_use_minted:F {
+      \frenchspacing\@vobeyspaces
+     }
+  }
+  \typeout{DEBUG:ABCDE}
+  \verbatim@start
+} {
+  \group_end:
+  \__NLNCD_if_print_code:T {
+    \__NLNCD_if_use_minted:TF {
+      \iow_close:N \minted@code
+      \bool_if:NF \g__NLNCD_in_example_bool {
+        \vspace* { \dimexpr -\topsep-\partopsep-\parskip }
+      }
+      \minted@pygmentize { latex }
+      \DeleteFile { \jobname.pyg }
+      \vspace* { \dimexpr -\topsep -\partopsep }
+    } {
+      \bool_if:NF\g__NLNCD_in_example_bool {
+        \@esphack
+      }
+    }
+  }
+}
+
+\DeclareDocumentEnvironment { InlineCode } { s m } {
+  \__NLNCD_if_print_code:T {
+    \vspace { -\baselineskip }
+    \vspace { 0.25\baselineskip }
+    \par\noindent
+    \__NLNCD_if_use_minted:T {
+      \vspace*{ -\baselineskip }
+    }
+    \def \NLNCD_line_number: {
+      \makebox [0mm] [r] {
+        \g__NLNCD_font_tl \scriptsize
+        \textcolor { lightgray } {
+          \arabic { FancyVerbLine }
+        }
+        \hspace {1.5ex}
+      }
+    }
+  }
+  \exp_last_unbraced:Nx \NLNCD_verbatim { \IfBooleanT { #1 } {*} } { #2 }
+} {
+  \endNLNCD_verbatim
+  \__NLNCD_if_print_code:T {
+    \vspace{ .2\baselineskip }
+    \par\noindent
+  }
+}
+% #1 variable
+% #2 file name
+\DeclareDocumentCommand \InlineCodeStorePreamble { m m } {
+  \group_begin:
+  \msg_info:nnn
+    { inlinecode }
+    { :n }
+    { Reading~preamble~from~file~"#2". }
+  \tl_clear:N \g_tmpa_tl
+  \ior_open:Nn \g__NLNCD_in { #2 }
+  \bool_until_do:nn { \ior_if_eof_p:N \g__NLNCD_in } {
+    \tl_if_empty:NF \g_tmpa_tl {
+      \tl_put_right:Nx\g_tmpa_tl { \iow_newline: }
+    }
+    \ior_str_get:NN \g__NLNCD_in \l_tmpa_tl
+    \exp_args:Nxx
+    \str_if_eq:nnT { \str_head:N \l_tmpa_tl } { \c_percent_str } {
+      \tl_put_right:NV \g_tmpa_tl \l_tmpa_tl
+    }
+  }
+  \ior_close:N \g__NLNCD_in
+  \exp_args:NNNx
+  \group_end:
+  \tl_set:Nn #1 { \tl_to_str:N \g_tmpa_tl }
+  \typeout{#1}
+}
+
+\DeclareDocumentCommand \InlineCodeStoreSelfPreamble { m } {
+  \InlineCodeStorePreamble #1 { \c_sys_jobname_str }
+}
+
+\newcounter{NLNCD@impl@page}
+
+\DeclareDocumentCommand \InlineCodeOnlyDescription {} {
+  \bool_gset_false:N \g__NLNCD_with_implementation_bool
+}
+
+\DeclareDocumentCommand \InlineCodeImplementation {} {
+  \bool_if:NF \g__NLNCD_with_implementation_bool {
+    \clearpage
+    \bool_gset_true:N \g__NLNCD_in_implementation_bool
+    \let\NLNCD@old@part\part
+    \DeclareDocumentCommand\part{som}{}
+    \let\NLNCD@old@section\section
+    \DeclareDocumentCommand\section{som}{}
+    \let\NLNCD@old@subsection\subsection
+    \DeclareDocumentCommand\subsection{som}{}
+    \let\NLNCD@old@subsubsection\subsubsection
+    \DeclareDocumentCommand\subsubsection{som}{}
+    \let\NLNCD@old@paragraph\paragraph
+    \DeclareDocumentCommand\paragraph{som}{}
+    \let\NLNCD@old@subparagraph\subparagraph
+    \DeclareDocumentCommand\subparagraph{som}{}
+    \cs_if_exist:NT \refsection{ \refsection }
+    \setcounter{ NLNCD@impl@page }{ \value{page} }
+  }
+}
+
+\DeclareDocumentCommand\InlineCodeFinale {} {
+  \bool_if:NF \g__NLNCD_with_implementation_bool {
+    \clearpage
+    \bool_gset_false:N \g__NLNCD_in_implementation_bool
+    \let\part\NLNCD@old@part
+    \let\section\NLNCD@old@section
+    \let\subsection\NLNCD@old@subsection
+    \let\subsubsection\NLNCD@old@subsubsection
+    \let\paragraph\NLNCD@old@paragraph
+    \let\subparagraph\NLNCD@old@subparagraph
+    \setcounter { page } { \value{ NLNCD@impl@page } }
+  }
+}
+\cs_set_eq:NN \NLNCD_line_number: \prg_do_nothing:
+\AddToHook { cmd/FancyVerbFormatLine/before } {
+  \NLNCD_line_number:
+}
+\endinput
+
+%%
+%% End of file `inlinecode.sty'.
