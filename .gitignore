@@ -280,3 +280,9 @@ TSWLatexianTemp*
 
 # Special
 workbench/*.pdf
+workbench/inlinecode.hd
+workbench/inlinecode.ins
+workbench/inlinecode.sty
+workbench/inlinecode.sty
+workbench/README.md
+workbench/README.txt
