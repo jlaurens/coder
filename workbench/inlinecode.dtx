@@ -1,36 +1,257 @@
-%%
-%% This is file `inlinecode.sty',
-%% generated with the docstrip utility.
-%%
-%% The original source files were:
-%%
-%% inlinecode.dtx  (with options: `package')
-%% ----------------------------------------------------------------
-%% inlinecode --- code inlined in a LaTeX document.
-%% E-mail: jerome.laurens@u-bourgogne.fr
-%% Released under the LaTeX Project Public License v1.3c or later
-%% See http://www.latex-project.org/lppl.txt
-%% ----------------------------------------------------------------
-%% 
+% \iffalse meta-comment
+% !TEX program  = lualatex
+% !TEX encoding  = utf8
+%<*internal>
+\iffalse
+%</internal>
+%<*readme>
+----------------------------------------------------------------
+inlinecode --- description text
+E-mail: jerome.laurens@u-bourgogne.fr
+Released under the LaTeX Project Public License v1.3c or later
+See http://www.latex-project.org/lppl.txt
+----------------------------------------------------------------
+
+Some text about the package: probably the same as the abstract.
+%</readme>
+%<*internal>
+\fi
+\def\nameofplainTeX{plain}
+\ifx\fmtname\nameofplainTeX\else
+  \expandafter\begingroup
+\fi
+%</internal>
+%<*install>
+\input docstrip.tex
+\keepsilent
+\askforoverwritefalse
+\preamble
+----------------------------------------------------------------
+inlinecode --- code inlined in a LaTeX document.
+E-mail: jerome.laurens@u-bourgogne.fr
+Released under the LaTeX Project Public License v1.3c or later
+See http://www.latex-project.org/lppl.txt
+----------------------------------------------------------------
+
+\endpreamble
+\postamble
+
+Copyright (C) 2022 by Jérôme LAURENS <jerome.laurens@u-bourgogne.fr>
+
+This work may be distributed and/or modified under the
+conditions of the LaTeX Project Public License (LPPL), either
+version 1.3c of this license or (at your option) any later
+version.  The latest version of this license is in the file:
+
+http://www.latex-project.org/lppl.txt
+
+This work is "maintained" (as per LPPL maintenance status) by
+Jérôme LAURENS.
+
+This work consists of the file  inlinecode.dtx
+and the derived files           inlinecode.ins,
+                                inlinecode.pdf and
+                                inlinecode.sty.
+
+\endpostamble
+\usedir{tex/latex/inlinecode}
+\generate{
+  \file{\jobname.sty}{\from{\jobname.dtx}{package}}
+}
+%</install>
+%<install>\endbatchfile
+%<*internal>
+\usedir{source/latex/inlinecode}
+\generate{
+  \file{\jobname.ins}{\from{\jobname.dtx}{install}}
+}
+\nopreamble\nopostamble
+\usedir{doc/latex/inlinecode}
+\generate{
+  \file{README.md}{\from{\jobname.dtx}{readme}}
+}
+\ifx\fmtname\nameofplainTeX
+  \expandafter\endbatchfile
+\else
+  \expandafter\endgroup
+\fi
+%</internal>
+%<*package>
 \NeedsTeXFormat{LaTeX2e}
 \RequirePackage{needspace, xcolor, verbatim}
 \ProvidesExplPackage{inlinecode}
   {2022/01/21}
   {1.0a}
   {code inlined in documents}
+%</package>
+%<*driver>
+\ExplSyntaxOff
+\documentclass{l3doc}
+\EnableCrossrefs
+\CodelineIndex
+\RecordChanges
+\AddToHook{env/variable/after}{\vspace{0.5\baselineskip}}
+\begin{document}
+  \DocInput{\jobname.dtx}
+\end{document}
+%</driver>
+% \fi
+%
+%\GetFileInfo{\jobname.sty}
+%
+%\title{^^A
+%  \textsf{inlinecode} --- code inlined in a \LaTeX\ document\thanks{^^A
+%    This file describes version \fileversion, last revised \filedate.^^A
+%  }^^A
+%}
+%\author{^^A
+%  Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}^^A
+%}
+%\date{Released \filedate}
+%
+%\maketitle
+%
+% \begin{documentation}
+%
+%\changes{v1.0a}{2022/01/20}{First public release}
+%
+% \section{Basic example}
+% \begin{verbatim}
+%   \documentclass{article}
+%   \RequirePackage{inlinecode}
+%   \InlineCodeNew{file=Readme.txt, chunks=txt}
+%   \begin{document}
+%   \begin{InlineCode}{chunks=txt}
+%   This is a readme text file
+%   \end{InlineCode}
+%   \end{document}
+% \end{verbatim}
+% Typesetting this document creates a |readme.txt| file
+% which content reads \texttt{This is a readme text file}.
+%
+% \section{Initialize}
+% To load the package
+% |\RequirePackage{inlinecode}|.
+%
+% \begin{function}{\InlineCodeSetup}
+% \begin{syntax}
+% \cs{InlineCodeSetup} \marg{key[=value] list}
+% \end{syntax}
+% To set up the package.
+% Must be used only once.
+% The \texttt{\meta{key}[=\meta{value}]} items are:
+% \end{function}
+% \begin{description}
+% \item[\ttfamily minted] to activate syntax coloring with pygment,
+% \item[\ttfamily minted style=\meta{name}]
+% to select a predefined minted style,
+% \item[\ttfamily sty=\meta{package name}]
+% to load a package, possibly the created package,
+% \item[\ttfamily only top] to avoid chunk names repetitions,
+% \item[\ttfamily only description] to typeset only the description.
+% \end{description}
+%
+% \section{Files}
+% \begin{function}{\InlineCodeNew}
+% \begin{syntax}
+% \cs{InlineCodeNew}\marg{key[=value] list}
+% \end{syntax}
+% The \texttt{\meta{key}[=\meta{value}]} items are:
+% \end{function}
+% \begin{description}
+% \item[\ttfamily file=\meta{file name}] is mandatory, the file named \meta{file name} will be created,
+% \item[\ttfamily chuncks=\meta{comma separated  list of chunk names}] to list the chunks inserted as file contents, ordered and mandatory, 
+% \item[\ttfamily lang] to specify the language, defaults to \texttt{latex},
+% \item[\ttfamily raw] to remove any additional material,
+% \item[\ttfamily preamble] the added preamble.
+% \end{description}
+%
+% \begin{function}{\InlineCodeStorePreamble}
+% \begin{syntax}
+% \cs{InlineCodeStorePreamble} \marg{variable} \marg{file name}
+% \end{syntax}
+% Store the content of \meta{file name} into the variable \meta{variable}.
+% \end{function}
 %%
+% \section{Code chunks}
+% The chunk name are displayed in the margin, uness \texttt{only top} was specified and not at the top and continue.
+% \begin{variable}{\g_NLNCD_chunks_tl}
+% The comma separated list of current chunks.
+% \end{variable}
+%    \begin{macrocode}
 \tl_new:N \g_NLNCD_chunks_tl
+%    \end{macrocode}
+% \begin{environment}{InlineCode}
+% \begin{syntax}
+% \cs{begin}\Arg{InlineCode}\oarg{key[=value] list} ... \cs{end}\Arg{InlineCode}
+% \end{syntax}
+% \noindent The \texttt{\meta{key}[=\meta{value}]} items are:
+% \end{environment}
+% \begin{description}
+% \item[\ttfamily chunks=\meta{comma separated list of chunk names}] defines the list of all the chunks where the environment body is append, required,
+% \item[\ttfamily no display] to not display he chunk names
+% \end{description}
+%
+%\StopEventually{^^A
+%  \PrintChanges
+%  \PrintIndex
+%}
+%
+% \section{Separators}
+% \begin{function}{\InlineCodeImplementation}
+% \begin{syntax}
+% \cs{InlineCodeImplementation}
+% \end{syntax}
+% Start an implementation part where all the sectioning commands do nothing.
+% \end{function}
+% \begin{function}{\InlineCodeFinale}
+% \begin{syntax}
+% \cs{InlineCodeFinale}
+% \end{syntax}
+% Stop an implementation part.
+% \end{function}
 
+% \end{documentation}
+%
+% \begin{implementation}
+%
+% \section{\pkg{inlinecode} implementation}
+%
+%    \begin{macrocode}
+%<*package>
+%    \end{macrocode}
+% \subsection{All purpose messaging}
+%    \begin{macrocode}
 \msg_new:nnn { inlinecode } { :n } { #1 }
+%    \end{macrocode}
+% \subsection{minted related variables and conditionals}
+% Whether minted is available:
+%    \begin{macrocode}
 \bool_new:N \g_NLNCD_can_minted_bool
 \bool_gset_false:N \g_NLNCD_can_minted_bool
+%    \end{macrocode}
+% Whether minted is used and an associate conditional:
+%    \begin{macrocode}
 \bool_new:N \g_NLNCD_use_minted_bool
 \bool_gset_false:N \g_NLNCD_use_minted_bool
+%    \end{macrocode}
+% \begin{function}[TF]
+%   {\_NLNCD_if_use_minted:}
+%   \begin{syntax}
+%     \cs{_NLNCD_if_use_minted:TF} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+%   Execute \meta{true code} when using |minted|, \meta{false code} otherwise.
+%    \begin{macrocode}
 \prg_new_conditional:Nnn \_NLNCD_if_use_minted: { T, F, TF } {
   \bool_if:NTF \g_NLNCD_use_minted_bool
     { \prg_return_true:  }
     { \prg_return_false: }
 }
+%    \end{macrocode}
+% \end{function}
+%
+% Conditional for \texttt{pygmentize} availability:
+%    \begin{macrocode}
 \prg_new_conditional:Nnn\_NLNCD_if_pygmentize: { T, F, TF } {
   \group_begin:
   \sys_get_shell:nnN {which~pygmentize} {} \l_tmpa_tl
@@ -42,14 +263,31 @@
   \exp_last_unbraced:NV \group_end: \l_tmpa_tl
 }
 
+%    \end{macrocode}
+% |pygment| processing
+%    \begin{macrocode}
 \tl_new:N \g_NLNCD_post_processor_tl
 \tl_new:N \g_NLNCD_post_processor_args_tl
-
+  
 \makeatletter
+%    \end{macrocode}
+% \subsection{\cs{InlineCodeSetup}}
+% \begin{variable}{\g_NLNCD_only_top_bool}
+% Whether chunk names should only display at the top.
+% \end{variable}
+%    \begin{macrocode}
 \bool_new:N \g_NLNCD_only_top_bool
 \bool_gset_false:N \g_NLNCD_only_top_bool
+%    \end{macrocode}
+% \begin{variable}{\g_NLNCD_with_impl_bool}
+% 
+% \end{variable}
+%    \begin{macrocode}
 \bool_new:N \g_NLNCD_with_impl_bool
 \bool_gset_true:N \g_NLNCD_with_impl_bool
+%    \end{macrocode}
+% \texttt{NLNCDSetup} keys definitions used to parse \cs{InlineCodeSetup} unique argument.
+%    \begin{macrocode}
 \keys_define:nn { NLNCDSetup } {
   sty .tl_set_x:N = \l_tmpa_str,
   sty .default:V = \c_sys_jobname_str,
@@ -66,12 +304,12 @@
   font .tl_set:N = \g_NLNCD_font_tl,
   font .initial:n = \ttfamily,
   only~top .bool_gset:N = \g_NLNCD_only_top_bool,
-  only~top .initial:n = false,
+  only~top .initial:n = false,  
   only~top .code:n = {
     \bool_gset_true:N \g_NLNCD_only_top_bool
   },
   only~description .bool_gset_inverse:N = \g_NLNCD_with_impl_bool,
-  only~description .initial:n = false,
+  only~description .initial:n = false,  
   only~description .code:n = {
     \bool_gset_false:N \g_NLNCD_with_impl_bool
   },
@@ -80,6 +318,9 @@
     { Unknown~option~`\l_keys_key_str' },
 }
 
+%    \end{macrocode}
+% Main command
+%    \begin{macrocode}
 \NewDocumentCommand \InlineCodeSetup { m } {
   \str_clear:N \l_tmpa_str
   \keys_set:nn { NLNCDSetup } {#1}
@@ -115,6 +356,10 @@
     }
   }
 }
+%    \end{macrocode}
+% Utilities to setup |pygment| post processing.
+% The |pygment| post processor marks some code with \cs{InlineCodeEmph}.
+%    \begin{macrocode}
 \providecommand{\InlineCodeEmph}[1]{\textcolor{red}{#1}}
 \cs_set:Npn \_NLNCD_minted_setup:n #1 {
   \bool_gset_true:N \g_NLNCD_can_minted_bool
@@ -126,28 +371,79 @@
     \NLNCD@postprocesspyg
       {\minted@outputdir\minted@infile}%
   }{}{\fail}
+%    \end{macrocode}
+% In the execution context of \cs{minted@inputpyg},
+% \begin{description}
+% \item[\texttt{\#1}] is the name of the python script, e.g., ``\texttt{process.py}''
+% \item[\texttt{\#2}] is the input ``.pygtex'' file ``\cs{minted@outputdir}\cs{minted@infile}''
+% \item[\texttt{\#3}] are more args passed to the python script, possibly empty
+% \end{description}
+%    \begin{macrocode}
   \newcommand{\NLNCD@postprocesspyg}[1]{%
     \tl_if_empty:NTF \g_NLNCD_post_processor_tl {
       DEBUG:~NO~POST~PROCESSING
     } {
+%    \end{macrocode}
+% Execute \texttt{`python3 <script.py> <file.pygtex> <more_args>`}
+%    \begin{macrocode}
        \exp_args:Nx
        \sys_shell_now:n {
          python3\space
          \g_NLNCD_post_processor_tl\space
          ##1\space
          \g_NLNCD_post_processor_args_tl
-       }
+       }  
     }
   }
 }
 \InlineCodeSetup {}
+%    \end{macrocode}
+% \begin{variable}{\l_NLNCD_in}
+% Input file identifier
+% \end{variable}
+%    \begin{macrocode}
 \ior_new:N \l_NLNCD_in
+%    \end{macrocode}
+% \begin{variable}{\l_NLNCD_out}
+% Output file identifier
+% \end{variable}
+%    \begin{macrocode}
 \iow_new:N \l_NLNCD_out
+%    \end{macrocode}
+% \begin{variable}{\g_NLNCD_file_prop}
+% Global property list of \texttt{\meta{file name}=\meta{comma separated list of chunk names}} items.
+% \end{variable}
+%    \begin{macrocode}
 \prop_new:N \g_NLNCD_file_prop
+%    \end{macrocode}
+% \begin{variable}{\g_NLNCD_preamble_prop}
+%   Global property list of \texttt{\meta{file name}=\meta{preamble}} items.
+% \end{variable}
+%    \begin{macrocode}
 \prop_new:N \g_NLNCD_preamble_prop
+%    \end{macrocode}
+% \begin{variable}{\g_NLNCD_banner_prop}
+%   Global property list of \texttt{\meta{file name}=\meta{banner}} items.
+% \end{variable}
+%    \begin{macrocode}
 \prop_new:N \g_NLNCD_banner_prop
+%    \end{macrocode}
+% \begin{variable}{\g_NLNCD_raw_prop}
+% Global property list of \texttt{\meta{file name}=\meta{boolean value}}
+% items indicating whether the given file should not contain
+% extra material like banners.
+%    \begin{macrocode}
 \prop_new:N \g_NLNCD_raw_prop
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\g_NLNCD_lang_prop}
+% Global property list of \texttt{\meta{chunk name}=\meta{language}} items.
+%    \begin{macrocode}
 \prop_new:N \g_NLNCD_lang_prop
+%    \end{macrocode}
+% \end{variable}
+% |\l_tmpa_bool| to store the value for \texttt{raw}, 
+%    \begin{macrocode}
 \keys_define:nn { NLNCDNew } {
   file .tl_set_x:N = \g_tmpa_tl,
   file .value_required:n = true,
@@ -166,6 +462,10 @@
     \bool_set_true:N \l_tmpa_bool
   },
 }
+%    \end{macrocode}
+% Now the main command.
+% It loads lately \pkg{datetime2}.
+%    \begin{macrocode}
 \DeclareDocumentCommand \InlineCodeNew { m } {
   \RequirePackage{datetime2}
   \group_begin:
@@ -173,7 +473,7 @@
   \str_clear:N \l_tmpa_str
   \bool_set_false:N \l_tmpa_bool
   \str_set:Nn \g_tmpa_str { latex }
-  \exp_args:Nnx \keys_set:nn { NLNCDNew } { #1 }
+  \exp_args:Nnx \keys_set:nn { NLNCDNew } { #1 }  
   \exp_args:NNV \prop_if_in:NnT \g_NLNCD_file_prop \g_tmpa_tl {
     \msg_critical:nnx
       { inlinecode }
@@ -203,7 +503,15 @@
     \msg_fatal:nn { :n } { Only~in~preamble:~\cs{InlineCodeNew} }
   }
 }
+%    \end{macrocode}
+% \begin{variable}{\g_NLNCD_chunks_prop}
+%   Global property list of \texttt{\meta{chunk name}=\meta{chunk content}} items.
+%    \begin{macrocode}
 \prop_new:N \g_NLNCD_chunks_prop
+%    \end{macrocode}
+% \end{variable}
+% Files are created at the end of the process.
+%    \begin{macrocode}
 \AddToHook { enddocument / end } {
   \group_begin:
   \prop_map_inline:Nn \g_NLNCD_file_prop {
@@ -229,8 +537,21 @@
   }
   \group_end:
 }
+%    \end{macrocode}
+% \begin{variable}{\g_NLNCD_in_impl_bool}
+% Whether we are currently in the implementation section.
+%    \begin{macrocode}
 \bool_new:N \g_NLNCD_in_impl_bool
 \bool_gset_false:N \g_NLNCD_in_impl_bool
+%    \end{macrocode}
+% \end{variable}
+% \begin{function}[TF]
+%   {\_NLNCD_if_print_code:}
+%   \begin{syntax}
+%     \cs{\_NLNCD_if_print_code:T} \Arg{true code}
+%   \end{syntax}
+%   Execute code only when required.
+%    \begin{macrocode}
 \prg_new_conditional:Nnn \_NLNCD_if_print_code: { T, F, TF } {
   \bool_if:nTF {
     \g_NLNCD_in_impl_bool &&
@@ -241,6 +562,10 @@
     \prg_return_true:
   }
 }
+%    \end{macrocode}
+% \end{function}
+% Key value definitions. |\l_tmpa_bool| for \texttt{no display}.
+%    \begin{macrocode}
 \keys_define:nn { NLNCDCode } {
   chunks .clist_set:N = \g_tmpa_clist,
   chunks .value_required:n = true,
@@ -287,7 +612,7 @@
 \newenvironment {NLNCD_verbatim} {%
   \clist_map_inline:Nn \g_tmpa_clist {
     \prop_if_in:NnF \g_NLNCD_chunks_prop { ##1 } {
-      \int_zero_new:c { NLNCD@lineno@ ##1 }
+      \int_zero_new:c { NLNCD@lineno@ ##1 }    
     }
     \int_compare:nNnT { \int_use:c {NLNCD@lineno@##1} }=\c_zero_int {
       \int_gincr:c { NLNCD@lineno@##1 }
@@ -478,23 +803,9 @@
 \AddToHook { shipout/before } {
   \tl_gclear:N \g_NLNCD_chunks_tl
 }
-%% 
-%% Copyright (C) 2022 by Jérôme LAURENS <jerome.laurens@u-bourgogne.fr>
-%% 
-%% This work may be distributed and/or modified under the
-%% conditions of the LaTeX Project Public License (LPPL), either
-%% version 1.3c of this license or (at your option) any later
-%% version.  The latest version of this license is in the file:
-%% 
-%% http://www.latex-project.org/lppl.txt
-%% 
-%% This work is "maintained" (as per LPPL maintenance status) by
-%% Jérôme LAURENS.
-%% 
-%% This work consists of the file  inlinecode.dtx
-%% and the derived files           inlinecode.ins,
-%%                                 inlinecode.pdf and
-%%                                 inlinecode.sty.
-%% 
-%%
-%% End of file `inlinecode.sty'.
+%</package>
+%    \end{macrocode}
+% \end{implementation}
+%\Finale
+%
+% % ^^A \PrintIndex
