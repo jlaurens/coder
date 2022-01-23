@@ -1,0 +1,38 @@
+% !TEX program=lualatex
+\documentclass{article}
+\begin{document}
+\ExplSyntaxOn
+\keys_define:nn { TEST } {
+  key .initial:n = INITIAL,
+  key .code:n = {
+    \str_set:Nn \l_tmpa_str { #1 }
+  },
+}
+\keys_set:nn { TEST } { key = value}
+value==\l_tmpa_str\\
+\keys_set:nn { TEST } { }
+value==\l_tmpa_str\\
+\str_clear:N \l_tmpa_str
+\keys_define:nn { TEST } {
+  chunks .clist_set:N = \l_tmpa_clist,
+  chunks .value_required:n = true,
+  key .initial:n = latex,
+  key .code:n = {
+    \str_set:Nn \l_tmpa_str { #1 }
+  },
+  no~display .bool_set:N = \l_tmpa_bool,
+  no~display .initial:n = false,  
+  no~display .code:n = {
+    \bool_set_true:N \l_tmpa_bool
+  },
+  unknown .code:n = \PackageWarning
+    { inlinecode }
+    { Unknown~option~`\l_keys_key_str' },
+}
+\keys_set:nn { TEST } { }
+key==\l_tmpa_str\\
+\str_clear:N \l_tmpa_str
+\keys_set:nn { TEST } { key = value }
+key==\l_tmpa_str\\
+\ExplSyntaxOff
+\end{document}

@@ -1,0 +1,14 @@
+%%  This is file `R.txt' generated from `test1.tex' on 2022-01-23 15:56:42+01:00.
+% preamble
+% file
+def myFunction():
+  pass
+
+
+def myOtherFunction():
+  pass
+
+
+def myOtherFunction():
+  pass
+

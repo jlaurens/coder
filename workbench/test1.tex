@@ -1,0 +1,100 @@
+% !TEX program=lualatex
+\documentclass{article}
+\RequirePackage{inlinecode}
+\InlineCodeSetup{
+  minted,
+  minted style=autumn,
+  post processor=post-minted.py,
+  post processor args=InlineCodeEmph MyMarvelousCommand,
+  only top,
+}
+\InlineCodeStorePreamble {\myPreamble}{./sty-preamble.tex}  %
+\InlineCodeNew {
+  chunks=A,
+  preamble = \myPreamble,
+  file=A.txt
+}%
+\InlineCodeNew {
+  chunks=B,
+  preamble = \myPreamble,
+  file=B.txt
+}%
+\InlineCodeNew {
+  chunks=R,
+  lang=python,
+  preamble = \myPreamble,
+  file=R.txt,
+}%
+
+\begin{document}
+\begin{InlineCode}{chunks=A}
+A1
+\end{InlineCode}
+\begin{InlineCode}{chunks=A}
+A2 \MyMarvelousCommand ARGS
+\end{InlineCode}
+\begin{InlineCode}{chunks=B}
+B1
+\end{InlineCode}
+\begin{InlineCode}{chunks=B}
+B2 \MyMarvelousCommand ARGS
+\end{InlineCode}
+\begin{InlineCode}{chunks=A}
+A3
+\end{InlineCode}
+\begin{InlineCode}{chunks=B}
+B3
+\end{InlineCode}
+\begin{InlineCode}{chunks=A}
+A4
+\end{InlineCode}
+\begin{InlineCode}{chunks=B}
+B4
+\end{InlineCode}
+\begin{InlineCode}{chunks=P, lang=python}
+def myFunction():
+  pass
+\end{InlineCode}
+\begin{InlineCode}{chunks=R}
+def myFunction():
+  pass
+\end{InlineCode}
+\begin{InlineCode}{chunks={Q,P}}
+def myFunction():
+  pass
+\end{InlineCode}
+\begin{InlineCode}{chunks=Q}
+def myFunction():
+  pass
+\end{InlineCode}
+\begin{InlineCode}{chunks=A}
+A5
+\end{InlineCode}
+\begin{InlineCode}{chunks=B}
+B5
+\end{InlineCode}
+\newpage
+\begin{InlineCode}{chunks=B}
+B5 bis
+\end{InlineCode}
+\begin{InlineCode}{chunks=B}
+B5 ter
+\end{InlineCode}
+\begin{InlineCode}{chunks=R}
+
+
+def myOtherFunction():
+  pass
+
+
+def myOtherFunction():
+  pass
+\end{InlineCode}
+
+\ExplSyntaxOn
+LANG:\\
+\prop_map_inline:Nn \g_NLNCD_lang_prop {
+  #1 -> #2\\
+}
+\ExplSyntaxOff
+\end{document}

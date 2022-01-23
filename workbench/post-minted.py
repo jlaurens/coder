@@ -1,7 +1,6 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import fileinput
 import sys
-
 
 if len(sys.argv) < 4:
   raise ValueError(f'Need three args at least, given {len(sys.argv)}')
