@@ -27,6 +27,34 @@
 }%
 
 \begin{document}
+\section{Listings}
+\subsection{Lua example}
+\begin{InlineCode}{lang=lua}
+-- defines a factorial function
+function fact (n)
+  if n == 0 then
+    return 1
+  else
+    return n * fact(n-1)
+  end
+end
+  
+print("enter a number:")
+a = io.read("*number")        -- read a number
+print(fact(a))
+\end{InlineCode}
+\subsection{Python example}
+\begin{InlineCode}{lang=python,chunk=2}
+# Python code to demonstrate naive method
+# to compute factorial
+n = 23
+fact = 1
+for i in range(1,n+1):
+  fact = fact * i
+print(f"The factorial of 23 is : {fact}")
+\end{InlineCode}
+
+
 \begin{InlineCode}{chunks=A}
 A1
 \end{InlineCode}
@@ -81,8 +109,6 @@ B5 bis
 B5 ter
 \end{InlineCode}
 \begin{InlineCode}{chunks=R}
-
-
 def myOtherFunction():
   pass
 

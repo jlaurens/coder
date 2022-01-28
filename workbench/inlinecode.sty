@@ -12,94 +12,298 @@
 %% See http://www.latex-project.org/lppl.txt
 %% ----------------------------------------------------------------
 %% 
+\def\fileversion{v1.0}
+\def\filedate{2009/10/06}
 \NeedsTeXFormat{LaTeX2e}
 \RequirePackage{needspace, xcolor, verbatim}
 \ProvidesExplPackage{inlinecode}
   {2022/01/21}
   {1.0a}
   {code inlined in documents}
-%%
-\tl_new:N \g_NLNCD_chunks_tl
-
-\msg_new:nnn { inlinecode } { :n } { #1 }
-\bool_new:N \g_NLNCD_can_minted_bool
-\bool_gset_false:N \g_NLNCD_can_minted_bool
-\bool_new:N \g_NLNCD_use_minted_bool
-\bool_gset_false:N \g_NLNCD_use_minted_bool
-\prg_new_conditional:Nnn \_NLNCD_if_use_minted: { T, F, TF } {
-  \bool_if:NTF \g_NLNCD_use_minted_bool
-    { \prg_return_true:  }
-    { \prg_return_false: }
-}
-\prg_new_conditional:Nnn\_NLNCD_if_pygmentize: { T, F, TF } {
-  \group_begin:
-  \sys_get_shell:nnN {which~pygmentize} {} \l_tmpa_tl
-  \tl_if_empty:NTF \l_tmpa_tl {
-    \tl_set:Nn \l_tmpa_tl { \prg_return_false: }
-  } {
-    \tl_set:Nn \l_tmpa_tl { \prg_return_true: }
-  }
-  \exp_last_unbraced:NV \group_end: \l_tmpa_tl
-}
-
-\tl_new:N \g_NLNCD_post_processor_tl
-\tl_new:N \g_NLNCD_post_processor_args_tl
-
 \makeatletter
-\bool_new:N \g_NLNCD_only_top_bool
-\bool_gset_false:N \g_NLNCD_only_top_bool
-\bool_new:N \g_NLNCD_with_impl_bool
-\bool_gset_true:N \g_NLNCD_with_impl_bool
-\keys_define:nn { NLNCDSetup } {
-  sty .tl_set_x:N = \l_tmpa_str,
-  sty .default:V = \c_sys_jobname_str,
-  sty .initial:n = ,
-  minted~style .code:n = {
-    \RemoveFromHook { begindocument/before } [NLNCDMinted]
-    \AddToHook { begindocument/before } [NLNCDMinted] {
-      \usemintedstyle { #1 }
+\keys_define:nn { NLNCDCode } {
+  chunks .code:n = {
+    \clist_set:Nn \l_NLNCD_chunks_clist { #1 }
+    \clist_sort:Nn \l_NLNCD_chunks_clist {
+      \str_compare:nNnTF { ##1 } > { ##2 } {
+        \sort_return_swapped:
+      } {
+        \sort_return_same:
+      }
     }
   },
-  minted .code:n = \_NLNCD_minted_setup:n { #1 },
-  post~processor .tl_set_x:N = \g_NLNCD_post_processor_tl,
-  post~processor~args .tl_set_x:N = \g_NLNCD_post_processor_args_tl,
-  font .tl_set:N = \g_NLNCD_font_tl,
-  font .initial:n = \ttfamily,
-  only~top .bool_gset:N = \g_NLNCD_only_top_bool,
-  only~top .initial:n = false,
-  only~top .code:n = {
-    \bool_gset_true:N \g_NLNCD_only_top_bool
+  no~lineno .bool_set:N = \g_tmpa_bool,
+  no~lineno .code:n = {
+    \bool_set_true:N \g_tmpa_bool
   },
-  only~description .bool_gset_inverse:N = \g_NLNCD_with_impl_bool,
-  only~description .initial:n = false,
-  only~description .code:n = {
-    \bool_gset_false:N \g_NLNCD_with_impl_bool
+  no~name .bool_set:N = \g_tmpb_bool,
+  no~name .code:n = {
+    \bool_set_true:N \g_tmpb_bool
+  },
+  lang .code:n = {
+    \str_set:Nn \g_tmpa_str { #1 }
   },
   unknown .code:n = \PackageWarning
     { inlinecode }
     { Unknown~option~`\l_keys_key_str' },
 }
-
-\NewDocumentCommand \InlineCodeSetup { m } {
-  \str_clear:N \l_tmpa_str
-  \keys_set:nn { NLNCDSetup } {#1}
-  \str_if_empty:NF \l_tmpa_str {
-    \file_if_exist:nT { \l_tmpa_str.sty } {
-      \RequirePackage{ \l_tmpa_str }
+\DeclareDocumentEnvironment { InlineCode } { m } {
+  \bool_set_false:N \g_tmpa_bool
+  \bool_set_false:N \g_tmpb_bool
+  \bool_set_false:N \l_tmpa_bool
+  \str_clear:N \g_tmpa_str
+  \clist_clear:N \l_NLNCD_chunks_clist
+  \exp_args:Nnx \keys_set:nn { NLNCDCode } { #1 }
+  \_NLNCD_if_print_code:T {
+    \if_mode_vertical:\noindent\else
+      \vspace*{ \topsep }
+      \par\noindent
+    \fi
+    \cs_set:Npn \NLNCD_line_number: {
+      \hbox_overlap_left:n {
+        {
+          \g_NLNCD_font_lineno_tl
+          \arabic { FancyVerbLine }
+        }
+        \hspace {1ex}
+      }
     }
   }
-  \bool_if:NF \g_NLNCD_use_minted_bool {
-    \bool_if:NT \g_NLNCD_can_minted_bool {
+  \NLNCD_verbatim
+} {
+  \endNLNCD_verbatim
+  \_NLNCD_if_print_code:T {
+    \vspace*{ \topsep }
+    \par
+  }
+}
+\int_zero_new:c { NLNCD_lineno_ }
+\tl_new:N \g_NLNCD_chunk_name_tl
+\newenvironment {NLNCD_verbatim} {%
+  \clist_if_empty:NTF \l_NLNCD_chunks_clist {
+    \int_compare:nNnT { \int_use:c { NLNCD_lineno_ } }=\c_zero_int {
+      \int_gincr:c { NLNCD_lineno_ }
+    }
+  } {
+    \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+      \prop_if_in:NnF \g_NLNCD_chunks_prop { ##1 } {
+        \int_zero_new:c { NLNCD_lineno_ ##1 }
+      }
+      \int_compare:nNnT { \int_use:c {NLNCD_lineno_##1} }=\c_zero_int {
+        \int_gincr:c { NLNCD_lineno_##1 }
+      }
+    }
+  }
+  \_NLNCD_if_print_code:T {
+    \bool_set_false:N \l_tmpb_bool
+    \group_begin:
+    \tl_set:Nx \l_tmpa_tl { \clist_use:Nn \l_NLNCD_chunks_clist , }
+    \tl_if_empty:NF \l_tmpa_tl {
+      \bool_if:NF \g_NLNCD_no_lineno_bool {
+        \bool_if:NF \l_tmpa_bool {
+          \bool_if:NTF \g_NLNCD_only_top_bool {
+            \tl_if_eq:NNF \l_tmpa_tl \g_NLNCD_chunks_tl {
+              \bool_set_true:N \l_tmpb_bool
+            }
+          } {
+            \bool_set_true:N \l_tmpb_bool
+          }
+        }
+      }
+    }
+    \tl_gset_eq:NN \g_NLNCD_chunks_tl \l_tmpa_tl
+    \bool_if:NTF \l_tmpb_bool {
+      \exp_args:NNNV
+      \group_end:
+      \bool_set:Nn \l_tmpb_bool \l_tmpb_bool
+    } {
+      \group_end:
+    }
+    \NLNCD_if_use_minted:TF {
+      \setkeys { FV } {
+        firstnumber=last,
+      }
+      \clist_if_empty:NTF \l_NLNCD_chunks_clist {
+        \exp_args:Nnx \setkeys { FV } {
+          firstnumber=\int_use:c { NLNCD_lineno_ },
+        }
+      } {
+        \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+          \exp_args:Nnx \setkeys { FV } {
+            firstnumber=\int_use:c { NLNCD_lineno_##1 },
+          }
+          \clist_map_break:
+        }
+      }
+      \iow_open:Nn \minted@code { \jobname.pyg }
+    } {
+      \@bsphack
+    }
+  }
+  \def \verbatim@processline {
+    \group_begin:
+    \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+      \prop_get:NnNTF \g_NLNCD_chunks_prop { ####1 } \l_tmpa_tl {
+        \tl_put_right:Nx \l_tmpa_tl { \the\verbatim@line \iow_newline: }
+        \exp_args:NNnV
+        \prop_gput:Nnn \g_NLNCD_chunks_prop { ####1 } \l_tmpa_tl
+      } {
+        \exp_args:NNnx
+        \prop_gput:Nnn \g_NLNCD_chunks_prop { ####1 }
+          { \the\verbatim@line \iow_newline: }
+      }
+    }
+    \_NLNCD_if_print_code:T {
+      \NLNCD_if_use_minted:TF {
+        \tl_set:Nx \l_tmpa_tl { \the\verbatim@line }
+        \exp_args:NNV \iow_now:Nn \minted@code \l_tmpa_tl
+      } {
+        \noindent
+        \tl_use:N \g_NLNCD_chunk_name_tl
+        \tl_clear:N \g_NLNCD_chunk_name_tl
+        \hbox_to_wd:nn { \textwidth } {
+          \bool_if:NF \g_tmpa_bool {
+            \hspace*{-1ex}
+            \hbox_overlap_left:n {
+              \g_NLNCD_font_lineno_tl
+              \clist_if_empty:NTF \l_NLNCD_chunks_clist {
+                \int_use:c { NLNCD_lineno_ }
+              } {
+                \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+                  \int_use:c { NLNCD_lineno_####1 }
+                  \clist_map_break:
+                }
+              }
+            }
+            \hspace*{1ex}
+          }
+          \g_NLNCD_font_tl
+          \the\verbatim@line
+          \hfill
+        }
+        \par
+      }
+    }
+    \clist_if_empty:NTF \l_NLNCD_chunks_clist {
+      \int_gincr:c { NLNCD_lineno_ }
+    } {
+      \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+        \int_gincr:c { NLNCD_lineno_####1 }
+      }
+    }
+    \group_end:
+  }
+  \group_begin:
+  \tl_clear:N \g_NLNCD_chunk_name_tl
+  \let \do \@makeother
+  \dospecials \catcode `\^^M \active
+  \_NLNCD_if_print_code:T {
+    \NLNCD_if_use_minted:TF {
+      \Needspace* { 2\baselineskip }
+    } {
+      \frenchspacing\@vobeyspaces
+    }
+  }
+  \tl_if_empty:NF \g_NLNCD_chunks_tl {
+    \bool_if:NF \g_tmpb_bool {
+      \bool_if:NT \l_tmpb_bool {
+        \tl_set:Nn \g_NLNCD_chunk_name_tl {
+          \hbox_overlap_left:n {
+            \g_NLNCD_font_name_tl
+            \tl_use:N \g_NLNCD_chunks_tl :
+            \hspace{1ex}
+            {
+              \g_NLNCD_font_lineno_tl
+              \bool_if:NF \g_tmpa_bool {
+                \hspace{4ex}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  \tl_show:N \g_NLNCD_chunk_name_tl
+  \verbatim@start
+} {
+  \group_end:
+  \str_if_empty:NT \g_tmpa_str {
+    \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+      \prop_get:NnNT \g_NLNCD_lang_prop { ##1 } \g_tmpa_str {
+        \str_if_empty:NF \g_tmpa_str {
+          \clist_map_break:
+        }
+      }
+    }
+  }
+  \str_if_empty:NT \g_tmpa_str {
+    \str_set:Nn \g_tmpa_str { latex }
+  }
+  \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+    \prop_gput:NnV \g_NLNCD_lang_prop { ##1 } \g_tmpa_str
+  }
+  \_NLNCD_if_print_code:T {
+    \NLNCD_if_use_minted:TF {
+      \iow_close:N \minted@code
+      \vspace* { \dimexpr -\topsep-\parskip }
+      \tl_show:N \g_NLNCD_chunks_tl
+      \tl_show:N \g_NLNCD_chunk_name_tl
+      \tl_if_empty:NF \g_NLNCD_chunk_name_tl {
+        \tl_use:N \g_NLNCD_chunk_name_tl
+        \vspace* { \dimexpr -\topsep-\parskip-\baselineskip }
+        \par\noindent
+      }
+      \exp_args:NV \minted@pygmentize \g_tmpa_str
+      \DeleteFile { \jobname.pyg }
+      \vspace* { \dimexpr -\topsep -\partopsep }
+    } {
+      \@esphack
+    }
+  }
+}
+\ior_new:N \l_NLNCD_in
+\iow_new:N \l_NLNCD_out
+\prop_new:N \g_NLNCD_preamble_prop
+\prop_new:N \g_NLNCD_raw_prop
+\prop_new:N \g_NLNCD_files_prop
+\prop_new:N \g_NLNCD_lang_prop
+\prop_new:N \g_NLNCD_chunks_prop
+\bool_new:N \g_NLNCD_in_impl_bool
+\prg_new_conditional:Nnn \_NLNCD_if_print_code: { T, F, TF } {
+  \bool_if:nTF {
+    \g_NLNCD_in_impl_bool && !\g_NLNCD_with_impl_bool
+  } {
+    \prg_return_false:
+  } {
+    \prg_return_true:
+  }
+}
+\tl_new:N \g_NLNCD_chunks_tl
+\clist_new:N \l_NLNCD_chunks_clist
+\bool_new:N \g_NLNCD_only_top_bool
+\bool_new:N \g_NLNCD_with_impl_bool
+\bool_new:N \g_NLNCD_no_lineno_bool
+\tl_set:Nn \g_NLNCD_font_tl {
+  \ttfamily
+}
+\tl_set:Nn \g_NLNCD_font_name_tl {
+  \sffamily
+  \scriptsize
+  \color{gray}
+}
+\tl_set:Nn \g_NLNCD_font_lineno_tl {
+  \sffamily
+  \tiny
+  \color{lightgray}
+}
+\msg_new:nnn { inlinecode } { :n } { #1 }
+\NewDocumentCommand \InlineCodeSet { m } {
+  \keys_set:nn { NLNCDSet } {#1}
+  \NLNCD_if_use_minted:F {
+    \bool_if:NT \g_NLNCD_minted_on_bool {
       \sys_if_shell:TF {
         \_NLNCD_if_pygmentize:TF {
           \bool_gset_true:N \g_NLNCD_use_minted_bool
-          \RequirePackage{minted}
-          \renewcommand { \theFancyVerbLine } {
-            \scriptsize \g_NLNCD_font_tl
-            \textcolor { lightgray } {
-              \arabic { FancyVerbLine }
-            }
-          }
         } {
           \msg_warning:nnn
             { inlinecode }
@@ -115,21 +319,72 @@
     }
   }
 }
-\providecommand{\InlineCodeEmph}[1]{\textcolor{red}{#1}}
-\cs_set:Npn \_NLNCD_minted_setup:n #1 {
-  \bool_gset_true:N \g_NLNCD_can_minted_bool
+\tl_new:N \g_NLNCD_post_processor_tl
+\tl_new:N \g_NLNCD_post_processor_args_tl
+\keys_define:nn { NLNCDSet } {
+  minted .code:n = {
+    \_NLNCD_minted_on:
+    \setkeys { minted@opt@g } { #1 }
+  },
+  minted~style .code:n = {
+    \RemoveFromHook { begindocument/before } [NLNCDMinted]
+    \AddToHook { begindocument/before } [NLNCDMinted] {
+      \usemintedstyle { #1 }
+    }
+  },
+  only~top .bool_set:N = \g_NLNCD_only_top_bool,
+  only~top .code:n = {
+    \bool_set_true:N \g_NLNCD_only_top_bool
+  },
+  no~lineno .bool_set:N = \g_NLNCD_no_lineno_bool,
+  no~lineno .code:n = {
+    \bool_set_true:N \g_NLNCD_no_lineno_bool
+  },
+  font .tl_set:N = \g_NLNCD_font_tl,
+  name font .tl_set:N = \g_NLNCD_font_name_tl,
+  lineno font .tl_set:N = \g_NLNCD_font_name_lineno_tl,
+  only~description .bool_set_inverse:N = \g_NLNCD_with_impl_bool,
+  only~description .initial:n = false,
+  only~description .code:n = {
+    \bool_set_false:N \g_NLNCD_with_impl_bool
+  },
+  post~processor .tl_set_x:N = \g_NLNCD_post_processor_tl,
+  post~processor~args .tl_set_x:N = \g_NLNCD_post_processor_args_tl,
+  post~processor .tl_set_x:N = \g_NLNCD_post_processor_tl,
+  post~processor~args .tl_set_x:N = \g_NLNCD_post_processor_args_tl,
+  unknown .code:n = \PackageWarning
+    { inlinecode }
+    { Unknown~option~`\l_keys_key_str' },
+}
+\bool_new:N \g_NLNCD_minted_on_bool
+\bool_new:N \g_NLNCD_use_minted_bool
+\prg_new_conditional:Nnn \NLNCD_if_use_minted: { T, F, TF } {
+  \bool_if:NTF \g_NLNCD_use_minted_bool
+    { \prg_return_true:  }
+    { \prg_return_false: }
+}
+\prg_new_conditional:Nnn\_NLNCD_if_pygmentize: { T, F, TF } {
+  \group_begin:
+  \sys_get_shell:nnN {which~pygmentize} {} \l_tmpa_tl
+  \tl_if_empty:NTF \l_tmpa_tl {
+    \tl_set:Nn \l_tmpa_tl { \prg_return_false: }
+  } {
+    \tl_set:Nn \l_tmpa_tl { \prg_return_true: }
+  }
+  \exp_last_unbraced:NV
+  \group_end: \l_tmpa_tl
+}
+\cs_set:Npn \_NLNCD_minted_on: {
+  \bool_gset_true:N \g_NLNCD_minted_on_bool
   \RequirePackage{minted}
-  \setkeys { minted@opt@g } { #1 }
+  \setkeys{ minted@opt@g } { linenos=false }
   \minted@def@opt{post~processor}
   \minted@def@opt{post~processor~args}
-  \pretocmd\minted@inputpyg{%
-    \NLNCD@postprocesspyg
-      {\minted@outputdir\minted@infile}%
+  \pretocmd\minted@inputpyg{
+    \NLNCD@postprocesspyg {\minted@outputdir\minted@infile}
   }{}{\fail}
   \newcommand{\NLNCD@postprocesspyg}[1]{%
-    \tl_if_empty:NTF \g_NLNCD_post_processor_tl {
-      DEBUG:~NO~POST~PROCESSING
-    } {
+    \tl_if_empty:NF \g_NLNCD_post_processor_tl {
        \exp_args:Nx
        \sys_shell_now:n {
          python3\space
@@ -140,61 +395,56 @@
     }
   }
 }
-\InlineCodeSetup {}
-\ior_new:N \l_NLNCD_in
-\iow_new:N \l_NLNCD_out
-\prop_new:N \g_NLNCD_file_prop
-\prop_new:N \g_NLNCD_preamble_prop
-\prop_new:N \g_NLNCD_banner_prop
-\prop_new:N \g_NLNCD_raw_prop
-\prop_new:N \g_NLNCD_lang_prop
+\AddToHook { begindocument / end } {
+  \cs_set_eq:NN \_NLNCD_minted_on: \prg_do_nothing:
+}
+\ProvideDocumentCommand{\InlineCodeEmph}{m}{\textcolor{red}{#1}}
+\AddToHook { begindocument / end } {
+  \cs_set_eq:NN \_NLNCD_minted_on: \prg_do_nothing:
+}
 \keys_define:nn { NLNCDNew } {
-  file .tl_set_x:N = \g_tmpa_tl,
+  file .tl_set_x:N = \l_tmpa_tl,
   file .value_required:n = true,
-  chunks .clist_set:N = \g_tmpa_clist,
+  chunks .code:n = {
+    \clist_set:Nn \l_tmpa_clist { #1 }
+    \clist_sort:Nn \l_tmpa_clist {
+      \str_compare:nNnTF { ##1 } > { ##2 } {
+        \sort_return_swapped:
+      } {
+        \sort_return_same:
+      }
+    }
+  },
   chunks .value_required:n = true,
   lang .code:n = {
-    \str_set:Nn \g_tmpa_str { #1 }
+    \str_set:Nn \l_tmpa_str { #1 }
   },
   lang .value_required:n = true,
-  preamble .default:n = ,
-  preamble .code:n = {
-    \exp_args:NNx \str_set:Nn \l_tmpa_str { #1 }
-  },
   raw .bool_set:N = \l_tmpa_bool,
   raw .code:n = {
     \bool_set_true:N \l_tmpa_bool
   },
+  preamble .tl_set:N = \l_tmpb_tl,
 }
 \DeclareDocumentCommand \InlineCodeNew { m } {
   \RequirePackage{datetime2}
   \group_begin:
-  \clist_clear:N \g_tmpa_clist
-  \str_clear:N \l_tmpa_str
+  \clist_clear:N \l_tmpa_clist
+  \tl_clear:N \l_tmpb_tl
   \bool_set_false:N \l_tmpa_bool
-  \str_set:Nn \g_tmpa_str { latex }
+  \str_set:Nn \l_tmpa_str { latex }
   \exp_args:Nnx \keys_set:nn { NLNCDNew } { #1 }
-  \exp_args:NNV \prop_if_in:NnT \g_NLNCD_file_prop \g_tmpa_tl {
+  \exp_args:NNV \prop_if_in:NnT \g_NLNCD_files_prop \l_tmpa_tl {
     \msg_critical:nnx
       { inlinecode }
       { :n }
-      { Duplicate~file "\g_tmpa_tl'' }
+      { Duplicate~file "\l_tmpa_tl'' }
   }
-  \prop_gput:NVx \g_NLNCD_file_prop \g_tmpa_tl
-    { \clist_use:Nn \g_tmpa_clist , }
-  \prop_gput:NVV \g_NLNCD_preamble_prop \g_tmpa_tl \l_tmpa_str
-  \str_set:Nx \l_tmpa_str { \str_head:N \g_tmpb_tl }
-  \str_if_empty:NT \l_tmpa_str {
-    \str_set_eq:NN \l_tmpa_str \c_percent_str
-  }
-  \tl_set:Nx \l_tmpb_tl {
-    \l_tmpa_str\l_tmpa_str\space\space
-    This~is~file~`\g_tmpa_tl'~
-    generated~from~`\c_sys_jobname_str.tex'~on~\DTMnow.
-  }
-  \prop_gput:NVV \g_NLNCD_banner_prop \g_tmpa_tl \l_tmpb_tl
-  \clist_map_inline:Nn \g_tmpa_clist {
-    \prop_gput:NnV \g_NLNCD_lang_prop { ##1 } \g_tmpa_str
+  \prop_gput:NVx \g_NLNCD_files_prop \l_tmpa_tl
+    { \clist_use:Nn \l_tmpa_clist , }
+  \prop_gput:NVV \g_NLNCD_preamble_prop \l_tmpa_tl \l_tmpb_tl
+  \clist_map_inline:Nn \l_tmpa_clist {
+    \prop_gput:NnV \g_NLNCD_lang_prop { ##1 } \l_tmpa_str
   }
   \group_end:
 }
@@ -203,10 +453,9 @@
     \msg_fatal:nn { :n } { Only~in~preamble:~\cs{InlineCodeNew} }
   }
 }
-\prop_new:N \g_NLNCD_chunks_prop
 \AddToHook { enddocument / end } {
   \group_begin:
-  \prop_map_inline:Nn \g_NLNCD_file_prop {
+  \prop_map_inline:Nn \g_NLNCD_files_prop {
     \iow_open:Nn \l_NLNCD_out {#1}
     \iow_term:x {Exporting~chunks~#2~to~#1}
     \bool_set_false:N \l_tmpa_bool
@@ -214,204 +463,30 @@
       \bool_set:Nn \l_tmpa_bool { \l_tmpa_tl }
     }
     \bool_if:NF \l_tmpa_bool {
-      \prop_get:NnNT \g_NLNCD_banner_prop { #1 } \l_tmpa_tl {
-        \iow_now:Nx \l_NLNCD_out { \l_tmpa_tl }
-      }
       \prop_get:NnNT \g_NLNCD_preamble_prop { #1 } \l_tmpa_tl {
+        \str_set:Nx \l_tmpa_str {
+          \exp_args:Nx \str_head_ignore_spaces:n { \l_tmpa_tl }
+        }
+        \str_if_empty:NT \l_tmpa_str {
+          \str_set_eq:NN \l_tmpa_str \c_percent_str
+        }
+        \tl_set:Nx \l_tmpb_tl {
+          \l_tmpa_str\l_tmpa_str\space\space
+          This~is~file~`#1'~
+          generated~from~`\c_sys_jobname_str.tex'~on~\DTMnow.
+        }
+        \iow_now:Nx \l_NLNCD_out { \l_tmpb_tl }
         \iow_now:Nx \l_NLNCD_out { \l_tmpa_tl }
       }
     }
     \clist_map_inline:nn { #2 } {
-      \prop_get:NnN \g_NLNCD_chunks_prop { ##1 } \l_tmpa_tl
-      \exp_args:NNV \iow_now:Nn \l_NLNCD_out \l_tmpa_tl
+      \prop_get:NnNT \g_NLNCD_chunks_prop { ##1 } \l_tmpa_tl {
+        \exp_args:NNV \iow_now:Nn \l_NLNCD_out \l_tmpa_tl
+      }
     }
     \iow_close:N \l_NLNCD_out
   }
   \group_end:
-}
-\bool_new:N \g_NLNCD_in_impl_bool
-\bool_gset_false:N \g_NLNCD_in_impl_bool
-\prg_new_conditional:Nnn \_NLNCD_if_print_code: { T, F, TF } {
-  \bool_if:nTF {
-    \g_NLNCD_in_impl_bool &&
-    !\g_NLNCD_with_impl_bool
-  } {
-    \prg_return_false:
-  } {
-    \prg_return_true:
-  }
-}
-\keys_define:nn { NLNCDCode } {
-  chunks .clist_set:N = \g_tmpa_clist,
-  chunks .value_required:n = true,
-  lang .code:n = {
-    \str_set:Nn \g_tmpa_str { #1 }
-  },
-  no~display .bool_set:N = \l_tmpa_bool,
-  no~display .code:n = {
-    \bool_set_true:N \l_tmpa_bool
-  },
-  unknown .code:n = \PackageWarning
-    { inlinecode }
-    { Unknown~option~`\l_keys_key_str' },
-}
-\DeclareDocumentEnvironment { InlineCode } { m } {
-  \bool_set_false:N \l_tmpa_bool
-  \str_clear:N \g_tmpa_str
-  \exp_args:Nnx \keys_set:nn { NLNCDCode } { #1 }
-  \_NLNCD_if_print_code:T {
-    \vspace { -\baselineskip }
-    \vspace { 0.25\baselineskip }
-    \par\noindent
-    \_NLNCD_if_use_minted:T {
-      \vspace*{ -\baselineskip }
-    }
-    \cs_set:Npn \NLNCD_line_number: {
-      \makebox [0mm] [r] {
-        \g_NLNCD_font_tl \scriptsize
-        \textcolor { lightgray } {
-          \arabic { FancyVerbLine }
-        }
-        \hspace {1.5ex}
-      }
-    }
-  }
-  \NLNCD_verbatim
-} {
-  \endNLNCD_verbatim
-  \_NLNCD_if_print_code:T {
-    \vspace{ .2\baselineskip }
-    \par\noindent
-  }
-}
-\newenvironment {NLNCD_verbatim} {%
-  \clist_map_inline:Nn \g_tmpa_clist {
-    \prop_if_in:NnF \g_NLNCD_chunks_prop { ##1 } {
-      \int_zero_new:c { NLNCD@lineno@ ##1 }
-    }
-    \int_compare:nNnT { \int_use:c {NLNCD@lineno@##1} }=\c_zero_int {
-      \int_gincr:c { NLNCD@lineno@##1 }
-    }
-  }
-  \_NLNCD_if_print_code:T {
-    \group_begin:
-    \tl_set:Nx \l_tmpa_tl { \clist_use:Nn \g_tmpa_clist , }
-    \bool_if:NF \l_tmpa_bool {
-      \bool_if:NTF \g_NLNCD_only_top_bool {
-        \tl_if_eq:NNF \l_tmpa_tl \g_NLNCD_chunks_tl {
-          \makebox [0mm] [r] {
-            \g_NLNCD_font_tl
-            \scriptsize
-            \color{gray}
-            \tl_use:N \l_tmpa_tl :
-            \hspace{6ex}
-          }
-        }
-      } {
-        \makebox [0mm] [r] {
-          \g_NLNCD_font_tl
-          \scriptsize
-          \color{gray}
-          \tl_use:N \l_tmpa_tl :
-          \hspace{6ex}
-        }
-      }
-    }
-    \tl_gset_eq:NN \g_NLNCD_chunks_tl \l_tmpa_tl
-    \group_end:
-    \_NLNCD_if_use_minted:TF {
-      \setkeys{ minted@opt@g } { linenos }
-      \setkeys { FV } {
-        firstnumber=last,
-      }
-      \clist_map_inline:Nn \g_tmpa_clist {
-        \exp_args:Nnx \setkeys { FV } {
-          firstnumber=\int_use:c { NLNCD@lineno@##1 },
-        }
-        \clist_map_break:
-      }
-      \iow_open:Nn \minted@code { \jobname.pyg }
-      \Needspace* { 2\baselineskip }
-    } {
-      \@bsphack
-    }
-  }
-  \def \verbatim@processline {
-    \clist_map_inline:Nn \g_tmpa_clist {
-      \prop_get:NnNTF \g_NLNCD_chunks_prop { ####1 } \l_tmpa_tl {
-        \tl_put_right:Nx \l_tmpa_tl { \the\verbatim@line \iow_newline: }
-        \exp_args:NNnV
-        \prop_gput:Nnn \g_NLNCD_chunks_prop { ####1 } \l_tmpa_tl
-      } {
-        \exp_args:NNnx
-        \prop_gput:Nnn \g_NLNCD_chunks_prop { ####1 }
-          { \the\verbatim@line \iow_newline: }
-      }
-    }
-    \_NLNCD_if_print_code:T {
-      \_NLNCD_if_use_minted:TF {
-        \iow_now:Nx \minted@code { \the\verbatim@line }
-      } {
-        \noindent\leavevmode
-        \hspace*{-5ex}
-        \begin{minipage}[c][1ex]{\textwidth}
-          \makebox[4ex]{%
-            \leavevmode
-            \sffamily\tiny\color{lightgray}\hfill%
-            \clist_map_inline:Nn \g_tmpa_clist {
-              \int_use:c { NLNCD@lineno@####1 }
-            }
-          }
-          \hspace* { 1ex }
-          {
-            \g_NLNCD_font_tl
-            \the\verbatim@line
-          }
-        \end{minipage}
-        \par
-      }
-    }
-    \clist_map_inline:Nn \g_tmpa_clist {
-      \int_gincr:c { NLNCD@lineno@####1 }
-    }
-  }
-  \group_begin:
-  \let \do \@makeother
-  \dospecials \catcode `\^^M \active
-  \_NLNCD_if_print_code:T {
-    \_NLNCD_if_use_minted:F {
-      \frenchspacing\@vobeyspaces
-    }
-  }
-  \verbatim@start
-} {
-  \group_end:
-  \str_if_empty:NT \g_tmpa_str {
-    \clist_map_inline:Nn \g_tmpa_clist {
-      \prop_get:NnNT \g_NLNCD_lang_prop { ##1 } \g_tmpa_str {
-        \str_if_empty:NF \g_tmpa_str {
-          \clist_map_break:
-        }
-      }
-    }
-  }
-  \str_if_empty:NT \g_tmpa_str {
-    \str_set:Nn \g_tmpa_str { latex }
-  }
-  \clist_map_inline:Nn \g_tmpa_clist {
-    \prop_gput:NnV \g_NLNCD_lang_prop { ##1 } \g_tmpa_str
-  }
-  \_NLNCD_if_print_code:T {
-    \_NLNCD_if_use_minted:TF {
-      \iow_close:N \minted@code
-      \vspace* { \dimexpr -\topsep-\partopsep-\parskip }
-      \exp_args:NV \minted@pygmentize \g_tmpa_str
-      \DeleteFile { \jobname.pyg }
-      \vspace* { \dimexpr -\topsep -\partopsep }
-    } {
-      \@esphack
-    }
-  }
 }
 \DeclareDocumentCommand \InlineCodeStorePreamble { m m } {
   \group_begin:
@@ -478,6 +553,7 @@
 \AddToHook { shipout/before } {
   \tl_gclear:N \g_NLNCD_chunks_tl
 }
+\InlineCodeSet {}
 %% 
 %% Copyright (C) 2022 by Jérôme LAURENS <jerome.laurens@u-bourgogne.fr>
 %% 

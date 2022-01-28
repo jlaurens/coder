@@ -76,7 +76,11 @@ and the derived files           inlinecode.ins,
   \expandafter\endgroup
 \fi
 %</internal>
+% \def\fileversion{v1.0}
+% \def\filedate{2009/10/06}
 %<*package>
+\def\fileversion{v1.0}
+\def\filedate{2009/10/06}
 \NeedsTeXFormat{LaTeX2e}
 \RequirePackage{needspace, xcolor, verbatim}
 \ProvidesExplPackage{inlinecode}
@@ -90,7 +94,6 @@ and the derived files           inlinecode.ins,
 \EnableCrossrefs
 \CodelineIndex
 \RecordChanges
-\AddToHook{env/variable/after}{\vspace{0.5\baselineskip}}
 \begin{document}
   \DocInput{\jobname.dtx}
 \end{document}
@@ -115,232 +118,474 @@ and the derived files           inlinecode.ins,
 %
 %\changes{v1.0a}{2022/01/20}{First public release}
 %
-% \section{Basic example}
-% \begin{verbatim}
-%   \documentclass{article}
-%   \RequirePackage{inlinecode}
-%   \InlineCodeNew{file=Readme.txt, chunks=txt}
-%   \begin{document}
-%   \begin{InlineCode}{chunks=txt}
-%   This is a readme text file
-%   \end{InlineCode}
-%   \end{document}
-% \end{verbatim}
-% Typesetting this document creates a |readme.txt| file
-% which content reads \texttt{This is a readme text file}.
+% \begin{abstract}
+% Usually, documentation is put inside the code,
+% \pkg{inlinecode} allows to work the other way round
+% by putting code inside the documentation.
+% This is particularly interesting when different code files share some logic
+% and should be documented all at once.
 %
-% \section{Initialize}
-% To load the package
-% |\RequirePackage{inlinecode}|.
+% The file \texttt{inlinecode-manual} gives different examples. Here is the implementation of the package.
+% \end{abstract}
 %
-% \begin{function}{\InlineCodeSetup}
-% \begin{syntax}
-% \cs{InlineCodeSetup} \marg{key[=value] list}
-% \end{syntax}
-% To set up the package.
-% Must be used only once.
-% The \texttt{\meta{key}[=\meta{value}]} items are:
-% \end{function}
+% \section{Other packages and technologies}
 % \begin{description}
-% \item[\ttfamily minted] to activate syntax coloring with pygment,
-% \item[\ttfamily minted style=\meta{name}]
-% to select a predefined minted style,
-% \item[\ttfamily sty=\meta{package name}]
-% to load a package, possibly the created package,
-% \item[\ttfamily only top] to avoid chunk names repetitions,
-% \item[\ttfamily only description] to typeset only the description.
+% \item [\texttt{docstrip}] offers similar features,
+% it is somehow more powerful than \pkg{inlinecode} at the cost of
+% more technicality and less practicality,
+% \item [\texttt{ydoc.cls}, \texttt{skdoc.cls}] are full document class with similar features but many more unrelated.
+% \pkg{inlinecode} focuses on code inlining and interfaces well with |minted|
+% for a smart syntax hilighting.
 % \end{description}
 %
-% \section{Files}
-% \begin{function}{\InlineCodeNew}
-% \begin{syntax}
-% \cs{InlineCodeNew}\marg{key[=value] list}
-% \end{syntax}
-% The \texttt{\meta{key}[=\meta{value}]} items are:
-% \end{function}
-% \begin{description}
-% \item[\ttfamily file=\meta{file name}] is mandatory, the file named \meta{file name} will be created,
-% \item[\ttfamily chuncks=\meta{comma separated  list of chunk names}] to list the chunks inserted as file contents, ordered and mandatory, 
-% \item[\ttfamily lang] to specify the language, defaults to \texttt{latex},
-% \item[\ttfamily raw] to remove any additional material,
-% \item[\ttfamily preamble] the added preamble.
-% \end{description}
+% \section{Known bugs and limitations}
+% \begin{itemize}
+% \item
+% vertical spacing above and below \texttt{InlineCode} environment is
+% not allways properly managed
+% \item
+% \pkg{inlinecode} should not be used with \pkg{l3doc}.
+% \end{itemize}
 %
-% \begin{function}{\InlineCodeStorePreamble}
-% \begin{syntax}
-% \cs{InlineCodeStorePreamble} \marg{variable} \marg{file name}
-% \end{syntax}
-% Store the content of \meta{file name} into the variable \meta{variable}.
-% \end{function}
-%%
-% \section{Code chunks}
-% The chunk name are displayed in the margin, uness \texttt{only top} was specified and not at the top and continue.
-% \begin{variable}{\g_NLNCD_chunks_tl}
-% The comma separated list of current chunks.
-% \end{variable}
-%    \begin{macrocode}
-\tl_new:N \g_NLNCD_chunks_tl
-%    \end{macrocode}
-% \begin{environment}{InlineCode}
-% \begin{syntax}
-% \cs{begin}\Arg{InlineCode}\oarg{key[=value] list} ... \cs{end}\Arg{InlineCode}
-% \end{syntax}
-% \noindent The \texttt{\meta{key}[=\meta{value}]} items are:
-% \end{environment}
-% \begin{description}
-% \item[\ttfamily chunks=\meta{comma separated list of chunk names}] defines the list of all the chunks where the environment body is append, required,
-% \item[\ttfamily no display] to not display he chunk names
-% \end{description}
-%
-%\StopEventually{^^A
-%  \PrintChanges
-%  \PrintIndex
-%}
-%
-% \section{Separators}
-% \begin{function}{\InlineCodeImplementation}
-% \begin{syntax}
-% \cs{InlineCodeImplementation}
-% \end{syntax}
-% Start an implementation part where all the sectioning commands do nothing.
-% \end{function}
-% \begin{function}{\InlineCodeFinale}
-% \begin{syntax}
-% \cs{InlineCodeFinale}
-% \end{syntax}
-% Stop an implementation part.
-% \end{function}
-
 % \end{documentation}
-%
+% 
 % \begin{implementation}
-%
-% \section{\pkg{inlinecode} implementation}
 %
 %    \begin{macrocode}
 %<*package>
 %    \end{macrocode}
-% \subsection{All purpose messaging}
 %    \begin{macrocode}
-\msg_new:nnn { inlinecode } { :n } { #1 }
+\makeatletter
 %    \end{macrocode}
-% \subsection{minted related variables and conditionals}
-% Whether minted is available:
+% \section{\texttt{InlineCode} environment}
+% \begin{environment}{InlineCode}
+% \begin{syntax}
+% \cs{begin}\Arg{InlineCode}\oarg{key[=value] list} ... \cs{end}\Arg{InlineCode}
+% \end{syntax}
+% \end{environment}
+% The \texttt{\meta{key}[=\meta{value}]} items are defined by the \texttt{NLNCDCode} key-value controls.
 %    \begin{macrocode}
-\bool_new:N \g_NLNCD_can_minted_bool
-\bool_gset_false:N \g_NLNCD_can_minted_bool
+\keys_define:nn { NLNCDCode } {
 %    \end{macrocode}
-% Whether minted is used and an associate conditional:
+% We cannot allways use scratch variables here.
+% \begin{description}
+% \item[\ttfamily chunks=\meta{comma separated list of chunk names}],
+% for each chunk name of the given list, 
+% the body of the environment is appended to a dedicated storage.
 %    \begin{macrocode}
-\bool_new:N \g_NLNCD_use_minted_bool
-\bool_gset_false:N \g_NLNCD_use_minted_bool
+  chunks .code:n = {
+    \clist_set:Nn \l_NLNCD_chunks_clist { #1 }
+    \clist_sort:Nn \l_NLNCD_chunks_clist {
+      \str_compare:nNnTF { ##1 } > { ##2 } {
+        \sort_return_swapped:
+      } {
+        \sort_return_same:
+      }
+    }
+  },
 %    \end{macrocode}
+% \item[\ttfamily no lineno{[=true/false]}] to not display the line numbers
+%    \begin{macrocode}
+  no~lineno .bool_set:N = \g_tmpa_bool,
+  no~lineno .code:n = {
+    \bool_set_true:N \g_tmpa_bool
+  },
+%    \end{macrocode}
+% \item[\ttfamily no name{[=true/false]}] to not display the chunk names
+%    \begin{macrocode}
+  no~name .bool_set:N = \g_tmpb_bool,
+  no~name .code:n = {
+    \bool_set_true:N \g_tmpb_bool
+  },
+%    \end{macrocode}
+% \cs{g_tmpa_str} for \texttt{lang}.
+%    \begin{macrocode}
+  lang .code:n = {
+    \str_set:Nn \g_tmpa_str { #1 }
+  },
+%    \end{macrocode}
+% \end{description}
+%    \begin{macrocode}
+  unknown .code:n = \PackageWarning
+    { inlinecode }
+    { Unknown~option~`\l_keys_key_str' },
+}
+\DeclareDocumentEnvironment { InlineCode } { m } {
+  \bool_set_false:N \g_tmpa_bool
+  \bool_set_false:N \g_tmpb_bool
+  \bool_set_false:N \l_tmpa_bool
+  \str_clear:N \g_tmpa_str
+  \clist_clear:N \l_NLNCD_chunks_clist
+  \exp_args:Nnx \keys_set:nn { NLNCDCode } { #1 }
+  \_NLNCD_if_print_code:T {
+    \if_mode_vertical:\noindent\else
+      \vspace*{ \topsep }
+      \par\noindent
+    \fi
+    \cs_set:Npn \NLNCD_line_number: {
+      \hbox_overlap_left:n {
+        {
+          \g_NLNCD_font_lineno_tl
+          \arabic { FancyVerbLine }
+        }
+        \hspace {1ex}
+      }
+    }
+  }
+  \NLNCD_verbatim
+} {
+  \endNLNCD_verbatim
+  \_NLNCD_if_print_code:T {
+    \vspace*{ \topsep }
+    \par
+  }
+}
+%    \end{macrocode}
+%    \begin{macrocode}
+\int_zero_new:c { NLNCD_lineno_ }
+%    \end{macrocode}
+%    \begin{macrocode}
+\tl_new:N \g_NLNCD_chunk_name_tl
+\newenvironment {NLNCD_verbatim} {%
+  \clist_if_empty:NTF \l_NLNCD_chunks_clist {
+    \int_compare:nNnT { \int_use:c { NLNCD_lineno_ } }=\c_zero_int {
+      \int_gincr:c { NLNCD_lineno_ }
+    }
+  } {
+    \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+      \prop_if_in:NnF \g_NLNCD_chunks_prop { ##1 } {
+        \int_zero_new:c { NLNCD_lineno_ ##1 }
+      }
+      \int_compare:nNnT { \int_use:c {NLNCD_lineno_##1} }=\c_zero_int {
+        \int_gincr:c { NLNCD_lineno_##1 }
+      }
+    }
+  }
+  \_NLNCD_if_print_code:T {
+    \bool_set_false:N \l_tmpb_bool
+    \group_begin:
+    \tl_set:Nx \l_tmpa_tl { \clist_use:Nn \l_NLNCD_chunks_clist , }
+    \tl_if_empty:NF \l_tmpa_tl {
+      \bool_if:NF \g_NLNCD_no_lineno_bool {
+        \bool_if:NF \l_tmpa_bool {
+          \bool_if:NTF \g_NLNCD_only_top_bool {
+            \tl_if_eq:NNF \l_tmpa_tl \g_NLNCD_chunks_tl {
+              \bool_set_true:N \l_tmpb_bool
+            }
+          } {
+            \bool_set_true:N \l_tmpb_bool
+          }
+        }
+      }
+    }
+    \tl_gset_eq:NN \g_NLNCD_chunks_tl \l_tmpa_tl
+    \bool_if:NTF \l_tmpb_bool {
+      \exp_args:NNNV
+      \group_end:
+      \bool_set:Nn \l_tmpb_bool \l_tmpb_bool
+    } {
+      \group_end:
+    }
+    \NLNCD_if_use_minted:TF {
+      \setkeys { FV } {
+        firstnumber=last,
+      }
+      \clist_if_empty:NTF \l_NLNCD_chunks_clist {
+        \exp_args:Nnx \setkeys { FV } {
+          firstnumber=\int_use:c { NLNCD_lineno_ },
+        }
+      } {
+        \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+          \exp_args:Nnx \setkeys { FV } {
+            firstnumber=\int_use:c { NLNCD_lineno_##1 },
+          }
+          \clist_map_break:
+        }
+      }
+      \iow_open:Nn \minted@code { \jobname.pyg }
+    } {
+      \@bsphack
+    }
+  }
+  \def \verbatim@processline {
+    \group_begin:
+    \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+      \prop_get:NnNTF \g_NLNCD_chunks_prop { ####1 } \l_tmpa_tl {
+        \tl_put_right:Nx \l_tmpa_tl { \the\verbatim@line \iow_newline: }
+        \exp_args:NNnV
+        \prop_gput:Nnn \g_NLNCD_chunks_prop { ####1 } \l_tmpa_tl
+      } {
+        \exp_args:NNnx
+        \prop_gput:Nnn \g_NLNCD_chunks_prop { ####1 }
+          { \the\verbatim@line \iow_newline: }
+      }
+    }
+    \_NLNCD_if_print_code:T {
+      \NLNCD_if_use_minted:TF {
+        \tl_set:Nx \l_tmpa_tl { \the\verbatim@line }
+        \exp_args:NNV \iow_now:Nn \minted@code \l_tmpa_tl
+      } {
+        \noindent
+        \tl_use:N \g_NLNCD_chunk_name_tl
+        \tl_clear:N \g_NLNCD_chunk_name_tl
+        \hbox_to_wd:nn { \textwidth } {
+          \bool_if:NF \g_tmpa_bool {
+            \hspace*{-1ex}
+            \hbox_overlap_left:n {
+              \g_NLNCD_font_lineno_tl
+              \clist_if_empty:NTF \l_NLNCD_chunks_clist {
+                \int_use:c { NLNCD_lineno_ }
+              } {
+                \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+                  \int_use:c { NLNCD_lineno_####1 }
+                  \clist_map_break:
+                }
+              }
+            }
+            \hspace*{1ex}
+          }
+          \g_NLNCD_font_tl
+          \the\verbatim@line        
+          \hfill
+        }
+        \par
+      }
+    }
+    \clist_if_empty:NTF \l_NLNCD_chunks_clist {
+      \int_gincr:c { NLNCD_lineno_ }
+    } {
+      \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+        \int_gincr:c { NLNCD_lineno_####1 }
+      }
+    }
+    \group_end:
+  }
+  \group_begin:
+  \tl_clear:N \g_NLNCD_chunk_name_tl
+  \let \do \@makeother
+  \dospecials \catcode `\^^M \active
+  \_NLNCD_if_print_code:T {
+    \NLNCD_if_use_minted:TF {
+      \Needspace* { 2\baselineskip }
+    } {
+      \frenchspacing\@vobeyspaces
+    }
+  }
+  \tl_if_empty:NF \g_NLNCD_chunks_tl {
+    \bool_if:NF \g_tmpb_bool {
+      \bool_if:NT \l_tmpb_bool {
+        \tl_set:Nn \g_NLNCD_chunk_name_tl {
+          \hbox_overlap_left:n {
+            \g_NLNCD_font_name_tl
+            \tl_use:N \g_NLNCD_chunks_tl :
+            \hspace{1ex}
+            {
+              \g_NLNCD_font_lineno_tl
+              \bool_if:NF \g_tmpa_bool {
+                \hspace{4ex}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  \tl_show:N \g_NLNCD_chunk_name_tl
+  \verbatim@start
+} {
+  \group_end:
+  \str_if_empty:NT \g_tmpa_str {
+    \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+      \prop_get:NnNT \g_NLNCD_lang_prop { ##1 } \g_tmpa_str {
+        \str_if_empty:NF \g_tmpa_str {
+          \clist_map_break:
+        }
+      }
+    }
+  }
+  \str_if_empty:NT \g_tmpa_str {
+    \str_set:Nn \g_tmpa_str { latex }
+  }
+  \clist_map_inline:Nn \l_NLNCD_chunks_clist {
+    \prop_gput:NnV \g_NLNCD_lang_prop { ##1 } \g_tmpa_str
+  }
+  \_NLNCD_if_print_code:T {
+    \NLNCD_if_use_minted:TF {
+      \iow_close:N \minted@code
+      \vspace* { \dimexpr -\topsep-\parskip }
+      \tl_show:N \g_NLNCD_chunks_tl
+      \tl_show:N \g_NLNCD_chunk_name_tl
+      \tl_if_empty:NF \g_NLNCD_chunk_name_tl {
+        \tl_use:N \g_NLNCD_chunk_name_tl
+        \vspace* { \dimexpr -\topsep-\parskip-\baselineskip }        
+        \par\noindent
+      }
+      \exp_args:NV \minted@pygmentize \g_tmpa_str
+      \DeleteFile { \jobname.pyg }
+      \vspace* { \dimexpr -\topsep -\partopsep }
+    } {
+      \@esphack
+    }
+  }
+}
+%    \end{macrocode}
+% \section{Global variables and utilities}
+%
+% \subsection{Output}
+%
+% \begin{variable}{\l_NLNCD_in}
+% Input file identifier
+%    \begin{macrocode}
+\ior_new:N \l_NLNCD_in
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\l_NLNCD_out}
+% Output file identifier
+%    \begin{macrocode}
+\iow_new:N \l_NLNCD_out
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\g_NLNCD_preamble_prop}
+%   Global property list of \texttt{\meta{file name}=\meta{preamble}} items.
+%    \begin{macrocode}
+\prop_new:N \g_NLNCD_preamble_prop
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\g_NLNCD_raw_prop}
+% Global property list of \texttt{\meta{file name}=\meta{boolean value}}
+% items indicating whether the given file should not contain
+% extra material like banners.
+%    \begin{macrocode}
+\prop_new:N \g_NLNCD_raw_prop
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\g_NLNCD_files_prop}
+% Global property list of \texttt{\meta{file name}=\meta{comma separated list of chunk names}} items.
+%    \begin{macrocode}
+\prop_new:N \g_NLNCD_files_prop
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\g_NLNCD_lang_prop}
+% Global property list of \texttt{\meta{chunk name}=\meta{language}} items.
+%    \begin{macrocode}
+\prop_new:N \g_NLNCD_lang_prop
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\g_NLNCD_chunks_prop}
+%   Global property list of \texttt{\meta{chunk name}=\meta{chunk content}} items.
+%    \begin{macrocode}
+\prop_new:N \g_NLNCD_chunks_prop
+%    \end{macrocode}
+% \end{variable}
+% \subsection{Management}
+% \begin{variable}{\g_NLNCD_in_impl_bool}
+% Whether we are currently in the implementation section.
+%    \begin{macrocode}
+\bool_new:N \g_NLNCD_in_impl_bool
+%    \end{macrocode}
+% \end{variable}
 % \begin{function}[TF]
-%   {\_NLNCD_if_use_minted:}
+%   {\_NLNCD_if_print_code:}
 %   \begin{syntax}
-%     \cs{_NLNCD_if_use_minted:TF} \Arg{true code} \Arg{false code}
+%     \cs{\_NLNCD_if_print_code:TF} \Arg{true code} \Arg{false code}
 %   \end{syntax}
-%   Execute \meta{true code} when using |minted|, \meta{false code} otherwise.
+%   Execute \meta{true code} when code should be printed, \meta{false code} otherwise.
 %    \begin{macrocode}
-\prg_new_conditional:Nnn \_NLNCD_if_use_minted: { T, F, TF } {
-  \bool_if:NTF \g_NLNCD_use_minted_bool
-    { \prg_return_true:  }
-    { \prg_return_false: }
+\prg_new_conditional:Nnn \_NLNCD_if_print_code: { T, F, TF } {
+  \bool_if:nTF {
+    \g_NLNCD_in_impl_bool && !\g_NLNCD_with_impl_bool
+  } {
+    \prg_return_false:
+  } {
+    \prg_return_true:
+  }
 }
 %    \end{macrocode}
 % \end{function}
+% \begin{variable}{\g_NLNCD_chunks_tl}
+% The comma separated list of current chunks.
+% If the next list of chunks is the same as the current one,
+% then it might not display. 
+%    \begin{macrocode}
+\tl_new:N \g_NLNCD_chunks_tl
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\l_NLNCD_chunks_clist}
+% The comma separated list of current chunks.
+%    \begin{macrocode}
+\clist_new:N \l_NLNCD_chunks_clist
+%    \end{macrocode}
+% \end{variable}
 %
-% Conditional for \texttt{pygmentize} availability:
-%    \begin{macrocode}
-\prg_new_conditional:Nnn\_NLNCD_if_pygmentize: { T, F, TF } {
-  \group_begin:
-  \sys_get_shell:nnN {which~pygmentize} {} \l_tmpa_tl
-  \tl_if_empty:NTF \l_tmpa_tl {
-    \tl_set:Nn \l_tmpa_tl { \prg_return_false: }
-  } {
-    \tl_set:Nn \l_tmpa_tl { \prg_return_true: }
-  }
-  \exp_last_unbraced:NV \group_end: \l_tmpa_tl
-}
-
-%    \end{macrocode}
-% |pygment| processing
-%    \begin{macrocode}
-\tl_new:N \g_NLNCD_post_processor_tl
-\tl_new:N \g_NLNCD_post_processor_args_tl
-  
-\makeatletter
-%    \end{macrocode}
-% \subsection{\cs{InlineCodeSetup}}
 % \begin{variable}{\g_NLNCD_only_top_bool}
 % Whether chunk names should only display at the top.
 % \end{variable}
 %    \begin{macrocode}
 \bool_new:N \g_NLNCD_only_top_bool
-\bool_gset_false:N \g_NLNCD_only_top_bool
 %    \end{macrocode}
 % \begin{variable}{\g_NLNCD_with_impl_bool}
-% 
-% \end{variable}
 %    \begin{macrocode}
 \bool_new:N \g_NLNCD_with_impl_bool
-\bool_gset_true:N \g_NLNCD_with_impl_bool
 %    \end{macrocode}
-% \texttt{NLNCDSetup} keys definitions used to parse \cs{InlineCodeSetup} unique argument.
+% \end{variable}
+% \begin{variable}{\g_NLNCD_no_lineno_bool}
+% Whether line numbers are displayed in the margin (false) or in the text (true)
 %    \begin{macrocode}
-\keys_define:nn { NLNCDSetup } {
-  sty .tl_set_x:N = \l_tmpa_str,
-  sty .default:V = \c_sys_jobname_str,
-  sty .initial:n = ,
-  minted~style .code:n = {
-    \RemoveFromHook { begindocument/before } [NLNCDMinted]
-    \AddToHook { begindocument/before } [NLNCDMinted] {
-      \usemintedstyle { #1 }
-    }
-  },
-  minted .code:n = \_NLNCD_minted_setup:n { #1 },
-  post~processor .tl_set_x:N = \g_NLNCD_post_processor_tl,
-  post~processor~args .tl_set_x:N = \g_NLNCD_post_processor_args_tl,
-  font .tl_set:N = \g_NLNCD_font_tl,
-  font .initial:n = \ttfamily,
-  only~top .bool_gset:N = \g_NLNCD_only_top_bool,
-  only~top .initial:n = false,  
-  only~top .code:n = {
-    \bool_gset_true:N \g_NLNCD_only_top_bool
-  },
-  only~description .bool_gset_inverse:N = \g_NLNCD_with_impl_bool,
-  only~description .initial:n = false,  
-  only~description .code:n = {
-    \bool_gset_false:N \g_NLNCD_with_impl_bool
-  },
-  unknown .code:n = \PackageWarning
-    { inlinecode }
-    { Unknown~option~`\l_keys_key_str' },
+\bool_new:N \g_NLNCD_no_lineno_bool
+%    \end{macrocode}
+% \end{variable}
+%
+% \begin{variable}{\g_NLNCD_font_tl}
+% Font specifier for inline code.
+%    \begin{macrocode}
+\tl_set:Nn \g_NLNCD_font_tl {
+  \ttfamily
 }
-
 %    \end{macrocode}
-% Main command
+% \end{variable}
+%
+% \begin{variable}{\g_NLNCD_font_name_tl}
+% Font specifier for inline code.
 %    \begin{macrocode}
-\NewDocumentCommand \InlineCodeSetup { m } {
-  \str_clear:N \l_tmpa_str
-  \keys_set:nn { NLNCDSetup } {#1}
-  \str_if_empty:NF \l_tmpa_str {
-    \file_if_exist:nT { \l_tmpa_str.sty } {
-      \RequirePackage{ \l_tmpa_str }
-    }
-  }
-  \bool_if:NF \g_NLNCD_use_minted_bool {
-    \bool_if:NT \g_NLNCD_can_minted_bool {
+\tl_set:Nn \g_NLNCD_font_name_tl {
+  \sffamily
+  \scriptsize
+  \color{gray}
+}
+%    \end{macrocode}
+% \end{variable}
+%
+% \begin{variable}{\g_NLNCD_font_lineno_tl}
+% Font specifier for inline code.
+%    \begin{macrocode}
+\tl_set:Nn \g_NLNCD_font_lineno_tl {
+  \sffamily
+  \tiny
+  \color{lightgray}
+}
+%    \end{macrocode}
+% \end{variable}
+%
+% \section{All purpose messaging}
+%    \begin{macrocode}
+\msg_new:nnn { inlinecode } { :n } { #1 }
+%    \end{macrocode}
+%
+% \section{\cs{InlineCodeSet}}
+% \begin{function}{\InlineCodeSet}
+% \begin{syntax}
+% \cs{InlineCodeSet} \marg{key[=value] list}
+% \end{syntax}
+% To set up the package. This is executed at the end of the preamble.
+% \end{function}
+%    \begin{macrocode}
+\NewDocumentCommand \InlineCodeSet { m } {
+  \keys_set:nn { NLNCDSet } {#1}
+  \NLNCD_if_use_minted:F {
+    \bool_if:NT \g_NLNCD_minted_on_bool {
       \sys_if_shell:TF {
         \_NLNCD_if_pygmentize:TF {
           \bool_gset_true:N \g_NLNCD_use_minted_bool
-          \RequirePackage{minted}
-          \renewcommand { \theFancyVerbLine } {
-            \scriptsize \g_NLNCD_font_tl
-            \textcolor { lightgray } {
-              \arabic { FancyVerbLine }
-            }
-          }
         } {
           \msg_warning:nnn
             { inlinecode }
@@ -357,20 +602,162 @@ and the derived files           inlinecode.ins,
   }
 }
 %    \end{macrocode}
-% Utilities to setup |pygment| post processing.
-% The |pygment| post processor marks some code with \cs{InlineCodeEmph}.
+% The unique mandatory argument of \cs{InlineCodeSet} is a list of \texttt{\meta{key}[=\meta{value}]} items defined by \texttt{NLNCDSet} key-value controls.
+% \begin{variable}{\g_NLNCD_post_processor_tl}
+% \texttt{pygment} post processor.
 %    \begin{macrocode}
-\providecommand{\InlineCodeEmph}[1]{\textcolor{red}{#1}}
-\cs_set:Npn \_NLNCD_minted_setup:n #1 {
-  \bool_gset_true:N \g_NLNCD_can_minted_bool
+\tl_new:N \g_NLNCD_post_processor_tl
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\g_NLNCD_post_processor_args_tl}
+% \texttt{pygment} post processor arguments.
+%    \begin{macrocode}
+\tl_new:N \g_NLNCD_post_processor_args_tl
+%    \end{macrocode} 
+% \end{variable}
+%    \begin{macrocode}
+\keys_define:nn { NLNCDSet } {
+%    \end{macrocode}
+% \begin{description}
+% \item[\ttfamily minted] to activate syntax coloring with \texttt{pygment},
+% calls \cs{_NLNCD_minted_on} and forwards the argument as \texttt{minted} option,
+%    \begin{macrocode}
+  minted .code:n = {
+    \_NLNCD_minted_on:
+    \setkeys { minted@opt@g } { #1 }
+  },
+%    \end{macrocode}
+% \item[\ttfamily minted style=\meta{name}]
+% to select a predefined minted style, forwarded to \cs{usemintedstyle},
+%    \begin{macrocode}
+  minted~style .code:n = {
+    \RemoveFromHook { begindocument/before } [NLNCDMinted]
+    \AddToHook { begindocument/before } [NLNCDMinted] {
+      \usemintedstyle { #1 }
+    }
+  },
+%    \end{macrocode}
+% \item[\ttfamily only top] to avoid chunk names repetitions, if on the same page,
+% two consecutive code chunks have the same chunk names, the second names are not displayed.
+%    \begin{macrocode}
+  only~top .bool_set:N = \g_NLNCD_only_top_bool,
+  only~top .code:n = {
+    \bool_set_true:N \g_NLNCD_only_top_bool
+  },
+%    \end{macrocode}
+% \item[\ttfamily no lineno] to globally display no line numbers,
+% can be overriden on a pare chunk basis,
+%    \begin{macrocode}
+  no~lineno .bool_set:N = \g_NLNCD_no_lineno_bool,
+  no~lineno .code:n = {
+    \bool_set_true:N \g_NLNCD_no_lineno_bool
+  },
+%    \end{macrocode}
+% \item[\ttfamily font] initially \cs{ttfamily}, used for the code.
+%    \begin{macrocode}
+  font .tl_set:N = \g_NLNCD_font_tl,
+%    \end{macrocode}
+% \item[\ttfamily font name] initially \cs{ttfamily}, used for chunks names, line numbers and code.
+%    \begin{macrocode}
+  name font .tl_set:N = \g_NLNCD_font_name_tl,
+%    \end{macrocode}
+% \item[\ttfamily font lineno] initially \cs{ttfamily}, used for chunks names, line numbers and code.
+%    \begin{macrocode}
+  lineno font .tl_set:N = \g_NLNCD_font_name_lineno_tl,
+%    \end{macrocode}
+% \item[\ttfamily only description] to typeset only the description.
+%    \begin{macrocode}
+  only~description .bool_set_inverse:N = \g_NLNCD_with_impl_bool,
+  only~description .initial:n = false,  
+  only~description .code:n = {
+    \bool_set_false:N \g_NLNCD_with_impl_bool
+  },
+%    \end{macrocode}
+% \item[\ttfamily post processor] the name of the pygment post processor,
+%    \begin{macrocode}
+  post~processor .tl_set_x:N = \g_NLNCD_post_processor_tl,
+%    \end{macrocode}
+% \item[\ttfamily post processor args] the arguments of the pygment post processor,
+%    \begin{macrocode}
+  post~processor~args .tl_set_x:N = \g_NLNCD_post_processor_args_tl,
+%    \end{macrocode}
+% \end{description}
+%    \begin{macrocode}
+  post~processor .tl_set_x:N = \g_NLNCD_post_processor_tl,
+  post~processor~args .tl_set_x:N = \g_NLNCD_post_processor_args_tl,
+%    \end{macrocode}
+%    \begin{macrocode}
+  unknown .code:n = \PackageWarning
+    { inlinecode }
+    { Unknown~option~`\l_keys_key_str' },
+}
+%    \end{macrocode}
+% \section{\texttt{minted} and \texttt{pygment}}
+% \begin{variable}{\g_NLNCD_minted_on_bool}
+% Whether minted is available, initially set to \texttt{false}.
+%    \begin{macrocode}
+\bool_new:N \g_NLNCD_minted_on_bool
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\g_NLNCD_use_minted_bool}
+% Whether minted is used, initially set to \texttt{false}.
+%    \begin{macrocode}
+\bool_new:N \g_NLNCD_use_minted_bool
+%    \end{macrocode}
+% \end{variable}
+% \begin{function}[TF]
+%   {\NLNCD_if_use_minted:}
+%   \begin{syntax}
+%     \cs{NLNCD_if_use_minted:TF} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+%   Execute \meta{true code} when using |minted|, \meta{false code} otherwise.
+%    \begin{macrocode}
+\prg_new_conditional:Nnn \NLNCD_if_use_minted: { T, F, TF } {
+  \bool_if:NTF \g_NLNCD_use_minted_bool
+    { \prg_return_true:  }
+    { \prg_return_false: }
+}
+%    \end{macrocode}
+% \end{function}
+%
+% \begin{function}[TF]
+%   {\_NLNCD_if_pygmentize:}
+%   \begin{syntax}
+%     \cs{NLNCD_if_pygmentize:TF} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+%   Execute \meta{true code} when \texttt{pygmentize} is available,
+% \meta{false code} otherwise.
+%    \begin{macrocode}
+\prg_new_conditional:Nnn\_NLNCD_if_pygmentize: { T, F, TF } {
+  \group_begin:
+  \sys_get_shell:nnN {which~pygmentize} {} \l_tmpa_tl
+  \tl_if_empty:NTF \l_tmpa_tl {
+    \tl_set:Nn \l_tmpa_tl { \prg_return_false: }
+  } {
+    \tl_set:Nn \l_tmpa_tl { \prg_return_true: }
+  }
+  \exp_last_unbraced:NV
+  \group_end: \l_tmpa_tl
+}
+%    \end{macrocode}
+% \end{function}
+% \begin{function}{\_NLNCD_minted_on:}
+% \begin{syntax}
+% \cs{_NLNCD_minted_on:}
+% \end{syntax}
+% Private function. During the preamble, loads \pkg{minted},
+% sets \cs{g_NLNCD_minted_on_bool} to \texttt{true} and prepares \texttt{pygment} processing.
+% \end{function}
+%    \begin{macrocode}
+\cs_set:Npn \_NLNCD_minted_on: {
+  \bool_gset_true:N \g_NLNCD_minted_on_bool
   \RequirePackage{minted}
-  \setkeys { minted@opt@g } { #1 }
+  \setkeys{ minted@opt@g } { linenos=false }
   \minted@def@opt{post~processor}
   \minted@def@opt{post~processor~args}
-  \pretocmd\minted@inputpyg{%
-    \NLNCD@postprocesspyg
-      {\minted@outputdir\minted@infile}%
-  }{}{\fail}
+  \pretocmd\minted@inputpyg{
+    \NLNCD@postprocesspyg {\minted@outputdir\minted@infile}
+  }{}{\fail}  
 %    \end{macrocode}
 % In the execution context of \cs{minted@inputpyg},
 % \begin{description}
@@ -380,9 +767,7 @@ and the derived files           inlinecode.ins,
 % \end{description}
 %    \begin{macrocode}
   \newcommand{\NLNCD@postprocesspyg}[1]{%
-    \tl_if_empty:NTF \g_NLNCD_post_processor_tl {
-      DEBUG:~NO~POST~PROCESSING
-    } {
+    \tl_if_empty:NF \g_NLNCD_post_processor_tl {
 %    \end{macrocode}
 % Execute \texttt{`python3 <script.py> <file.pygtex> <more_args>`}
 %    \begin{macrocode}
@@ -396,105 +781,98 @@ and the derived files           inlinecode.ins,
     }
   }
 }
-\InlineCodeSetup {}
 %    \end{macrocode}
-% \begin{variable}{\l_NLNCD_in}
-% Input file identifier
-% \end{variable}
 %    \begin{macrocode}
-\ior_new:N \l_NLNCD_in
+\AddToHook { begindocument / end } {
+  \cs_set_eq:NN \_NLNCD_minted_on: \prg_do_nothing:
+}
 %    \end{macrocode}
-% \begin{variable}{\l_NLNCD_out}
-% Output file identifier
-% \end{variable}
+% Utilities to setup |pygment| post processing.
+% The |pygment| post processor marks some code with \cs{InlineCodeEmph}.
 %    \begin{macrocode}
-\iow_new:N \l_NLNCD_out
+\ProvideDocumentCommand{\InlineCodeEmph}{m}{\textcolor{red}{#1}}
 %    \end{macrocode}
-% \begin{variable}{\g_NLNCD_file_prop}
-% Global property list of \texttt{\meta{file name}=\meta{comma separated list of chunk names}} items.
-% \end{variable}
 %    \begin{macrocode}
-\prop_new:N \g_NLNCD_file_prop
+\AddToHook { begindocument / end } {
+  \cs_set_eq:NN \_NLNCD_minted_on: \prg_do_nothing:
+}
 %    \end{macrocode}
-% \begin{variable}{\g_NLNCD_preamble_prop}
-%   Global property list of \texttt{\meta{file name}=\meta{preamble}} items.
-% \end{variable}
-%    \begin{macrocode}
-\prop_new:N \g_NLNCD_preamble_prop
-%    \end{macrocode}
-% \begin{variable}{\g_NLNCD_banner_prop}
-%   Global property list of \texttt{\meta{file name}=\meta{banner}} items.
-% \end{variable}
-%    \begin{macrocode}
-\prop_new:N \g_NLNCD_banner_prop
-%    \end{macrocode}
-% \begin{variable}{\g_NLNCD_raw_prop}
-% Global property list of \texttt{\meta{file name}=\meta{boolean value}}
-% items indicating whether the given file should not contain
-% extra material like banners.
-%    \begin{macrocode}
-\prop_new:N \g_NLNCD_raw_prop
-%    \end{macrocode}
-% \end{variable}
-% \begin{variable}{\g_NLNCD_lang_prop}
-% Global property list of \texttt{\meta{chunk name}=\meta{language}} items.
-%    \begin{macrocode}
-\prop_new:N \g_NLNCD_lang_prop
-%    \end{macrocode}
-% \end{variable}
-% |\l_tmpa_bool| to store the value for \texttt{raw}, 
+% \section{Files}
+% \begin{function}{\InlineCodeNew}
+% \begin{syntax}
+% \cs{InlineCodeNew}\marg{key[=value] list}
+% \end{syntax}
+% It loads lately \pkg{datetime2}.
+% The \texttt{\meta{key}[=\meta{value}]} items are defined below as \texttt{NLNCDNew} key-value controls.
+% \end{function}
 %    \begin{macrocode}
 \keys_define:nn { NLNCDNew } {
-  file .tl_set_x:N = \g_tmpa_tl,
+%    \end{macrocode}
+% This is only used in the scope of the \cs{InlineCodeNew} function such that
+% scratch variable are sufficient.
+% \begin{description}
+% \item[\ttfamily file=\meta{file name}] is mandatory, the file named \meta{file name} will be created at the end of the document, \meta{file name} is stored in \cs{l_tmpa_tl},
+%    \begin{macrocode}
+  file .tl_set_x:N = \l_tmpa_tl,
   file .value_required:n = true,
-  chunks .clist_set:N = \g_tmpa_clist,
+%    \end{macrocode}
+% \item[\ttfamily chuncks=\meta{comma separated  list of chunk names}] to list the chunks inserted as file contents, ordered and mandatory, 
+%    \begin{macrocode}
+  chunks .code:n = {
+    \clist_set:Nn \l_tmpa_clist { #1 }
+    \clist_sort:Nn \l_tmpa_clist {
+      \str_compare:nNnTF { ##1 } > { ##2 } {
+        \sort_return_swapped:
+      } {
+        \sort_return_same:
+      }
+    }
+  },
   chunks .value_required:n = true,
+%    \end{macrocode}
+% \item[\ttfamily lang] to specify the language, defaults to \texttt{latex},
+%    \begin{macrocode}
   lang .code:n = {
-    \str_set:Nn \g_tmpa_str { #1 }
+    \str_set:Nn \l_tmpa_str { #1 }
   },
   lang .value_required:n = true,
-  preamble .default:n = ,
-  preamble .code:n = {
-    \exp_args:NNx \str_set:Nn \l_tmpa_str { #1 }
-  },
+%    \end{macrocode}
+% \item[\ttfamily raw] to remove any additional material,
+% |\l_tmpa_bool| to store the value for \texttt{raw}, 
+%    \begin{macrocode}
   raw .bool_set:N = \l_tmpa_bool,
   raw .code:n = {
     \bool_set_true:N \l_tmpa_bool
   },
+%    \end{macrocode}
+% \item[\ttfamily preamble] the added preamble.
+%    \begin{macrocode}
+  preamble .tl_set:N = \l_tmpb_tl,
+%    \end{macrocode}
+% \end{description}
+%    \begin{macrocode}
 }
 %    \end{macrocode}
-% Now the main command.
-% It loads lately \pkg{datetime2}.
 %    \begin{macrocode}
 \DeclareDocumentCommand \InlineCodeNew { m } {
   \RequirePackage{datetime2}
   \group_begin:
-  \clist_clear:N \g_tmpa_clist
-  \str_clear:N \l_tmpa_str
+  \clist_clear:N \l_tmpa_clist
+  \tl_clear:N \l_tmpb_tl
   \bool_set_false:N \l_tmpa_bool
-  \str_set:Nn \g_tmpa_str { latex }
-  \exp_args:Nnx \keys_set:nn { NLNCDNew } { #1 }  
-  \exp_args:NNV \prop_if_in:NnT \g_NLNCD_file_prop \g_tmpa_tl {
+  \str_set:Nn \l_tmpa_str { latex }
+  \exp_args:Nnx \keys_set:nn { NLNCDNew } { #1 }
+  \exp_args:NNV \prop_if_in:NnT \g_NLNCD_files_prop \l_tmpa_tl {
     \msg_critical:nnx
       { inlinecode }
       { :n }
-      { Duplicate~file "\g_tmpa_tl'' }
+      { Duplicate~file "\l_tmpa_tl'' }
   }
-  \prop_gput:NVx \g_NLNCD_file_prop \g_tmpa_tl
-    { \clist_use:Nn \g_tmpa_clist , }
-  \prop_gput:NVV \g_NLNCD_preamble_prop \g_tmpa_tl \l_tmpa_str
-  \str_set:Nx \l_tmpa_str { \str_head:N \g_tmpb_tl }
-  \str_if_empty:NT \l_tmpa_str {
-    \str_set_eq:NN \l_tmpa_str \c_percent_str
-  }
-  \tl_set:Nx \l_tmpb_tl {
-    \l_tmpa_str\l_tmpa_str\space\space
-    This~is~file~`\g_tmpa_tl'~
-    generated~from~`\c_sys_jobname_str.tex'~on~\DTMnow.
-  }
-  \prop_gput:NVV \g_NLNCD_banner_prop \g_tmpa_tl \l_tmpb_tl
-  \clist_map_inline:Nn \g_tmpa_clist {
-    \prop_gput:NnV \g_NLNCD_lang_prop { ##1 } \g_tmpa_str
+  \prop_gput:NVx \g_NLNCD_files_prop \l_tmpa_tl
+    { \clist_use:Nn \l_tmpa_clist , }
+  \prop_gput:NVV \g_NLNCD_preamble_prop \l_tmpa_tl \l_tmpb_tl
+  \clist_map_inline:Nn \l_tmpa_clist {
+    \prop_gput:NnV \g_NLNCD_lang_prop { ##1 } \l_tmpa_str
   }
   \group_end:
 }
@@ -504,17 +882,11 @@ and the derived files           inlinecode.ins,
   }
 }
 %    \end{macrocode}
-% \begin{variable}{\g_NLNCD_chunks_prop}
-%   Global property list of \texttt{\meta{chunk name}=\meta{chunk content}} items.
-%    \begin{macrocode}
-\prop_new:N \g_NLNCD_chunks_prop
-%    \end{macrocode}
-% \end{variable}
 % Files are created at the end of the process.
 %    \begin{macrocode}
 \AddToHook { enddocument / end } {
   \group_begin:
-  \prop_map_inline:Nn \g_NLNCD_file_prop {
+  \prop_map_inline:Nn \g_NLNCD_files_prop {
     \iow_open:Nn \l_NLNCD_out {#1}
     \iow_term:x {Exporting~chunks~#2~to~#1}
     \bool_set_false:N \l_tmpa_bool
@@ -522,222 +894,55 @@ and the derived files           inlinecode.ins,
       \bool_set:Nn \l_tmpa_bool { \l_tmpa_tl }
     }
     \bool_if:NF \l_tmpa_bool {
-      \prop_get:NnNT \g_NLNCD_banner_prop { #1 } \l_tmpa_tl {
-        \iow_now:Nx \l_NLNCD_out { \l_tmpa_tl }
-      }
       \prop_get:NnNT \g_NLNCD_preamble_prop { #1 } \l_tmpa_tl {
+        \str_set:Nx \l_tmpa_str {
+          \exp_args:Nx \str_head_ignore_spaces:n { \l_tmpa_tl }
+        }
+        \str_if_empty:NT \l_tmpa_str {
+          \str_set_eq:NN \l_tmpa_str \c_percent_str
+        }
+        \tl_set:Nx \l_tmpb_tl {
+          \l_tmpa_str\l_tmpa_str\space\space
+          This~is~file~`#1'~
+          generated~from~`\c_sys_jobname_str.tex'~on~\DTMnow.
+        }
+        \iow_now:Nx \l_NLNCD_out { \l_tmpb_tl }
         \iow_now:Nx \l_NLNCD_out { \l_tmpa_tl }
       }
     }
     \clist_map_inline:nn { #2 } {
-      \prop_get:NnN \g_NLNCD_chunks_prop { ##1 } \l_tmpa_tl
-      \exp_args:NNV \iow_now:Nn \l_NLNCD_out \l_tmpa_tl
+      \prop_get:NnNT \g_NLNCD_chunks_prop { ##1 } \l_tmpa_tl {
+        \exp_args:NNV \iow_now:Nn \l_NLNCD_out \l_tmpa_tl
+      }
     }
     \iow_close:N \l_NLNCD_out
   }
   \group_end:
 }
 %    \end{macrocode}
-% \begin{variable}{\g_NLNCD_in_impl_bool}
-% Whether we are currently in the implementation section.
-%    \begin{macrocode}
-\bool_new:N \g_NLNCD_in_impl_bool
-\bool_gset_false:N \g_NLNCD_in_impl_bool
-%    \end{macrocode}
-% \end{variable}
-% \begin{function}[TF]
-%   {\_NLNCD_if_print_code:}
-%   \begin{syntax}
-%     \cs{\_NLNCD_if_print_code:T} \Arg{true code}
-%   \end{syntax}
-%   Execute code only when required.
-%    \begin{macrocode}
-\prg_new_conditional:Nnn \_NLNCD_if_print_code: { T, F, TF } {
-  \bool_if:nTF {
-    \g_NLNCD_in_impl_bool &&
-    !\g_NLNCD_with_impl_bool
-  } {
-    \prg_return_false:
-  } {
-    \prg_return_true:
-  }
-}
-%    \end{macrocode}
+%
+% \begin{function}{\InlineCodeStorePreamble}
+% \begin{syntax}
+% \cs{InlineCodeStorePreamble} \marg{variable} \marg{file name}
+% \end{syntax}
+% Store the content of \meta{file name} into the variable \meta{variable}.
 % \end{function}
-% Key value definitions. |\l_tmpa_bool| for \texttt{no display}.
+%
+% \section{Separators}
+% \begin{function}{\InlineCodeImplementation}
+% \begin{syntax}
+% \cs{InlineCodeImplementation}
+% \end{syntax}
+% Start an implementation part where all the sectioning commands do nothing.
+% \end{function}
+% \begin{function}{\InlineCodeFinale}
+% \begin{syntax}
+% \cs{InlineCodeFinale}
+% \end{syntax}
+% Stop an implementation part.
+% \end{function}
+% \section{Finale}
 %    \begin{macrocode}
-\keys_define:nn { NLNCDCode } {
-  chunks .clist_set:N = \g_tmpa_clist,
-  chunks .value_required:n = true,
-  lang .code:n = {
-    \str_set:Nn \g_tmpa_str { #1 }
-  },
-  no~display .bool_set:N = \l_tmpa_bool,
-  no~display .code:n = {
-    \bool_set_true:N \l_tmpa_bool
-  },
-  unknown .code:n = \PackageWarning
-    { inlinecode }
-    { Unknown~option~`\l_keys_key_str' },
-}
-\DeclareDocumentEnvironment { InlineCode } { m } {
-  \bool_set_false:N \l_tmpa_bool
-  \str_clear:N \g_tmpa_str
-  \exp_args:Nnx \keys_set:nn { NLNCDCode } { #1 }
-  \_NLNCD_if_print_code:T {
-    \vspace { -\baselineskip }
-    \vspace { 0.25\baselineskip }
-    \par\noindent
-    \_NLNCD_if_use_minted:T {
-      \vspace*{ -\baselineskip }
-    }
-    \cs_set:Npn \NLNCD_line_number: {
-      \makebox [0mm] [r] {
-        \g_NLNCD_font_tl \scriptsize
-        \textcolor { lightgray } {
-          \arabic { FancyVerbLine }
-        }
-        \hspace {1.5ex}
-      }
-    }
-  }
-  \NLNCD_verbatim
-} {
-  \endNLNCD_verbatim
-  \_NLNCD_if_print_code:T {
-    \vspace{ .2\baselineskip }
-    \par\noindent
-  }
-}
-\newenvironment {NLNCD_verbatim} {%
-  \clist_map_inline:Nn \g_tmpa_clist {
-    \prop_if_in:NnF \g_NLNCD_chunks_prop { ##1 } {
-      \int_zero_new:c { NLNCD@lineno@ ##1 }    
-    }
-    \int_compare:nNnT { \int_use:c {NLNCD@lineno@##1} }=\c_zero_int {
-      \int_gincr:c { NLNCD@lineno@##1 }
-    }
-  }
-  \_NLNCD_if_print_code:T {
-    \group_begin:
-    \tl_set:Nx \l_tmpa_tl { \clist_use:Nn \g_tmpa_clist , }
-    \bool_if:NF \l_tmpa_bool {
-      \bool_if:NTF \g_NLNCD_only_top_bool {
-        \tl_if_eq:NNF \l_tmpa_tl \g_NLNCD_chunks_tl {
-          \makebox [0mm] [r] {
-            \g_NLNCD_font_tl
-            \scriptsize
-            \color{gray}
-            \tl_use:N \l_tmpa_tl :
-            \hspace{6ex}
-          }
-        }
-      } {
-        \makebox [0mm] [r] {
-          \g_NLNCD_font_tl
-          \scriptsize
-          \color{gray}
-          \tl_use:N \l_tmpa_tl :
-          \hspace{6ex}
-        }
-      }
-    }
-    \tl_gset_eq:NN \g_NLNCD_chunks_tl \l_tmpa_tl
-    \group_end:
-    \_NLNCD_if_use_minted:TF {
-      \setkeys{ minted@opt@g } { linenos }
-      \setkeys { FV } {
-        firstnumber=last,
-      }
-      \clist_map_inline:Nn \g_tmpa_clist {
-        \exp_args:Nnx \setkeys { FV } {
-          firstnumber=\int_use:c { NLNCD@lineno@##1 },
-        }
-        \clist_map_break:
-      }
-      \iow_open:Nn \minted@code { \jobname.pyg }
-      \Needspace* { 2\baselineskip }
-    } {
-      \@bsphack
-    }
-  }
-  \def \verbatim@processline {
-    \clist_map_inline:Nn \g_tmpa_clist {
-      \prop_get:NnNTF \g_NLNCD_chunks_prop { ####1 } \l_tmpa_tl {
-        \tl_put_right:Nx \l_tmpa_tl { \the\verbatim@line \iow_newline: }
-        \exp_args:NNnV
-        \prop_gput:Nnn \g_NLNCD_chunks_prop { ####1 } \l_tmpa_tl
-      } {
-        \exp_args:NNnx
-        \prop_gput:Nnn \g_NLNCD_chunks_prop { ####1 }
-          { \the\verbatim@line \iow_newline: }
-      }
-    }
-    \_NLNCD_if_print_code:T {
-      \_NLNCD_if_use_minted:TF {
-        \iow_now:Nx \minted@code { \the\verbatim@line }
-      } {
-        \noindent\leavevmode
-        \hspace*{-5ex}
-        \begin{minipage}[c][1ex]{\textwidth}
-          \makebox[4ex]{%
-            \leavevmode
-            \sffamily\tiny\color{lightgray}\hfill%
-            \clist_map_inline:Nn \g_tmpa_clist {
-              \int_use:c { NLNCD@lineno@####1 }
-            }
-          }
-          \hspace* { 1ex }
-          {
-            \g_NLNCD_font_tl
-            \the\verbatim@line
-          }
-        \end{minipage}
-        \par
-      }
-    }
-    \clist_map_inline:Nn \g_tmpa_clist {
-      \int_gincr:c { NLNCD@lineno@####1 }
-    }
-  }
-  \group_begin:
-  \let \do \@makeother
-  \dospecials \catcode `\^^M \active
-  \_NLNCD_if_print_code:T {
-    \_NLNCD_if_use_minted:F {
-      \frenchspacing\@vobeyspaces
-    }
-  }
-  \verbatim@start
-} {
-  \group_end:
-  \str_if_empty:NT \g_tmpa_str {
-    \clist_map_inline:Nn \g_tmpa_clist {
-      \prop_get:NnNT \g_NLNCD_lang_prop { ##1 } \g_tmpa_str {
-        \str_if_empty:NF \g_tmpa_str {
-          \clist_map_break:
-        }
-      }
-    }
-  }
-  \str_if_empty:NT \g_tmpa_str {
-    \str_set:Nn \g_tmpa_str { latex }
-  }
-  \clist_map_inline:Nn \g_tmpa_clist {
-    \prop_gput:NnV \g_NLNCD_lang_prop { ##1 } \g_tmpa_str
-  }
-  \_NLNCD_if_print_code:T {
-    \_NLNCD_if_use_minted:TF {
-      \iow_close:N \minted@code
-      \vspace* { \dimexpr -\topsep-\partopsep-\parskip }
-      \exp_args:NV \minted@pygmentize \g_tmpa_str
-      \DeleteFile { \jobname.pyg }
-      \vspace* { \dimexpr -\topsep -\partopsep }
-    } {
-      \@esphack
-    }
-  }
-}
 \DeclareDocumentCommand \InlineCodeStorePreamble { m m } {
   \group_begin:
   \msg_info:nnn
@@ -797,12 +1002,18 @@ and the derived files           inlinecode.ins,
   }
 }
 \cs_set_eq:NN \NLNCD_line_number: \prg_do_nothing:
+%    \end{macrocode}
+% \section{Finale}
+%    \begin{macrocode}
 \AddToHook { cmd/FancyVerbFormatLine/before } {
   \NLNCD_line_number:
 }
 \AddToHook { shipout/before } {
   \tl_gclear:N \g_NLNCD_chunks_tl
 }
+\InlineCodeSet {}
+%    \end{macrocode}
+%    \begin{macrocode}
 %</package>
 %    \end{macrocode}
 % \end{implementation}

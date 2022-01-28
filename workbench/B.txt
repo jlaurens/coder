@@ -1,11 +1,3 @@
-%%  This is file `B.txt' generated from `test1.tex' on 2022-01-23 15:56:42+01:00.
+\exp_args:Nx \\exp_args:Nx \  This is file `B.txt' generated from `test1.tex' on 2022-01-25 15:17:04+01:00.
 % preamble
 % file
-B1
-B2 \MyMarvelousCommand ARGS
-B3
-B4
-B5
-B5 bis
-B5 ter
-
