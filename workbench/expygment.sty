@@ -1,0 +1,389 @@
+% pygmentex.sty
+
+\NeedsTeXFormat{LaTeX2e}
+
+\ProvidesPackage{pygmentex}[2020/12/21 v0.10 A Pygmentex layer for LaTeX]
+
+\RequirePackage{fancyvrb}
+\RequirePackage{color}
+\RequirePackage{ifthen}
+%\RequirePackage[font=small,format=plain,labelfont=bf,up,textfont=it,up]{caption}
+\RequirePackage{caption}
+\RequirePackage{pgfkeys}
+\RequirePackage{efbox}
+\RequirePackage[framemethod=tikz]{mdframed}
+
+%\DeclareCaptionType[within=chapter]{pygcode}[Listagem][Lista de listagens]
+\DeclareCaptionType{pygcode}[Listagem][Lista de listagens]
+\captionsetup[pygcode]{position=top}
+
+% =========================================================
+% Auxiliary:
+%   finding the widest string in a comma
+%   separated list of strings delimited by parenthesis
+% =========================================================
+
+% arguments:
+% #1) text: a comma separeted list of strings
+% #2) formatter: a macro to format each string
+% #3) dimension: will hold the result
+
+\def\widest(#1)#2#3{%
+  \begingroup
+  \def\widest@end{\widest@end}%
+  \def\widest@helper##1,{%
+    \ifx\widest@end##1\relax
+    \else
+      \settowidth\dimen@{#2{##1}}%
+      \ifdim#3<\dimen@
+        \global#3=\dimen@
+      \else
+      \fi
+      \expandafter\widest@helper
+    \fi
+  }%
+  \widest@helper#1,\widest@end,%
+  \endgroup
+}
+
+% =========================================================
+% fancyvrb new commands to append to a file
+% =========================================================
+
+% See http://tex.stackexchange.com/questions/47462/inputenc-error-with-unicode-chars-and-verbatim
+\long\def\unexpanded@write#1#2{\write#1{\unexpanded{#2}}}
+
+\def\VerbatimOutAppend{\FV@Environment{}{VerbatimOutAppend}}
+
+\def\FVB@VerbatimOutAppend#1{%
+  \@bsphack
+  \begingroup
+    \FV@UseKeyValues
+    \FV@DefineWhiteSpace
+    \def\FV@Space{\space}%
+    \FV@DefineTabOut
+    \def\FV@ProcessLine{\immediate\unexpanded@write#1}%
+    \let\FV@FontScanPrep\relax
+    \let\@noligs\relax
+    \FV@Scan
+}
+
+\def\FVE@VerbatimOutAppend{%
+  \endgroup
+  \@esphack
+}
+
+\DefineVerbatimEnvironment{VerbatimOutAppend}{VerbatimOutAppend}{}
+
+% =========================================================
+% Main options
+% =========================================================
+
+\newif\ifexpygment@opt@texcomments
+\newif\ifexpygment@opt@mathescape
+\newif\ifexpygment@opt@linenos
+\newif\ifexpygment@left
+\newif\ifexpygment@right
+
+% some settings used by fancyvrb:
+% * for line numbering:
+%     numbers, numbersep, firstnumber, stepnumber, numberblanklines
+% * for selection of lines to print:
+%     firstline, lastline,
+
+\pgfkeys{%
+  /expygment/.cd,
+  % 
+  boxing method/.store in = \expygment@opt@boxing@method,
+  inline method/.store in = \expygment@opt@inline@method,
+  % 
+  lang/.store in          = \expygment@opt@lang,
+  sty/.store in           = \expygment@opt@style,
+  escapeinside/.store in  = \expygment@opt@escapeinside,
+  texcomments/.is if      = expygment@opt@texcomments,
+  mathescape/.is if       = expygment@opt@mathescape,
+  % 
+  label/.store in         = \expygment@opt@label,
+  caption/.store in       = \expygment@opt@caption,
+  % 
+  gobble/.store in        = \expygment@opt@gobble,
+  tabsize/.store in       = \expygment@opt@tabsize,
+  % 
+  linenos/.is if          = expygment@opt@linenos,
+  linenostart/.store in   = \expygment@opt@linenostart,
+  linenostep/.store in    = \expygment@opt@linenostep,
+  linenosep/.store in     = \expygment@opt@linenosep,
+  %
+  colback/.store in       = \expygment@opt@colback,
+  font/.store in          = \expygment@opt@font,
+  % 
+  texcomments/.default    = true,
+  mathescape/.default     = true,
+  linenos/.default        = true,
+}
+
+\pgfqkeys{/expygment}{
+  boxing method = mdframed,
+  inline method = efbox,
+  sty           = default,
+  linenos       = false,
+  linenosep     = 2pt,
+  font          = \ttfamily,
+  tabsize       = 0,
+}
+
+% =========================================================
+% expygment commands and environments
+% =========================================================
+
+\newwrite\expygment@outfile
+
+\newcount\expygment@counter
+
+\newcommand\expygment@process@options[1]{%
+  \pgfkeys{%
+    /pgf/key filters/defined/.install key filter,%
+    /pgf/key filter handlers/append filtered to/.install key filter handler=\remainingglobaloptions
+  }%
+  \def\remainingglobaloptions{}%
+  \pgfkeysalsofilteredfrom{\expygment@global@options}%
+  \pgfkeysalso{%
+    /pgf/key filter handlers/append filtered to/.install key filter handler=\remaininguseroptions
+  }%
+  \def\remaininguseroptions{}%
+  \pgfqkeysfiltered{/expygment}{#1}%
+  % %%%%%%% DEBUGING
+  % \typeout{}%
+  % \typeout{\string\expygment@global@options:}\typeout{\meaning\expygment@global@options}%
+  % \typeout{\string\remainingglobaloptions:}\typeout{\meaning\remainingglobaloptions}%
+  % \typeout{\string\remaininguseroptions:}\typeout{\meaning\remaininguseroptions}%
+  % 
+  \fvset{gobble=0,tabsize=0}%
+}
+
+\newcommand\expygment@process@adicional@options[1]{%
+  \pgfkeysalso{%
+    /pgf/key filters/false/.install key filter,%
+    /pgf/key filter handlers/append filtered to/.install key filter handler=\remainingoptions
+  }%
+  \def\remainingoptions{}%
+  \pgfkeysalsofilteredfrom{\remainingglobaloptions}%
+  \edef\expygment@saved@{%
+    \ifcsname expygment@#1@additional@options\endcsname
+      \csname expygment@#1@additional@options\endcsname,%
+    \fi
+  }%
+  \pgfkeysalsofilteredfrom{\expygment@saved@}%
+  \pgfkeysalsofilteredfrom{\remaininguseroptions}%
+  % %%%%%%% DEBUGING
+  % \typeout{}%
+  % \typeout{\string\remainingoptions:}%
+  % \typeout{\meaning\remainingoptions}%
+}
+
+\newcommand\inputexpygment[2][]{%
+  \begingroup
+    \expygment@process@options{#1}%
+    \immediate\write\expygment@outfile{<@@expygment@input@\the\expygment@counter}%
+    \immediate\write\expygment@outfile{\detokenize\expandafter{\expygment@global@options},\detokenize{#1}}%
+    \immediate\write\expygment@outfile{#2}%
+    \immediate\write\expygment@outfile{>@@expygment@input@\the\expygment@counter}%
+    %
+    \csname expygment@snippet@\the\expygment@counter\endcsname
+    \global\advance\expygment@counter by 1\relax
+  \endgroup
+}
+
+\newenvironment{expygment}[1][]{%
+  \expygment@process@options{#1}%
+  \immediate\write\expygment@outfile{<@@expygment@display@\the\expygment@counter}%
+  \immediate\write\expygment@outfile{\detokenize\expandafter{\expygment@global@options},\detokenize{#1}}%
+  \VerbatimEnvironment
+  \begin{VerbatimOutAppend}{\expygment@outfile}%
+}{%
+  \end{VerbatimOutAppend}%
+  \immediate\write\expygment@outfile{>@@expygment@display@\the\expygment@counter}%
+  \csname expygment@snippet@\the\expygment@counter\endcsname
+  \global\advance\expygment@counter by 1\relax
+}
+
+\newcommand\pyginline[2][]{%
+  \begingroup
+    \expygment@process@options{#1}%
+    \immediate\write\expygment@outfile{<@@expygment@inline@\the\expygment@counter}%
+    \immediate\write\expygment@outfile{\detokenize\expandafter{\expygment@global@options},\detokenize{#1}}%
+    \DefineShortVerb{#2}%
+    \SaveVerb
+      [aftersave={%
+       \UndefineShortVerb{#2}%
+       \immediate\write\expygment@outfile{\FV@SV@expygment@verb}%
+       \immediate\write\expygment@outfile{>@@expygment@inline@\the\expygment@counter}%
+       %
+       \csname expygment@snippet@\the\expygment@counter\endcsname
+       \global\advance\expygment@counter by 1\relax
+       \endgroup
+      }]%
+      {expygment@verb}#2%
+}
+
+
+\newcommand\expygment@snippet@inlined[1]{%
+  \begingroup
+  \csname PYstyle\expygment@opt@style\endcsname
+  \expygment@opt@font
+  \expygment@process@adicional@options{\expygment@opt@inline@method}%
+  \expandafter\expandafter\csname \expygment@opt@inline@method \endcsname\expandafter[\remainingoptions]{#1}%
+  \endgroup
+}
+
+\newenvironment{expygment@snippet@framed}{%
+  \begingroup
+  \expygment@leftmargin\z@
+  \ifexpygment@opt@linenos
+    \expandafter\widest\expygment@alllinenos{\FormatLineNumber}{\expygment@leftmargin}%
+    \advance\expygment@leftmargin\expygment@opt@linenosep
+  \fi
+  %
+  \ifdefined\expygment@opt@label
+    \def\expygment@title{%
+      \captionof{pygcode}{\label{\expygment@opt@label}\expygment@opt@caption}%
+      % \nopagebreak
+      \vskip -0.7\baselineskip
+    }%
+  \else
+    \ifdefined\expygment@opt@caption
+      \def\expygment@title{%
+        \captionof{pygcode}{\expygment@opt@caption}%
+        % \nopagebreak
+        \vskip -0.7\baselineskip
+      }%
+    \fi
+  \fi
+  \ifdefined\expygment@title
+    % \nopagebreak[0]%
+    \expygment@title
+    % \nopagebreak
+  \fi
+  %
+  \expygment@process@adicional@options{\expygment@opt@boxing@method}%
+  \expandafter\begin\expandafter{\expandafter\expygment@opt@boxing@method\expandafter}\expandafter[%
+    \remainingoptions
+    ]%
+  \csname PYstyle\expygment@opt@style\endcsname
+  \expygment@opt@font
+  % 
+  \noindent
+  }{%
+  \end{\expygment@opt@boxing@method}%
+  \endgroup
+}
+
+
+\newcommand\expygment@inlined[1]{%
+  \expandafter\efbox\expandafter[\remainingoptions]{#1}%
+}
+
+
+
+\def\FormatLineNumber#1{{\rmfamily\tiny#1}}
+
+
+\newdimen\expygment@leftmargin
+\newdimen\expygment@linenosep
+
+\def\expygment@lineno@do#1{%
+  \expygment@linenosep 0pt%
+  \csname expygment@\expygment@opt@boxing@method @margin\endcsname
+  \advance \expygment@linenosep \expygment@opt@linenosep
+  \makebox[0pt][r]{%
+    \FormatLineNumber{#1}%
+    \hspace*{\expygment@linenosep}}%
+}
+
+\newcommand\expygment@tcbox@additional@options{%
+  nobeforeafter,%
+  tcbox raise base,%
+  left=0mm,%
+  right=0mm,%
+  top=0mm,%
+  bottom=0mm,%
+  boxsep=2pt,%
+  arc=1pt,%
+  boxrule=0pt,%
+  \ifcsname expygment@opt@colback\endcsname
+    colback=\expygment@opt@colback,%
+  \fi
+}
+
+\newcommand\expygment@efbox@additional@options{%
+  \ifcsname expygment@opt@colback\endcsname
+    backgroundcolor=\expygment@opt@colback,%
+  \fi
+}
+
+\newcommand\expygment@mdframed@additional@options{%
+  leftmargin=\expygment@leftmargin,%
+  frametitlerule=true,%
+  \ifcsname expygment@opt@colback\endcsname
+    backgroundcolor=\expygment@opt@colback,%
+  \fi
+}
+
+\newcommand\expygment@tcolorbox@additional@options{%
+  grow to left by=-\expygment@leftmargin,%
+  \ifcsname expygment@opt@colback\endcsname
+    colback=\expygment@opt@colback,%
+  \fi
+}
+
+\newcommand\expygment@boite@additional@options{%
+  leftmargin=\expygment@leftmargin,%
+  \ifcsname expygment@opt@colback\endcsname
+    colback=\expygment@opt@colback,%
+  \fi
+}
+
+
+\newcommand\expygment@mdframed@margin{%
+  \advance \expygment@linenosep \mdflength{outerlinewidth}%
+  \advance \expygment@linenosep \mdflength{middlelinewidth}%
+  \advance \expygment@linenosep \mdflength{innerlinewidth}%
+  \advance \expygment@linenosep \mdflength{innerleftmargin}%
+}
+
+\newcommand\expygment@tcolorbox@margin{%
+  \advance \expygment@linenosep \kvtcb@left@rule
+  \advance \expygment@linenosep \kvtcb@leftupper
+  \advance \expygment@linenosep \kvtcb@boxsep
+}
+
+\newcommand\expygment@boite@margin{%
+  \advance \expygment@linenosep \boite@leftrule
+  \advance \expygment@linenosep \boite@boxsep
+}
+
+\def\expygment@global@options{}
+
+\newcommand\setexpygment[1]{%
+  \def\expygment@global@options{/expygment/.cd,#1}%
+}
+
+
+% =========================================================
+% final actions
+% =========================================================
+
+\AtEndOfPackage{%
+  \IfFileExists{\jobname.expygment}{%
+    \input{\jobname.expygment}%
+  }{%
+    \PackageWarning{pygmentex}{File `\jobname.expygment' not found.}%
+  }%
+  \immediate\openout\expygment@outfile\jobname.snippets%
+}
+
+\AtEndDocument{%
+  \closeout\expygment@outfile%
+}
+
+\endinput

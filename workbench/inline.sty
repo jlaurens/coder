@@ -14,7 +14,7 @@
 %% 
 \def\fileversion{v1.0}
 \def\filedate{2009/10/06}
-\RequirePackage{needspace, xcolor, verbatim}
+\RequirePackage{luacode, needspace, xcolor, verbatim}
 \AddToHook { begindocument / before } {
   \RequirePackage{datetime2}
 }
@@ -32,6 +32,37 @@
 } {
   \msg_fatal:nnn { inline } { :n } { Please~update~LaTeX.~Emergency~stop }
 }
+\begin{luacode}
+NLN = {}
+function NLN.make_directory(path)
+  mode,_,__ = lfs.attributes(path,"mode")
+  if mode == "directory" then
+    return true
+  elseif mode ~= nil then
+    return nil,path.." exist and is not a directory",1
+  end
+  if os["type"] == "windows" then
+    path = path:gsub("/", "\\")
+    _,_,__ = os.execute(
+      "if not exist "  .. path .. "\\nul " .. "mkdir " .. path
+    )
+  else
+    _,_,__ = os.execute("mkdir -p " .. path)
+  end
+  mode = lfs.attributes(path,"mode")
+  if mode == "directory" then
+    return true
+  end
+  return nil,path.." exist and is not a directory",1
+end
+function NLN.start_recording()
+  NLN.records = {}
+  function NLN.records.append (t,v)
+    t[#t+1]=v
+    return t
+  end
+end
+\end{luacode}
 
 \makeatletter
 \prop_const_from_keyval:Nn \c_NLN_comment_prop {
@@ -43,6 +74,7 @@
   javascript=//,
 }
 \prop_new:c { g/NLN/code/ }
+\tl_new:N \l_NLN_code_name_tl
 \cs_new:Npn \NLN_item:n #1 {
   \prop_item:cn { g/NLN/code/ } { #1 }
 }
@@ -79,6 +111,21 @@
 }
 \cs_generate_variant:Nn \NLN_put:nnn { nnV }
 \cs_generate_variant:Nn \NLN_gput:nnn { nnV }
+\cs_new:Npn \NLN_new_conditional:n #1 {
+  \exp_last_unbraced:Nx
+  \prg_new_conditional:Nnn { \use:c { NLN_if_#1: } } { T, F, TF } {
+    \group_begin:
+    \NLN_get:nNTF { #1 } \l_tmpa_tl {
+      \exp_args:NnV
+      \regex_match:nnTF
+      { ^\s*[tTyY] }
+      \l_tmpa_tl
+      { \group_end: \prg_return_true:  }
+      { \group_end: \prg_return_false: }
+    } { \group_end: \prg_return_false: }
+  }
+}
+
 \NLN_gput:nn { format/code } {
   \ttfamily
 }
@@ -94,11 +141,19 @@
 }
 \NLN_gput:nn { lang } { tex }
 \NLN_gput:nn { show_lineno } { T }
+\NLN_new_conditional:n { show_lineno }
 \NLN_gput:nn { show_name } { T }
+\NLN_new_conditional:n { show_name }
 \NLN_gput:nn { only_top } { T }
+\NLN_new_conditional:n { only_top }
 \NLN_gput:nn { use_margin } { T }
+\NLN_new_conditional:n { use_margin }
 \NLN_gput:nn { ignore } { F }
+\NLN_new_conditional:n { ignore }
 \NLN_gput:nn { reset } { F }
+\NLN_new_conditional:n { reset }
+\NLN_gput:nn { export } { T }
+\NLN_new_conditional:n { export }
 \AddToHook { begindocument/end } {
   \prop_if_in:cnF { g/NLN/code } { parskip } {
     \exp_args:Nnx
@@ -107,8 +162,40 @@
 }
 \NLN_gput:nn { sep } { 4pt plus 2pt minus 2pt }
 \NLN_gput:nn { .code } {}
-\int_new:c { g/NLN/lineno/ }
-\int_set:cn { g/NLN/lineno/ } { 1 }
+\cs_set_eq:NN \NLN_new_conditional:n \prg_do_nothing:
+\cs_new:Npn \NLN_int_new:nn #1 #2 {
+  \int_new:c { g/NLN/int/#1 }
+  \int_gset:cn { g/NLN/int/#1 } { #2 }
+}
+\cs_new:Npn \NLN_int_set:nn #1 #2 {
+  \int_set:cn { g/NLN/int/#1 } { #2 }
+}
+\cs_new:Npn \NLN_int_gset:nn #1 #2 {
+  \int_gset:cn { g/NLN/int/#1 } { #2 }
+}
+\cs_new:Npn \NLN_int_add:nn #1 #2 {
+  \int_add:cn { g/NLN/int/#1 } { #2 }
+}
+\cs_new:Npn \NLN_int_gadd:nn #1 #2 {
+  \int_gadd:cn { g/NLN/int/#1 } { #2 }
+}
+\cs_new:Npn \NLN_int_sub:nn #1 #2 {
+  \int_sub:cn { g/NLN/int/#1 } { #2 }
+}
+\cs_new:Npn \NLN_int_gsub:nn #1 #2 {
+  \int_gsub:cn { g/NLN/int/#1 } { #2 }
+}
+\prg_new_conditional:Nnn \NLN_int_if_exist:n { T, F, TF } {
+  \int_if_exist:cTF { g/NLN/int/#1 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+\NLN_int_new:nn {} { 1 }
+\cs_new:Npn \NLN_int_use:n #1 {
+  \int_use:c { g/NLN/int/#1 }
+}
 \int_new:N \g_NLN_code_int
 \prop_new:N \g_NLN_code_prop
 \prop_new:N \g_NLN_export_prop
@@ -116,8 +203,7 @@
 \tl_new:N \l_NLN_chunks_tl
 \prop_new:N \g_NLN_vars
 \tl_new:N \g_NLN_hook_tl
-\tl_new:N \l_NLN_code_tl
-\tl_new:N \l_NLN_main_tl
+\tl_new:N \l_NLN_recorded_tl
 \int_new:N \g_NLN_int
 \tl_new:N \l_NLN_line_tl
 \tl_new:N \l_NLN_lineno_tl
@@ -131,29 +217,7 @@
     \clist_map_inline:Nn #1 { #2 }
   }
 }
-\cs_new:Npn \NLN_process_export: {}
-\cs_new:Npn \NLN_new_conditional:n #1 {
-  \exp_last_unbraced:Nx
-  \prg_new_conditional:Nnn { \use:c { NLN_if_#1: } } { T, F, TF } {
-    \group_begin:
-    \NLN_get:nNTF { #1 } \l_tmpa_tl {
-      \exp_args:NnV
-      \regex_match:nnTF
-      { ^\s*[tTyY] }
-      \l_tmpa_tl
-      { \group_end: \prg_return_true:  }
-      { \group_end: \prg_return_false: }
-    } { \group_end: \prg_return_false: }
-  }
-}
-\NLN_new_conditional:n { show_name }
-\NLN_new_conditional:n { show_lineno }
-\NLN_new_conditional:n { use_margin }
-\NLN_new_conditional:n { only_top }
-\NLN_new_conditional:n { ignore }
-\NLN_new_conditional:n { reset }
-\NLN_new_conditional:n { export }
-\cs_set_eq:NN \NLN_new_conditional:n \prg_do_nothing:
+\cs_new:Npn \NLN_process_record: {}
 \keys_define:nn { NLN } {
   lineno .code:n = \NLN_put:nn { show_lineno } { #1 },
   lineno .default:n = true,
@@ -227,44 +291,55 @@
     { NLN/code }
     { Unknown~option~`\l_keys_key_str' },
 }
-\cs_set:Npn \NLN_process_export: {
-  \tl_put_right:Nx \l_NLN_code_tl { \the\verbatim@line \iow_newline: }
+\prg_new_conditional:Nnn \NLN_if_record: { T, F, TF } {
+  \NLN_if_export:TF {
+    \prg_return_true:
+  } {
+    \NLN_if_use_minted:TF {
+      \prg_return_true:
+    } {
+      \prg_return_false:
+    }
+  }
+}
+\cs_set:Npn \NLN_process_record: {
+  \tl_put_right:Nx \l_NLN_recorded_tl { \the\verbatim@line \iow_newline: }
+  \exp_args:Nx \directlua {NLN.records.append([===[\the\verbatim@line]===])}
 }
 \DeclareDocumentEnvironment { Inline } { m } {
+  \directlua{NLN.start_recording()}
   \clist_clear:N \l_NLN_clist
   \keys_set:nn { NLN/code } { #1 }
   \clist_map_inline:Nn \l_NLN_clist {
-    \int_if_exist:cF { g/NLN/lineno/##1 } {
-      \int_new:c { g/NLN/lineno/##1 }
-      \int_gset:cn { g/NLN/lineno/##1 } 1
+    \NLN_int_if_exist:nF { ##1 } {
+      \NLN_int_new:nn { ##1 } { 1 }
       \seq_new:c { g/NLN/chunks/##1 }
     }
   }
   \NLN_if_reset:T {
     \NLN_clist_map_inline:Nnn \l_NLN_clist {
-      \int_gset:cn { g/NLN/lineno/##1 } 1
+      \NLN_int_gset:nn { ##1 } 1
     } {
-      \int_gset:cn { g/NLN/lineno/ } 1
+      \NLN_int_gset:nn { } 1
     }
   }
-  \int_gzero:N \g_NLN_int
-  \tl_clear:N \l_NLN_main_tl
+  \tl_clear:N \l_NLN_code_name_tl
   \clist_map_inline:Nn \l_NLN_clist {
     \prop_concat:ccc
       { g/NLN/code/ }
       { g/NLN/code/##1 }
       { g/NLN/code/ }
-    \tl_set:Nn \l_NLN_main_tl { ##1 }
+    \tl_set:Nn \l_NLN_code_name_tl { ##1 }
     \clist_map_break:
   }
   \int_gset:Nn \g_NLN_int
-    { \int_use:c { g/NLN/lineno/\l_NLN_main_tl } }
+    { \NLN_int_use:n { \l_NLN_code_name_tl } }
   \tl_clear:N \l_NLN_info_tl
   \tl_clear:N \l_NLN_name_tl
-  \tl_clear:N \l_NLN_code_tl
+  \tl_clear:N \l_NLN_recorded_tl
   \tl_clear:N \l_NLN_chunks_tl
   \cs_set:Npn \verbatim@processline {
-    \NLN_process_export:
+    \NLN_process_record:
   }
   \NLN_if_show_code:TF {
     \exp_args:NNx
@@ -319,22 +394,10 @@
     \NLN_item:n { format/code }
     \hyphenchar\font\m@ne
     \@noligs
-    \NLN_if_export:F {
-      \cs_set_eq:NN \NLN_process_export: \prg_do_nothing:
+    \NLN_if_record:F {
+      \cs_set_eq:NN \NLN_process_record: \prg_do_nothing:
     }
-    \NLN_if_use_minted:TF {
-      \exp_args:Nnx \setkeys { FV } {
-        firstnumber=\int_use:c { g/NLN/lineno/\l_NLN_main_tl },
-      }
-      \iow_open:Nn \minted@code { \jobname.pyg }
-      \cs_set:Npn \verbatim@processline {
-        \NLN_process_export:
-        \group_begin:
-        \tl_set:Nx \l_tmpa_tl { \the\verbatim@line }
-        \exp_args:NNV \iow_now:Nn \minted@code \l_tmpa_tl
-        \group_end:
-      }
-    } {
+    \NLN_if_use_minted:F {
       \NLN_if_show_lineno:T {
         \NLN_if_use_margin:TF {
           \tl_set:Nn \l_NLN_info_tl {
@@ -365,7 +428,7 @@
         }
       }
       \cs_set:Npn \verbatim@processline {
-        \NLN_process_export:
+        \NLN_process_record:
         \hspace*{\dimexpr \linewidth-\columnwidth}%
         \hbox_to_wd:nn { \columnwidth } {
           \l_NLN_info_tl
@@ -386,51 +449,46 @@
   \verbatim@start
 } {
   \int_gsub:Nn \g_NLN_int {
-    \int_use:c { g/NLN/lineno/\l_NLN_main_tl }
+    \NLN_int_use:n { \l_NLN_code_name_tl }
   }
   \int_compare:nNnT { \g_NLN_int } > { 0 } {
     \NLN_clist_map_inline:Nnn \l_NLN_clist {
-      \int_gadd:cn { g/NLN/lineno/##1 } { \g_NLN_int }
+      \NLN_int_gadd:nn { ##1 } { \g_NLN_int }
     } {
-      \int_gadd:cn { g/NLN/lineno/ } { \g_NLN_int }
+      \NLN_int_gadd:nn { } { \g_NLN_int }
     }
     \int_gincr:N \g_NLN_code_int
     \tl_set:Nx \l_tmpb_tl { \int_use:N \g_NLN_code_int }
     \clist_map_inline:Nn \l_NLN_clist {
       \seq_gput_right:cV { g/NLN/chunks/##1 } \l_tmpb_tl
     }
-    \prop_gput:NVV \g_NLN_code_prop \l_tmpb_tl \l_NLN_code_tl
+    \prop_gput:NVV \g_NLN_code_prop \l_tmpb_tl \l_NLN_recorded_tl
   }
   \group_end:
   \NLN_if_show_code:T {
   }
   \NLN_if_show_code:TF {
     \NLN_if_use_minted:TF {
-      \iow_close:N \minted@code
-      \vspace* { \dimexpr -\topsep-\parskip }
-      \tl_if_empty:NF \l_NLN_info_tl {
-        \tl_use:N \l_NLN_info_tl
-        \skip_vertical:n { \dimexpr -\topsep-\parskip-\baselineskip }
-        \par\noindent
+      \tl_if_empty:NF \l_NLN_recorded_tl {
+        \exp_args:Nnx \setkeys { FV } {
+          firstnumber=\NLN_int_use:n { \l_NLN_code_name_tl },
+        }
+        \iow_open:Nn \minted@code { \jobname.pyg }
+        \exp_args:NNV \iow_now:Nn \minted@code \l_NLN_recorded_tl
+        \iow_close:N \minted@code
+        \vspace* { \dimexpr -\topsep-\parskip }
+        \tl_if_empty:NF \l_NLN_info_tl {
+          \tl_use:N \l_NLN_info_tl
+          \skip_vertical:n { \dimexpr -\topsep-\parskip-\baselineskip }
+          \par\noindent
+        }
+        \exp_args:Nnx \minted@pygmentize { \jobname.pyg } { \NLN_item:n { lang } }
+        %\DeleteFile { \jobname.pyg }
+        \skip_vertical:n { -\topsep-\partopsep }
       }
-      \exp_args:Nx \minted@pygmentize { \NLN_item:n { lang } }
-      %\DeleteFile { \jobname.pyg }
-      \skip_vertical:n { -\topsep-\partopsep }
     } {
       \exp_args:Nx \skip_vertical:n { \NLN_item:n { sep } }
       \noindent
-      \NLN_if_use_minted:T {
-        \setkeys { FV } { firstnumber=last, }
-        \clist_if_empty:NTF \l_NLN_clist {
-          \exp_args:Nnx \setkeys { FV } {
-            firstnumber=\int_use:c { g/NLN/lineno/ },
-          }
-        } {
-          \exp_args:Nnx \setkeys { FV } {
-            firstnumber=\int_use:c { g/NLN/lineno/\l_NLN_main_tl },
-          }
-        }
-      }
     }
   } {
     \@esphack
@@ -467,11 +525,11 @@
   \setkeys { FV } { firstnumber=last, }
   \clist_if_empty:NTF \l_NLN_clist {
     \exp_args:Nnx \setkeys { FV } {
-      firstnumber=\int_use:c { g/NLN/lineno/ },
+      firstnumber=\NLN_int_use:n { },
   } } {
     \clist_map_inline:Nn \l_NLN_clist {
       \exp_args:Nnx \setkeys { FV } {
-        firstnumber=\int_use:c { g/NLN/lineno/##1 },
+        firstnumber=\NLN_int_use:n { ##1 },
       }
       \clist_map_break:
   } }
@@ -516,10 +574,10 @@
               \NLN_item:n { format/name }
               \NLN_item:n { format/lineno }
               \clist_if_empty:NTF \l_NLN_clist {
-                \int_use:c { g/NLN/lineno/ }
+                \NLN_int_use:n { }
               } {
                 \clist_map_inline:Nn \l_NLN_clist {
-                  \int_use:c { g/NLN/lineno/##1 }
+                  \NLN_int_use:n { ##1 }
                   \clist_map_break:
                 }
               }
@@ -537,10 +595,10 @@
               \hspace*{3ex}
               \hbox_overlap_left:n {
                 \clist_if_empty:NTF \l_NLN_clist {
-                  \int_use:c { g/NLN/lineno/ }
+                  \NLN_int_use:n { }
                 } {
                   \clist_map_inline:Nn \l_NLN_clist {
-                    \int_use:c { g/NLN/lineno/##1 }
+                    \NLN_int_use:n { ##1 }
                     \clist_map_break:
                   }
                 }
@@ -564,7 +622,7 @@
             \hspace*{1ex}
             \NLN_item:n { format/lineno }
             \clist_map_inline:Nn \l_NLN_clist {
-              \int_use:c { g/NLN/lineno/####1 }
+              \NLN_int_use:n { ####1 }
               \clist_map_break:
             }
           }
@@ -577,7 +635,7 @@
               \NLN_item:n { format/name }
               \NLN_item:n { format/lineno }
               \clist_map_inline:Nn \l_NLN_clist {
-                \int_use:c { g/NLN/lineno/####1 }
+                \NLN_int_use:n { ####1 }
                 \clist_map_break:
               }
             }
@@ -716,6 +774,7 @@
   \group_end: \l_tmpa_tl
 }
 \cs_set:Npn \_NLN_minted_on: {
+  \directlua{NLN.make_directory("_pygmented")}
   \bool_gset_true:N \g_NLN_minted_on_bool
   \RequirePackage{minted}
   \setkeys{ minted@opt@g } { linenos=false }

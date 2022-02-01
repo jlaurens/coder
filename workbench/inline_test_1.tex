@@ -1,27 +1,27 @@
 % !TEX program=lualatex
 \documentclass{article}
-\RequirePackage{inlinecode}
-%\InlineCodeSet{minted}
+\RequirePackage{inline}
+%\InlineSet{minted}
 \begin{document}
 \section{No chunk}
 \begin{itemize}
 \item No name, lineno=1
-\begin{InlineCode}{}
+\begin{Inline}{}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \item
 lineno=3
-\begin{InlineCode}{}
+\begin{Inline}{}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \item
 lineno=1 with argument \texttt{reset}
-\begin{InlineCode}{reset}
+\begin{Inline}{reset}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \end{itemize}
 %\ExplSyntaxOn
 %\tl_set:Nn \g_NLNCD_hook_tl {
@@ -36,173 +36,173 @@ DEF
 \subsection{Only top}
 \begin{itemize}
 \item  Expected name A
-\begin{InlineCode}{chunks=A}
+\begin{Inline}{chunks=A}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \item Name A is hidden
-\begin{InlineCode}{chunks=A}
+\begin{Inline}{chunks=A}
 ABC
 DEF
-\end{InlineCode}
-\item Name A is back after \verb|\InlineCodeSet{only top=false}|
-\InlineCodeSet{only top=false}
-\begin{InlineCode}{chunks=A}
+\end{Inline}
+\item Name A is back after \verb|\InlineSet{only top=false}|
+\InlineSet{only top=false}
+\begin{Inline}{chunks=A}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \item Name A is hidden after argument \verb|only top=true|
-\begin{InlineCode}{chunks=A,only top=true}
+\begin{Inline}{chunks=A,only top=true}
 ABC
 DEF
-\end{InlineCode}
-\item Name A is still hidden after \verb|\InlineCodeSet{only top=true}|
-\InlineCodeSet{only top=true}
-\begin{InlineCode}{chunks=A}
+\end{Inline}
+\item Name A is still hidden after \verb|\InlineSet{only top=true}|
+\InlineSet{only top=true}
+\begin{Inline}{chunks=A}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \end{itemize}
 \subsection{Name}
-\InlineCodeSet{only top=false}
+\InlineSet{only top=false}
 \begin{itemize}
 \item Line numbering starts at 1
-\begin{InlineCode}{chunks=B}
+\begin{Inline}{chunks=B}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \item Line numbering continues
-\begin{InlineCode}{chunks=B}
+\begin{Inline}{chunks=B}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \end{itemize}
 \subsection{No name}
 \begin{itemize}
 \item
-\InlineCodeSet{name=false}
-No name: \verb|\InlineCodeSet{name=false}|
-\begin{InlineCode}{chunks=B}
+\InlineSet{name=false}
+No name: \verb|\InlineSet{name=false}|
+\begin{Inline}{chunks=B}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \item
 Expected B: Argument \verb|name=true|
-\begin{InlineCode}{chunks=B, name=true}
+\begin{Inline}{chunks=B, name=true}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \item
-Expected B: \verb|\InlineCodeSet{name=true}|
-\InlineCodeSet{name=true}
-\begin{InlineCode}{chunks=B}
+Expected B: \verb|\InlineSet{name=true}|
+\InlineSet{name=true}
+\begin{Inline}{chunks=B}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \item
 No name: argument \verb|name=false|
-\begin{InlineCode}{chunks=B,name=false}
+\begin{Inline}{chunks=B,name=false}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \item
 Back to default: expected B
-\begin{InlineCode}{chunks=B}
+\begin{Inline}{chunks=B}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 \end{itemize}
 \subsection{Multiple chunks}
-\InlineCodeSet{name=true, only top=false}
+\InlineSet{name=true, only top=false}
 \begin{itemize}
 \item C, D
-\begin{InlineCode}{chunks={C,D}}
+\begin{Inline}{chunks={C,D}}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 C=D=3
 \item C
-\begin{InlineCode}{chunks=C}
+\begin{Inline}{chunks=C}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 C=5, D=3
 \item D, C
-\begin{InlineCode}{chunks={D, C}}
+\begin{Inline}{chunks={D, C}}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 C=7, D=5
 \item D
-\begin{InlineCode}{chunks=D}
+\begin{Inline}{chunks=D}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 C=7, D=7
 \item D, C
-\begin{InlineCode}{chunks={D, C}}
+\begin{Inline}{chunks={D, C}}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 C=9, D=9
 \item C
-\begin{InlineCode}{chunks={C}}
+\begin{Inline}{chunks={C}}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 C=11, D=9
 \item reset C
-\begin{InlineCode}{chunks={C}, reset}
+\begin{Inline}{chunks={C}, reset}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 C=3, D=9
 \end{itemize}
 \section{Space}
 BEFORE
-\begin{InlineCode}{}
+\begin{Inline}{}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 AFTER, THEN BIGGER
-\begin{InlineCode}{sep=8pt plus 2pt minus 2pt}
+\begin{Inline}{sep=8pt plus 2pt minus 2pt}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 BIGGER, THEN NORMAL
-\begin{InlineCode}{}
+\begin{Inline}{}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 BIGGER SKIP
-\begin{InlineCode}{parskip=8pt plus 2pt minus 2pt}
+\begin{Inline}{parskip=8pt plus 2pt minus 2pt}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 NORMAL
-\InlineCodeSet{}%
-\begin{InlineCode}{}
+\InlineSet{}%
+\begin{Inline}{}
 ABC
 DEF
-\end{InlineCode}
-\begin{InlineCode}{}
+\end{Inline}
+\begin{Inline}{}
 ABC
 DEF
-\end{InlineCode}
+\end{Inline}
 FIN
 \section{Minted}
 \end{document}
 
 
-%\begin{InlineCode}{lang=python}
+%\begin{Inline}{lang=python}
 %f = 1
 %for i in range(1,24):
 %  f *= i
 %print(f"The factorial of 23 is: {f}")
-%\end{InlineCode}
+%\end{Inline}
 %\noindent
 %Without line numbers:
-%\begin{InlineCode}{
+%\begin{Inline}{
 %  lang=python,
 %  no lineno,
 %}
@@ -210,9 +210,9 @@ FIN
 %for i in range(1,24):
 %  f *= i
 %print(f"The factorial of 23 is: {f}")
-%\end{InlineCode}
+%\end{Inline}
 %With chunk name:
-%\begin{InlineCode}{
+%\begin{Inline}{
 %  lang=python,
 %  chunks=A,
 %}
@@ -220,9 +220,9 @@ FIN
 %for i in range(1,24):
 %  f *= i
 %print(f"The factorial of 23 is: {f}")
-%\end{InlineCode}
+%\end{Inline}
 %Without chunk name:
-%\begin{InlineCode}{
+%\begin{Inline}{
 %  lang=python,
 %  chunks=A,
 %  no name,
@@ -231,18 +231,18 @@ FIN
 %for i in range(1,24):
 %  f *= i
 %print(f"The factorial of 23 is: {f}")
-%\end{InlineCode}
+%\end{Inline}
 %Only top
-%\InlineCodeSet{only top}
-%\begin{InlineCode}{
+%\InlineSet{only top}
+%\begin{Inline}{
 %  chunks=B,
 %}
 %f = 1
-%\end{InlineCode}
-%\begin{InlineCode}{
+%\end{Inline}
+%\begin{Inline}{
 %  chunks=B,
 %}
 %f = 1
-%\end{InlineCode}
+%\end{Inline}
 
 \end{document}

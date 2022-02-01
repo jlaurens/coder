@@ -1,0 +1,20 @@
+PygmenTeX is a Python-based LaTeX package that can be used for
+typesetting code listings in a LaTeX document using Pygments.
+
+Pygments is a generic syntax highlighter for general use in all kinds of
+software such as forum systems, wikis or other applications that need to
+prettify source code.
+
+In order to use PygmenTeX you need to have Pygments installed. If you
+need instructions on installing it, please refer to its home page at
+http://pygments.org/.
+
+The file pygmentex.py should be installed as an executable file in a
+directory in the PATH.
+
+The file pygmentex.sty should be installed in a directory where TeX
+searches for input files.
+
+The file demo.pdf demonstrates the use of the package.
+
+PygmenTeX is licensed under Latex Project Public License (version 1.3).

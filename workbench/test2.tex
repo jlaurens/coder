@@ -2,6 +2,51 @@
 % !TEX program  = lualatex
 % !TEX encoding  = utf8
 \documentclass{article}
+\usepackage{luacode}
+\begin{luacode}
+NLN = {}
+function NLN.make_directory(path)
+  mode,_,__ = lfs.attributes(path,"mode")
+  if mode == "directory" then
+    return true
+  elseif mode ~= nil then
+    return nil,path.." exist and is not a directory",1
+  end
+  if os["type"] == "windows" then
+    path = path:gsub("/", "\\")
+    _,_,__ = os.execute(
+      "if not exist "  .. path .. "\\nul " .. "mkdir " .. path
+    )
+  else
+    _,_,__ = os.execute("mkdir -p " .. path)
+  end
+  mode = lfs.attributes(path,"mode")
+  if mode == "directory" then
+    return true
+  end
+  return nil,path.." exist and is not a directory",1
+end
+function NLN.start_recording()
+  NLN.records = {}
+  function NLN.records.append (t,v)
+    t[#t+1]=v
+    return t
+  end
+end
+\end{luacode}
+\RequirePackage{verbatim}
+\newenvironment{NLN}{
+  
+} {
+}
+\begin{document}
+\directlua{NLN.make_directory("_pygmented")}
+\directlua{NLN.start_recording()}
+\directlua{NLN.records:append("ABC")}
+\directlua{NLN.records:append("DEF")}
+\directlua{tex.write(NLN.records)}
+DONE
+\end{document}
 \RequirePackage{minted, verbatim}
 \ExplSyntaxOn
 \makeatletter
