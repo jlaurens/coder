@@ -1,0 +1,382 @@
+<@@NLN@display@0
+,
+Hello world!
+This is a simple demonstration text.
+>@@NLN@display@0
+<@@NLN@display@1
+,
+#include <stdio.h>
+int main(void)
+{
+int a, b, c;
+printf("Enter two numbers to add: ");
+scanf("%d%d", &a, &b);
+c = a + b;
+printf("Sum of entered numbers = %d\n", c);
+return 0;
+}
+>@@NLN@display@1
+<@@NLN@inline@2
+,lang=c
+int
+>@@NLN@inline@2
+<@@NLN@inline@3
+,lang=c
+"Enter two numbers to add: "
+>@@NLN@inline@3
+<@@NLN@input@4
+,lang=java
+Factorial.java
+>@@NLN@input@4
+<@@NLN@display@5
+,
+#include<stdio.h>
+main()
+{ int n;
+printf("Enter a number: ");
+scanf("%d",&n);
+if ( n%2 == 0 )
+printf("Even\n");
+else
+printf("Odd\n");
+return 0;
+}
+>@@NLN@display@5
+<@@NLN@display@6
+,
+#include<stdio.h>
+main()
+{ int n;
+printf("Enter a number: ");
+scanf("%d",&n);
+if ( n%2 == 0 )
+printf("Even\n");
+else
+printf("Odd\n");
+return 0;
+}
+>@@NLN@display@6
+<@@NLN@display@7
+,
+object bigint extends Application {
+def factorial(n: BigInt): BigInt =
+if (n == 0) 1 else n * factorial(n-1)
+
+val f50 = factorial(50); val f49 = factorial(49)
+println("50! = " + f50)
+println("49! = " + f49)
+println("50!/49! = " + (f50 / f49))
+}
+>@@NLN@display@7
+<@@NLN@display@8
+,
+let rec factorial n =
+if n = 0
+then 1
+else n * factorial (n - 1)
+System.Console.WriteLine(factorial anInt)
+>@@NLN@display@8
+<@@NLN@display@9
+,
+ulong fact(ulong n)
+{
+if(n < 2)
+return 1;
+else
+return n * fact(n - 1);
+}
+>@@NLN@display@9
+<@@NLN@display@10
+,
+;; Triple the value of a number
+(defun triple    (X)
+"Compute three times X."
+(* 3 X))
+>@@NLN@display@10
+<@@NLN@display@11
+,
+;; Building a list of squares from 0 to 9.
+;; Note: loop is simply an arbitrary symbol used as
+;; a label. Any symbol will do.
+
+(define (list-of-squares n)
+(let loop ((i n) (res '()))
+(if (< i 0)
+res
+(loop (- i 1) (cons (* i i) res)))))
+>@@NLN@display@11
+<@@NLN@display@12
+,
+// This program adds two numbers and prints their sum.
+#include <iostream>
+int main()
+{
+int a;
+int b;
+int sum;
+sum = a + b;
+std::cout << "The sum of " << a << " and " << b
+<< " is " << sum << "\n";
+return 0;
+}
+>@@NLN@display@12
+<@@NLN@display@13
+,
+#include <iostream>
+using namespace std;
+main()
+{
+cout << "Hello World";  // prints \underline{Hello World}
+return 0;
+}
+>@@NLN@display@13
+<@@NLN@display@14
+,
+# Returns $\sum_{i=1}^{n}i$
+def sum_from_one_to(n):
+r = range(1, n + 1)
+return sum(r)
+>@@NLN@display@14
+<@@NLN@display@15
+,
+
+if (|\textit{condition}|)
+|\textit{command$_1$}|
+else
+|\textit{command$_2$}|
+>@@NLN@display@15
+<@@NLN@inline@16
+,lang=java,inline method=tcbox
+"Factorial of "
+>@@NLN@inline@16
+<@@NLN@display@17
+,
+using System;
+class Program
+{
+public static void Main(string[] args)
+{
+Console.WriteLine("Hello, world!");
+}
+}
+>@@NLN@display@17
+<@@NLN@display@18
+,
+<!-- This is a note -->
+<note>
+<to>Tove</to>
+<from>Jani</from>
+<heading>Reminder</heading>
+<body>Don't forget me this weekend!</body>
+</note>
+>@@NLN@display@18
+<@@NLN@display@19
+/NLN/.cd,lang=haskell, colback=red!30, font=\ttfamily \small ,
+sum :: Num a => [a] -> a
+sum [] = 0
+sum (x:xs) = x + sum xs
+>@@NLN@display@19
+<@@NLN@display@20
+,
+elem :: Eq a => a -> [a] -> Bool
+elem _ [] = False
+elem x (y:ys) = x == y || elem x ys
+>@@NLN@display@20
+<@@NLN@display@21
+/NLN/.cd,lang=snobol,
+OUTPUT = "What is your name?"
+Username = INPUT
+OUTPUT = "Thank you, " Username
+END
+>@@NLN@display@21
+<@@NLN@display@22
+/NLN/.cd,test/.style={colback=yellow!33,boxing method=tcolorbox,colframe=blue},
+Module Module1
+Sub Main()
+Console.WriteLine("Hello, world!")
+End Sub
+End Module
+>@@NLN@display@22
+<@@NLN@display@23
+,
+puts "Hello, world!"
+>@@NLN@display@23
+<@@NLN@inline@24
+,lang=c
+const double alfa = 3.14159;
+>@@NLN@inline@24
+<@@NLN@inline@25
+,lang=prolog,colback=yellow
+avo(A,B) :- pai(A,X), pai(X,B).
+>@@NLN@inline@25
+<@@NLN@inline@26
+,lang=prolog,sty=emacs,colback=yellow,linecolor=red
+avo(A,B)
+>@@NLN@inline@26
+<@@NLN@inline@27
+,lang=prolog,sty=vim,colback=black,hidealllines
+pai(A,X), pai(X,B)
+>@@NLN@inline@27
+<@@NLN@inline@28
+,inline method=efbox,colback=green!25
+variable
+>@@NLN@inline@28
+<@@NLN@inline@29
+,lang=c,inline method=tcbox,colback=blue!20,boxrule=2pt
+"hello, world!\n"
+>@@NLN@inline@29
+<@@NLN@inline@30
+/NLN/.cd,colback=shadecolor,lang=ocaml,font=\ttfamily \scriptsize ,topline=false
+let x = [1;2;3] in length x
+>@@NLN@inline@30
+<@@NLN@inline@31
+/NLN/.cd,colback=shadecolor,lang=java,sty=colorful,font=\ttfamily \itshape ,linewidth=1pt
+public int f(double x)
+>@@NLN@inline@31
+<@@NLN@display@32
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+(define fact
+(lambda (n)
+(if (= n 0)
+1
+(* n (fact (- n 1))))))
+>@@NLN@display@32
+<@@NLN@input@33
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,lang=haskell, linenos, linenostart=79831, innerlinecolor=yellow, innerlinewidth=6pt, middlelinecolor=blue, middlelinewidth=10pt, outerlinecolor=green, outerlinewidth=12pt, roundcorner=4, colback=shadecolor, caption=A haskell interactive program, label=lst:haskell, 
+pygmentex_demo.hs
+>@@NLN@input@33
+<@@NLN@input@34
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs, lang=delphi, linewidth=1.5pt, font=\ttfamily \sffamily \large , colback=yellow 
+pygmentex_demo.delphi
+>@@NLN@input@34
+<@@NLN@input@35
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,lang=pascal,linenos,linenostart=5801
+pygmentex_demo.pas
+>@@NLN@input@35
+<@@NLN@input@36
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs, lang=python, sty=emacs, linenos, linenostep=3, linewidth=1pt, colback=lightgreen 
+pygmentex_demo.py
+>@@NLN@input@36
+<@@NLN@display@37
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+def qsort(xs: List[Int]): List[Int] =
+xs match {
+case Nil =>
+Nil
+case pivot :: tail =>
+qsort(tail filter { _ < pivot }) :::
+pivot :: qsort(tail filter { _ >= pivot })
+}
+>@@NLN@display@37
+<@@NLN@display@38
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+function entry0 (o)
+N=N + 1
+local title = o.title or '(no title)'
+fwrite('<LI><A HREF="#%d">%s</A>\n', N, title)
+end
+>@@NLN@display@38
+<@@NLN@input@39
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,boxing method=mdframed,lang=java,sty=autumn,colback=red!8,font=\ttfamily \small ,tabsize=2,frametitle=\emph {Ad hoc} lexical analyser
+pygmentex_demo.java
+>@@NLN@input@39
+<@@NLN@display@40
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+object HelloWorld extends App {
+println("Hello, world!")
+>@@NLN@display@40
+<@@NLN@display@41
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+public class Hello {
+public static void main(String[] args) {
+System.out.println("Hello, world!")
+}
+}
+>@@NLN@display@41
+<@@NLN@display@42
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+module Main (main) where
+
+main :: IO ()
+main = putStrLn "Hello, world!"
+>@@NLN@display@42
+<@@NLN@display@43
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+#include <iostream>
+using namespace std;
+int main(int argc, char** argv) {
+cout << "Hello, world!" << endl;
+return 0;
+}
+>@@NLN@display@43
+<@@NLN@display@44
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+/* This program prints a
+hello world message
+to the console.  */
+
+import std.stdio;
+
+void main()
+{
+writeln("Hello, World!");
+}
+>@@NLN@display@44
+<@@NLN@display@45
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+with Ada.Text_IO;
+
+procedure Hello_World is
+use Ada.Text_IO;
+begin
+Put_Line("Hello, world!");
+end;
+>@@NLN@display@45
+<@@NLN@display@46
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+program HelloWorld;
+
+begin
+WriteLn('Hello, world!');
+end.
+>@@NLN@display@46
+<@@NLN@display@47
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+MODULE Hello;
+FROM STextIO IMPORT WriteString;
+BEGIN
+WriteString("Hello World!");
+END Hello.
+>@@NLN@display@47
+<@@NLN@display@48
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+// hello world in 'go'
+package main
+
+import "fmt"
+
+func main() {
+fmt.Println("Hello, world!")
+}
+>@@NLN@display@48
+<@@NLN@display@49
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+/* hello from objective-c */
+
+#import <stdio.h>
+#import <Foundation/Foundation.h>
+
+int main(void)
+{
+NSLog(@"Hello, world!\n");
+return 0;
+}
+>@@NLN@display@49
+<@@NLN@display@50
+/NLN/.cd,lang=scheme,colback=shadecolor,sty=emacs,
+#include <stdio.h>
+int main(int argc, char **argv) {
+printf("Hello, world!\n");
+return 0;
+}
+>@@NLN@display@50

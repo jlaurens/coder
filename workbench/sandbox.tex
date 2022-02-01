@@ -154,7 +154,7 @@ As examples you can see a C program typeset with different styles.
 
 \begin{Example}
 \noindent
-\begin{minipage}[t]{0.49\linewidth}
+\begin{minipage}{t0.49\linewidth}
 \begin{pygmented}{lang=c,gobble=4,sty=murphy}
 #include<stdio.h>
 main()
@@ -170,7 +170,7 @@ return 0;
 \end{pygmented}
 \end{minipage}
 \hfil
-\begin{minipage}[t]{0.49\linewidth}
+\begin{minipage}{t0.49\linewidth}
 \begin{pygmented}{lang=c,gobble=4,sty=trac}
 #include<stdio.h>
 main()
@@ -232,7 +232,7 @@ suppressed).
 
 \begin{Example}
 A code snippet inside a minipage:
-\begin{minipage}[t]{.5\linewidth}
+\begin{minipage}{t.5\linewidth}
 \begin{pygmented}{lang=d,gobble=8}
 ulong fact(ulong n)
 {
@@ -597,7 +597,7 @@ The following is a \textbf{description} environment.
 \item[An item] \lipsum[31]
 \begin{pygmented}{lang=scala,colback=yellow,
 % title=Item A
-}
+
 def qsort(xs: List[Int]): List[Int] =
 xs match {
 case Nil =>

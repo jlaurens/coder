@@ -35,11 +35,20 @@ function NLN.start_recording()
 end
 \end{luacode}
 \RequirePackage{verbatim}
-\newenvironment{NLN}{
-  
+\newenvironment{NLN}[1][]{
+} {
+}
+\NewDocumentEnvironment{XNLN}{+O{}}{
 } {
 }
 \begin{document}
+\begin{NLN}[before=\par]
+ABC
+\end{NLN}
+\begin{XNLN}[before=\par]
+ABC
+\end{XNLN}
+\end{document}
 \directlua{NLN.make_directory("_pygmented")}
 \directlua{NLN.start_recording()}
 \directlua{NLN.records:append("ABC")}

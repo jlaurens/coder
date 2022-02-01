@@ -207,27 +207,27 @@ GENERIC_DEFINITIONS_2 = r'''
 
 
 INLINE_SNIPPET_TEMPLATE = r'''
-\expandafter\def\csname pygmented@snippet@%(number)s\endcsname{%%
-  \pygmented@snippet@inlined{%%
+\expandafter\def\csname NLN@snippet@%(number)s\endcsname{%%
+  \NLN@snippet@inlined{%%
 %(body)s%%
 }}
 '''
 
 DISPLAY_SNIPPET_TEMPLATE = r'''
-\expandafter\def\csname pygmented@snippet@%(number)s\endcsname{%%
-  \begin{pygmented@snippet@framed}%%
+\expandafter\def\csname NLN@snippet@%(number)s\endcsname{%%
+  \begin{NLN@snippet@framed}%%
 %(body)s%%
-  \end{pygmented@snippet@framed}%%
+  \end{NLN@snippet@framed}%%
 }
 '''
 
 DISPLAY_LINENOS_SNIPPET_TEMPLATE = r'''
-\expandafter\def\csname pygmented@snippet@%(number)s\endcsname{%%
+\expandafter\def\csname NLN@snippet@%(number)s\endcsname{%%
   \begingroup
-    \def\pygmented@alllinenos{(%(linenumbers)s)}%%
-    \begin{pygmented@snippet@framed}%%
+    \def\NLN@alllinenos{(%(linenumbers)s)}%%
+    \begin{NLN@snippet@framed}%%
 %(body)s%%
-    \end{pygmented@snippet@framed}%%
+    \end{NLN@snippet@framed}%%
   \endgroup
 }
 '''
@@ -300,7 +300,7 @@ def pyg(outfile, outencoding, n, opts, extra_opts, text, usedstyles, inline_deli
             line = re.sub(r' ', '~', line)
             if linenos:
                 if (counter - linenostart) % linenostep == 0:
-                    line = r'\pygmented@lineno@do{' + str(counter) + '}' + line
+                    line = r'\NLN@lineno@do{' + str(counter) + '}' + line
                     numbers.append(str(counter))
                 counter = counter + 1
             lines.append(line)
@@ -338,15 +338,15 @@ def parse_opts(basedic, opts):
 
 
 _re_display = re.compile(
-    r'^<@@pygmented@display@(\d+)\n(.*)\n([\s\S]*?)\n>@@pygmented@display@\1$',
+    r'^<@@NLN@display@(\d+)\n(.*)\n([\s\S]*?)\n>@@NLN@display@\1$',
     re.MULTILINE)
 
 _re_inline = re.compile(
-    r'^<@@pygmented@inline@(\d+)\n(.*)\n([\s\S]*?)\n>@@pygmented@inline@\1$',
+    r'^<@@NLN@inline@(\d+)\n(.*)\n([\s\S]*?)\n>@@NLN@inline@\1$',
     re.MULTILINE)
 
 _re_input = re.compile(
-    r'^<@@pygmented@input@(\d+)\n(.*)\n([\s\S]*?)\n>@@pygmented@input@\1$',
+    r'^<@@NLN@input@(\d+)\n(.*)\n([\s\S]*?)\n>@@NLN@input@\1$',
     re.MULTILINE)
 
 def convert(code, outfile, outencoding):

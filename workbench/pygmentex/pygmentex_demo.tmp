@@ -1,0 +1,3 @@
+Now some Java code:
+\pyginline[lang=java,sty=colorful,font=\ttfamily\itshape,linewidth=1pt]|public int f(double x)|.
+This is a method header.
