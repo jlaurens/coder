@@ -1,8 +1,199 @@
 % !TEX program=lualatex
 \documentclass{article}
 \RequirePackage{inlinecode}
-\InlineCodeSet{minted}
+%\InlineCodeSet{minted}
 \begin{document}
+\section{No chunk}
+\begin{itemize}
+\item No name, lineno=1
+\begin{InlineCode}{}
+ABC
+DEF
+\end{InlineCode}
+\item
+lineno=3
+\begin{InlineCode}{}
+ABC
+DEF
+\end{InlineCode}
+\item
+lineno=1 with argument \texttt{reset}
+\begin{InlineCode}{reset}
+ABC
+DEF
+\end{InlineCode}
+\end{itemize}
+%\ExplSyntaxOn
+%\tl_set:Nn \g_NLNCD_hook_tl {
+%\noindent
+%\NLNCD_if_show_name:TF { SHOW_NAME } { HIDE_NAME } \par\noindent
+%\NLNCD_if_use_margin:TF { USE_MARGIN } { NOT_MARGIN } \par\noindent
+%\NLNCD_if_only_top:TF { ONLY_TOP } { NOT_ONLY } \par\noindent
+%}
+%\g_NLNCD_hook_tl
+%\ExplSyntaxOff
+\section{Chunks}
+\subsection{Only top}
+\begin{itemize}
+\item  Expected name A
+\begin{InlineCode}{chunks=A}
+ABC
+DEF
+\end{InlineCode}
+\item Name A is hidden
+\begin{InlineCode}{chunks=A}
+ABC
+DEF
+\end{InlineCode}
+\item Name A is back after \verb|\InlineCodeSet{only top=false}|
+\InlineCodeSet{only top=false}
+\begin{InlineCode}{chunks=A}
+ABC
+DEF
+\end{InlineCode}
+\item Name A is hidden after argument \verb|only top=true|
+\begin{InlineCode}{chunks=A,only top=true}
+ABC
+DEF
+\end{InlineCode}
+\item Name A is still hidden after \verb|\InlineCodeSet{only top=true}|
+\InlineCodeSet{only top=true}
+\begin{InlineCode}{chunks=A}
+ABC
+DEF
+\end{InlineCode}
+\end{itemize}
+\subsection{Name}
+\InlineCodeSet{only top=false}
+\begin{itemize}
+\item Line numbering starts at 1
+\begin{InlineCode}{chunks=B}
+ABC
+DEF
+\end{InlineCode}
+\item Line numbering continues
+\begin{InlineCode}{chunks=B}
+ABC
+DEF
+\end{InlineCode}
+\end{itemize}
+\subsection{No name}
+\begin{itemize}
+\item
+\InlineCodeSet{name=false}
+No name: \verb|\InlineCodeSet{name=false}|
+\begin{InlineCode}{chunks=B}
+ABC
+DEF
+\end{InlineCode}
+\item
+Expected B: Argument \verb|name=true|
+\begin{InlineCode}{chunks=B, name=true}
+ABC
+DEF
+\end{InlineCode}
+\item
+Expected B: \verb|\InlineCodeSet{name=true}|
+\InlineCodeSet{name=true}
+\begin{InlineCode}{chunks=B}
+ABC
+DEF
+\end{InlineCode}
+\item
+No name: argument \verb|name=false|
+\begin{InlineCode}{chunks=B,name=false}
+ABC
+DEF
+\end{InlineCode}
+\item
+Back to default: expected B
+\begin{InlineCode}{chunks=B}
+ABC
+DEF
+\end{InlineCode}
+\end{itemize}
+\subsection{Multiple chunks}
+\InlineCodeSet{name=true, only top=false}
+\begin{itemize}
+\item C, D
+\begin{InlineCode}{chunks={C,D}}
+ABC
+DEF
+\end{InlineCode}
+C=D=3
+\item C
+\begin{InlineCode}{chunks=C}
+ABC
+DEF
+\end{InlineCode}
+C=5, D=3
+\item D, C
+\begin{InlineCode}{chunks={D, C}}
+ABC
+DEF
+\end{InlineCode}
+C=7, D=5
+\item D
+\begin{InlineCode}{chunks=D}
+ABC
+DEF
+\end{InlineCode}
+C=7, D=7
+\item D, C
+\begin{InlineCode}{chunks={D, C}}
+ABC
+DEF
+\end{InlineCode}
+C=9, D=9
+\item C
+\begin{InlineCode}{chunks={C}}
+ABC
+DEF
+\end{InlineCode}
+C=11, D=9
+\item reset C
+\begin{InlineCode}{chunks={C}, reset}
+ABC
+DEF
+\end{InlineCode}
+C=3, D=9
+\end{itemize}
+\section{Space}
+BEFORE
+\begin{InlineCode}{}
+ABC
+DEF
+\end{InlineCode}
+AFTER, THEN BIGGER
+\begin{InlineCode}{sep=8pt plus 2pt minus 2pt}
+ABC
+DEF
+\end{InlineCode}
+BIGGER, THEN NORMAL
+\begin{InlineCode}{}
+ABC
+DEF
+\end{InlineCode}
+BIGGER SKIP
+\begin{InlineCode}{parskip=8pt plus 2pt minus 2pt}
+ABC
+DEF
+\end{InlineCode}
+NORMAL
+\InlineCodeSet{}%
+\begin{InlineCode}{}
+ABC
+DEF
+\end{InlineCode}
+\begin{InlineCode}{}
+ABC
+DEF
+\end{InlineCode}
+FIN
+\section{Minted}
+\end{document}
+
+
 %\begin{InlineCode}{lang=python}
 %f = 1
 %for i in range(1,24):
@@ -42,16 +233,16 @@
 %print(f"The factorial of 23 is: {f}")
 %\end{InlineCode}
 %Only top
-\InlineCodeSet{only top}
-\begin{InlineCode}{
-  chunks=B,
-}
-f = 1
-\end{InlineCode}
-\begin{InlineCode}{
-  chunks=B,
-}
-f = 1
-\end{InlineCode}
+%\InlineCodeSet{only top}
+%\begin{InlineCode}{
+%  chunks=B,
+%}
+%f = 1
+%\end{InlineCode}
+%\begin{InlineCode}{
+%  chunks=B,
+%}
+%f = 1
+%\end{InlineCode}
 
 \end{document}

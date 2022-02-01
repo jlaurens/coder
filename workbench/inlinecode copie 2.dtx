@@ -129,8 +129,6 @@ and the derived files           inlinecode.ins,
 % and should be documented all at once.
 %
 % The file \texttt{inlinecode-manual} gives different examples. Here is the implementation of the package.
-%
-% This \LaTeX{} package requires \LaTeX{} and use syntax coloring based on \pkg{pygment}.
 % \end{abstract}
 %
 % \section{Package dependencies}
@@ -177,114 +175,46 @@ and the derived files           inlinecode.ins,
 }
 %    \end{macrocode}
 % \end{variable}
-% \subsection{Global variables and accessors}
+% \subsection{Global variables}
 % \begin{variable}{\g/NLNCD/code/ }
 % \begin{variable}{\g/NLNCD/code/<name>}
+% \begin{variable}{\l_NLNCD_prop}
 % Tree storage for global generic chunk properties or named chunk properties. \cs{l_NLNCD_prop} is used locally.
 %    \begin{macrocode}
 \prop_new:c { g/NLNCD/code/ }
+\prop_new:N \l_NLNCD_prop
 %    \end{macrocode}
+% \end{variable}
 % \end{variable}
 % \end{variable}
 % \begin{function}{\NLNCD_item:n}
-% \begin{syntax}
-% \cs{NLNCD_item:n} \marg{key}
-% \end{syntax}
-%    \begin{macrocode}
-\cs_new:Npn \NLNCD_item:n #1 {
-  \prop_item:cn { g/NLNCD/code/ } { #1 }
-}
-%    \end{macrocode}
-% \end{function}
-% \begin{function} [TF] {\NLNCD_get:nN}
-%   \begin{syntax}
-%     \cs{NLNCD_get:nNTF} \marg{key} \meta{tl var} \Arg{true code} \Arg{false code}
-%   \end{syntax}
-% Execute \meta{true code} when \cs{g/NLNCD/code/} prop's
-% \texttt{\meta{key}} is retrieved in \meta{tl var},
-% \meta{false code} otherwise.
-%    \begin{macrocode}
-\prg_new_conditional:Nnn \NLNCD_get:nN { T, F, TF } {
-  \prop_get:cnNTF { g/NLNCD/code/ } { #1 } #2 {
-    \prg_return_true:
-  } {
-    \prg_return_false:
-  }
-}
-%    \end{macrocode}
-% \end{function}
 % \begin{function}{\NLNCD_item:nn}
 % \begin{syntax}
+% \cs{NLNCD_item:n} \marg{key}
 % \cs{NLNCD_item:nn} \marg{name} \marg{key}
 % \end{syntax}
 % \meta{name} is a code name.
 %    \begin{macrocode}
+\cs_new:Npn \NLNCD_item:n #1 {
+  \prop_item:Nn \l_NLNCD_prop { #1 }
+}
 \cs_new:Npn \NLNCD_item:nn #1 #2 {
   \prop_item:cn { g/NLNCD/code/#1 } { #2 }
 }
 %    \end{macrocode}
 % \end{function}
-% \begin{function} [TF] {\NLNCD_get:nnN}
-%   \begin{syntax}
-%     \cs{NLNCD_get:nnNTF} \marg{name} \marg{key} \meta{tl var} \Arg{true code} \Arg{false code}
-%   \end{syntax}
-% Execute \meta{true code} when \texttt{g/NLNCD/code/\marg{meta}}
-% prop's \texttt{\meta{key}} is retrieved in \meta{tl var},
-% \meta{false code} otherwise.
-%    \begin{macrocode}
-\prg_new_conditional:Nnn \NLNCD_get:nnN { T, F, TF } {
-  \prop_get:cnNTF { g/NLNCD/code/#1 } { #2 } #3 {
-    \prg_return_true:
-  } {
-    \prg_return_false:
-  }
-}
-%    \end{macrocode}
-% \end{function}
-% \begin{function}{\NLNCD_put:nn,\NLNCD_put:nV,\NLNCD_gput:nn,\NLNCD_gput:nV}
-% \begin{syntax}
-% \cs{NLNCD_put:nn} \marg{key} \marg{value}
-% \cs{NLNCD_gput:nn} \marg{key} \marg{value}
-% \end{syntax}
-%    \begin{macrocode}
-\cs_new:Npn \NLNCD_put:nn #1 #2 {
-  \prop_put:cnn { g/NLNCD/code/ } { #1 } { #2 }
-}
-\cs_new:Npn \NLNCD_gput:nn #1 #2 {
-  \prop_gput:cnn { g/NLNCD/code/ } { #1 } { #2 }
-}
-\cs_generate_variant:Nn \NLNCD_put:nn { nV }
-\cs_generate_variant:Nn \NLNCD_gput:nn { nV }
-%    \end{macrocode}
-% \end{function}
-% \begin{function}{\NLNCD_put:nnn, \NLNCD_put:nnV, \NLNCD_gput:nnn, \NLNCD_gput:nnV}
-% \begin{syntax}
-% \cs{NLNCD_put:nnn} \marg{name} \marg{key} \marg{value}
-% \cs{NLNCD_gput:nnn} \marg{name} \marg{key} \marg{value}
-% \end{syntax}
-% \meta{name} is a code name.
-%    \begin{macrocode}
-\cs_new:Npn \NLNCD_put:nnn #1 #2 #3 {
-  \prop_put:cnn { g/NLNCD/code/#1 } { #2 } { #3 }
-}
-\cs_new:Npn \NLNCD_gput:nnn #1 #2 #3 {
-  \prop_gput:cnn { g/NLNCD/code/#1 } { #2 } { #3 }
-}
-\cs_generate_variant:Nn \NLNCD_put:nnn { nnV }
-\cs_generate_variant:Nn \NLNCD_gput:nnn { nnV }
-%    \end{macrocode}
 % \end{function}
 % Known keys are:
 %\begin{description}
 % \item[\ttfamily format/code] Font/size/color specifier for inline code.
 %    \begin{macrocode}
-\NLNCD_gput:nn { format/code } {
+\prop_gput:cnn { g/NLNCD/code/ } { format/code } {
   \ttfamily
 }
 %    \end{macrocode}
 % \item[\ttfamily format/name] Font/size/color specifier for chunk name.
 %    \begin{macrocode}
-\NLNCD_gput:nn { format/name } {
+\prop_gput:cnn { g/NLNCD/code/ } { format/name } {
   \sffamily
   \scriptsize
   \color{gray}
@@ -292,7 +222,7 @@ and the derived files           inlinecode.ins,
 %    \end{macrocode}
 % \item[\ttfamily format/lineno] Font/size/color specifier for line numbers.
 %    \begin{macrocode}
-\NLNCD_gput:nn { format/lineno } {
+\prop_gput:cnn { g/NLNCD/code/ } { format/lineno } {
   \sffamily
   \tiny
   \color{gray}
@@ -300,49 +230,42 @@ and the derived files           inlinecode.ins,
 %    \end{macrocode}
 % \item[\ttfamily lang] the langage, defaults to \texttt{tex}
 %    \begin{macrocode}
-\NLNCD_gput:nn { lang } { tex }
+\prop_gput:cnn { g/NLNCD/code/ } { lang } { tex }
 %    \end{macrocode}
 % \item[\ttfamily lineno] show line numbers, defaults to \texttt{true}
 %    \begin{macrocode}
-\NLNCD_gput:nn { show_lineno } { T }
+\prop_gput:cnn { g/NLNCD/code/ } { show_lineno } { T }
 %    \end{macrocode}
 % \item[\ttfamily name] show chunk names, defaults to \texttt{true}
 %    \begin{macrocode}
-\NLNCD_gput:nn { show_name } { T }
+\prop_gput:cnn { g/NLNCD/code/ } { show_name } { T }
 %    \end{macrocode}
 % \item[\ttfamily only top] show names only on top, defaults to \texttt{true}
 %    \begin{macrocode}
-\NLNCD_gput:nn { only_top } { T }
+\prop_gput:cnn { g/NLNCD/code/ } { only_top } { T }
 %    \end{macrocode}
 % \item[\ttfamily margin] use the margin to display line numbers and chunk names, defaults to \texttt{true}
 %    \begin{macrocode}
-\NLNCD_gput:nn { use_margin } { T }
+\prop_gput:cnn { g/NLNCD/code/ } { use_margin } { T }
 %    \end{macrocode}
 % \item[\ttfamily ignore] ignore that chunk or that export, defaults to \texttt{false}
 %    \begin{macrocode}
-\NLNCD_gput:nn { ignore } { F }
+\prop_gput:cnn { g/NLNCD/code/ } { ignore } { F }
 %    \end{macrocode}
 % \item[\ttfamily reset] reset line numbering, defaults to \texttt{false}
 %    \begin{macrocode}
-\NLNCD_gput:nn { reset } { F }
+\prop_gput:cnn { g/NLNCD/code/ } { reset } { F }
 %    \end{macrocode}
 % \item[\ttfamily parskip] the parskip used to separate lines of code
 %    \begin{macrocode}
 \AddToHook { begindocument/end } {
-  \prop_if_in:cnF { g/NLNCD/code } { parskip } {
-    \exp_args:Nnx
-    \NLNCD_gput:nn { parskip } { \the\parskip }
-  }
+  \exp_args:Nnnx
+  \prop_gput:cnn { g/NLNCD/code/ } { parskip } { \the\parskip }
 }
-%    \end{macrocode}
-% \item[\ttfamily sep] the separation between inline code blocks
-% and surrounding text.
-%    \begin{macrocode}
-\NLNCD_gput:nn { sep } { 4pt plus 2pt minus 2pt }
 %    \end{macrocode}
 % \item[\ttfamily code] the cumulated inline code
 %    \begin{macrocode}
-\NLNCD_gput:nn { .code } {}
+\prop_gput:cnn { g/NLNCD/code/ } { .code } {}
 %    \end{macrocode}
 % \end{description}
 % \begin{variable}{\g/NLNCD/lineno/}
@@ -470,22 +393,6 @@ and the derived files           inlinecode.ins,
 % \end{variable}
 % \section{Utilities}
 % Utilities
-% \begin{function}{\NLNCD_clist_map_inline:Nnn}
-% \begin{syntax}
-% \cs{NLNCD_clist_map_inline:Nnn} \meta{clist var}
-% \marg {non empty code} \marg {empty code}
-% \end{syntax}
-% Call \texttt{\cs{clist_map_inline:Nnn} \meta{clist var}
-% \marg {non empty code}} when the list is not empty,
-% execute meta{empty code} otherwise.
-%    \begin{macrocode}
-\cs_new:Npn \NLNCD_clist_map_inline:Nnn #1 #2 #3 {
-  \clist_if_empty:NTF #1 { #3 } {
-    \clist_map_inline:Nn #1 { #2 }
-  }
-}
-%    \end{macrocode}
-% \end{function}
 % \begin{function}{\NLNCD_process_export:}
 % Record the current line or not.
 %    \begin{macrocode}
@@ -504,7 +411,7 @@ and the derived files           inlinecode.ins,
   \exp_last_unbraced:Nx
   \prg_new_conditional:Nnn { \use:c { NLNCD_if_#1: } } { T, F, TF } {
     \group_begin:
-    \NLNCD_get:nNTF { #1 } \l_tmpa_tl {
+    \prop_get:NnNTF \l_NLNCD_prop { #1 } \l_tmpa_tl {
       \exp_args:NnV
       \regex_match:nnTF
       { ^\s*[tTyY] }
@@ -520,9 +427,7 @@ and the derived files           inlinecode.ins,
 %   \begin{syntax}
 %     \cs{NLNCD_if_show_name:TF} \Arg{true code} \Arg{false code}
 %   \end{syntax}
-% Execute \meta{true code} when
-% \cs{g/NLNCD/code/} prop's \texttt{show_name} field is truthy,
-% \meta{false code} otherwise.
+%   Execute \meta{true code} when \texttt{\cs{l_NLNCD_prop}[show_name]} is true, \meta{false code} otherwise.
 %    \begin{macrocode}
 \NLNCD_new_conditional:n { show_name }
 %    \end{macrocode}
@@ -532,9 +437,7 @@ and the derived files           inlinecode.ins,
 %   \begin{syntax}
 %     \cs{NLNCD_if_show_lineno:TF} \Arg{true code} \Arg{false code}
 %   \end{syntax}
-% Execute \meta{true code} when
-% \cs{g/NLNCD/code/} prop's \texttt{show_lineo} field is truthy,
-% \meta{false code} otherwise.
+%   Execute \meta{true code} when \texttt{\cs{l_NLNCD_prop}[show_lineno]} is true, \meta{false code} otherwise.
 %    \begin{macrocode}
 \NLNCD_new_conditional:n { show_lineno }
 %    \end{macrocode}
@@ -544,9 +447,7 @@ and the derived files           inlinecode.ins,
 %   \begin{syntax}
 %     \cs{NLNCD_if_use_margin:TF} \Arg{true code} \Arg{false code}
 %   \end{syntax}
-% Execute \meta{true code} when
-% \cs{g/NLNCD/code/} prop's \texttt{use_margin} field is truthy,
-% \meta{false code} otherwise.
+%   Execute \meta{true code} when \texttt{\cs{l_NLNCD_prop}[use_margin]} is true, \meta{false code} otherwise.
 %    \begin{macrocode}
 \NLNCD_new_conditional:n { use_margin }
 %    \end{macrocode}
@@ -556,9 +457,7 @@ and the derived files           inlinecode.ins,
 %   \begin{syntax}
 %     \cs{NLNCD_if_only_top:TF} \Arg{true code} \Arg{false code}
 %   \end{syntax}
-% Execute \meta{true code} when
-% \cs{g/NLNCD/code/} prop's \texttt{only_top} field is truthy,
-% \meta{false code} otherwise.
+%   Execute \meta{true code} when \texttt{\cs{l_NLNCD_prop}[only_top]} is true, \meta{false code} otherwise.
 %    \begin{macrocode}
 \NLNCD_new_conditional:n { only_top }
 %    \end{macrocode}
@@ -568,9 +467,7 @@ and the derived files           inlinecode.ins,
 %   \begin{syntax}
 %     \cs{NLNCD_if_ignore:TF} \Arg{true code} \Arg{false code}
 %   \end{syntax}
-% Execute \meta{true code} when
-% \cs{g/NLNCD/code/} prop's \texttt{ignore} field is truthy,
-% \meta{false code} otherwise.
+%   Execute \meta{true code} when \texttt{\cs{l_NLNCD_prop}[ignore]} is true, \meta{false code} otherwise.
 %    \begin{macrocode}
 \NLNCD_new_conditional:n { ignore }
 %    \end{macrocode}
@@ -580,9 +477,7 @@ and the derived files           inlinecode.ins,
 %   \begin{syntax}
 %     \cs{NLNCD_if_reset:TF} \Arg{true code} \Arg{false code}
 %   \end{syntax}
-% Execute \meta{true code} when
-% \cs{g/NLNCD/code/} prop's \texttt{reset} field is truthy,
-% \meta{false code} otherwise.
+%   Execute \meta{true code} when \texttt{\cs{l_NLNCD_prop}[reset]} is true, \meta{false code} otherwise.
 %    \begin{macrocode}
 \NLNCD_new_conditional:n { reset }
 %    \end{macrocode}
@@ -592,16 +487,14 @@ and the derived files           inlinecode.ins,
 %   \begin{syntax}
 %     \cs{NLNCD_if_export:TF} \Arg{true code} \Arg{false code}
 %   \end{syntax}
-% Execute \meta{true code} when
-% \cs{g/NLNCD/code/} prop's \texttt{export} field is truthy,
-% \meta{false code} otherwise.
+%   Execute \meta{true code} when \texttt{\cs{l_NLNCD_prop}[export]} is true, \meta{false code} otherwise.
 %    \begin{macrocode}
 \NLNCD_new_conditional:n { export }
 \cs_set_eq:NN \NLNCD_new_conditional:n \prg_do_nothing:
 %    \end{macrocode}
 % \end{function}
 % \section{Shared key-value controls}
-% Each action is meant to store the values in \cs{g/NLNCD/code/}, for the almost eponym key.
+% Each action is meant to store the values in \cs{l_NLNCD_prop}, for the almost eponym key.
 %    \begin{macrocode}
 \keys_define:nn { NLNCD } {
 %    \end{macrocode}
@@ -609,65 +502,63 @@ and the derived files           inlinecode.ins,
 % \begin{description}
 % \item[\ttfamily lineno{[=true/false]}] to display the line numbers, or not,
 %    \begin{macrocode}
-  lineno .code:n = \NLNCD_put:nn { show_lineno } { #1 },
+  lineno .code:n = \prop_put:Nnn \l_NLNCD_prop { show_lineno } { #1 },
   lineno .default:n = true,
 %    \end{macrocode}
 % \item[\ttfamily name{[=true/false]}] to display the chunk names
 %    \begin{macrocode}
-  name .code:n = \NLNCD_put:nn { show_name } { #1 },
+  name .code:n = \prop_put:Nnn \l_NLNCD_prop { show_name } { #1 },
   name .default:n = true,
 %    \end{macrocode}
 % \item[\ttfamily only top] to avoid chunk names repetitions, if on the same page,
 % two consecutive code chunks have the same chunk names, the second names are not displayed.
 %    \begin{macrocode}
-  only~top .code:n = \NLNCD_put:nn { only_top } { #1 },
+  only~top .code:n = \prop_put:Nnn \l_NLNCD_prop { only_top } { #1 },
   only~top .default:n = true,
 %    \end{macrocode}
 % \item[\ttfamily ignore] to ignore chunks.
 %    \begin{macrocode}
-  ignore .code:n = \NLNCD_put:nn { ignore } { #1 },
+  ignore .code:n = \prop_put:Nnn \l_NLNCD_prop { ignore } { #1 },
   ignore .default:n = true,
 %    \end{macrocode}
 % \item[\ttfamily margin{[=true/false]}] to use the magin to display line numbers, or not,
 %    \begin{macrocode}
-  margin .code:n = \NLNCD_put:nn { use_margin } { #1 },
+  margin .code:n = \prop_put:Nnn \l_NLNCD_prop { use_margin } { #1 },
   margin .default:n = true,
 %    \end{macrocode}
 % \item[\ttfamily lang=\meta{language name}], where \meta{language name} is recognized by \texttt{pygment},
 %    \begin{macrocode}
-  lang .code:n = \NLNCD_put:nn { lang } { #1 },
+  lang .code:n = \prop_put:Nnn \l_NLNCD_prop { lang } { #1 },
 %    \end{macrocode}
 % \item[\ttfamily code format=\meta{format}], where \meta{format} is used to display the code (mainly font, size and color),
 %    \begin{macrocode}
-  code~format .code:n = \NLNCD_put:nn { format/code } { #1 },
+  code~format .code:n = \prop_put:Nnn \l_NLNCD_prop
+    { format/code } { #1 },
 %    \end{macrocode}
 % \item[\ttfamily lineno format=\meta{format}], where \meta{format} is used to display the line numbers (mainly font, size and color),
 %    \begin{macrocode}
-  name~format .code:n = \NLNCD_put:nn { format/name } { #1 },
+  name~format .code:n = \prop_put:Nnn \l_NLNCD_prop
+    { format/name } { #1 },
 %    \end{macrocode}
 % \item[\ttfamily name format=\meta{format}], where \meta{name format} is used to display the chunk names (mainly font, size and color),
 %    \begin{macrocode}
-  lineno~format .code:n = \NLNCD_put:nn { format/lineno } { #1 },
+  lineno~format .code:n = \prop_put:Nnn \l_NLNCD_prop
+    { format/lineno } { #1 },
 %    \end{macrocode}
 % \item[\ttfamily post processor] the name of the pygment post processor,
 %    \begin{macrocode}
-  post~processor .code:n = \NLNCD_put:nn { post_processor } { #1 },
+  post~processor .code:n = \prop_put:Nnn \l_NLNCD_prop
+    { post_processor } { #1 },
 %    \end{macrocode}
 % \item[\ttfamily post processor args] the arguments of the pygment post processor,
 %    \begin{macrocode}
-  post~processor~args .code:n = \NLNCD_put:nn { post_processor_args } { #1 },
-%    \end{macrocode}
-% \item[\ttfamily sep] the separation with the surrounding text,
-%    \begin{macrocode}
-  sep .code:n = \NLNCD_put:nn { sep } { #1 },
-%    \end{macrocode}
-% \item[\ttfamily parskip] the value of the \cs{parskip} in inline code blocks,
-%    \begin{macrocode}
-  parskip .code:n = \NLNCD_put:nn { parskip } { #1 },
+  post~processor~args .code:n = \prop_put:Nnn \l_NLNCD_prop
+    { post_processor_args } { #1 },
 %    \end{macrocode}
 % \item[\ttfamily test] whether the chunk is a test,
 %    \begin{macrocode}
-  test .code:n = \NLNCD_put:nn { test } { #1 },
+  test .code:n = \prop_put:Nnn \l_NLNCD_prop
+    { test } { #1 },
 %    \end{macrocode}
 % \end{description}
 %    \begin{macrocode}
@@ -681,7 +572,7 @@ and the derived files           inlinecode.ins,
 % \begin{syntax}
 % \cs{InlineCodeSet} \marg{key[=value] list}
 % \end{syntax}
-% To set up the package. This is executed at least once at the end of the preamble.
+% To set up the package. This is executed at least once the end of the preamble.
 % The unique mandatory argument of \cs{InlineCodeSet} is a
 % list of \texttt{\meta{key}[=\meta{value}]} items defined by 
 % \end{function}
@@ -703,8 +594,8 @@ and the derived files           inlinecode.ins,
 % to select a predefined minted style, forwarded to \cs{usemintedstyle},
 %    \begin{macrocode}
   minted~style .code:n = {
-    \RemoveFromHook { begindocument/before } [NLNCD/Minted]
-    \AddToHook { begindocument/before } [NLNCD/Minted] {
+    \RemoveFromHook { begindocument/before } [NLNCDMinted]
+    \AddToHook { begindocument/before } [NLNCDMinted] {
       \usemintedstyle { #1 }
     }
   },
@@ -727,6 +618,7 @@ and the derived files           inlinecode.ins,
 %    \begin{macrocode}
 \NewDocumentCommand \InlineCodeSet { m } {
   \keys_set:nn { NLNCD/set } {#1}
+  \prop_concat:ccc { g/NLNCD/code/ } { g/NLNCD/code/ } { l_NLNCD_prop }
   \NLNCD_if_use_minted:F {
     \bool_if:NT \g_NLNCD_minted_on_bool {
       \sys_if_shell:TF {
@@ -749,8 +641,6 @@ and the derived files           inlinecode.ins,
 }
 %    \end{macrocode}
 %
-% \section{\texttt{InlineSplit}
-% 
 % \section{\texttt{InlineCode} environment}
 % \begin{environment}{InlineCode}
 % \begin{syntax}
@@ -778,7 +668,7 @@ and the derived files           inlinecode.ins,
 % When declaring a code chunk, this the list of chunks where it will be stored.
 % Chunks are collected unordered and ordered for comparison.
 %    \begin{macrocode}
-  reset .code:n = \NLNCD_put:nn { reset } { #1 },
+  reset .code:n = \prop_put:Nnn \l_NLNCD_prop { reset } { #1 },
   reset .default:n = true,
 %    \end{macrocode}
 % \end{description}
@@ -799,6 +689,7 @@ and the derived files           inlinecode.ins,
 %    \begin{macrocode}
 \DeclareDocumentEnvironment { InlineCode } { m } {
   \clist_clear:N \l_NLNCD_clist
+  \prop_set_eq:cc { l_NLNCD_prop } { g/NLNCD/code/ }
   \keys_set:nn { NLNCD/code } { #1 }
   \clist_map_inline:Nn \l_NLNCD_clist {
     \int_if_exist:cF { g/NLNCD/lineno/##1 } {
@@ -808,24 +699,18 @@ and the derived files           inlinecode.ins,
     }
   }
   \NLNCD_if_reset:T {
-    \NLNCD_clist_map_inline:Nnn \l_NLNCD_clist {
+    \clist_map_inline:Nn \l_NLNCD_clist {
       \int_gset:cn { g/NLNCD/lineno/##1 } 1
-    } {
-      \int_gset:cn { g/NLNCD/lineno/ } 1
     }
   }
   \int_gzero:N \g_NLNCD_int
   \tl_clear:N \l_NLNCD_main_tl
   \clist_map_inline:Nn \l_NLNCD_clist {
-    \prop_concat:ccc
-      { g/NLNCD/code/ }
-      { g/NLNCD/code/##1 }
-      { g/NLNCD/code/ }
+    \prop_concat:ccc { l_NLNCD_prop } { g/NLNCD/code/##1 } { l_NLNCD_prop }
     \tl_set:Nn \l_NLNCD_main_tl { ##1 }
+    \int_gset:Nn \g_NLNCD_int { \int_use:c { g/NLNCD/lineno/##1 } }
     \clist_map_break:
   }
-  \int_gset:Nn \g_NLNCD_int
-    { \int_use:c { g/NLNCD/lineno/\l_NLNCD_main_tl } }
   \tl_clear:N \l_NLNCD_info_tl
   \tl_clear:N \l_NLNCD_name_tl
   \tl_clear:N \l_NLNCD_code_tl
@@ -835,7 +720,7 @@ and the derived files           inlinecode.ins,
   }
   \NLNCD_if_show_code:TF {
     \exp_args:NNx
-    \skip_set:Nn \parskip { \NLNCD_item:n { parskip } }
+    \skip_set:Nn \parskip { \prop_item:Nn \l_NLNCD_prop { parskip } }
     \clist_if_empty:NTF \l_NLNCD_clist {
       \tl_gclear:N \g_NLNCD_chunks_tl
     } {
@@ -851,8 +736,8 @@ and the derived files           inlinecode.ins,
       \NLNCD_if_show_name:T {
         \NLNCD_if_use_margin:T {
           \NLNCD_if_only_top:T {
-            \tl_if_eq:NNT \l_tmpa_tl \g_NLNCD_chunks_tl {
-              \tl_gset_eq:NN \g_NLNCD_chunks_tl \l_tmpa_tl
+            \tl_if_eq:NNT \l_NLNCD_chunks_tl \g_NLNCD_chunks_tl {
+              \tl_gset_eq:NN \g_NLNCD_chunks_tl \l_NLNCD_chunks_tl
               \tl_clear:N \l_tmpa_tl
             }
           }
@@ -862,7 +747,7 @@ and the derived files           inlinecode.ins,
             }
             \tl_set:Nn \l_NLNCD_name_tl {
               {
-                \NLNCD_item:n { format/name }
+                \prop_item:Nn \l_NLNCD_prop { format/name }
                 \l_NLNCD_chunks_tl :
                 \hspace*{1ex}
               }
@@ -875,41 +760,29 @@ and the derived files           inlinecode.ins,
       }
     }
     \if_mode_vertical:
-    \else:
-    \par
-    \fi:
-    \vspace{ \NLNCD_item:n { sep } }
+    \else
+%      \vspace*{\topsep}
+      \par
+    \fi
     \noindent
     \frenchspacing
     \@vobeyspaces
     \normalfont\ttfamily
-    \NLNCD_item:n { format/code }
+    \prop_item:Nn \l_NLNCD_prop { format/code }
     \hyphenchar\font\m@ne
     \@noligs
     \NLNCD_if_export:F {
       \cs_set_eq:NN \NLNCD_process_export: \prg_do_nothing:
     }
-    \NLNCD_if_use_minted:TF {
-      \exp_args:Nnx \setkeys { FV } {
-        firstnumber=\int_use:c { g/NLNCD/lineno/\l_NLNCD_main_tl },
-      }
-      \iow_open:Nn \minted@code { \jobname.pyg }
-      \cs_set:Npn \verbatim@processline {
-        \NLNCD_process_export:
-        \group_begin:
-        \tl_set:Nx \l_tmpa_tl { \the\verbatim@line }
-        \exp_args:NNV \iow_now:Nn \minted@code \l_tmpa_tl
-        \group_end:
-      }
-    } {
+    \NLNCD_if_use_minted:F {
       \NLNCD_if_show_lineno:T {
         \NLNCD_if_use_margin:TF {
           \tl_set:Nn \l_NLNCD_info_tl {
             \hbox_overlap_left:n {
               {
                 \l_NLNCD_name_tl
-                \NLNCD_item:n { format/name }
-                \NLNCD_item:n { format/lineno }
+                \prop_item:Nn \l_NLNCD_prop { format/name }
+                \prop_item:Nn \l_NLNCD_prop { format/lineno }
                 \int_use:N \g_NLNCD_int
                 \int_gincr:N \g_NLNCD_int
               }
@@ -919,8 +792,8 @@ and the derived files           inlinecode.ins,
         } {
           \tl_set:Nn \l_NLNCD_info_tl {
             {
-              \NLNCD_item:n { format/name }
-              \NLNCD_item:n { format/lineno }
+              \prop_item:Nn \l_NLNCD_prop { format/name }
+              \prop_item:Nn \l_NLNCD_prop { format/lineno }
               \hspace*{3ex}
               \hbox_overlap_left:n {
                 \int_use:N \g_NLNCD_int
@@ -956,10 +829,8 @@ and the derived files           inlinecode.ins,
     \int_use:c { g/NLNCD/lineno/\l_NLNCD_main_tl }
   }
   \int_compare:nNnT { \g_NLNCD_int } > { 0 } {
-    \NLNCD_clist_map_inline:Nnn \l_NLNCD_clist {
+    \clist_map_inline:Nn \l_NLNCD_clist {
       \int_gadd:cn { g/NLNCD/lineno/##1 } { \g_NLNCD_int }
-    } {
-      \int_gadd:cn { g/NLNCD/lineno/ } { \g_NLNCD_int }
     }
     \int_gincr:N \g_NLNCD_code_int
     \tl_set:Nx \l_tmpb_tl { \int_use:N \g_NLNCD_code_int }
@@ -969,33 +840,19 @@ and the derived files           inlinecode.ins,
     \prop_gput:NVV \g_NLNCD_code_prop \l_tmpb_tl \l_NLNCD_code_tl
   }
   \group_end:
-  \NLNCD_if_show_code:T {
-  }
   \NLNCD_if_show_code:TF {
-    \NLNCD_if_use_minted:TF {
-      \iow_close:N \minted@code
-      \vspace* { \dimexpr -\topsep-\parskip }
-      \tl_if_empty:NF \l_NLNCD_info_tl {
-        \tl_use:N \l_NLNCD_info_tl
-        \skip_vertical:n { \dimexpr -\topsep-\parskip-\baselineskip }        
-        \par\noindent
-      }
-      \exp_args:Nx \minted@pygmentize { \NLNCD_item:n { lang } }
-      %\DeleteFile { \jobname.pyg }
-      \skip_vertical:n { -\topsep-\partopsep }        
-    } {
-      \exp_args:Nx \skip_vertical:n { \NLNCD_item:n { sep } }
-      \noindent
-      \NLNCD_if_use_minted:T {
-        \setkeys { FV } { firstnumber=last, }
-        \clist_if_empty:NTF \l_NLNCD_clist {
-          \exp_args:Nnx \setkeys { FV } {
-            firstnumber=\int_use:c { g/NLNCD/lineno/ },
-          }
-        } {
-          \exp_args:Nnx \setkeys { FV } {
-            firstnumber=\int_use:c { g/NLNCD/lineno/\l_NLNCD_main_tl },
-          }
+    %\vspace* { \dimexpr \topsep-\parskip-\baselineskip }        
+    \vspace* { \dimexpr -\parskip-\baselineskip }        
+    \par\noindent
+    \NLNCD_if_use_minted:T {
+      \setkeys { FV } { firstnumber=last, }
+      \clist_if_empty:NTF \l_NLNCD_clist {
+        \exp_args:Nnx \setkeys { FV } {
+          firstnumber=\int_use:c { g/NLNCD/lineno/ },
+        }
+      } {
+        \exp_args:Nnx \setkeys { FV } {
+          firstnumber=\int_use:c { g/NLNCD/lineno/\l_NLNCD_main_tl },
         }
       }
     }
@@ -1025,24 +882,21 @@ and the derived files           inlinecode.ins,
 %    }
 %  }
 } {
-  \NLNCD_get:nNTF { lang } \l_tmpa_tl {
-    \tl_if_empty:NT \l_tmpa_tl {
-      \clist_map_inline:Nn \l_NLNCD_clist {
-        \NLNCD_get:nnNT { ##1 } { lang } \l_tmpa_tl {
-          \tl_if_empty:NF \l_tmpa_tl {
-            \clist_map_break:
-          }
+  \tl_set:Nx \l_tmpa_tl { \prop_item:Nn \l_NLNCD_prop { lang } }
+  \tl_if_empty:NT \l_tmpa_tl {
+    \clist_map_inline:Nn \l_NLNCD_clist {
+      \prop_get:cnNT { g/NLNCD/code/##1 } { lang } \l_tmpa_tl {
+        \tl_if_empty:NF \l_tmpa_tl {
+          \clist_map_break:
         }
       }
-      \tl_if_empty:NT \l_tmpa_tl {
-        \tl_set:Nn \l_tmpa_tl { tex }
-      }
     }
-  } {
-    \tl_set:Nn \l_tmpa_tl { tex }
+    \tl_if_empty:NT \l_tmpa_tl {
+      \tl_set:Nn \l_tmpa_tl { tex }
+    }
   }
   \clist_map_inline:Nn \l_NLNCD_clist {
-    \NLNCD_gput:nnV { ##1 } { lang } \l_tmpa_tl
+    \prop_gput:cnV { g/NLNCD/code/##1 } { lang } \l_tmpa_tl
   }
 }
 %    \end{macrocode}
@@ -1113,10 +967,10 @@ and the derived files           inlinecode.ins,
 %    \begin{macrocode}
         \tl_set:Nn \l_NLNCD_info_tl {
           \hbox_overlap_left:n {
-            \NLNCD_item:n { format/code }
+            \prop_item:Nn \l_NLNCD_prop { format/code }
             {
-              \NLNCD_item:n { format/name }
-              \NLNCD_item:n { format/lineno }
+              \prop_item:Nn \l_NLNCD_prop { format/name }
+              \prop_item:Nn \l_NLNCD_prop { format/lineno }
               \clist_if_empty:NTF \l_NLNCD_clist {
                 \int_use:c { g/NLNCD/lineno/ }
               } {
@@ -1135,10 +989,10 @@ and the derived files           inlinecode.ins,
 %    \begin{macrocode}
         \tl_set:Nn \l_NLNCD_info_tl {
           {
-            \NLNCD_item:n { format/code }
+            \prop_item:Nn \l_NLNCD_prop { format/code }
             {
-              \NLNCD_item:n { format/name }
-              \NLNCD_item:n { format/lineno }
+              \prop_item:Nn \l_NLNCD_prop { format/name }
+              \prop_item:Nn \l_NLNCD_prop { format/lineno }
               \hspace*{3ex}
               \hbox_overlap_left:n {
                 \clist_if_empty:NTF \l_NLNCD_clist {
@@ -1168,12 +1022,12 @@ and the derived files           inlinecode.ins,
 %    \begin{macrocode}
       \tl_set:Nn \l_NLNCD_info_tl {
         \hbox_overlap_left:n {
-          \NLNCD_item:n { format/code }
+          \prop_item:Nn \l_NLNCD_prop { format/code }
           {
-            \NLNCD_item:n { format/name }
+            \prop_item:Nn \l_NLNCD_prop { format/name }
             \g_NLNCD_chunks_tl :
             \hspace*{1ex}
-            \NLNCD_item:n { format/lineno }
+            \prop_item:Nn \l_NLNCD_prop { format/lineno }
             \clist_map_inline:Nn \l_NLNCD_clist {
               \int_use:c { g/NLNCD/lineno/####1 }
               \clist_map_break:
@@ -1183,10 +1037,10 @@ and the derived files           inlinecode.ins,
         }
         \tl_set:Nn \l_NLNCD_info_tl {
           \hbox_overlap_left:n {
-            \NLNCD_item:n { format/code }
+            \prop_item:Nn \l_NLNCD_prop { format/code }
             {
-              \NLNCD_item:n { format/name }
-              \NLNCD_item:n { format/lineno }
+              \prop_item:Nn \l_NLNCD_prop { format/name }
+              \prop_item:Nn \l_NLNCD_prop { format/lineno }
               \clist_map_inline:Nn \l_NLNCD_clist {
                 \int_use:c { g/NLNCD/lineno/####1 }
                 \clist_map_break:
@@ -1202,9 +1056,9 @@ and the derived files           inlinecode.ins,
 %    \begin{macrocode}
       \tl_set:Nn \l_NLNCD_info_tl {
         \hbox_overlap_left:n {
-          \NLNCD_item:n { format/code }
+          \prop_item:Nn \l_NLNCD_prop { format/code }
           {
-            \NLNCD_item:n { format/name }
+            \prop_item:Nn \l_NLNCD_prop { format/name }
             \g_NLNCD_chunks_tl :
           }
           \hspace*{1ex}
@@ -1218,7 +1072,7 @@ and the derived files           inlinecode.ins,
       \noindent
       \hbox_to_wd:nn { \textwidth } {
         \tl_use:N \l_NLNCD_info_tl
-        \NLNCD_item:n { format/code }
+        \prop_item:Nn \l_NLNCD_prop { format/code }
         \the\verbatim@line        
         \hfill
       }
@@ -1272,8 +1126,8 @@ and the derived files           inlinecode.ins,
 \DeclareDocumentCommand \InlineCodeExport { m } {
   \group_begin:
   \clist_clear:N \l_NLNCD_clist
-  \prop_clear:c { g/NLNCD/code/ }
-  \prop_put:cnn { g/NLNCD/code/ } { lang } { tex }
+  \prop_clear:N \l_NLNCD_prop
+  \prop_put:Nnn \l_NLNCD_prop { lang } { tex }
   \keys_set:nn { NLNCD/export } { #1 }
   \prop_gput:NVV \g_NLNCD_export_prop \l_NLNCD_tl \l_NLNCD_clist
   \prop_gput:cnV { g/NLNCD/export/\l_NLNCD_tl } { chunks } \l_NLNCD_clist
@@ -1281,13 +1135,9 @@ and the derived files           inlinecode.ins,
     { \prop_item:Nn \l_NLNCD_vars { preamble } }
   \bool_set:Nx \l_tmpa_bool { \prop_item:Nn \l_NLNCD_vars { raw } }
   \prop_gput:cnV { g/NLNCD/export/\l_NLNCD_tl } { preamble } \l_tmpa_bool
-  \NLNCD_get:nNT { lang } \l_tmpa_tl {
-    \clist_map_inline:Nn \l_NLNCD_clist {
-      \prop_gconcat:ccc
-        { g/NLNCD/code/##1 }
-        { g/NLNCD/code/##1 }
-        { g/NLNCD/code/ }
-    }
+  \tl_set:Nx \l_tmpa_tl { \prop_item:Nn \l_NLNCD_prop { lang } }
+  \clist_map_inline:Nn \l_NLNCD_clist {
+    \prop_gconcat:ccc { g/NLNCD/code/##1 } { g/NLNCD/code/##1 } { l_NLNCD_prop }
   }
   \group_end:
 }
@@ -1323,7 +1173,7 @@ and the derived files           inlinecode.ins,
       }
     }
     \clist_map_inline:nn { #2 } {
-      \NLNCD_get:nnNT { ##1 } { .code } \l_tmpa_tl {
+      \prop_get:cnNT { g/NLNCD/code/##1 } { .code } \l_tmpa_tl {
         \exp_args:NNV \iow_now:Nn \l_NLNCD_out \l_tmpa_tl
       }
     }
@@ -1447,12 +1297,12 @@ and the derived files           inlinecode.ins,
 %    \begin{macrocode}
   \newcommand{\NLNCD@postprocesspyg}[1]{%
     \group_begin:
-    \tl_set:Nx \l_tmpa_tl {\NLNCD_item:n { post_processor } }
+    \tl_set:Nx \l_tmpa_tl {\pro_item:Nn \l_NLNCD_prop { post_processor } }
     \tl_if_empty:NF \l_tmpa_tl {
 %    \end{macrocode}
 % Execute \texttt{`python3 <script.py> <file.pygtex> <more_args>`}
 %    \begin{macrocode}
-      \tl_set:Nx \l_tmpb_tl {\NLNCD_item:n { post_processor_args } }
+      \tl_set:Nx \l_tmpb_tl {\pro_item:Nn \l_NLNCD_prop { post_processor_args } }
       \exp_args:Nx
       \sys_shell_now:n {
         python3\space
@@ -1466,14 +1316,19 @@ and the derived files           inlinecode.ins,
 }
 %    \end{macrocode}
 %    \begin{macrocode}
-%\AddToHook { begindocument / end } {
-%  \cs_set_eq:NN \_NLNCD_minted_on: \prg_do_nothing:
-%}
+\AddToHook { begindocument / end } {
+  \cs_set_eq:NN \_NLNCD_minted_on: \prg_do_nothing:
+}
 %    \end{macrocode}
 % Utilities to setup |pygment| post processing.
 % The |pygment| post processor marks some code with \cs{InlineCodeEmph}.
 %    \begin{macrocode}
 \ProvideDocumentCommand{\InlineCodeEmph}{m}{\textcolor{red}{#1}}
+%    \end{macrocode}
+%    \begin{macrocode}
+\AddToHook { begindocument / end } {
+  \cs_set_eq:NN \_NLNCD_minted_on: \prg_do_nothing:
+}
 %    \end{macrocode}
 %
 % \begin{function}{\InlineCodeStorePreamble}
