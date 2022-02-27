@@ -13,8 +13,11 @@
 \usepackage{fancyvrb-ex}
 \usepackage{tikz}
 \usepackage{calc}
-\usepackage{pygmentex}
+%\usepackage{pygmentex}
+\usepackage{coder}
 \usepackage{lipsum}
+\DeclareCaptionType{pygcode}[Listagem][Lista de listagens]
+\captionsetup[pygcode]{position=top}
 
 \usepackage{luacode} % JL
 
@@ -25,6 +28,8 @@
 \definecolor{shadecolor}{rgb}{0.9,0.9,0.9}
 \definecolor{lightgreen}{rgb}{0.8,0.95,0.8}
 
+\newdimen\LineNumberWidth
+
 \begin{document}
 
 \title{Testing the Pygmen\TeX{} package}
@@ -32,14 +37,12 @@
 \maketitle
 
 \section{TEST}
-\begin{luacode}
-NLN={
-PYGMENTED_PATH=io.popen('kpsewhich pygmentex.py'):read('a'):gsub('^%s*(.-)%s*$', '%1')
-}
-\end{luacode}
 
-\directlua{tex.print(NLN.PYGMENTED_PATH)}
-
+\ExplSyntaxOn
+\directlua{tex.print([[\tl_to_str:n{]]..NLN.INLINE_PY_PATH..[[}]])}\\
+\directlua{tex.print([[\tl_to_str:n{]]..NLN.jobname..[[}]])}\\
+\directlua{tex.print([[\tl_to_str:n{]]..NLN.dir_p..[[}]])}
+\ExplSyntaxOff
 
 %\section{The Pygmen\TeX{} package}
 %
@@ -98,411 +101,428 @@ PYGMENTED_PATH=io.popen('kpsewhich pygmentex.py'):read('a'):gsub('^%s*(.-)%s*$',
 %\end{verbatim}
 
 \section{First examples}
-
-A simple verbatim text is the first example.
-
-\begin{Example}
-\begin{pygmented}{}
-Hello world!
-This is a simple demonstration text.
-\end{pygmented}
-\end{Example}
-
-The followig C program reads two integers and calculates their sum.
-
-\begin{Example}
-\begin{pygmented}{lang=c}
-#include <stdio.h>
-int main(void)
-{
-int a, b, c;
-printf("Enter two numbers to add: ");
-scanf("%d%d", &a, &b);
-c = a + b;
-printf("Sum of entered numbers = %d\n", c);
-return 0;
-}
-\end{pygmented}
-\end{Example}
-
-\begin{Example}
-In this program, \pyginline[lang=c]|int| is a type and
-\pyginline[lang=c]|"Enter two numbers to add: "| is a literal string.
-\end{Example}
-
-Next you can see a Java program to calculate the factorial of a number.
-
-\begin{Example}
-\inputpygmented[lang=java]{Factorial.java}
-\end{Example}
-
-\section{Choosing different Pygments styles}
-
-Instead of using the default style you may choose another stylesheet
-provided by Pygments by its name using the \verb|sty| option.
-
-To get a list of all available stylesheets, execute the following
-command on the command line:
-\begin{verbatim}
-$ pygmentize -L styles
-\end{verbatim}
-
-Creating your own styles is also very easy. Just follow the instructions
-provided on the website.
-
-As examples you can see a C program typeset with different styles.
-
-\begin{Example}
-\noindent
-\begin{minipage}[t]{0.49\linewidth}
-\begin{pygmented}{lang=c,gobble=4,sty=murphy}
-#include<stdio.h>
-main()
-{ int n;
-printf("Enter a number: ");
-scanf("%d",&n);
-if ( n%2 == 0 )
-printf("Even\n");
-else
-printf("Odd\n");
-return 0;
-}
-\end{pygmented}
-\end{minipage}
-\hfil
-\begin{minipage}[t]{0.49\linewidth}
-\begin{pygmented}{lang=c,gobble=4,sty=trac}
-#include<stdio.h>
-main()
-{ int n;
-printf("Enter a number: ");
-scanf("%d",&n);
-if ( n%2 == 0 )
-printf("Even\n");
-else
-printf("Odd\n");
-return 0;
-}
-\end{pygmented}
-\end{minipage}
-\end{Example}
-
-\section{Choosing a font}
-
-The value of the option \verb|font| is typeset before the content of the
-listing. Usualy it is used to specify a font to be used. See the
-following example.
-
-\begin{Example}
-\begin{pygmented}{lang=scala,font=\rmfamily\scshape\large}
-object bigint extends Application {
-def factorial(n: BigInt): BigInt =
-if (n == 0) 1 else n * factorial(n-1)
-
-val f50 = factorial(50); val f49 = factorial(49)
-println("50! = " + f50)
-println("49! = " + f49)
-println("50!/49! = " + (f50 / f49))
-}
-\end{pygmented}
-\end{Example}
-
-\section{Changing the background color}
-
-The option \verb|colback| can be used to choose a background color, as
-is shown in the folowing example.
-
-\begin{Example}
-\begin{pygmented}{lang=fsharp,colback=green!25}
-let rec factorial n =
-if n = 0
-then 1
-else n * factorial (n - 1)
-System.Console.WriteLine(factorial anInt)
-\end{pygmented}
-\end{Example}
-
-
-\section{Supressing initial characters}
-
-The option \verb|gobble| specifies the number of characters to suppress
-at the beginning of each line (up to a maximum of 9). This is mainly
-useful when environments are indented (Default: empty — no character
-suppressed).
-
-\begin{Example}
-A code snippet inside a minipage:
-\begin{minipage}[t]{.5\linewidth}
-\begin{pygmented}{lang=d,gobble=8}
-ulong fact(ulong n)
-{
-if(n < 2)
-return 1;
-else
-return n * fact(n - 1);
-}
-\end{pygmented}
-\end{minipage}
-\end{Example}
-
-
-\section{Size of tabulator}
-
-The option \verb|tabsize| specifies the number of of spaces given by a
-tab character (Default: 8).
-
-\begin{Verbatim}[showtabs,tabsize=1]
-\begin{pygmented}{lang=common-lisp,tabsize=4}
-;; Triple the value of a number
-(defun triple    (X)
-"Compute three times X."
-(* 3 X))
-\end{pygmented}
-\end{Verbatim}
-
-\begin{pygmented}{lang=common-lisp,tabsize=4}
-;; Triple the value of a number
-(defun triple    (X)
-"Compute three times X."
-(* 3 X))
-\end{pygmented}
-
-
-\section{Numbering lines}
-
-The lines of a listing can be numbered. The followig options control
-numbering of lines.
-\begin{itemize}
-\item Line numbering is enabled or disable with the \verb|linenos|
-boolean option.
-\item The number used for the first line can be set with the option
-\verb|linenostart|.
-\item The step between numbered lines can be set with the option
-\verb|linenostep|.
-\item The space between the line number and the line of the listing
-can be set with the option \verb|linenosep|.
-\end{itemize}
-
-In the followig listing you can see a Scheme function to calculate the
-factorial of a number.
-
-\begin{Example}
-\begin{pygmented}{lang=scheme,linenos,linenostart=1001,linenostep=2,linenosep=5mm}
-;; Building a list of squares from 0 to 9.
-;; Note: loop is simply an arbitrary symbol used as
-;; a label. Any symbol will do.
-
-(define (list-of-squares n)
-(let loop ((i n) (res '()))
-(if (< i 0)
-res
-(loop (- i 1) (cons (* i i) res)))))
-\end{pygmented}
-\end{Example}
-
-\section{Captioning}
-
-The option \verb|caption| can be used to set a caption for the listing.
-The option \verb|label| allows the assignment of a label to the listing.
-
-Here is an example:
-
-\begin{Example}
-\begin{pygmented}{lang=c++,label=lst:test,caption=A \textbf{C++} example}
-// This program adds two numbers and prints their sum.
-#include <iostream>
-int main()
-{
-int a;
-int b;
-int sum;
-sum = a + b;
-std::cout << "The sum of " << a << " and " << b
-<< " is " << sum << "\n";
-return 0;
-}
-\end{pygmented}
-\end{Example}
-
-\begin{Example}
-Listing \ref{lst:test} is a C++ program.
-\end{Example}
-
-\section{Escaping to \LaTeX{} inside a code snippet}
-
-The option \verb|texcomments|, if set to \texttt{true}, enables \LaTeX{}
-comment lines. That is, LaTex markup in comment tokens is not escaped
-so that \LaTeX{} can render it.
-
-The \verb|mathescape|, if set to \texttt{true}, enables \LaTeX{} math
-mode escape in comments. That is, \verb|$...$| inside a comment will
-trigger math mode.
-
-The option \verb|escapeinside|, if set to a string of length two,
-enables escaping to \LaTeX{}. Text delimited by these two characters
-is read as \LaTeX{} code and typeset accordingly. It has no effect in
-string literals. It has no effect in comments if \verb|texcomments| or
-\verb|mathescape| is set.
-
-Some examples follows.
-
-\begin{Example}
-\begin{pygmented}{lang=c++,texcomments}
-#include <iostream>
-using namespace std;
-main()
-{
-cout << "Hello World";  // prints \underline{Hello World}
-return 0;
-}
-\end{pygmented}
-\end{Example}
-
-\begin{Example}
-\begin{pygmented}{lang=python,mathescape}
-# Returns $\sum_{i=1}^{n}i$
-def sum_from_one_to(n):
-r = range(1, n + 1)
-return sum(r)
-\end{pygmented}
-\end{Example}
-
-\begin{Example}
-\begin{pygmented}{lang=c,escapeinside=||}
-
-if (|\textit{condition}|)
-|\textit{command$_1$}|
-else
-|\textit{command$_2$}|
-\end{pygmented}
-\end{Example}
-
-
-\section{Enclosing command and environment}
-
-After being prettified by Pygments, the listings are enclosed in a
-command (for \verb|\pyginline|) or in an environment (for
-\verb|pygmented| and \verb|includepygmented|). By default
-\verb|\pyginline| uses the command \verb|\efbox| from the \texttt{efbox}
-package, and \verb|pygmented| and \verb|includepygmented| use the
-environment \verb|mdframed| from the \texttt{mdframed} package.
-
-The enclosing command or environment should be configurable using a list
-of key-value pairs written between square brackets.
-
-The enclosing command for
-\verb|\pyginline| can be changed with the option
-\verb|inline method|. For instance, in the following the command
-\verb|\tcbox| from the \verb|tcolorbox| package is used:
-
-\begin{Example}
-In the previous Java program,
-\pyginline[lang=java,inline method=tcbox]|"Factorial of "| is a
-literal string.
-\end{Example}
-
-The enclosing environment for \verb|pygmented| and
-\verb|includepygmented| can be changed with the option
-\verb|boxing method|. For instance, here is a hello world program in
-C\#, enclosed in a \verb|tcolorbox| environment:
-
-\begin{Example}
-\begin{pygmented}{lang=csharp,boxing method=tcolorbox}
-using System;
-class Program
-{
-public static void Main(string[] args)
-{
-Console.WriteLine("Hello, world!");
-}
-}
-\end{pygmented}
-\end{Example}
-
-Any option unknown to Pygmen\TeX{} are passed to the enclosing command
-or environment.
-
-For instance:
-
-\begin{Example}
-\begin{pygmented}{lang=xml,boxing method=tcolorbox,colframe=red,boxrule=2mm}
-<!-- This is a note -->
-<note>
-<to>Tove</to>
-<from>Jani</from>
-<heading>Reminder</heading>
-<body>Don't forget me this weekend!</body>
-</note>
-\end{pygmented}
-\end{Example}
-
-\section{Setting global options for Pygmen\TeX{}}
-
-Global options can be setting using the \verb|setpygmented| command.
-See the examples that follows.
-
-\begin{Example}
-\setpygmented{lang=haskell, colback=red!30, font=\ttfamily\small}
-
-\begin{pygmented}{}
-sum :: Num a => [a] -> a
-sum [] = 0
-sum (x:xs) = x + sum xs
-\end{pygmented}
-\end{Example}
-
-\begin{Example}
-\begin{pygmented}{colback=blue!20, boxing method=tcolorbox}
-elem :: Eq a => a -> [a] -> Bool
-elem _ [] = False
-elem x (y:ys) = x == y || elem x ys
-\end{pygmented}
-\end{Example}
-
-\begin{Example}
-\setpygmented{lang=snobol}
-
-\begin{pygmented}{}
-OUTPUT = "What is your name?"
-Username = INPUT
-OUTPUT = "Thank you, " Username
-END
-\end{pygmented}
-\end{Example}
-
-\begin{Example}
-\setpygmented{test/.style={colback=yellow!33,boxing method=tcolorbox,colframe=blue}}
-
-\begin{pygmented}{test, lang=vbnet}
-Module Module1
-Sub Main()
-Console.WriteLine("Hello, world!")
-End Sub
-End Module
-\end{pygmented}
-\end{Example}
-
-\begin{Example}
-\begin{pygmented}{lang=tcl}
-puts "Hello, world!"
-\end{pygmented}
-\end{Example}
-
-\section{More examples of inline code snippets}
-
-\begin{Example}
-An inline source code snippet:
-\pyginline[lang=c]|const double alfa = 3.14159;|.
-This is a C declaration with initialization.
-\end{Example}
-
-\begin{Example}
+%
+%A simple verbatim text is the first example.
+%
+%\begin{Example}
+%\begin{pygmented}{}
+%Hello world!
+%This is a simple demonstration text.
+%\end{pygmented}
+%\end{Example}
+%
+%The followig C program reads two integers and calculates their sum.
+%
+%\begin{Example}
+%\begin{pygmented}{lang=c}
+%#include <stdio.h>
+%int main(void)
+%{
+%int a, b, c;
+%printf("Enter two numbers to add: ");
+%scanf("%d%d", &a, &b);
+%c = a + b;
+%printf("Sum of entered numbers = %d\n", c);
+%return 0;
+%}
+%\end{pygmented}
+%\end{Example}
+%
+%\begin{Example}
+%In this program, \pyginline[lang=c]|int| is a type and
+%\pyginline[lang=c]|"Enter two numbers to add: "| is a literal string.
+%\end{Example}
+%Next you can see a Java program to calculate the factorial of a number.
+%
+%\begin{Example}
+%\inputpygmented[lang=java]{Factorial.java}
+%\end{Example}
+%
+%\section{Choosing different Pygments styles}
+%
+%Instead of using the default style you may choose another stylesheet
+%provided by Pygments by its name using the \verb|sty| option.
+%
+%To get a list of all available stylesheets, execute the following
+%command on the command line:
+%\begin{verbatim}
+%$ pygmentize -L styles
+%\end{verbatim}
+%
+%Creating your own styles is also very easy. Just follow the instructions
+%provided on the website.
+%
+%As examples you can see a C program typeset with different styles.
+%
+%\begin{Example}
+%\noindent
+%\begin{minipage}[t]{0.49\linewidth}
+%\begin{pygmented}{lang=c,gobble=4,sty=murphy}
+%#include<stdio.h>
+%main()
+%{ int n;
+%printf("Enter a number: ");
+%scanf("%d",&n);
+%if ( n%2 == 0 )
+%printf("Even\n");
+%else
+%printf("Odd\n");
+%return 0;
+%}
+%\end{pygmented}
+%\end{minipage}
+%\hfil
+%\begin{minipage}[t]{0.49\linewidth}
+%\begin{pygmented}{lang=c,gobble=4,sty=trac}
+%#include<stdio.h>
+%main()
+%{ int n;
+%printf("Enter a number: ");
+%scanf("%d",&n);
+%if ( n%2 == 0 )
+%printf("Even\n");
+%else
+%printf("Odd\n");
+%return 0;
+%}
+%\end{pygmented}
+%\end{minipage}
+%\end{Example}
+%
+%\section{Choosing a font}
+%
+%The value of the option \verb|font| is typeset before the content of the
+%listing. Usualy it is used to specify a font to be used. See the
+%following example.
+%
+%\begin{Example}
+%\begin{pygmented}{lang=scala,font=\rmfamily\scshape\large}
+%object bigint extends Application {
+%def factorial(n: BigInt): BigInt =
+%if (n == 0) 1 else n * factorial(n-1)
+%
+%val f50 = factorial(50); val f49 = factorial(49)
+%println("50! = " + f50)
+%println("49! = " + f49)
+%println("50!/49! = " + (f50 / f49))
+%}
+%\end{pygmented}
+%\end{Example}
+%
+%\begin{Example}
+%\begin{pygmented}{lang=scala,font=\rmfamily\scshape\large}
+%object bigint extends Application {
+%def factorial(n: BigInt): BigInt =
+%if (n == 0) 1 else n * factorial(n-1)
+%
+%val f50 = factorial(50); val f49 = factorial(49)
+%println("50! = " + f50)
+%println("49! = " + f49)
+%println("50!/49! = " + (f50 / f49))
+%}
+%\end{pygmented}
+%\end{Example}
+%
+%\section{Changing the background color}
+%
+%The option \verb|colback| can be used to choose a background color, as
+%is shown in the folowing example.
+%
+%\begin{Example}
+%\begin{pygmented}{lang=fsharp,colback=green!25}
+%let rec factorial n =
+%if n = 0
+%then 1
+%else n * factorial (n - 1)
+%System.Console.WriteLine(factorial anInt)
+%\end{pygmented}
+%\end{Example}
+%
+%
+%\section{Supressing initial characters}
+%
+%The option \verb|gobble| specifies the number of characters to suppress
+%at the beginning of each line (up to a maximum of 9). This is mainly
+%useful when environments are indented (Default: empty — no character
+%suppressed).
+%
+%\begin{Example}
+%A code snippet inside a minipage:
+%\begin{minipage}[t]{.5\linewidth}
+%\begin{pygmented}{lang=d,gobble=8}
+%ulong fact(ulong n)
+%{
+%if(n < 2)
+%return 1;
+%else
+%return n * fact(n - 1);
+%}
+%\end{pygmented}
+%\end{minipage}
+%\end{Example}
+%
+%
+%\section{Size of tabulator}
+%
+%The option \verb|tabsize| specifies the number of of spaces given by a
+%tab character (Default: 8).
+%
+%\begin{Verbatim}[showtabs,tabsize=1]
+%\begin{pygmented}{lang=common-lisp,tabsize=4}
+%;; Triple the value of a number
+%(defun triple    (X)
+%"Compute three times X."
+%(* 3 X))
+%\end{pygmented}
+%\end{Verbatim}
+%
+%\begin{pygmented}{lang=common-lisp,tabsize=4}
+%;; Triple the value of a number
+%(defun triple    (X)
+%"Compute three times X."
+%(* 3 X))
+%\end{pygmented}
+%
+%
+%\section{Numbering lines}
+%
+%The lines of a listing can be numbered. The followig options control
+%numbering of lines.
+%\begin{itemize}
+%\item Line numbering is enabled or disable with the \verb|linenos|
+%boolean option.
+%\item The number used for the first line can be set with the option
+%\verb|linenostart|.
+%\item The step between numbered lines can be set with the option
+%\verb|linenostep|.
+%\item The space between the line number and the line of the listing
+%can be set with the option \verb|linenosep|.
+%\end{itemize}
+%
+%In the followig listing you can see a Scheme function to calculate the
+%factorial of a number.
+%
+%\begin{Example}
+%\begin{pygmented}{lang=scheme,linenos,linenostart=1001,linenostep=2,linenosep=5mm}
+%;; Building a list of squares from 0 to 9.
+%;; Note: loop is simply an arbitrary symbol used as
+%;; a label. Any symbol will do.
+%
+%(define (list-of-squares n)
+%(let loop ((i n) (res '()))
+%(if (< i 0)
+%res
+%(loop (- i 1) (cons (* i i) res)))))
+%\end{pygmented}
+%\end{Example}
+%
+%\section{Captioning}
+%
+%The option \verb|caption| can be used to set a caption for the listing.
+%The option \verb|label| allows the assignment of a label to the listing.
+%
+%Here is an example:
+%
+%\begin{Example}
+%\begin{pygmented}{lang=c++,label=lst:test,caption=A \textbf{C++} example}
+%// This program adds two numbers and prints their sum.
+%#include <iostream>
+%int main()
+%{
+%int a;
+%int b;
+%int sum;
+%sum = a + b;
+%std::cout << "The sum of " << a << " and " << b
+%<< " is " << sum << "\n";
+%return 0;
+%}
+%\end{pygmented}
+%\end{Example}
+%
+%\begin{Example}
+%Listing \ref{lst:test} is a C++ program.
+%\end{Example}
+%
+%\section{Escaping to \LaTeX{} inside a code snippet}
+%
+%The option \verb|texcomments|, if set to \texttt{true}, enables \LaTeX{}
+%comment lines. That is, LaTex markup in comment tokens is not escaped
+%so that \LaTeX{} can render it.
+%
+%The \verb|mathescape|, if set to \texttt{true}, enables \LaTeX{} math
+%mode escape in comments. That is, \verb|$...$| inside a comment will
+%trigger math mode.
+%
+%The option \verb|escapeinside|, if set to a string of length two,
+%enables escaping to \LaTeX{}. Text delimited by these two characters
+%is read as \LaTeX{} code and typeset accordingly. It has no effect in
+%string literals. It has no effect in comments if \verb|texcomments| or
+%\verb|mathescape| is set.
+%
+%Some examples follows.
+%
+%\begin{Example}
+%\begin{pygmented}{lang=c++,texcomments}
+%#include <iostream>
+%using namespace std;
+%main()
+%{
+%cout << "Hello World";  // prints \underline{Hello World}
+%return 0;
+%}
+%\end{pygmented}
+%\end{Example}
+%
+%\begin{Example}
+%\begin{pygmented}{lang=python,mathescape}
+%# Returns $\sum_{i=1}^{n}i$
+%def sum_from_one_to(n):
+%r = range(1, n + 1)
+%return sum(r)
+%\end{pygmented}
+%\end{Example}
+%
+%\begin{Example}
+%\begin{pygmented}{lang=c,escapeinside=||}
+%
+%if (|\textit{condition}|)
+%|\textit{command$_1$}|
+%else
+%|\textit{command$_2$}|
+%\end{pygmented}
+%\end{Example}
+%
+%
+%\section{Enclosing command and environment}
+%
+%After being prettified by Pygments, the listings are enclosed in a
+%command (for \verb|\pyginline|) or in an environment (for
+%\verb|pygmented| and \verb|includepygmented|). By default
+%\verb|\pyginline| uses the command \verb|\efbox| from the \texttt{efbox}
+%package, and \verb|pygmented| and \verb|includepygmented| use the
+%environment \verb|mdframed| from the \texttt{mdframed} package.
+%
+%The enclosing command or environment should be configurable using a list
+%of key-value pairs written between square brackets.
+%
+%The enclosing command for
+%\verb|\pyginline| can be changed with the option
+%\verb|inline method|. For instance, in the following the command
+%\verb|\tcbox| from the \verb|tcolorbox| package is used:
+%
+%\begin{Example}
+%In the previous Java program,
+%\pyginline[lang=java,inline method=tcbox]|"Factorial of "| is a
+%literal string.
+%\end{Example}
+%
+%The enclosing environment for \verb|pygmented| and
+%\verb|includepygmented| can be changed with the option
+%\verb|boxing method|. For instance, here is a hello world program in
+%C\#, enclosed in a \verb|tcolorbox| environment:
+%
+%\begin{Example}
+%\begin{pygmented}{lang=csharp,boxing method=tcolorbox}
+%using System;
+%class Program
+%{
+%public static void Main(string[] args)
+%{
+%Console.WriteLine("Hello, world!");
+%}
+%}
+%\end{pygmented}
+%\end{Example}
+%
+%Any option unknown to Pygmen\TeX{} are passed to the enclosing command
+%or environment.
+%
+%For instance:
+%
+%\begin{Example}
+%\begin{pygmented}{lang=xml,boxing method=tcolorbox,colframe=red,boxrule=2mm}
+%<!-- This is a note -->
+%<note>
+%<to>Tove</to>
+%<from>Jani</from>
+%<heading>Reminder</heading>
+%<body>Don't forget me this weekend!</body>
+%</note>
+%\end{pygmented}
+%\end{Example}
+%
+%\section{Setting global options for Pygmen\TeX{}}
+%
+%Global options can be setting using the \verb|setpygmented| command.
+%See the examples that follows.
+%
+%\begin{Example}
+%\setpygmented{lang=haskell, colback=red!30, font=\ttfamily\small}
+%
+%\begin{pygmented}{}
+%sum :: Num a => [a] -> a
+%sum [] = 0
+%sum (x:xs) = x + sum xs
+%\end{pygmented}
+%\end{Example}
+%
+%\begin{Example}
+%\begin{pygmented}{colback=blue!20, boxing method=tcolorbox}
+%elem :: Eq a => a -> [a] -> Bool
+%elem _ [] = False
+%elem x (y:ys) = x == y || elem x ys
+%\end{pygmented}
+%\end{Example}
+%
+%\begin{Example}
+%\setpygmented{lang=snobol}
+%
+%\begin{pygmented}{}
+%OUTPUT = "What is your name?"
+%Username = INPUT
+%OUTPUT = "Thank you, " Username
+%END
+%\end{pygmented}
+%\end{Example}
+%
+%\begin{Example}
+%\setpygmented{test/.style={colback=yellow!33,boxing method=tcolorbox,colframe=blue}}
+%
+%\begin{pygmented}{test, lang=vbnet}
+%Module Module1
+%Sub Main()
+%Console.WriteLine("Hello, world!")
+%End Sub
+%End Module
+%\end{pygmented}
+%\end{Example}
+%
+%\begin{Example}
+%\begin{pygmented}{lang=tcl}
+%puts "Hello, world!"
+%\end{pygmented}
+%\end{Example}
+%
+%\section{More examples of inline code snippets}
+%
+%\begin{Example}
+%An inline source code snippet:
+%\pyginline[lang=c]|const double alfa = 3.14159;|.
+%This is a C declaration with initialization.
+%\end{Example}
+
+\typeout{DEBUG INLINE}
+
+%\begin{Example}
 \pyginline[lang=prolog,colback=yellow]=avo(A,B) :- pai(A,X), pai(X,B).=
 is a Prolog clause. Its head is
 \pyginline[lang=prolog,sty=emacs,colback=yellow,linecolor=red]=avo(A,B)=
 and its body is
 \pyginline[lang=prolog,sty=vim,colback=black,hidealllines]=pai(A,X), pai(X,B)=.
-\end{Example}
+%\end{Example}
+\end{document}
+
 
 \begin{Example}
 See the identifier \pyginline[inline method=efbox,colback=green!25]|variable|,

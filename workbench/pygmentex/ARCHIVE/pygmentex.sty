@@ -972,6 +972,39 @@
   }  
 }
 %    \end{macrocode}
+% \section{}
+% =========================================================
+% fancyvrb new commands to store the lines
+% =========================================================
+
+% See http://tex.stackexchange.com/questions/47462/inputenc-error-with-unicode-chars-and-verbatim
+%    \begin{macrocode}
+
+\def\VerbatimOutAppend{\FV@Environment{}{VerbatimOutAppend}}
+
+\def\FVB@VerbatimOutRecord#1{%
+  \@bsphack
+  \begingroup
+    \FV@UseKeyValues
+    \FV@DefineWhiteSpace
+    \def\FV@Space{\space}%
+    \FV@DefineTabOut
+    \def\FV@ProcessLine{
+      \seq_put_right:Nn \l_NLN_seq
+    }%
+    \let\FV@FontScanPrep\relax
+    \let\@noligs\relax
+    \FV@Scan
+}
+
+\def\FVE@VerbatimOutRecord{%
+  \endgroup
+  \@esphack
+}
+
+\DefineVerbatimEnvironment{VerbatimOutRecord}{VerbatimOutRecord}{}
+
+%    \end{macrocode}
 % \begin{environment}{NLN}
 % \begin{syntax}
 % \cs{begin}\Arg{NLN} ... \cs{end}\Arg{NLN}
@@ -1720,19 +1753,6 @@
   \endgroup
 }
 
-\newenvironment{Xpygmented}[1][]{%
-  \NLN@process@options{#1}%
-  \immediate\write\NLN@outfile{<@@NLN@display@\the\NLN@counter}%
-  \immediate\write\NLN@outfile{\detokenize\expandafter{\NLN@global@options},\detokenize{#1}}%
-  \VerbatimEnvironment
-  \begin{VerbatimOutAppend}{\NLN@outfile}%
-}{%
-  \end{VerbatimOutAppend}%
-  \immediate\write\NLN@outfile{>@@NLN@display@\the\NLN@counter}%
-  \csname NLN@snippet@\the\NLN@counter\endcsname
-  \global\advance\NLN@counter by 1\relax
-}
-
 \NewDocumentEnvironment{pygmented}{+O{}m}{%
   \NLN@process@options{#1}%
   \immediate\write\NLN@outfile{<@@NLN@display@\the\NLN@counter}%
@@ -1774,6 +1794,8 @@
   \expandafter\expandafter\csname \NLN@opt@inline@method \endcsname\expandafter[\remainingoptions]{#1}%
   \endgroup
 }
+
+% ERROR: JL undefined \NLN@alllinenos
 
 \newenvironment{NLN@snippet@framed}{%
   \begingroup

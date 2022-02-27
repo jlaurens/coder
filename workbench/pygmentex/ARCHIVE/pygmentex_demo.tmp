@@ -1,0 +1,5 @@
+\pyginline[lang=prolog,colback=yellow]=avo(A,B) :- pai(A,X), pai(X,B).=
+is a Prolog clause. Its head is
+\pyginline[lang=prolog,sty=emacs,colback=yellow,linecolor=red]=avo(A,B)=
+and its body is
+\pyginline[lang=prolog,sty=vim,colback=black,hidealllines]=pai(A,X), pai(X,B)=.

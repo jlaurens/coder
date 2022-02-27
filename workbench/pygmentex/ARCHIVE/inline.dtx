@@ -14,6 +14,111 @@ See http://www.latex-project.org/lppl.txt
 
 Some text about the package: probably the same as the abstract.
 %</readme>
+%<*lua>
+local lfs = require("lfs")
+local tex = require("tex")
+
+require("lualibs.lua")
+local json = utilities.json
+
+local PYGMENTEX_PATH = io.popen([[kpsewhich pygmentex.py]]):read('a'):match("^%s*(.-)%s*$")
+
+local function escape(self, s)
+    s = s:gsub('\\','\\\\')
+    s = s:gsub('\r','\\r')
+    s = s:gsub('\n','\\n')
+    s = s:gsub('"','\\"')
+    return s
+end
+
+local function make_directory(self, path)
+  local mode,_,__ = lfs.attributes(path,"mode")
+  if mode == "directory" then
+    return true
+  elseif mode ~= nil then
+    return nil,path.." exist and is not a directory",1
+  end
+  if os["type"] == "windows" then
+    path = path:gsub("/", "\\")
+    _,_,__ = os.execute(
+      "if not exist "  .. path .. "\\nul " .. "mkdir " .. path
+    )
+  else
+    _,_,__ = os.execute("mkdir -p " .. path)
+  end
+  mode = lfs.attributes(path,"mode")
+  if mode == "directory" then
+    return true
+  end
+  return nil,path.." exist and is not a directory",1
+end
+
+local function setup(self, jobname)
+  self.jobname = jobname
+  self.dir_p = './'..jobname..'.pygd/'
+  print('DEBUG setup:', self.dir_p)
+  if self:make_directory(self.dir_p) == nil then
+    self.dir_p = './'
+    self.input_p = self.dir_p..jobname..'.pyg.data'
+  else
+    self.input_p = self.dir_p..'input.pyg.data'
+  end
+end
+
+local function clear_options(self)
+  self.options = {}
+end
+
+local function add_option(self,k,v)
+  self.options[k] = v
+end
+
+local function start_recording(self)
+  self.records = {}
+  function self.records.append (t,v)
+    t[#t+1]=v
+    return t
+  end
+end
+
+local function process_inline(self, what)
+  if lfs.attributes(self.input_p,"mode") ~= nil then
+    os.remove(self.input_p)
+  end
+  local t = {
+    ['code']   = what,
+    ['jobname']= self.jobname,
+    ['options']= self.options or {},
+  }
+  local s = json.tostring(t,true)
+  local fh = assert(io.open(self.input_p,'w'))
+  fh:write(s, '\n')
+  fh:close()
+  local cmd = "python3 "..PYGMENTEX_PATH..' "'..self.input_p..'"'
+  fh = assert(io.popen(cmd))
+  s = fh:read('a')
+  _, _, cmd = s:find('<tex command>(.-)</tex command>')
+  if cmd then
+	  tex.print(cmd)
+  elseif s:len() > 0 then
+    print('NLN DIAGNOSTIC: '..s)
+  end
+end
+
+local DESCRIPTION = [[Global inline object on the dark side]]
+
+return {
+  _DESCRIPTION    = DESCRIPTION,
+  PYGMENTEX_PATH  = PYGMENTEX_PATH,
+  escape          = escape,
+  make_directory  = make_directory,
+  setup           = setup,
+  clear_options   = clear_options,
+  add_option      = add_option,
+  start_recording = start_recording,
+  process_inline  = process_inline,
+}
+%</lua>
 %<*internal>
 \fi
 \def\nameofplainTeX{plain}
@@ -50,7 +155,8 @@ Jérôme LAURENS.
 
 This work consists of the file  inline.dtx
 and the derived files           inline.ins,
-                                inline.pdf and
+                                inline.pdf,
+                                inline.lua and
                                 inline.sty.
 
 \endpostamble
@@ -69,6 +175,10 @@ and the derived files           inline.ins,
 \usedir{doc/latex/inline}
 \generate{
   \file{README.md}{\from{\jobname.dtx}{readme}}
+}
+\usedir{scripts/inline}
+\generate{
+  \file{\jobname.lua}{\from{\jobname.dtx}{lua}}
 }
 \ifx\fmtname\nameofplainTeX
   \expandafter\endbatchfile
@@ -115,10 +225,12 @@ and the derived files           inline.ins,
   \msg_fatal:nnn { inline } { :n } { Please~update~LaTeX.~Emergency~stop }
 }
 \ExplSyntaxOff
-\directlua{print(lfs.currentdir ())}
+\directlua{print(lfs.currentdir())}
 \directlua{print(kpse.find_file("l3build.lua", "lua"))}
 \directlua{print(kpse.find_file("inline.lua", "lua"))}
 \directlua{NLN = require("inline.lua")}
+\directlua{print("DEBUG NLN:")}
+\directlua{print(NLN)}
 \directlua{NLN:setup([[\jobname]])}
 \ExplSyntaxOn
 %</package>
@@ -213,7 +325,7 @@ and the derived files           inline.ins,
 % These are overriden locally in environments using
 % key-value actions. \cs{l_NLN_code_name_tl} is used as \meta{name}.
 %    \begin{macrocode}
-\prop_new:c { g/NLN/code/ }
+	\prop_new:c {g/NLN/code/}
 %    \end{macrocode}
 % \end{variable}
 % \end{variable}
@@ -231,11 +343,28 @@ and the derived files           inline.ins,
 % \end{syntax}
 %    \begin{macrocode}
 \cs_new:Npn \NLN_item:n #1 {
-  \prop_item:cn { g/NLN/code/ } { #1 }
+  \prop_item:cn {g/NLN/code/} { #1 }
 }
 %    \end{macrocode}
 % \end{function}
-% \begin{function} [TF] {\NLN_get:nN}
+% \begin{function} [TF,EXP] {\NLN_if_in:n}
+%   \begin{syntax}
+%     \cs{NLN_if_in:nTF} \marg{key} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+% Execute \meta{true code} when \cs{g/NLN/code/} prop's
+% contains \texttt{\meta{key}},
+% \meta{false code} otherwise.
+%    \begin{macrocode}
+\prg_new_conditional:Nnn \NLN_if_in:n { T, F, TF } {
+  \prop_if_in:NnTF {g/NLN/code/} { #1 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{macrocode}
+% \end{function}
+% \begin{function} [TF,EXP] {\NLN_get:nN}
 %   \begin{syntax}
 %     \cs{NLN_get:nNTF} \marg{key} \meta{tl var} \Arg{true code} \Arg{false code}
 %   \end{syntax}
@@ -244,7 +373,7 @@ and the derived files           inline.ins,
 % \meta{false code} otherwise.
 %    \begin{macrocode}
 \prg_new_conditional:Nnn \NLN_get:nN { T, F, TF } {
-  \prop_get:cnNTF { g/NLN/code/ } { #1 } #2 {
+  \prop_get:cnNTF {g/NLN/code/} { #1 } #2 {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -287,10 +416,10 @@ and the derived files           inline.ins,
 % \end{syntax}
 %    \begin{macrocode}
 \cs_new:Npn \NLN_put:nn #1 #2 {
-  \prop_put:cnn { g/NLN/code/ } { #1 } { #2 }
+  \prop_put:cnn {g/NLN/code/} { #1 } { #2 }
 }
 \cs_new:Npn \NLN_gput:nn #1 #2 {
-  \prop_gput:cnn { g/NLN/code/ } { #1 } { #2 }
+  \prop_gput:cnn {g/NLN/code/} { #1 } { #2 }
 }
 \cs_generate_variant:Nn \NLN_put:nn { nV }
 \cs_generate_variant:Nn \NLN_gput:nn { nV }
@@ -324,13 +453,11 @@ and the derived files           inline.ins,
 %    \begin{macrocode}
 \cs_new:Npn \NLN_new_conditional:n #1 {
   \exp_last_unbraced:Nx
-  \prg_new_conditional:Nnn { \use:c { NLN_if_#1: } } { T, F, TF } {
+  \prg_new_conditional:Nnn { \use:c {NLN_if_#1:} } { T, F, TF } {
     \group_begin:
     \NLN_get:nNTF { #1 } \l_tmpa_tl {
       \exp_args:NnV
-      \regex_match:nnTF
-      { ^\s*[tTyY] }
-      \l_tmpa_tl
+      \regex_match:nnTF { ^\s*[tTyY] } \l_tmpa_tl
       { \group_end: \prg_return_true:  }
       { \group_end: \prg_return_false: }
     } { \group_end: \prg_return_false: }
@@ -616,6 +743,12 @@ and the derived files           inline.ins,
 % Global storage for \texttt{\meta{file name}=\meta{comma separated chunk name}}
 %    \begin{macrocode}
 \prop_new:N \g_NLN_export_prop
+%    \end{macrocode}
+% \end{variable}
+% \begin{variable}{\l_NLN_prop}
+% Local scratch variable.
+%    \begin{macrocode}
+\prop_new:N \l_NLN_prop
 %    \end{macrocode}
 % \end{variable}
 % \begin{variable}{\g_NLN_chunks_tl}
@@ -969,9 +1102,9 @@ and the derived files           inline.ins,
   \tl_clear:N \l_NLN_code_name_tl
   \clist_map_inline:Nn \l_NLN_clist {
     \prop_concat:ccc
-      { g/NLN/code/ }
+      {g/NLN/code/}
       { g/NLN/code/##1 }
-      { g/NLN/code/ }
+      {g/NLN/code/}
     \tl_set:Nn \l_NLN_code_name_tl { ##1 }
     \clist_map_break:
   }
@@ -1406,8 +1539,8 @@ and the derived files           inline.ins,
 \DeclareDocumentCommand \InlineExport { m } {
   \group_begin:
   \clist_clear:N \l_NLN_clist
-  \prop_clear:c { g/NLN/code/ }
-  \prop_put:cnn { g/NLN/code/ } { lang } { tex }
+  \prop_clear:c {g/NLN/code/}
+  \prop_put:cnn {g/NLN/code/} { lang } { tex }
   \keys_set:nn { NLN/export } { #1 }
   \prop_gput:NVV \g_NLN_export_prop \l_NLN_tl \l_NLN_clist
   \prop_gput:cnV { g/NLN/export/\l_NLN_tl } { chunks } \l_NLN_clist
@@ -1420,7 +1553,7 @@ and the derived files           inline.ins,
       \prop_gconcat:ccc
         { g/NLN/code/##1 }
         { g/NLN/code/##1 }
-        { g/NLN/code/ }
+        {g/NLN/code/}
     }
   }
   \group_end:
@@ -1742,106 +1875,6 @@ and the derived files           inline.ins,
 
 \ExplSyntaxOn
 
-\def\PYstyledefault{
-  \def\PY@reset{
-    \let\PY@it=\relax \let\PY@bf=\relax
-    \let\PY@ul=\relax \let\PY@tc=\relax
-    \let\PY@bc=\relax \let\PY@ff=\relax
-  }
-  \def\PY@tok##1{\use:c { PY@tok@##1 } }
-  \def\PY@toks##1+{\ifx\relax##1\empty\else\PY@tok{##1}\expandafter\PY@toks\fi}
-  \def\PY@do##1{\PY@bc{\PY@tc{\PY@ul{\PY@it{\PY@bf{\PY@ff{##1}}}}}}}
-  \def\PY##1##2{\PY@reset\PY@toks##1+\relax+\PY@do{##2}}
-  \cs_set:cpn { PY@tok@w  } {\def\PY@tc####1{\textcolor[rgb]{0.73,0.73,0.73}{####1}}}
-  \cs_set:cpn { PY@tok@c  } {\let\PY@it=\textit\def\PY@tc####1{\textcolor[rgb]{0.25,0.50,0.50}{####1}}}
-  \cs_set:cpn { PY@tok@cp } {\def\PY@tc####1{\textcolor[rgb]{0.74,0.48,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@k  } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.00,0.50,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@kp } {\def\PY@tc####1{\textcolor[rgb]{0.00,0.50,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@kt } {\def\PY@tc####1{\textcolor[rgb]{0.69,0.00,0.25}{####1}}}
-  \cs_set:cpn { PY@tok@o  } {\def\PY@tc####1{\textcolor[rgb]{0.40,0.40,0.40}{####1}}}
-  \cs_set:cpn { PY@tok@ow } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.67,0.13,1.00}{####1}}}
-  \cs_set:cpn { PY@tok@nb } {\def\PY@tc####1{\textcolor[rgb]{0.00,0.50,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@nf } {\def\PY@tc####1{\textcolor[rgb]{0.00,0.00,1.00}{####1}}}
-  \cs_set:cpn { PY@tok@nc } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.00,0.00,1.00}{####1}}}
-  \cs_set:cpn { PY@tok@nn } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.00,0.00,1.00}{####1}}}
-  \cs_set:cpn { PY@tok@ne } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.82,0.25,0.23}{####1}}}
-  \cs_set:cpn { PY@tok@nv } {\def\PY@tc####1{\textcolor[rgb]{0.10,0.09,0.49}{####1}}}
-  \cs_set:cpn { PY@tok@no } {\def\PY@tc####1{\textcolor[rgb]{0.53,0.00,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@nl } {\def\PY@tc####1{\textcolor[rgb]{0.63,0.63,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@ni } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.60,0.60,0.60}{####1}}}
-  \cs_set:cpn { PY@tok@na } {\def\PY@tc####1{\textcolor[rgb]{0.49,0.56,0.16}{####1}}}
-  \cs_set:cpn { PY@tok@nt } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.00,0.50,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@nd } {\def\PY@tc####1{\textcolor[rgb]{0.67,0.13,1.00}{####1}}}
-  \cs_set:cpn { PY@tok@s  } {\def\PY@tc####1{\textcolor[rgb]{0.73,0.13,0.13}{####1}}}
-  \cs_set:cpn { PY@tok@sd } {\let\PY@it=\textit\def\PY@tc####1{\textcolor[rgb]{0.73,0.13,0.13}{####1}}}
-  \cs_set:cpn { PY@tok@si } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.73,0.40,0.53}{####1}}}
-  \cs_set:cpn { PY@tok@se } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.73,0.40,0.13}{####1}}}
-  \cs_set:cpn { PY@tok@sr } {\def\PY@tc####1{\textcolor[rgb]{0.73,0.40,0.53}{####1}}}
-  \cs_set:cpn { PY@tok@ss } {\def\PY@tc####1{\textcolor[rgb]{0.10,0.09,0.49}{####1}}}
-  \cs_set:cpn { PY@tok@sx } {\def\PY@tc####1{\textcolor[rgb]{0.00,0.50,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@m  } {\def\PY@tc####1{\textcolor[rgb]{0.40,0.40,0.40}{####1}}}
-  \cs_set:cpn { PY@tok@gh } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.00,0.00,0.50}{####1}}}
-  \cs_set:cpn { PY@tok@gu } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.50,0.00,0.50}{####1}}}
-  \cs_set:cpn { PY@tok@gd } {\def\PY@tc####1{\textcolor[rgb]{0.63,0.00,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@gi } {\def\PY@tc####1{\textcolor[rgb]{0.00,0.63,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@gr } {\def\PY@tc####1{\textcolor[rgb]{1.00,0.00,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@ge } {\let\PY@it=\textit}
-  \cs_set:cpn { PY@tok@gs } {\let\PY@bf=\textbf}
-  \cs_set:cpn { PY@tok@gp } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.00,0.00,0.50}{####1}}}
-  \cs_set:cpn { PY@tok@go } {\def\PY@tc####1{\textcolor[rgb]{0.53,0.53,0.53}{####1}}}
-  \cs_set:cpn { PY@tok@gt } {\def\PY@tc####1{\textcolor[rgb]{0.00,0.27,0.87}{####1}}}
-  \cs_set:cpn { PY@tok@err } {\def\PY@bc####1{\setlength{\fboxsep}{0pt}\fcolorbox[rgb]{1.00,0.00,0.00}{1,1,1}{\strut ####1}}}
-  \cs_set:cpn { PY@tok@kc } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.00,0.50,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@kd } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.00,0.50,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@kn } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.00,0.50,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@kr } {\let\PY@bf=\textbf\def\PY@tc####1{\textcolor[rgb]{0.00,0.50,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@bp } {\def\PY@tc####1{\textcolor[rgb]{0.00,0.50,0.00}{####1}}}
-  \cs_set:cpn { PY@tok@fm } {\def\PY@tc####1{\textcolor[rgb]{0.00,0.00,1.00}{####1}}}
-  \cs_set:cpn { PY@tok@vc } {\def\PY@tc####1{\textcolor[rgb]{0.10,0.09,0.49}{####1}}}
-  \cs_set:cpn { PY@tok@vg } {\def\PY@tc####1{\textcolor[rgb]{0.10,0.09,0.49}{####1}}}
-  \cs_set:cpn { PY@tok@vi } {\def\PY@tc####1{\textcolor[rgb]{0.10,0.09,0.49}{####1}}}
-  \cs_set:cpn { PY@tok@vm } {\def\PY@tc####1{\textcolor[rgb]{0.10,0.09,0.49}{####1}}}
-  \cs_set:cpn { PY@tok@sa } {\def\PY@tc####1{\textcolor[rgb]{0.73,0.13,0.13}{####1}}}
-  \cs_set:cpn { PY@tok@sb } {\def\PY@tc####1{\textcolor[rgb]{0.73,0.13,0.13}{####1}}}
-  \cs_set:cpn { PY@tok@sc } {\def\PY@tc####1{\textcolor[rgb]{0.73,0.13,0.13}{####1}}}
-  \cs_set:cpn { PY@tok@dl } {\def\PY@tc####1{\textcolor[rgb]{0.73,0.13,0.13}{####1}}}
-  \cs_set:cpn { PY@tok@s2 } {\def\PY@tc####1{\textcolor[rgb]{0.73,0.13,0.13}{####1}}}
-  \cs_set:cpn { PY@tok@sh } {\def\PY@tc####1{\textcolor[rgb]{0.73,0.13,0.13}{####1}}}
-  \cs_set:cpn { PY@tok@s1 } {\def\PY@tc####1{\textcolor[rgb]{0.73,0.13,0.13}{####1}}}
-  \cs_set:cpn { PY@tok@mb } {\def\PY@tc####1{\textcolor[rgb]{0.40,0.40,0.40}{####1}}}
-  \cs_set:cpn { PY@tok@mf } {\def\PY@tc####1{\textcolor[rgb]{0.40,0.40,0.40}{####1}}}
-  \cs_set:cpn { PY@tok@mh } {\def\PY@tc####1{\textcolor[rgb]{0.40,0.40,0.40}{####1}}}
-  \cs_set:cpn { PY@tok@mi } {\def\PY@tc####1{\textcolor[rgb]{0.40,0.40,0.40}{####1}}}
-  \cs_set:cpn { PY@tok@il } {\def\PY@tc####1{\textcolor[rgb]{0.40,0.40,0.40}{####1}}}
-  \cs_set:cpn { PY@tok@mo } {\def\PY@tc####1{\textcolor[rgb]{0.40,0.40,0.40}{####1}}}
-  \cs_set:cpn { PY@tok@ch } {\let\PY@it=\textit\def\PY@tc####1{\textcolor[rgb]{0.25,0.50,0.50}{####1}}}
-  \cs_set:cpn { PY@tok@cm } {\let\PY@it=\textit\def\PY@tc####1{\textcolor[rgb]{0.25,0.50,0.50}{####1}}}
-  \cs_set:cpn { PY@tok@cpf } {\let\PY@it=\textit\def\PY@tc####1{\textcolor[rgb]{0.25,0.50,0.50}{####1}}}
-  \cs_set:cpn { PY@tok@c1 } {\let\PY@it=\textit\def\PY@tc####1{\textcolor[rgb]{0.25,0.50,0.50}{####1}}}
-  \cs_set:cpn { PY@tok@cs } {\let\PY@it=\textit\def\PY@tc####1{\textcolor[rgb]{0.25,0.50,0.50}{####1}}}
-  \def\PYZbs{\char`\\}
-  \def\PYZus{\char`\_}
-  \def\PYZob{\char`\{}%}{
-  \def\PYZcb{\char`\}}
-  \def\PYZca{\char`\^}
-  \def\PYZam{\char`\&}
-  \def\PYZlt{\char`\<}
-  \def\PYZgt{\char`\>}
-  \def\PYZsh{\char`\#}
-  \def\PYZpc{\char`\%}
-  \def\PYZdl{\char`\$}
-  \def\PYZhy{\char`\-}
-  \def\PYZsq{\char`\'}
-  \def\PYZdq{\char`\"}
-  \def\PYZti{\char`\~}
-% for compatibility with earlier versions
-  \def\PYZat{@}
-  \def\PYZlb{[%]
-  }
-  \def\PYZrb{%[
-  ]}
-}
-
 \seq_new:N \l_NLN_records_seq
 
 \long\def\unexpanded@write#1#2{\write#1{\unexpanded{#2}}}
@@ -1877,9 +1910,6 @@ and the derived files           inline.ins,
 % Main options
 % =========================================================
 
-\newif\ifNLN@opt@texcomments
-\newif\ifNLN@opt@mathescape
-\newif\ifNLN@opt@linenos
 \newif\ifNLN@left
 \newif\ifNLN@right
 
@@ -1892,32 +1922,32 @@ and the derived files           inline.ins,
 \pgfkeys{%
   /NLN/.cd,
   % 
-  boxing~method/.code     = \NLN_put:nn {boxin_method} { #1 },
-  inline~method/.code     = \NLN_put:nn {inline_method} { #1 },
+  boxing~method/.code  = \NLN_put:nn {boxin_method} { #1 },
+  inline~method/.code  = \NLN_put:nn {inline_method} { #1 },
   % 
-  lang/.store~in          = \NLN@opt@lang,
-  sty/.store~in           = \NLN@opt@style,
-  escapeinside/.store~in  = \NLN@opt@escapeinside,
-  texcomments/.is~if      = NLN@opt@texcomments,
-  mathescape/.is~if       = NLN@opt@mathescape,
+  lang/.code           = \NLN_put:nn {lang} { #1 },
+  sty/.code            = \NLN_put:nn {sty} { #1 },
+  escapeinside/.code   = \NLN_put:nn {escapeinside} { #1 },
+  texcomments/.code    = \NLN_put:nn {texcomments} { #1 },% boolean
+  mathescape/.code     = \NLN_put:nn {mathescape} { #1 },% boolean
   % 
-  label/.store~in         = \NLN@opt@label,
-  caption/.store~in       = \NLN@opt@caption,
+  label/.code          = \NLN_put:nn {label} { #1 },
+  caption/.code        = \NLN_put:nn {caption} { #1 },
   % 
-  gobble/.store~in        = \NLN@opt@gobble,
-  tabsize/.store~in       = \NLN@opt@tabsize,
+  gobble/.code         = \NLN_put:nn {gobble} { #1 },
+  tabsize/.code        = \NLN_put:nn {tabsize} { #1 },
   % 
-  linenos/.is~if          = NLN@opt@linenos,
-  linenostart/.store~in   = \NLN@opt@linenostart,
-  linenostep/.store~in    = \NLN@opt@linenostep,
-  linenosep/.store~in     = \NLN@opt@linenosep,
+  linenos/.code        = \NLN_put:nn {linenos} { #1 },% boolean
+  linenostart/.code    = \NLN_put:nn {linenostart} { #1 },
+  linenostep/.code     = \NLN_put:nn {linenostep} { #1 },
+  linenosep/.code      = \NLN_put:nn {linenosep} { #1 },
   %
-  colback/.store~in       = \NLN@opt@colback,
-  font/.store~in          = \NLN@opt@font,
+  colback/.code        = \NLN_put:nn {colback} { #1 },
+  font/.code           = \NLN_put:nn {font} { #1 },
   % 
-  texcomments/.default    = true,
-  mathescape/.default     = true,
-  linenos/.default        = true,
+  texcomments/.default = true,
+  mathescape/.default  = true,
+  linenos/.default     = true,
 }
 
 \pgfqkeys{/NLN}{
@@ -1966,12 +1996,10 @@ and the derived files           inline.ins,
   }%
   \def\NLNRemainingOptions{}%
   \pgfkeysalsofilteredfrom{\NLNRemainingGlobalOptions}%
-  \edef\NLN@saved@{%
-    \ifcsname NLN@#1@more@options\endcsname
-      \csname NLN@#1@more@options\endcsname,%
-    \fi
-  }%
-  \pgfkeysalsofilteredfrom{\NLN@saved@}%
+  \cs_if_exist:cT {NLN@#1@more@options} {
+    \exp_args:Nx
+    \pgfkeysalsofilteredfrom { \use:c{NLN@#1@more@options}, }
+  }
   \pgfkeysalsofilteredfrom{\NLNRemainingUserOptions}%
   % %%%%%%% DEBUGING
   % \typeout{}%
@@ -1983,7 +2011,7 @@ and the derived files           inline.ins,
   \begingroup
     \NLN@process@options{#1}%
     \immediate\write\NLN@outfile{<@@NLN@input@\the\NLN@counter}%
-    \immediate\write\NLN@outfile{\detokenize\expandafter{\NLN@global@options},\detokenize{#1}}%
+    \immediate\write\NLN@outfile{\exp_args:NV\detokenize\NLN@global@options,\detokenize{#1}}%
     \immediate\write\NLN@outfile{#2}%
     \immediate\write\NLN@outfile{>@@NLN@input@\the\NLN@counter}%
     %
@@ -1996,7 +2024,9 @@ and the derived files           inline.ins,
   \directlua{NLN:start_recording()}
   \NLN@process@options{#1}%
   \immediate\write\NLN@outfile{<@@NLN@display@\the\NLN@counter}%
-  \immediate\write\NLN@outfile{\detokenize\expandafter{\NLN@global@options},\detokenize{#1}}%
+  \immediate\write\NLN@outfile{
+    \exp_args:NV\detokenize\NLN@global@options,\detokenize{#1}
+  }%
   \VerbatimEnvironment
   \begin{VerbatimOutAppend}{\NLN@outfile}%
 }{%
@@ -2008,22 +2038,25 @@ and the derived files           inline.ins,
 
 \newcommand\pyginline[2][]{%
   \begingroup
+    \typeout{DEBUG1}
+  		\prop_set_eq:Nc \l_NLN_prop {g/NLN/prop}
+  		\cs_set:Npn \NLN_put:nn #1 #2 {
+  		  \prop_put:Nnn \l_NLN_prop { #1 } { #2 }
+  		}
+    \typeout{DEBUG2}
     \NLN@process@options{#1}%
-    \iow_open:Nn \l_NLN_in { \directlua{tex.print(NLN.dir..NLN.jobname..[[.pyg]])} }
-
-    \immediate\write\NLN@outfile{<@@NLN@inline@\the\NLN@counter}%
-    \immediate\write\NLN@outfile{\detokenize\expandafter{\NLN@global@options},\detokenize{#1}}%
+    \typeout{DEBUG3}
+    \directlua{NLN:clear_options()}
+    \typeout{DEBUG4}
+    \prop_map_inline:Nn \l_NLN_prop {
+      \typeout{DEBUG5/#1/#2/}
+      \directlua{NLN:add_option([===[#1]===], [===[#2]===])}
+    }
     \DefineShortVerb{#2}%
     \SaveVerb
       [aftersave={%
        \UndefineShortVerb{#2}%
-       \immediate\write\NLN@outfile{\FV@SV@NLN}%
-       \immediate\write\NLN@outfile{>@@NLN@inline@\the\NLN@counter}%
-       %
-       \csname NLN@snippet@\the\NLN@counter\endcsname
-       \global\advance\NLN@counter by 1\relax
-       \directlua{print([[DEBUG~INLINE]])}
-       \directlua{NLN:process_inline([=[\FV@SV@NLN]=])}
+       \directlua{NLN:process_inline([===[\FV@SV@NLN]===])}
        \endgroup
       }]%
       {NLN}#2%
@@ -2033,7 +2066,12 @@ and the derived files           inline.ins,
 
 \newcommand\NLN@snippet@inlined[1]{%
   \group_begin:
-  \csname PYstyle\NLN@opt@style\endcsname
+  \typeout{DEBUG~PY~STYLE:<\NLN@opt@style>}
+  \use_c:n { PYstyledefault }
+  \tl_if_empty:NF \NLN@opt@style {
+    \use_c:n { PYstyle\NLN@opt@style }
+  }
+  \cs_if_exist:cTF {PY} {PYOK} {PYKO}
   \NLN@opt@font
   \NLN@process@more@options{ \NLN_item:n { inline_method} }%
   \exp_last_unbraced:NxNo
@@ -2045,56 +2083,66 @@ and the derived files           inline.ins,
 
 \ProvideDocumentCommand\captionof{mm}{}
 \def\NLN@alllinenos{(0)}
-
+\prg_new_conditional:Nnn \NLN_yorn:n { T, F, TF } {
+  \group_begin:
+  \prop_get:cnNT {g/NLN/code/} { #1 } \l_tmpa_tl {
+    \exp_args:NnV
+    \regex_match:nnT {^[tTyY]} \l_tmpa_tl {
+      \group_end:
+      \prg_return_true:
+    }
+  } {
+  \group_end:
+  \prg_return_false:
+}
 \newenvironment{NLN@snippet@framed}{%
   \group_begin:
   \NLN@leftmargin\z@
-  \ifNLN@opt@linenos
+  \NLN_yorn:nT {linenos} {
     \expandafter \NLNWidest\NLN@alllinenos{\FormatLineNumber}{\NLN@leftmargin}%
-    \advance\NLN@leftmargin\NLN@opt@linenosep
-  \fi
+    \exp_args:NNx
+    \advance\NLN@leftmargin { \NLN_item:n {linenosep} }
+  }
   %
-  \ifdefined\NLN@opt@label
-    \def\NLN@title{%
-      \captionof{pygcode}{\label{\NLN@opt@label}\NLN@opt@caption}%
+  \tl_clear:N \l_NLN_tl
+  \NLN_get:nNTF {label} \l_tmpa_tl {
+    \tl_set:N \l_NLN_tl {%
+      \captionof{pygcode}{\label{\NLN_item:n {label}} \NLN_item:n {caption}}%
       % \nopagebreak
       \vskip -0.7\baselineskip
     }%
-  \else
-    \ifdefined\NLN@opt@caption
-      \def\NLN@title{%
-        \captionof{pygcode}{\NLN@opt@caption}%
+  } {
+    \NLN_get:nNT {caption} \l_tmpa_tl {
+      \tl_set:N \l_NLN_tl {%
+        \captionof {pygcode} {\l_tmpa_tl}%
         % \nopagebreak
         \vskip -0.7\baselineskip
       }%
     \fi
-  \fi
-  \ifdefined\NLN@title
-    % \nopagebreak[0]%
-    \NLN@title
-    % \nopagebreak
-  \fi
+  }
+  \l_NLN_tl
   %
-  \exp_args:Nx \tl_if_empty:nF { \NLN_item:n { boxing_method } } {
+  \exp_args:Nx \tl_if_empty:nF { \NLN_item:n {boxing_method} } {
     \exp_args:Nx
-    \NLN@process@more@options { \NLN_item:n { boxing_method } }%
+    \NLN@process@more@options { \NLN_item:n {boxing_method} }%
     \exp_last_unbraced:NxNo
-    \begin { \NLN_item:n { boxing_method } } [ \NLNRemainingOptions ]
+    \begin { \NLN_item:n {boxing_method} } [ \NLNRemainingOptions ]
   }
   \csname PYstyle\NLN@opt@style\endcsname
   \NLN@opt@font
   \noindent
 } {
-  \exp_args:Nx \tl_if_empty:nF { \NLN_item:n { boxing_method } } {
+  \exp_args:Nx \tl_if_empty:nF { \NLN_item:n {boxing_method} } {
     \exp_args:Nx
-    \end { \NLN_item:n { boxing_method } }
+    \end { \NLN_item:n {boxing_method} }
   }
   \group_end:
 }
 
 
 \newcommand\NLN@inlined[1]{%
-  \expandafter\efbox\expandafter[\NLNRemainingOptions]{#1}%
+  \exp_last_unbraced:NNV
+  \efbox[\NLNRemainingOptions]{#1}%
 }
 
 \def\FormatLineNumber#1{{\rmfamily\tiny#1}}
@@ -2105,9 +2153,10 @@ and the derived files           inline.ins,
 
 \def\NLN@lineno@do#1{%
   \NLN@linenosep 0pt%
-  \use:c { NLN@ \NLN_item:n { boxing_method } @margin }
-  \advance \NLN@linenosep \NLN@opt@linenosep
-  \makebox[0pt][r]{%
+  \use:c { NLN@ \NLN_item:n {boxing_method} @margin }
+  \exp_args:NNx
+  \advance \NLN@linenosep { \NLN_item:n {linenosep} }
+  \hbox_overlap_left:n {%
     \FormatLineNumber{#1}%
     \hspace*{\NLN@linenosep}}%
 }
@@ -2122,30 +2171,30 @@ and the derived files           inline.ins,
   boxsep=2pt,%
   arc=1pt,%
   boxrule=0pt,%
-  \ifcsname NLN@opt@colback\endcsname
-    colback=\NLN@opt@colback,%
-  \fi
+  \NLN_if_in:nNT {colback} {
+    colback=\NLN_item:n {colback}
+  }
 }
 
 \newcommand\NLN@efbox@more@options{%
-  \ifcsname NLN@opt@colback\endcsname
-    backgroundcolor=\NLN@opt@colback,%
-  \fi
+  \NLN_if_in:nNT {colback} {
+    backgroundcolor=\NLN_item:n {colback}
+  }
 }
 
 \newcommand\NLN@mdframed@more@options{%
   leftmargin=\NLN@leftmargin,%
   frametitlerule=true,%
-  \ifcsname NLN@opt@colback\endcsname
-    backgroundcolor=\NLN@opt@colback,%
-  \fi
+  \NLN_if_in:nNT {colback} {
+    backgroundcolor=\NLN_item:n {colback}
+  }
 }
 
 \newcommand\NLN@tcolorbox@more@options{%
   grow~to~left~by=-\NLN@leftmargin,%
-  \ifcsname NLN@opt@colback\endcsname
-    colback=\NLN@opt@colback,%
-  \fi
+  \NLN_if_in:nNT {colback} {
+    colback=\NLN_item:n {colback}
+  }
 }
 
 \newcommand\NLN@boite@more@options{%

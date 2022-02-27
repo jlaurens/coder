@@ -1,8 +1,18 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+    PygmenTeX
+    ~~~~~~~~~
+
+    PygmenTeX is a converter that do syntax highlighting of snippets of
+    source code extracted from a LaTeX file.
+
+    :copyright: Copyright 2020 by José Romildo Malaquias
+    :license: BSD, see LICENSE for details
+"""
+
 __version__ = '0.10'
-__YEAR__    = '2022'
 __docformat__ = 'restructuredtext'
 
 from posixpath import split
@@ -13,7 +23,6 @@ from os.path import splitext
 from pathlib import Path
 from io import StringIO
 import hashlib
-import json
 
 from pygments import highlight
 from pygments.styles import get_style_by_name
@@ -25,13 +34,13 @@ from pygments.token import Token
 from pygments.util import guess_decode
 
 ###################################################
-# From pygments-2.0
+# The following code is in >=pygments-2.0
 ###################################################
-class NLNLatexFormatter(LatexFormatter):
+class EnhancedLatexFormatter(LatexFormatter):
     r"""
     This is an enhanced LaTeX formatter.
     """
-    name = 'NLNLaTeX'
+    name = 'EnhancedLaTeX'
     aliases = []
 
     def __init__(self, **options):
@@ -138,6 +147,7 @@ class NLNLatexFormatter(LatexFormatter):
 
 class LatexEmbeddedLexer(Lexer):
     r"""
+
     This lexer takes one lexer as argument, the lexer for the language
     being formatted, and the left and right delimiters for escaped text.
 
@@ -186,6 +196,7 @@ class LatexEmbeddedLexer(Lexer):
                     yield index, Token.Error, sep1
                     index += len(sep1)
                     text = b
+###################################################
 
 class Controller:
     _re_display = re.compile(
@@ -207,14 +218,27 @@ class Controller:
     GENERIC_DEFINITIONS_2 = r'''\makeatother
 '''
 
-    SNIPPET_TEMPLATE = r'''\
-\tl_set:cn {NLN/colored} {%%
-  \group_begin:
-  \NLN@do@linenos:n{%(linenumbers)s}%%
-  \begin{NLN/colored/%(mode)s}%%
-  %(body)s%%
-  \end{NLN/colored/%(mode)s}%%
-  \group_end:
+    INLINE_SNIPPET_TEMPLATE = r'''\expandafter\def\csname NLN@snippet@%(number)s\endcsname{%%
+\NLN@snippet@inlined{%%
+%(body)s%%
+}}'''
+
+    DISPLAY_SNIPPET_TEMPLATE = r'''\
+\expandafter\def\csname NLN@snippet@%(number)s\endcsname{%%
+\begin{NLN@snippet@framed}%%
+%(body)s%%
+\end{NLN@snippet@framed}%%
+}\
+'''
+
+    DISPLAY_LINENOS_SNIPPET_TEMPLATE = r'''\
+\expandafter\def\csname NLN@snippet@%(number)s\endcsname{%%
+\begingroup
+    \def\NLN@alllinenos{(%(linenumbers)s)}%%
+    \begin{NLN@snippet@framed}%%
+%(body)s%%
+    \end{NLN@snippet@framed}%%
+\endgroup
 }
 '''
 
@@ -222,17 +246,17 @@ class Controller:
     def code(self):
         return self.arguments.code
 
-    _json_p = None
+    _input_p = None
     @property
-    def json_p(self):
-        p = self._json_p
+    def input_p(self):
+        p = self._input_p
         if p:
             return p
         else:
             p = self.arguments.input
             if p:
                 p = Path(p).resolve()
-        self._json_p = p
+        self._input_p = p
         return p
 
     _directory_p = None
@@ -245,7 +269,7 @@ class Controller:
         if p:
             p = Path(p)
         else:
-            p = self.json_p
+            p = self.input_p
             if p:
                 p = p.parent / p.stem
             else:
@@ -266,71 +290,21 @@ class Controller:
         if p:
             p = Path(p).resolve()
         else:
-            p = self.json_p
+            p = self.input_p
             if p:
                 p = p.with_suffix(".pyg.tex")
         self._output_p = p
         return p
 
-    _outsty_p = None
-    @property
-    def outsty_p(self):
-        p = self._outsty_p
-        if p:
-            return p
-        p = self.arguments.output
-        if p:
-            p = Path(p).resolve()
-        else:
-            p = self.json_p
-            if p:
-                p = p.with_suffix(".pyg.tex")
-        self._output_p = p
-        return p
-
-    class Object(object):
-        def __new__(cls, d={}, *args, **kvargs):
-            if d.get('__cls__', 'arguments') == 'options':
-                return super(Controller.Object, cls).__new__(Controller.Options, *args, **kvargs)
-            else:
-                return super(Controller.Object, cls).__new__(Controller.Arguments, *args, **kvargs)
-
-        def __init__(self, d={}):
-            for k, v in d.items():
-                if type(v) == str:
-                    if v.lower() == 'true':
-                        setattr(self, k, True)
-                        continue
-                    elif v.lower() == 'false':
-                        setattr(self, k, False)
-                        continue
-                setattr(self, k, v)
-
-        def __repr__(self):
-            return f"{object.__repr__(self)}: {self.__dict__}"
-
-
-    class Options(Object):
-        lang = "tex"
-        escapeinside = ""
-        gobble = 0
-        tabsize = 4
-        sty = 'default'
-        texcomments = False
-        mathescape =  False
-        linenos = False
-        linenostart = 1
-        linenostep = 1
-        linenosep = '0pt'
-        encoding = 'guess'
-
-    class Arguments(Object):
+    class Arguments:
         cache = False
         code = ""
         input = ""
-        options = None
+        output = ""
         directory = ""
 
+        def __repr__(self):
+            return f'<Arguments: {repr(self.__dict__)}>'
 
     @property
     def parser(self):
@@ -345,54 +319,107 @@ the syntax highlighting of the input file as given by pygments.
             "-v","--version",
             help="Print the version and exit",
             action='version',
-            version='inline-helper version %s, (c) %s by Jérôme LAURENS.' % __version__ % __YEAR__
+            version='XPygmenTeX version %s, (c) 2022 by Jérôme LAURENS.' % __version__
         )
-        parser.add_argument(
+        group = parser.add_argument_group('pygmentize')
+        group.add_argument(
+            "-d","--directory",
+            help="""\
+name of the directory where the pygmented file are collected,
+either input or output.
+""",
+            default=None,
+        )
+        group.add_argument(
+            "-m","--mode",
+            help="switch to inline or display mode",
+            choices=("code","inline","display"),
+            default=None,
+        )
+        group.add_argument(
+            "-e","--escape",
+            help="""\
+Enables escaping to LaTex. Text delimited by the <left>
+and <right> characters is read as LaTeX code and typeset accordingly. It
+has no effect in string literals. It has no effect in comments if
+`texcomments` or `mathescape` is set.
+""",
+            action='store_true'
+        )
+        group.add_argument(
+            "-i","--input",
+            default=None,
+            help="""\
+input file name, including the extension, which is in general ".txt".
+    The input file should consist of a sequence of source code snippets, as
+produced by the `pygmentex` LaTeX package. Each code snippet is
+highlighted using Pygments, and a LaTeX command that expands to the
+highlighted code snippet is written to the output file.\
+"""
+        )
+        group.add_argument(
+            "-c","--code",
+            default=None,
+            help="raw input code snippet to be furher processed by pygment"
+        )
+        group.add_argument(
+            "-p","--pygment-options",
+            default=None,
+            help="cumulated options forwarded to pygment",
+            action='append'
+        )
+        group.add_argument(
             "--debug",
             default=None,
             help="display informations useful for debugging"
         )
-        parser.add_argument(
-            "json",
-            metavar="json data file",
-            help="""
-file name with extension of information to specify which processing is required
-"""
-        )
         return parser
 
-    def __init__(self, argv = sys.argv):
-        argv = argv[1:] if re.match(".*inline-helper\.py$", argv[0]) else argv
-        ns = self.parser.parse_args(
-            argv if len(argv) else ['-h']
-        )
-        with open(ns.json, 'r') as f:
-            self.arguments = json.load(
-                f,
-                object_hook=Controller.Object
-            )
+    class Options:
+        lang = ""
+        escapeinside = ""
+        gobble = 0
+        tabsize = 0
+        sty = 'default'
+        texcomments = False
+        mathescape =  False
+        linenos = False
+        linenostart = 1
+        linenostep = 1
+        def __init__(self, pygment_options, defaults):
+            if defaults:
+                for k, v in defaults.items():
+                    setattr(self, k, v)
+            if pygment_options:
+                for o in pygment_options:
+                    m = re.match(r'^(.*?)\s*=\s*(.*)$', o)
+                    if m:
+                        setattr(self, m.group(1), m.group(2))
+                    else:
+                        setattr(self, o, True)
 
-        self.options = self.arguments.options
-        print("INPUT", self.json_p)
+        def __repr__(self):
+            return f"<Pygment options: {repr(self.__dict__)}>"
+
+    def __init__(self, argv = sys.argv):
+        argv = argv[1:] if re.match(".*pygmentex\.py$", argv[0]) else argv
+        arguments = self.Arguments()
+        self.parser.parse_args(
+            argv if len(argv) else ['-h'],
+            namespace=arguments
+        )
+        print(arguments)
+        self.arguments = arguments
+        print("INPUT", self.input_p)
         print("OUTPUT DIR", self.directory_p)
         print("OUTPUT", self.output_p)
-
-    def read_input(self, filename, encoding):
-        with open(filename, 'rb') as infp:
-            code = infp.read()
-        if not encoding or encoding == 'guess':
-            code, encoding = guess_decode(code)
-        else:
-            code = code.decode(encoding)
-
-        return code, encoding
 
     def process(self):
         """
         Main command line entry point.
         """
         arguments = self.arguments
-        if self.convert_code():
+        if arguments.code:
             self.convert_code()
             print('Done')
             return 0
@@ -410,18 +437,18 @@ file name with extension of information to specify which processing is required
         print("Done")
         return 0
 
-    def pyg(self, outfile, outencoding, n, options, extra_opts, text, usedstyles, inline_delim = True):
+    def pyg(self, outfile, outencoding, n, opts, extra_opts, text, usedstyles, inline_delim = True):
         try:
-            lexer = get_lexer_by_name(options['lang'])
+            lexer = get_lexer_by_name(opts['lang'])
         except ClassNotFound as err:
             sys.stderr.write('Error: ')
             sys.stderr.write(str(err))
             return ""
 
         # global _fmter
-        _fmter = NLNLatexFormatter()
+        _fmter = EnhancedLatexFormatter()
 
-        escapeinside = options.get('escapeinside', '')
+        escapeinside = opts.get('escapeinside', '')
         if len(escapeinside) == 2:
             left = escapeinside[0]
             right = escapeinside[1]
@@ -430,24 +457,24 @@ file name with extension of information to specify which processing is required
             _fmter.right = right
             lexer = LatexEmbeddedLexer(left, right, lexer)
 
-        gobble = abs(get_int_opt(options, 'gobble', 0))
+        gobble = abs(get_int_opt(opts, 'gobble', 0))
         if gobble:
             lexer.add_filter('gobble', n=gobble)
 
-        tabsize = abs(get_int_opt(options, 'tabsize', 0))
+        tabsize = abs(get_int_opt(opts, 'tabsize', 0))
         if tabsize:
             lexer.tabsize = tabsize
 
         lexer.encoding = ''
         # _fmter.encoding = outencoding
 
-        stylename = options['sty']
+        stylename = opts['sty']
 
         _fmter.style = get_style_by_name(stylename)
         _fmter._create_stylesheet()
 
-        _fmter.texcomments = get_bool_opt(options, 'texcomments', False)
-        _fmter.mathescape = get_bool_opt(options, 'mathescape', False)
+        _fmter.texcomments = get_bool_opt(opts, 'texcomments', False)
+        _fmter.mathescape = get_bool_opt(opts, 'mathescape', False)
 
         if stylename not in usedstyles:
             styledefs = _fmter.get_style_defs() \
@@ -465,9 +492,9 @@ file name with extension of information to specify which processing is required
         m = re.match(r'\\begin\{Verbatim}(.*)\n([\s\S]*?)\n\\end\{Verbatim}(\s*)\Z',
                     x)
         if m:
-            linenos = get_bool_opt(options, 'linenos', False)
-            linenostart = abs(get_int_opt(options, 'linenostart', 1))
-            linenostep = abs(get_int_opt(options, 'linenostep', 1))
+            linenos = get_bool_opt(opts, 'linenos', False)
+            linenostart = abs(get_int_opt(opts, 'linenostart', 1))
+            linenostep = abs(get_int_opt(opts, 'linenostep', 1))
             lines0 = m.group(2).split('\n')
             numbers = []
             lines = []
@@ -477,17 +504,29 @@ file name with extension of information to specify which processing is required
                 line = re.sub(r' ', '~', line)
                 if linenos:
                     if (counter - linenostart) % linenostep == 0:
-                        line = r'\NLN_get:n {lineno:} {' + str(counter) + '}' + line
+                        line = r'\NLN@lineno@do{' + str(counter) + '}' + line
                         numbers.append(str(counter))
                     counter = counter + 1
                 lines.append(line)
-            outfile.write(Controller.SNIPPET_TEMPLATE %
-                dict(
-                    mode = 'inline' if inline_delim else 'display',
-                    linenumbers = ','.join(numbers),
-                    body      = '\\newline\n'.join(lines),
-                )
-            )
+            if inline_delim:
+                outfile.write(Controller.INLINE_SNIPPET_TEMPLATE %
+                    dict(number    = n,
+                        style     = stylename,
+                        options   = extra_opts,
+                        body      = '\\newline\n'.join(lines)))
+            else:
+                if linenos:
+                    template = Controller.DISPLAY_LINENOS_SNIPPET_TEMPLATE
+                else:
+                    template = Controller.DISPLAY_SNIPPET_TEMPLATE
+                outfile.write(template %
+                    dict(number      = n,
+                        style       = stylename,
+                        options     = extra_opts,
+                        linenosep   = opts['linenosep'],
+                        linenumbers = ','.join(numbers),
+                        body        = '\\newline\n'.join(lines)))
+
 
     def to_boolean(self,what):
         if what and type(what)==str:
@@ -495,61 +534,62 @@ file name with extension of information to specify which processing is required
         return not not what
 
     def pyg_code(self, text, inline_delim = True):
-        options = self.options
+        opts = self.options
         try:
-            lexer = get_lexer_by_name(options.lang)
+            lexer = get_lexer_by_name(opts.lang)
         except ClassNotFound as err:
             sys.stderr.write('Error: ')
             sys.stderr.write(str(err))
             return ""
 
-        formatter = NLNLatexFormatter()
+        # global _fmter
+        _fmter = EnhancedLatexFormatter()
 
-        escapeinside = options.escapeinside
+        escapeinside = opts.escapeinside
         if len(escapeinside) == 2:
             left = escapeinside[0]
             right = escapeinside[1]
-            formatter.escapeinside = escapeinside
-            formatter.left = left
-            formatter.right = right
+            _fmter.escapeinside = escapeinside
+            _fmter.left = left
+            _fmter.right = right
             lexer = LatexEmbeddedLexer(left, right, lexer)
 
-        gobble = abs(int(options.gobble))
+        gobble = abs(int(opts.gobble))
         if gobble:
             lexer.add_filter('gobble', n=gobble)
 
-        tabsize = abs(int(options.tabsize))
+        tabsize = abs(int(opts.tabsize))
         if tabsize:
             lexer.tabsize = tabsize
 
         lexer.encoding = ''
+        # _fmter.encoding = outencoding
 
-        stylename = options.sty
+        stylename = opts.sty
 
-        formatter.style = get_style_by_name(stylename)
-        formatter._create_stylesheet()
+        _fmter.style = get_style_by_name(stylename)
+        _fmter._create_stylesheet()
 
-        formatter.texcomments = self.to_boolean(options.texcomments)
-        formatter.mathescape = self.to_boolean(options.mathescape)
+        _fmter.texcomments = self.to_boolean(opts.texcomments)
+        _fmter.mathescape = self.to_boolean(opts.mathescape)
 
-        styledefs = formatter.get_style_defs() \
+        styledefs = _fmter.get_style_defs() \
             .replace('#', '##') \
             .replace(r'\##', r'\#') \
             .replace(r'\makeatletter', '') \
             .replace(r'\makeatother', '') \
             .replace('\n', '%\n')
-        ans_style = '\\def\\PYstyle{0}{{%\n{1}%\n}}%\n'.format(stylename, styledefs)
+        ans = []
+        ans.append('\\def\\PYstyle{0}{{%\n{1}%\n}}%\n'.format(stylename, styledefs))
 
-        ans_code = []
+        x = highlight(text, lexer, _fmter)
 
-        m = re.match(
-            r'\\begin\{Verbatim}(.*)\n([\s\S]*?)\n\\end\{Verbatim}(\s*)\Z',
-            highlight(text, lexer, formatter)
-        )
+        m = re.match(r'\\begin\{Verbatim}(.*)\n([\s\S]*?)\n\\end\{Verbatim}(\s*)\Z',
+                    x)
         if m:
-            linenos = options.linenos
-            linenostart = abs(int(options.linenostart))
-            linenostep = abs(int(options.linenostep))
+            linenos = self.to_boolean(opts.linenos)
+            linenostart = abs(int(opts.linenostart))
+            linenostep = abs(int(opts.linenostep))
             lines0 = m.group(2).split('\n')
             numbers = []
             lines = []
@@ -559,44 +599,42 @@ file name with extension of information to specify which processing is required
                 line = re.sub(r' ', '~', line)
                 if linenos:
                     if (counter - linenostart) % linenostep == 0:
-                        line = rf'\NLN_get:n {{lineno:}}{{{counter}}}' + line
+                        line = rf'\NLN@lineno@do{{{counter}}}' + line
                         numbers.append(str(counter))
-                    counter += 1
+                    counter = counter + 1
                 lines.append(line)
             if inline_delim:
-                ans_code.append(self.SNIPPET_TEMPLATE %
-                    dict(
-                        mode = 'inline',
-                        number    = 'zero',
-                        body      = '\\newline\n'.join(lines)
-                    )
-                )
+                ans.append(self.INLINE_SNIPPET_TEMPLATE %
+                    dict(number    = 'zero',
+                        style     = stylename,
+                        options   = '',
+                        body      = '\\newline\n'.join(lines)))
             else:
                 if linenos:
                     template = self.DISPLAY_LINENOS_SNIPPET_TEMPLATE
                 else:
                     template = self.DISPLAY_SNIPPET_TEMPLATE
-                ans_code.append(template %
-                    dict(number      = 'zero',
+                ans.append(template %
+                    dict(number      = '00',
                         style       = stylename,
                         options     = '',
-                        linenosep   = options.linenosep,
+                        linenosep   = opts.linenosep,
                         linenumbers = ','.join(numbers),
                         body        = '\\newline\n'.join(lines)))
-        ans_code = "".join(ans_code)
-        ans_code = re.sub(
+        ans = "".join(ans)
+        ans = re.sub(
             r"\\expandafter\\def\\csname\s*(.*?)\\endcsname",
             r'\\cs_new:cpn{\1}',
-            ans_code,
+            ans,
             flags=re.M
         )
-        ans_code = re.sub(
+        ans = re.sub(
             r"\\csname\s*(.*?)\\endcsname",
             r'\\use:c{\1}',
-            ans_code,
+            ans,
             flags=re.M
         )
-        return ans_code, ans_style
+        return ans
 
 
     def parse_opts(self, basedic, opts):
@@ -692,8 +730,6 @@ file name with extension of information to specify which processing is required
         Convert ``code``
         """
         code = self.arguments.code
-        if not code:
-            return False
         h = hashlib.md5(str(code).encode('utf-8'))
         out_p = (self.directory_p / h.hexdigest()).with_suffix(".pyg.tex")
         if self.arguments.cache and out_p.exists():
@@ -705,7 +741,7 @@ file name with extension of information to specify which processing is required
                 'lang'      : 'c',
                 'sty'       : 'default',
                 'linenosep' : '0pt',
-                'tabsize'   : '4',
+                'tabsize'   : '8',
                 'encoding'  : 'guess',
             }
             self.options = self.Options(
@@ -724,6 +760,16 @@ file name with extension of information to specify which processing is required
 \\NLN@snippet@zero
 """)
         exit(1)
+
+    def read_input(self, filename, encoding):
+        with open(filename, 'rb') as infp:
+            code = infp.read()
+        if not encoding or encoding == 'guess':
+            code, encoding = guess_decode(code)
+        else:
+            code = code.decode(encoding)
+
+        return code, encoding
 
 
 if __name__ == '__main__':

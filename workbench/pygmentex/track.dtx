@@ -1,0 +1,51 @@
+% \iffalse meta-comment
+% !TEX program  = lualatex
+% !TEX encoding  = utf8
+%<*internal>
+\def\nameofplainTeX{plain}
+\ifx\fmtname\nameofplainTeX\else
+  \expandafter\begingroup
+\fi
+%</internal>
+%<*install>
+\input docstrip.tex
+\keepsilent
+\askforoverwritefalse
+\usedir{tex/latex/coder}
+\generate{
+  \file{\jobname.sty}{\from{\jobname.dtx}{sty}}
+}
+%</install>
+%<install>\endbatchfile
+%<*internal>
+\ifx\fmtname\nameofplainTeX
+  \expandafter\endbatchfile
+\else
+  \expandafter\endgroup
+\fi
+%</internal>
+%<*sty>
+\RequirePackage{fancyvrb}
+\ProvidesExplPackage{PKG}
+  {DATE}
+  {VERSION}
+  {DESCRIPTION}
+
+%</sty>
+%<*driver>
+\ExplSyntaxOff
+\documentclass{l3doc}
+\RequirePackage{fancyvrb}
+\makeatletter
+\show\FV@@@@Gobble
+\makeatother
+\begin{document}
+  \DocInput{\jobname.dtx}
+\end{document}
+%</driver>
+% \fi
+%
+% \makeatletter
+% \show\FV@@@@Gobble
+% \makeatother
+% DONE

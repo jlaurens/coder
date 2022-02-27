@@ -1,0 +1,5270 @@
+% \iffalse meta-comment
+% !TEX program  = lualatex
+% !TEX encoding  = utf8
+%<*internal>
+\iffalse
+%</internal>
+%<*readme>
+----------------------------------------------------------------
+coder --- description text
+E-mail: jerome.laurens@u-bourgogne.fr
+Released under the LaTeX Project Public License v1.3c or later
+See http://www.latex-project.org/lppl.txt
+----------------------------------------------------------------
+
+Some text about the package: probably the same as the abstract.
+%</readme>
+%<*internal>
+\fi
+\def\nameofplainTeX{plain}
+\ifx\fmtname\nameofplainTeX\else
+  \expandafter\begingroup
+\fi
+%</internal>
+%<*install>
+\input docstrip.tex
+\keepsilent
+\askforoverwritefalse
+\def\MetaPrefix{}
+\declarepreamble\PreambleRaw
+----------------------------------------------------------------
+\jobname --- code inlined in a LuaLaTeX document.
+version: \fileversion
+date: \filedate
+url: https:github.com/jlaurens/coder
+E-mail: jerome.laurens@u-bourgogne.fr
+Released under the LaTeX Project Public License v1.3c or later
+See http://www.latex-project.org/lppl.txt
+----------------------------------------------------------------
+
+\endpreamble
+\def\MetaPrefix{--}
+\declarepreamble\PreambleLua
+
+\jobname --- code inlined in a LuaLaTeX document.
+version: \fileversion
+date: \filedate
+url: https:github.com/jlaurens/coder
+E-mail: jerome.laurens@u-bourgogne.fr
+Released under the LaTeX Project Public License v1.3c or later
+See http://www.latex-project.org/lppl.txt
+
+\endpreamble
+{
+\catcode`\#=11
+\global\def\MetaPrefix{#}
+}
+\declarepreamble\PreamblePy
+
+\jobname --- code inlined in a LuaLaTeX document.
+version: \fileversion
+date: \filedate
+url: https:github.com/jlaurens/coder
+E-mail: jerome.laurens@u-bourgogne.fr
+Released under the LaTeX Project Public License v1.3c or later
+See http://www.latex-project.org/lppl.txt
+
+\endpreamble
+
+\edef\PreamblePy {%
+\MetaPrefix!/usr/bin/env python3^^J\MetaPrefix\space -*- coding: utf-8 -*-^^J\PreamblePy
+}
+
+\def\MetaPrefix{\DoubleperCent}
+\declarepreamble\PreambleSty
+\jobname --- code inlined in a LuaLaTeX document.
+version: \fileversion
+date: \filedate
+E-mail: jerome.laurens@u-bourgogne.fr
+Released under the LaTeX Project Public License v1.3c or later
+
+Copyright (C) 2022 by Jérôme LAURENS <jerome.laurens@u-bourgogne.fr>
+
+This work may be distributed and/or modified under the
+conditions of the LaTeX Project Public License (LPPL), either
+version 1.3c of this license or (at your option) any later
+version.  The latest version of this license is in the file:
+
+http://www.latex-project.org/lppl.txt
+
+This work is "maintained" (as per LPPL maintenance status) by
+Jérôme LAURENS.
+
+This work consists of the file  \jobname.dtx
+and the derived files           \jobname.ins,
+                                \jobname.pdf,
+                                \jobname-util.lua,
+                                \jobname-tool.py and
+                                \jobname.sty.
+
+\endpreamble
+\nopostamble
+\usedir{tex/latex/coder}
+\usepreamble\PreambleSty
+\def\MetaPrefix{\DoubleperCent}
+\generate{
+  \file{\jobname.sty}{\from{\jobname.dtx}{sty}}
+}
+\usepreamble\PreambleLua
+\def\MetaPrefix{--}
+\usedir{scripts/coder}
+\generate{
+  \file{\jobname-util.x.lua}{\from{\jobname.dtx}{lua}}
+}
+\generate{
+  \file{\jobname-util.lua}{\from{\jobname.dtx}{lua}}
+}
+\usepreamble\PreamblePy
+{
+\catcode`\#=11
+\global\def\MetaPrefix{#}
+}
+\usedir{scripts/coder}
+\generate{
+  \file{\jobname-tool.x.py}{\from{\jobname.dtx}{py}}
+}
+\generate{
+  \file{\jobname-tool.py}{\from{\jobname.dtx}{py}}
+}
+\nopreamble\nopostamble
+\usedir{doc/latex/coder}
+\generate{
+  \file{README.md}{\from{\jobname.dtx}{readme}}
+}
+%</install>
+%<install>\endbatchfile
+%<*internal>
+\usedir{source/latex/coder}
+\generate{
+  \file{\jobname.ins}{\from{\jobname.dtx}{install}}
+}
+\ifx\fmtname\nameofplainTeX
+  \expandafter\endbatchfile
+\else
+  \expandafter\endgroup
+\fi
+%</internal>
+%<*sty>
+\RequirePackage{fancyvrb}
+\RequirePackage{color}
+\RequirePackage{emoji}
+\RequirePackage{ifthen}
+%\RequirePackage[font=small,format=plain,labelfont=bf,up,textfont=it,up]{caption}
+%\RequirePackage{caption}
+\RequirePackage{efbox}
+\RequirePackage[framemethod=tikz]{mdframed}
+
+%\DeclareCaptionType[within=chapter]{pygcode}[Listagem][Lista de listagens]
+%\DeclareCaptionType{pygcode}[Listagem][Lista de listagens]
+%\captionsetup[pygcode]{position=top}
+
+\RequirePackage{luacode, needspace, xcolor, verbatim}
+\AddToHook { begindocument / before } {
+  \RequirePackage{datetime2}
+}
+%</sty>
+%<*driver,sty>
+\def\CDRFileDate{2022/02/07}
+\def\CDRFileVersion{2022/02/07}
+%</driver,sty>
+%<*sty>
+\ProvidesExplPackage{coder}
+  {\CDRFileDate}
+  {\CDRFileVersion}
+  {code inlined in documents}
+
+\NeedsTeXFormat{LaTeX2e}
+
+\msg_new:nnn { coder } { :n } { #1 }
+\cs_if_exist:NTF\IfFormatAtLeastTF {
+  \IfFormatAtLeastTF{2021/06/01} {} {
+    \msg_fatal:nnn { coder } { :n } { Please~update~LaTeX.~Emergency~stop }
+  }
+} {
+  \msg_fatal:nnn { coder } { :n } { Please~update~LaTeX.~Emergency~stop }
+}
+\ExplSyntaxOff
+\directlua{CDR = require("coder-util")}
+\ExplSyntaxOn
+%</sty>
+%<*driver>
+\ExplSyntaxOff
+\documentclass{l3doc}
+\RequirePackage{fancyvrb}
+\RequirePackage{emoji}
+\EnableCrossrefs
+\CodelineIndex
+\RecordChanges
+\newcommand{\lua} {\pkg{lua}}
+\newcommand{\CDRSty}{\pkg{\jobname.sty}}
+\newcommand{\CDRLua}{\pkg{\jobname-util.lua}}
+\newcommand{\CDRPy} {\pkg{\jobname-tool.py}}
+\newcommand{\metatt} [1] {\texttt{\meta{#1}}}
+\ExplSyntaxOn
+\NewDocumentCommand\CDRCheckGreen{O{2ex}}{\leavevmode\hbox_overlap_left:n{
+  \raisebox{-0.1\baselineskip}{\emoji{check-mark-button}}
+  \ttfamily\hspace{#1}\vphantom{.}
+}}
+\NewDocumentCommand\CDRCheckRed{O{2ex}}{\leavevmode\hbox_overlap_left:n{
+  \raisebox{-0.1\baselineskip}{\emoji{stop-sign}}
+  \ttfamily\hspace{#1}\vphantom{.}
+}}
+\NewDocumentCommand\CDRCheckOrange{O{2ex}}{\leavevmode\hbox_overlap_left:n{
+  \raisebox{-0.1\baselineskip}{\emoji{white-question-mark}}
+  \ttfamily\hspace{#1}\vphantom{.}
+}}
+\NewDocumentCommand\CDRCheckProhibited{O{2ex}}{\leavevmode\hbox_overlap_left:n{
+  \raisebox{-0.1\baselineskip}{\emoji{prohibited}}
+  \ttfamily\hspace{#1}\vphantom{.}
+}}
+
+\makeatletter
+\@addtoreset{FancyVerbLine}{part}
+\ExplSyntaxOn
+\define@booleankey{FV}{ok}
+  {\def\DCR@possibly@in@progress{\color{gray}}}
+  {\def\DCR@possibly@in@progress{\color{red}}}
+\define@booleankey{FV}{construction}
+  {\def\DCR@possibly@in@progress{\color{red}}}
+  {\def\DCR@possibly@in@progress{\color{gray}}}
+\fvset{construction}
+\def\FVB@MacroCode{
+  \@bsphack
+  \FV@VerbatimBegin
+  \renewcommand{\theFancyVerbLine}{{
+    \DCR@possibly@in@progress
+    \scriptsize
+    \arabic{FancyVerbLine}
+  }}
+  \FV@Scan
+}
+\def\FVE@MacroCode{
+  \FV@VerbatimEnd
+  \@esphack
+}
+\ExplSyntaxOff
+\DefineVerbatimEnvironment{MacroCode}{MacroCode}{
+  numbers=left,
+  resetmargins=true,
+  firstnumber=last,
+  gobble=0,
+  numbersep=1ex,
+  fontsize=\small,
+}
+\makeatother
+
+
+\makeatletter
+\newcommand{\CDRPygVerbatim} {CDR@Pyg@Verbatim}
+\makeatother
+\NewDocumentCommand \itemtt { o }{^^A
+  \IfNoValueTF { #1 } {
+    \item
+  } {
+    \item[\ttfamily#1]
+  }
+}
+\begin{document}
+  \DocInput{\jobname.dtx}
+\end{document}
+%</driver>
+% \fi
+%
+%\title{^^A
+%  \textsf{\jobname} --- code inlined in a \LaTeX\ document\thanks{^^A
+%    This file describes version \CDRFileVersion, last revised \CDRFileDate.^^A
+%  }^^A
+%}
+%\author{^^A
+%  Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}^^A
+%}
+%\date{Released \CDRFileDate}
+%
+%\maketitle
+%
+% \begin{documentation}
+%
+%\changes{v1.0a}{2022/01/20}{First public release}
+%
+% \begin{abstract}
+% Usually, documentation is put inside the code,
+% \pkg{\jobname} allows to work the other way round
+% by putting code inside the documentation.
+% This is particularly interesting when different code files share some logic
+% and should be documented all at once.
+%
+% The file \texttt{\jobname-manual} gives different examples. Here is the implementation of the package.
+%
+% This \LaTeX{} package requires \LuaTeX{} and may use syntax coloring based on \pkg{pygment}.
+% \end{abstract}
+%
+% \section{Package dependencies}
+% \pkg{luacode}, \pkg{datetime2}, \pkg{xcolor}, \pkg{fancyvrb} and dependencies of these packages.
+% \section{Similar technologies}
+% \begin{description}
+% \item The \pkg{docstrip} utility offers similar features,
+% it is somehow more powerful than \pkg{\jobname} at the cost of
+% more technicality and less practicality,
+% \item The \pkg{ydoc.cls} and \pkg{skdoc.cls} are
+% full document classes with similar features but
+% many more that are unrelated.
+% \pkg{\jobname} focuses on code inlining and interfaces very well with \pkg{pygment}
+% for a smart syntax hilighting.
+% \end{description}
+%
+% \section{Known bugs and limitations}
+% \begin{itemize}
+% \item
+% \pkg{\jobname} does not play well with \pkg{docstrip}.
+% \end{itemize}
+%
+% \end{documentation}
+% 
+% \begin{implementation}
+%
+% \section{Namespace}
+% \LaTeX{} identifiers related to \pkg{\jobname} start with |CDR|,
+% including both commands and evironments.
+% |Expl| identifiers also start with |CDR|, after and eventual leading |c_|, |l_| or |g_|.
+% \pkg{l3keys} module path's first component is either |CDR|
+% starts with or |CDR@|.
+%
+% \lua{} objects (functions and variables) are collected
+% in the \texttt{CDR} table automatically created
+% while loading \CDRLua{} from \CDRSty{}.
+%
+% \section{Presentation}
+% \pkg{\jobname} is a triptych of three complementary components
+% \begin{enumerate}
+% \item \CDRSty, on the \LaTeX{} side,
+% \item \CDRLua, to store data and call \CDRPy,
+% \item \CDRPy, to color code with the help of |pygment|.
+% \end{enumerate}
+% \CDRSty{} mainly declares the \cs{CDRCode} command and the |CDRBlock| environment.
+% The former allows to insert code chunks as running text whereas the latter allows
+% to instert code snippets as blocks.
+% Moreover, both code chunks can be exported to files, once declared with \cs{CDRExport} command.
+% The \cs{CDRSet} command is used to set various parameters,
+% including display engines declared with either \cs{CDRNewCodeEngine} or \cs{CDRNewBlockEngine}.
+%
+% \subsection{Code flow}
+% The normal code flow is
+% \begin{enumerate}
+% \item with \CDRSty{}, \LaTeX{} parses a code snippet, store it in \cs{l_CDR_snippet_tl},
+% and calls either |CDR:process_code| or |CDR:process_block|,
+% \item \CDRLua{} reads the content of some command, and store it in a |json| file,
+% together with informations to process this code snippet properly,
+% \item \CDRPy{} is asked by \CDRLua{} to read the |json| file and eventually uses \pkg{pygment} to translate
+% the code snippet into dedicated \LaTeX{} coloring commands. These are stored in a |*.pyg.tex| file
+% named after the md5 digest of the original code chunck,
+% a |*.pyg.sty| \LaTeX{} style file is recorded as well.
+% On return, \CDRPy{} gives to \CDRLua{} some \LaTeX{} instructions to both input the |*.pyg.sty| and
+% the |*.pyg.tex| file, these are finally executed and the code is displayed with colors.
+% \CDRPy{} is also responsible of code line numbering.
+% \end{enumerate}
+%
+% \subsection{File exports}
+% \begin{enumerate}
+% \item
+% The \cs{CDRExport} command declares a file path, a list of tags and other
+% usefull information like a coding language. These data are saved as export records
+% by \CDRLua.
+% \item
+% When some |tags={...}| have been given to the |CDRBlock| environment,
+% the \CDRLua{} records the corresponding code chunk and its associate tags for
+% later save. 
+% \item
+% Once the typesetting process is complete, \CDRLua{}'s |CDR:export_all_files| method
+% is called to save all the files externally. For each export record,
+% \CDRLua{} collects all the chunks with the same tag and save them
+% at the proper location.
+% \end{enumerate}
+%
+% \subsection{Display engine}
+% The display management is partly delegated to other packages.
+% \CDRSty{} provides default engines for running code and code blocks,
+% and new engines can be declared with \cs{CDRNewCodeEngine}
+% and \cs{CDRNewBlockEngine}.
+% 
+% \subsection{\LaTeX{} user interface}
+% The first required argument of both commands and environment
+% is a \meta{key[=value] controls} list managed by \pkg{l3keys}.
+% Each command requires its own \pkg{l3keys} module but some
+% \meta{key[=value] controls} are shared between modules.
+
+% \subsection{Properties and inheritance}
+% Properties cover various informations, from the language of the code,
+% to the color and font. They are uniquely identified by a path,
+% and may be defined at the \emph{global} level
+% or at the \emph{tag} level.
+% \begin{description}
+% \item [the \emph{global} level] is set by |\CDRSet| and |\CDRExport|, it consists of global variables,
+% \item [the \emph{tag} level] is set by |\CDRSet|, |\CDRCode| and |CDRBlock| environment.
+% \end{description}
+% Each processed code chunk has a list of associate tags.
+% Each tag inherits from default ones.
+% \part{\CDRLua{} implementation}
+% \section{Usage}
+% This \texttt{lua} library is loaded by \CDRSty{}
+% with the instruction \texttt{CDR=require("\jobname-util")}.
+% In the sequel, the syntax to call class methods and instance methods are
+% presented with either a \texttt{CDR.} or a \texttt{CDR:} prefix.
+% This is what is used in the library for convenience.
+% Of course either a \texttt{self.} or a \texttt{self:} prefix would be possible.
+%
+% \section{Declarations}
+%    \begin{MacroCode}
+%<*lua>
+local lpeg   = require("lpeg")
+local P, Cg, Cp, V = lpeg.P, lpeg.Cg, lpeg.Cp, lpeg.V
+local lfs    = _ENV.lfs
+local tex    = _ENV.tex
+local token  = _ENV.token
+local rep    = string.rep
+require("lualibs.lua")
+local json   = _ENV.utilities.json
+%    \end{MacroCode}
+% \section{General purpose material}
+% \begin{variable}{CDR_PY_PATH}
+% Location of the \CDRPy{} utility.
+%    \begin{MacroCode}
+local CDR_PY_PATH = io.popen(
+  [[kpsewhich coder-tool.py]]
+):read('a'):match("^%s*(.-)%s*$")
+%    \end{MacroCode}
+% \end{variable}
+% \begin{function}{escape}
+% \begin{syntax}
+% <variable> = CDR.escape(<string>)
+% \end{syntax}
+% Escape the given string. NEVER USED????
+% \end{function}
+%    \begin{MacroCode}
+local function escape(s)
+  s = s:gsub('\\','\\\\')
+  s = s:gsub('\r','\\r')
+  s = s:gsub('\n','\\n')
+  s = s:gsub('"','\\"')
+  return s
+end
+%    \end{MacroCode}
+% \begin{function}{make_directory}
+% \begin{syntax}
+% \meta{variable} = CDR.make_directory(\meta{string path})
+% \end{syntax}
+% Make a directory at the given path.
+% \end{function}
+%    \begin{MacroCode}
+local function make_directory(path)
+  local mode,_,__ = lfs.attributes(path,"mode")
+  if mode == "directory" then
+    return true
+  elseif mode ~= nil then
+    return nil,path.." exist and is not a directory",1
+  end
+  if os["type"] == "windows" then
+    path = path:gsub("/", "\\")
+    _,_,__ = os.execute(
+      "if not exist "  .. path .. "\\nul " .. "mkdir " .. path
+    )
+  else
+    _,_,__ = os.execute("mkdir -p " .. path)
+  end
+  mode = lfs.attributes(path,"mode")
+  if mode == "directory" then
+    return true
+  end
+  return nil,path.." exist and is not a directory",1
+end
+local dir_p, json_p
+local jobname = tex.jobname
+dir_p = './'..jobname..'.pygd/'
+if make_directory(dir_p) == nil then
+  dir_p = './'
+  json_p = dir_p..jobname..'.pyg.json'
+else
+  json_p = dir_p..'input.pyg.json'
+end
+%    \end{MacroCode}
+% \begin{function}{print_file_content}
+% \begin{syntax}
+% CDR.print_file_content(\meta{macro name})
+% \end{syntax}
+% The command named \meta{macro name} contains the path to a file.
+% Read the content of that file and print the result to the \TeX{} stream.
+% \end{function}
+%    \begin{MacroCode}
+local function print_file_content(name)
+  local p = token.get_macro(name)
+  local fh = assert(io.open(p, 'r'))
+  s = fh:read('a')
+  fh:close()
+  tex.print(s)
+end
+%    \end{MacroCode}
+% \begin{function}{load_exec}
+% \begin{syntax}
+% CDR.load_exec(\meta{code chunk})
+% \end{syntax}
+% Class method. Loads the given \meta{code chunk} and execute it.
+% On error, messages are printed.
+% \end{function}
+%    \begin{MacroCode}
+local function load_exec(chunk)
+  local func, err = load(chunk)
+  if func then
+    local ok, err = pcall(func)
+    if not ok then
+      print("coder-util.lua Execution error:", err)
+      print('chunk:', chunk)
+    end
+  else
+    print("coder-util.lua Compilation error:", err)
+    print('chunk:', chunk)
+  end
+end
+%    \end{MacroCode}
+% \begin{function}{safe_equals}
+% \begin{syntax}
+% <variable> = CDR.safe_equals(<string>)
+% \end{syntax}
+% Class method.
+% Returns an \meta{=...=} string as \metatt{ans} exactly composed of sufficently many \texttt{=} signs
+% such that \meta{string} contains neither sequence \texttt{[\meta{=...=}[}
+% nor \texttt{]\meta{ans}]}.
+% \end{function}
+%    \begin{MacroCode}
+local eq_pattern = P({ Cp() * P('=')^1 * Cp() + 1 * V(1) })
+local function safe_equals(s)
+  local i, j = 0, 0
+  local max = 0
+  while true do
+    j, i = eq_pattern:match(s, i)
+    if j == nil then
+      return rep('=', max + 1)
+    end
+    j = i - j
+    if j > max then
+      max = j
+    end
+  end
+end
+%    \end{MacroCode}
+% \begin{function}{self:record_start}
+% \begin{syntax}
+% self:record_start(\metatt{tags variable name})
+% \end{syntax}
+% Instance method. Setup the receiver's |record_line| method to record a line
+% stored in a \LaTeX3{} token variable.
+% \end{function}
+%    \begin{MacroCode}
+local function record_start(self, tags_variable)
+  local records = self['.records']
+  local tags = assert(token.get_macro(tags_variable))
+  tags = tags:gmatch('[^,]*')
+  local list = {}
+  for _,tag in ipairs(tags) do
+    local t = records[tag] or {}
+    records[tag] = t
+    list[#list+1] = t
+  end
+  self.record_line = function (this, line_variable)
+    local line = assert(token.get_macro(line_variable))
+    for _,t in ipairs(list) do
+      t[#t+1]=line
+    end
+  end
+end
+%    \end{MacroCode}
+% \begin{function}{self:record_stop}
+% \begin{syntax}
+% self:record_stop()
+% \end{syntax}
+% Instance method. Reset the |record_line| method to a noop.
+% \end{function}
+%    \begin{MacroCode}
+local function record_stop(self)
+  self.record_line = function (this, line_variable)
+  end
+end
+%    \end{MacroCode}
+% \begin{function}{self:record_line}
+% \begin{syntax}
+% self:record_line(\metatt{line variable})
+% \end{syntax}
+% Instance method. Record a line stored in the \metatt{line variable} or noop.
+% Sets by |self:record_start|, unset by |self:record_stop|.
+% \end{function}
+%
+% \begin{function}{load_exec_output}
+% \begin{syntax}
+% CDR:load_exec_output(\meta{code chunk})
+% \end{syntax}
+% Instance method to parse the \meta{code chunk} sring for commands and execute them.
+% The patterns being searched are enclosed within opening |<<<<<| and closing |>>>>>|,
+% each containing 5 characters,
+% \begin{description}
+% \item[\texttt{?TEX}:\metatt{TeX instructions}] the \meta{TeX instructions} are executed
+% asynchronously once the control comes back to \TeX{}.
+% \item[\texttt{!LUA}:\metatt{!Lua instructions}] the \meta{!Lua instructions} are executed
+% synchronously. When not properly designed, these instruction may cause a
+% forever loop on execution, for example, they must not use \texttt{CDR:process_code}.
+% \item[\texttt{?LUA}:\metatt{?Lua instructions}] these \meta{?Lua instructions} are executed
+% asynchronously once the control comes back to \TeX{} through a call to \cs{directlua},
+% which means that they will wait until any previous asynchronous \meta{?TeX instructions}
+% or \meta{?Lua instructions} completes.
+% \end{description}
+% \end{function}
+%    \begin{MacroCode}
+local parse_pattern
+do
+  local tag = P('?TEX') + '!LUA' + '?LUA'
+  local stp = '>>>>>'
+  local cmd = P(1)^0 - stp
+  parse_pattern = P({
+    '<<<<<' * Cg(tag - ':') * ':' * Cg(cmd) * stp * Cp() + 1 * V(1)
+  })
+end
+local function load_exec_output(self, s)
+  local i, tag, cmd
+  i = 0
+  while true do
+    tag, cmd, i = parse_pattern:match(s, i)
+    if tag == '?TEX' then
+      tex.print(cmd)
+    elseif tag == '!LUA' then
+      self.load_exec(cmd)
+    elseif tag == '?LUA' then
+      local eqs = self.safe_equals(cmd)
+      tex.print([[%
+\directlua{self.load_exec([=]]..eqs..[[]..cmd..[[]=]]..eqs..[[])}%
+]])
+    else
+      return
+    end
+  end
+end
+%    \end{MacroCode}
+% \begin{function}{process_code}
+% \begin{syntax}
+% CDR:process_code()
+% \end{syntax}
+% Instance method. This is called by function \cs{CDRCode}.
+% First, we get the content of the \meta{cs name} as code to be colored.
+% Then we build a JSON string, save it in a file at |json_p| location.
+% Next we call the \CDRPy{}, parse its output and execute
+% commands with |load_exec_output|.
+% \end{function}
+%    \begin{MacroCode}
+local function process_code(self, code_name)
+  if lfs.attributes(json_p,"mode") ~= nil then
+    os.remove(json_p)
+  end
+  local t = {
+    ['code']    = token.get_macro(code_name),
+    ['jobname'] = jobname,
+    ['options'] = self.options or {},
+    ['already'] = self.already and 'true' or 'false'
+  }
+  local s = json.tostring(t,true)
+  local fh = assert(io.open(json_p,'w'))
+  fh:write(s, '\n')
+  fh:close()
+  local cmd = "python3 "..CDR_PY_PATH..' "'..self.escape(json_p)..'"'
+  fh = assert(io.popen(cmd))
+  self.already = true
+  s = fh:read('a')
+  self:load_exec_output(s)
+end
+%    \end{MacroCode}
+% \section{Properties}
+% This is one of the channels from \CDRSty{} to \CDRLua{}.
+%
+% \begin{function}{options_reset}
+% \begin{syntax}
+% CDR:options_reset()
+% \end{syntax}
+% Instance method. This is called by \CDRSty{}'s
+% |\CDR_to_lua|.
+% \end{function}
+%    \begin{MacroCode}[ok]
+local function options_reset(self)
+  self['.options'] = {}
+end
+%    \end{MacroCode}
+% \begin{function}{option_add}
+% \begin{syntax}
+% CDR:option_add(\meta{key}, \meta{value_name})
+% \end{syntax}
+% Instance method. This is called by \CDRSty{}'s
+% |\CDR_to_lua|.
+% \end{function}
+%    \begin{MacroCode}[ok]
+local function option_add(self, key, value_name)
+  local p = self['.options']
+  p[key] = token.get_macro(assert(value_name))
+end
+%    \end{MacroCode}
+% \begin{function}{options_reset,option_add}
+% \begin{syntax}
+% CDR:options_reset()
+% CDR:option_add(\meta{string key},\meta{json value})
+% \end{syntax}
+% Instance method. The extra options used for formatting are collected, then forwarded to
+% \CDRPy{} utility through its JSON input, with key |options|.
+% First we have to clear the option list with |options_reset| before any call to |option_add|.
+% \end{function}
+%    \begin{MacroCode}
+local function options_reset(self)
+  self.options = {}
+end
+local function option_add(self,k,v)
+  self.options[k] = v
+end
+%    \end{MacroCode}
+
+% \section{Exportation}
+% \begin{function}{export_file}
+% \begin{syntax}
+% CDR:export_file(\meta{file name}, \meta{tag clist})
+% \end{syntax}
+% Instance method.
+% This is called by \cs{CDRExport} function.
+% The \meta{file name} is a string.
+% \meta{tag clist} is an ordered list of tags, 
+% The receiver's |__export_files| is a \texttt{\meta{file name}->\meta{tags table}}
+% table.
+% \end{function}
+%    \begin{MacroCode}
+local function export_file(self, name, tags)
+  local t = {}
+  tags:gsub(
+    '([^,]*)',
+    function(tag) t[#t+1] = tag end
+  )
+  self['.export_files'][name] = t
+end
+%    \end{MacroCode}
+% \begin{function}{exportNO}
+% \begin{syntax}
+% CDR:export(\meta{file}, \meta{tags}, \meta{preamble}, \meta{postamble})
+% \end{syntax}
+% Instance method.
+% This is called by the |\CDRExport| command.
+% The receiver's |.exports| is a \texttt{\meta{file name}->\meta{export record}}
+% table whereas
+% the receiver's |.records| is a \texttt{\meta{tag name}->\meta{code record}}
+% table.
+% \end{function}
+%    \begin{MacroCode}
+local function export(self, file, tags, preamble, postamble)
+  local exports = self['.exports']
+  file = assert(token.get_macro(assert(file)))
+  local t = {}
+  tags = assert(token.get_macro(assert(tags)))
+  t.tags = tags:gmatch('[^,]*')
+  if #preamble>0 then
+    t.preamble = assert(token.get_macro(preamble))
+  end
+  if #postamble>0 then
+    t.postamble = assert(token.get_macro(postamble))
+  end
+  exports[file] = t
+end
+%    \end{MacroCode}
+% \begin{function}{export_all_files}
+% \begin{syntax}
+% CDR:export_all_files()
+% \end{syntax}
+% Instance method.
+% This is called at the very end of the typesetting process.
+% The receiver's |.records| is a \texttt{\meta{file name}->\meta{code record}}
+% table.
+% \end{function}
+%    \begin{MacroCode}
+local function export_all_files(self)
+  local exports = self['.exports']
+  local records = self['.records']
+  for name, export in pairs(exports) do
+    local tt = {}
+    local s = export.preamble
+    if s then
+      tt[#tt+1] = s
+    end
+    for _,tag in ipairs(export.tags) do
+      s = records[tag]:concat('\n')
+      tt[#tt+1] = s
+      records[tag] = { [1] = s }
+    end
+    s = export.postamble
+    if s then
+      tt[#tt+1] = s
+    end
+    if #tt>0 then
+      local fh = assert(io.open(name,'w'))
+      fh:write(tt:concat('\n'))
+      fh:close()
+    end
+  end
+end
+%    \end{MacroCode}
+%
+% \section{Caching}
+% We save some computation time by pygmentizing files only when necessary.
+% The \CDRPy{} is expected to create a |*.pyg.sty| file for a style
+% and a |*.pyg.tex| file for colored code.
+% These files are cached during one whole \LaTeX{} run and possibly between
+% different \LaTeX{} runs. Lua keeps track
+% of both the style files created and colored code files created.
+% \begin{function}{cache_clean_all, cache_record, cache_clean_unused}
+% \begin{syntax}
+% CDR:cache_clean_all()
+% CDR:cache_record(\meta{style name.pyg.sty}, \meta{digest.pyg.tex})
+% CDR:cache_clean_unused()
+% \end{syntax}
+% Instance methods.
+% |cache_clean_all| removes any file in the cache directory \texttt{\meta{jobname}.pygd}.
+% This is executed at the beginning of the document processing when there is no aux file.
+% This can be executed on demand with |\directlua{CDR:cache_clean_all()}|.
+% |cache_record| stores both \meta{style name.pyg.sty} and \meta{digest.pyg.tex}.
+% These are file names relative to the \texttt{\meta{jobname}.pygd} directory.
+% |cache_clean_unused| removes any file in the cache directory \texttt{\meta{jobname}.pygd}
+% except the ones that were previously recorded. This is executed at the end of the
+% document processing.
+% \end{function}
+%    \begin{MacroCode}
+local function cache_clean_all(self)
+  local to_remove = {}
+  for f in lfs.dir(dir_p) do
+    to_remove[f] = true
+  end
+  for k,_ in pairs(to_remove) do
+    os.remove(dir_p .. k)
+  end
+end
+local function cache_record(self, style, colored)
+  self['.style_set'][style] = true
+  self['.colored_set'][colored] = true
+end
+local function cache_clean_unused(self)
+  local to_remove = {}
+  for f in lfs.dir(dir_p) do
+    if not self['.style_set'][f] and not self['.colored_set'][f] then
+      to_remove[f] = true
+    end 
+  end
+  for k,_ in pairs(to_remove) do
+    os.remove(dir_p .. k)
+  end
+end
+%    \end{MacroCode}
+% \subsection{Fields}
+% The fields are properties gathered by domain.
+% A domain is uniquely identified by its name.
+% We can wrap domain changes in groups, pretty much like
+% \TeX{} groups by using \pkg{lua} metatables.
+% \begin{function}{self:field_group_begin, self:field_group_end}
+% \begin{syntax}
+% self:field_group_begin(\meta{domain name})
+% self:field_group_end(\meta{domain name})
+% \end{syntax}
+% \metatt{domain name} is unique identifier within
+% the receiver's lifetime.
+% |self:field_group_begin| and |self:field_group_begin| must be properly balanced,
+% otherwise an exception is raised.
+% \end{function}
+%    \begin{MacroCode}[ok]
+local function field_group_begin(self, domain)
+  self['.fields'][domain] = setmetatable(
+    {},
+    self['.fields'][domain]
+  )
+end
+local function field_group_end(self, domain)
+  self['.fields'][domain] = assert(
+    getmetatable(self['.fields'][domain])
+  )
+end
+%    \end{MacroCode} 
+%
+% \begin{function}{self:put, self:get, self:print_value}
+% \begin{syntax}
+% self:field_put(\meta{domain name},\meta{key}, \meta{value macro name})
+% self:field_get(\meta{domain name},\meta{key})
+% self:field_print(\meta{domain name},\meta{key})
+% \end{syntax}
+% \metatt{key} is a string, whereas \metatt{value macro name} is the name
+% of a \TeX{} macro containing the value. This allows values to be token lists
+% instead of pure \Lua{} objects.
+% |self:field_put| is a setter,
+% |self:field_get| is a getter to store and retrieve field values.
+% |self:field_print| retrieves field values and print them to the \TeX{} stream.
+% \end{function}
+%    \begin{MacroCode}[ok]
+local function field_put(self, domain, key, value)
+  value = token.get_macro(assert(value))
+  self['.fields'][domain][key] = value
+end
+local function field_get(self, domain, key)
+  return self['.fields'][domain][key]
+end
+local function field_print(self, domain, key)
+  tex.print(self:field_get(domain, key))
+end
+%    \end{MacroCode} 
+%
+% \begin{variable}{_DESCRIPTION}
+% Short text description of the module.
+%    \begin{MacroCode}[ok]
+local _DESCRIPTION = [[Global coder utilities on the lua side]]
+%    \end{MacroCode}
+% \end{variable}
+% \section{Return the module}
+% Known fields are
+% \begin{description}
+% \item[\texttt{date}] to store \meta{date string},
+% \item[\texttt{_VERSION}] to store \meta{version string},
+% \item[\texttt{dir_p}] is the path to the directory where all 
+% \end{description}
+% Known methods are
+% \begin{description}
+% \item[escape]
+% \item[make_directory]
+% \item[load_exec]
+% \item[record_start]
+% \item[record_stop]
+% \item[record_line]
+% \item[process_code]
+% \item[cache_clean_all]
+% \item[cache_record]
+% \item[cache_clean_unused]
+% \end{description}
+% \texttt{pygment} related material is stored,
+% \begin{description}
+% \item[\texttt{json_p}] is the path to the JSON file used by \CDRPy{} utility.
+% \item[\texttt{.style_set}] the set of style names used
+% \item[\texttt{.colored_set}] the set of ``colored'' names used
+% \item[\texttt{.records}] the \metatt{tag name}|-->|\metatt{line array} table
+% \item[\texttt{.fields}] the \metatt{field name}|-->|\metatt{domain} |-->| \metatt{key} |-->| \metatt{value} table
+% \item[\texttt{.exports}] the \metatt{file name}|-->|\metatt{info table} table
+% \item[\texttt{already}] false at the beginning,
+% true after the first call of \CDRPy{}
+% \item[\texttt{field_group_begin}] begin a group,
+% \item[\texttt{field_group_end}] end a group,
+% \item[\texttt{field_put}] put a field value,
+% \item[\texttt{field_get}] get a field value,
+% \item[\texttt{field_print}] get a field value,
+% \end{description}
+%    \begin{MacroCode}
+return {
+  _DESCRIPTION       = _DESCRIPTION,
+  _VERSION           = token.get_macro('fileversion'),
+  date               = token.get_macro('filedate'),
+  CDR_PY_PATH        = CDR_PY_PATH,
+  escape             = escape,
+  make_directory     = make_directory,
+  load_exec          = load_exec,
+  record_start       = record_start,
+  record_stop        = record_stop,
+  record_line        = function(self,line) end,
+  process_code       = process_code,
+  cache_clean_all    = cache_clean_all,
+  cache_record       = cache_record,
+  cache_clean_unused = cache_clean_unused,
+  options_reset      = options_reset,
+  option_add         = option_add,
+  ['.style_set']     = {},
+  ['.colored_set']   = {},
+  ['.export_files']  = {},
+  ['.records']       = {},
+  ['.fields']        = {},
+  ['.options']       = {},
+  field_group_begin  = field_group_begin,
+  field_group_end    = field_group_end,
+  field_put          = field_put,
+  field_get          = field_get,
+  field_print        = field_print,
+  already            = false,
+}
+%</lua>
+%    \end{MacroCode}
+%
+% \part{\CDRPy{} implementation}
+%
+% The standard header is managed specially because of the way \pkg{docstrip} automatically 
+% adds some header when extracting stuff from an archive.
+% The next two lines are added by \pkg{docstrip} at the top of the preamble.
+% 
+%    \begin{MacroCode}
+%<*py>
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+%</py>
+%    \end{MacroCode}
+%
+% \section{Header and global declarations}
+% 
+%    \begin{MacroCode}
+%<*py>
+__version__ = '0.10'
+__YEAR__  = '2022'
+__docformat__ = 'restructuredtext'
+
+from posixpath import split
+import sys
+import argparse
+import re
+from pathlib import Path
+import hashlib
+import json
+from pygments import highlight
+from pygments.formatters.latex import LatexEmbeddedLexer, LatexFormatter
+from pygments.lexers import get_lexer_by_name
+from pygments.util import ClassNotFound
+from pygments.util import guess_decode
+%    \end{MacroCode}
+%
+% \section{\texttt{Controller} main class}
+% The first class variables are string formats.
+% They are used to let \CDRPy{} talk back to \TeX{}
+% through \CDRLua{}.
+%    \begin{MacroCode}
+class Controller:
+%    \end{MacroCode}
+%    \begin{MacroCode}
+  @staticmethod
+  def ensure_bool(x):
+    if x == True or x == False: return x
+    x = x[0:1]
+    return x == 'T' or x == 't'
+%    \end{MacroCode}
+%
+% \subsection{\texttt{Object} nested class}
+%
+%    \begin{MacroCode}
+  class Object(object):
+    def __new__(cls, d={}, *args, **kvargs):
+      __cls__ = d.get('__cls__', 'arguments')
+      if __cls__ == 'options':
+        return super(Controller.Object, cls)['__new__'](
+          Controller.Options, *args, **kvargs
+        )
+      elif __cls__ == 'FV':
+        return super(Controller.Object, cls)['__new__'](
+          Controller.FV, *args, **kvargs
+        )
+      else:
+        return super(Controller.Object, cls)['__new__'](
+          Controller.Arguments, *args, **kvargs
+        )
+    def __init__(self, d={}):
+      for k, v in d.items():
+        if type(v) == str:
+          if v.lower() == 'true':
+            setattr(self, k, True)
+            continue
+          elif v.lower() == 'false':
+            setattr(self, k, False)
+            continue
+        setattr(self, k, v)
+    def __repr__(self):
+      return f"{object['__repr__'](self)}: {self['__dict__']}"
+%    \end{MacroCode}
+%
+% \subsection{\texttt{Options} nested class}
+%
+%    \begin{MacroCode}
+  class Options(Object):
+    docclass = 'article'
+    style = 'autumn'
+    preamble = ''
+    lang = 'tex'
+    escapeinside = ""
+    gobble = 0
+    tabsize = 4
+    style = 'default'
+    already_style = False
+    texcomments = False
+    mathescape =  False
+    linenos = False
+    linenostart = 1
+    linenostep = 1
+    linenosep = '0pt'
+    encoding = 'guess'
+    verboptions = ''
+    nobackground = False
+    commandprefix = 'Py'
+%    \end{MacroCode}
+%
+% \subsection{\texttt{Arguments} nested class}
+%
+%    \begin{MacroCode}
+  class FV(Object):
+    pass
+%    \end{MacroCode}
+%
+% \subsection{\texttt{Arguments} nested class}
+%
+%    \begin{MacroCode}
+  class Arguments(Object):
+    cache = False
+    debug = False
+    code = ""
+    json = ""
+    options = None
+    directory = ""
+%    \end{MacroCode}
+%
+% \subsection{Computed properties}
+%
+% \begin{variable}{self.json_p}
+% The full path to the \texttt{json} file containing all the data used for the processing.
+% \end{variable}
+%    \begin{MacroCode}
+  _json_p = None
+  @property
+  def json_p(self):
+    p = self._json_p
+    if p:
+      return p
+    else:
+      p = self.arguments.json
+      if p:
+        p = Path(p).resolve()
+    self._json_p = p
+    return p
+%    \end{MacroCode}
+%
+% \begin{variable}{self.directory_p}
+% The full path to the directory containing the various output files related
+% to \pkg{pygment}. When not given inside the |json| file,
+% this is the directory of the |json| file itself.
+% The directory is created when missing.
+% \end{variable}
+%    \begin{MacroCode}
+  _directory_p = None
+  @property
+  def directory_p(self):
+    p = self._directory_p
+    if p:
+      return p
+    p = self.arguments.directory
+    if p:
+      p = Path(p)
+    else:
+      p = self.json_p
+      if p:
+        p = p.parent / p.stem
+      else:
+        p = Path('SHARED')
+    if p:
+      p = p.resolve().with_suffix(".pygd")
+      p.mkdir(exist_ok=True)
+    self._directory_p = p
+    return p
+%    \end{MacroCode}
+%
+% \begin{variable}{self.colored_p}
+% The full path to the file where colored commands created by \pkg{pygment} should be stored.
+% \end{variable}
+%    \begin{MacroCode}
+  _colored_p = None
+  @property
+  def colored_p(self):
+    p = self._colored_p
+    if p:
+      return p
+    p = self.arguments.output
+    if p:
+      p = Path(p).resolve()
+    else:
+      p = self.json_p
+      if p:
+        p = p.with_suffix(".pyg.tex")
+    self._colored_p = p
+    return p
+%    \end{MacroCode}
+%
+% \begin{variable}{self.sty_p}
+% The full path to the style file with definition created by \pkg{pygment}.
+% \end{variable}
+%    \begin{MacroCode}
+  @property
+  def sty_p(self):
+    return (self.directory_p / self.options.style).with_suffix(".pyg.sty")
+%    \end{MacroCode}
+%
+% \begin{variable}{self.parser}
+% The correctly set up \texttt{argarse} instance. 
+% \end{variable}
+%    \begin{MacroCode}
+  @property
+  def parser(self):
+    parser = argparse.ArgumentParser(
+      prog=sys.argv[0],
+      description='''
+Writes to the output file a set of LaTeX macros describing
+the syntax highlighting of the input file as given by pygments.
+'''
+    )
+    parser.add_argument(
+      "-v", "--version",
+      help="Print the version and exit",
+      action='version',
+      version=f'coder-tool version {__version__},'
+      ' (c) {__YEAR__} by Jérôme LAURENS.'
+    )
+    parser.add_argument(
+      "--debug",
+      default=None,
+      help="display informations useful for debugging"
+    )
+    parser.add_argument(
+      "json",
+      metavar="json data file",
+      help="""
+file name with extension of information to specify which processing is required
+"""
+    )
+    return parser
+
+%    \end{MacroCode}
+%
+% \subsection{Static methods}
+%
+% \begin{function}{Controller.tex_command,Controller.lua_command,Controller.lua_command_now}
+% \begin{syntax}
+% self.tex_command(\meta{asynchronous tex command})
+% self.lua_command(\meta{asynchronous lua command})
+% self.lua_command_now(\meta{synchronous lua command})
+% \end{syntax}
+% Wraps the given command between markers. It will be in the output of the
+% \CDRPy{}, further captured by \CDRLua{}
+% and either forwarded to \TeX{} ot executed synchronously.
+% \end{function}
+%    \begin{MacroCode}
+  @staticmethod
+  def tex_command(cmd):
+    print(f'<<<<<?TEX:{cmd}>>>>>')
+  @staticmethod
+  def lua_command(cmd):
+    print(f'<<<<<?LUA:{cmd}>>>>>')
+  @staticmethod
+  def lua_command_new(cmd):
+    print(f'<<<<<!LUA:{cmd}>>>>>')
+%    \end{MacroCode}
+%
+% \subsection{Methods}
+% \subsubsection{\texttt{__init__}}
+% \begin{function}{__init__}
+% Constructor. Reads the command line arguments.
+% \end{function}
+%    \begin{MacroCode}
+  def __init__(self, argv = sys.argv):
+    argv = argv[1:] if re.match(".*coder\-tool\.py$", argv[0]) else argv
+    ns = self.parser.parse_args(
+      argv if len(argv) else ['-h']
+    )
+    with open(ns.json, 'r') as f:
+      self.arguments = json.load(
+        f,
+        object_hook=Controller.Object
+      )
+    options = self.options = self.arguments.options
+    formatter = self.formatter = LatexFormatter(style=options.style)
+    formatter.docclass = options.docclass
+    formatter.preamble = options.preamble
+    formatter.linenos = self.ensure_bool(options.linenos)
+    formatter.linenostart = abs(options.linenostart)
+    formatter.linenostep = abs(options.linenostep)
+    formatter.verboptions = options.verboptions
+    formatter.nobackground = self.ensure_bool(options.nobackground)
+    formatter.commandprefix = options.commandprefix
+    formatter.texcomments = self.ensure_bool(options.texcomments)
+    formatter.mathescape = self.ensure_bool(options.mathescape)
+    formatter.envname = u'CDR@Pyg@Verbatim'
+
+    try:
+      lexer = self.lexer = get_lexer_by_name(self.arguments.lang)
+    except ClassNotFound as err:
+      sys.stderr.write('Error: ')
+      sys.stderr.write(str(err))
+
+    escapeinside = options.escapeinside
+    # When using the LaTeX formatter and the option `escapeinside` is
+    # specified, we need a special lexer which collects escaped text
+    # before running the chosen language lexer.
+    if len(escapeinside) == 2:
+      left  = escapeinside[0]
+      right = escapeinside[1]
+      lexer = self.lexer = LatexEmbeddedLexer(left, right, lexer)
+
+    gobble = abs(int(self.gobble))
+    if gobble:
+      lexer.add_filter('gobble', n=gobble)
+    tabsize = abs(int(self.tabsize))
+    if tabsize:
+      lexer.tabsize = tabsize
+    lexer.encoding = ''
+       
+%    \end{MacroCode}
+%
+% \subsubsection{\texttt{get_tex_p}}
+%
+% \begin{function}{get_tex_p}
+% \begin{syntax}
+% \meta{variable} = self.get_tex_p(\meta{digest string})
+% \end{syntax}
+% The full path of the file where the colored commands created by \texttt{pygment}
+% are stored. The digest allow to uniquely identify the code initially colored such that
+% caching is easier.
+% \end{function}
+%    \begin{MacroCode}
+  def get_tex_p(self, digest):
+    return (self.directory_p / digest).with_suffix(".pyg.tex")
+%    \end{MacroCode}
+%
+% \subsubsection{\texttt{process}}
+%
+% \begin{function}{self.process}
+% \begin{syntax}
+% self.process()
+% \end{syntax}
+% Main entry point.
+% \end{function}
+%    \begin{MacroCode}
+  def process(self):
+    self.create_style()
+    self.create_pygmented()
+    print('create_tool.py: done')
+    return 0
+%    \end{MacroCode}
+%
+% \subsubsection{\texttt{create\texorpdfstring{_}{-}style}}
+% \begin{function}{self.create_style}
+% \begin{syntax}
+% self.create_style()
+% \end{syntax}
+% Where the \meta{code} is pygmentized.
+% \end{function}
+%    \begin{MacroCode}
+  def create_style(self):
+    options = self.options
+    formatter = self.formatter
+    style = None
+    if not self.ensure_boolean(options.already_style):
+      style = formatter.get_style_defs() \
+        .replace(r'\makeatletter', '') \
+        .replace(r'\makeatother', '') \
+        .replace('\n', '%\n')
+      style = re.sub(
+        r"\expandafter\def\csname\s*(.*?)\endcsname",
+        r'\cs_new:cpn{\1}',
+        style,
+        flags=re.M
+      )
+      style = re.sub(
+        r"\csname\s*(.*?)\endcsname",
+        r'\use:c{\1}',
+        style,
+        flags=re.M
+      )
+      style = fr'''%
+\ExplSyntaxOn
+\makeatletter
+\CDR_style_gset:nn {{{options.style}}} {{%
+{style}%
+}}%
+\makeatother
+\ExplSyntaxOff
+'''
+    sty_p = self.sty_p
+    if self.arguments.cache and sty_p.exists():
+      print("Already available:", sty_p)
+    else:
+      with sty_p.open(mode='w',encoding='utf-8') as f:  
+        f.write(style)
+%    \end{MacroCode}
+%
+% \subsubsection{\texttt{pygmentize}}
+% These are \pkg{pygment}'s |LatexFormatter| options,
+% only used internally by \CDRSty{} to talk to \pkg{pygment}.
+% This is here for the record.
+% \begin{description}
+% \itemtt[style=\meta{name}]^^A
+% the \pkg{pygment} style to use.
+% Initially \texttt{default}.
+% \itemtt[full]^^A
+% Tells the formatter to output a "full" document, i.e. a complete
+%        self-contained document (default: ``False``).
+% choose a \pkg{pygment} style.
+% Forbidden.
+% \itemtt[title]^^A
+% If `full` is true, the title that should be used to caption the
+%         document (default: ``''``).
+% Forbidden.
+% \itemtt[docclass]^^A
+% If the `full` option is enabled, this is the document class to use
+% (default: ``'article'``).
+% Forbidden.
+% \itemtt[preamble]^^A
+% If the `full` option is enabled, this can be further preamble commands,
+% e.g. ``|\usepackage|`` (default: ``''``).
+% Forbidden.
+% \itemtt[linenos{[=true$\vert$false]}]^^A
+% If set to |true|, output line numbers.
+% Initially |false|: no numbering.
+% Ignored in |code| mode.
+% \itemtt[linenostart=\meta{integer}]^^A
+% The line number for the first line.
+% Initially 1: numbering starts from 1.
+% Ignored in |code| mode.
+% \itemtt[linenostep=\meta{integer}]^^A
+% If set to a number n > 1, only every nth line number is printed.
+% Ignored in |code| mode.
+% Additional options given to the Verbatim environment (see the *fancyvrb*
+%         docs for possible values).
+% Initially empty.
+% \itemtt[verboptions]^^A
+% Forbidden.
+% \itemtt[linenostep=\meta{integer}]^^A
+% The LaTeX commands used to produce colored output are constructed
+%        using this prefix and some letters.
+% Initially |PY|.
+% \itemtt[\CDRCheckRed texcomments{[=true$\vert$false]}]^^A
+% If set to |true|, enables \LaTeX{} comment lines.  That is, LaTex markup
+%        in comment tokens is not escaped so that \LaTeX{} can render it.
+% Initially |false|.
+% \itemtt[\CDRCheckRed mathescape{[=true$\vert$false]}]^^A
+% If set to |true|, enables \LaTeX{} math mode escape in comments. That
+%        is, |$...$| inside a comment will trigger math mode.
+% Initially |false|.
+% \itemtt[escapeinside=\meta{before}\meta{after}]^^A
+% If set to a string of length 2, enables escaping to \LaTeX{}. Text
+%        delimited by these 2 characters is read as LaTeX code and
+%        typeset accordingly. It has no effect in string literals. It has
+%        no effect in comments if |texcomments| or `mathescape` is
+%        set.
+% Initially empty.
+% \itemtt[envname=\meta{name}]^^A
+% Allows you to pick an alternative environment name replacing Verbatim.
+%        The alternate environment still has to support Verbatim's option syntax.
+% Initially |Verbatim|.
+% \end{description}
+% \begin{function}{self.pygmentize}
+% \begin{syntax}
+% \meta{code variable}, \meta{style variable} = self.pygmentize(\meta{code}[, inline=\meta{yorn}])
+% \end{syntax}
+% Where the \meta{code} is pygmentized.
+% \end{function}
+%    \begin{MacroCode}
+  def pygmentize(self, code, inline=True):
+    options = self.options
+    formatter = self.formatter
+    mode = 'Code' if inline else 'Block'
+    envname = formatter.envname = rf'CDR@Pyg@{mode}'
+    code = highlight(code, self.lexer, formatter)
+    m = re.match(
+      rf'(\begin{{{envname}}}.*?\n)(.*?)(\n'
+      rf'\end{{{envname}}}\s*)\Z',
+      code,
+      flags=re.S
+    )
+    assert(m)
+    if inline:
+      ans_code = rf'''\bgroup
+\CDRCode@Prepare:n {{{options.style}}}%
+{m.group(2)}%
+\egroup
+'''
+    else:
+      ans_code = []
+      linenos = options.linenos
+      linenostart = abs(int(options.linenostart))
+      linenostep = abs(int(options.linenostep))
+      numbers = []
+      lines = []
+      counter = linenostart
+      all_lines = m.group(2).split('\n')
+      for line in all_lines:
+        line = re.sub(r'^ ', r'\vphantom{Xy}~', line)
+        line = re.sub(r' ', '~', line)
+        if linenos:
+          if (counter - linenostart) % linenostep == 0:
+            line = rf'\CDR_lineno:n{{{counter}}}' + line
+            numbers.append(str(counter))
+          counter += 1
+        lines.append(line)
+      ans_code.append(fr'''%
+\begin{{CDR/block/engine/{options.style}}}
+\CDRBlock@linenos@used:n {{{','.join(numbers)}}}%
+{m.group(1)}{'\n'.join(lines)}{m.group(3)}%
+\end{{CDR/block/engine/{options.style}}}
+''' )
+      ans_code = "".join(ans_code)
+    return ans_code
+%    \end{MacroCode}
+%
+% \subsubsection{\texttt{create_pygmented}}
+% \begin{function}{self.create_pygmented}
+% \begin{syntax}
+% self.create_pygmented()
+% \end{syntax}
+% Call \texttt{self.pygmentize} and save the resulting pygmented code
+% at the proper location.
+% \end{function}
+%    \begin{MacroCode}
+  def create_pygmented(self):
+    code = self.arguments.code
+    if not code:
+      return False
+    code = self.pygmentize(code, self.ensure_bool(self.arguments.inline))
+    h = hashlib.md5(str(code).encode('utf-8'))
+    out_p = self.get_tex_p(h.hexdigest())
+    if self.arguments.cache and out_p.exists():
+      print("Already available:", out_p)
+    else:
+      with out_p.open(mode='w',encoding='utf-8') as f:
+        f.write(r'''% -*- mode: latex -*-
+\makeatletter
+''')
+        f.write(code)
+        f.write(r'''\makeatother
+''')
+    self.tex_command( rf'''%
+\CDR_remove:n {{colored:}}%
+\input {{ \tl_to_str:n {{{out_p}}} }}%
+\CDR:n {{colored:}}%
+''')
+    sty_p = self.sty_p
+    if sty_p.parent.stem != 'SHARED':
+      self.lua_command_now( fr'''
+CDR:cache_record({sty_p.name}),{out_p.name})
+''' )
+    print("PREMATURE EXIT")
+    exit(1)
+%    \end{MacroCode}
+%
+% \subsection{Main entry}
+%
+%    \begin{MacroCode}
+if __name__ == '__main__':
+  try:
+    ctrl = Controller()
+    sys.exit(ctrl.process())
+  except KeyboardInterrupt:
+    sys.exit(1)
+%</py>
+%    \end{MacroCode}
+%
+% \part{\CDRSty{} implementation}
+%    \begin{MacroCode}
+%<*sty>
+\makeatletter
+%    \end{MacroCode}
+% \section{Installation test}
+%    \begin{MacroCode}
+\NewDocumentCommand \CDRTest {} {
+  \sys_if_shell:TF {
+    \_CDR_if_has_pygment:F {
+      \msg_warning:nnn
+        { coder }
+        { :n }
+        { No~"pygmentize"~found. }
+    }
+  } {
+    \msg_warning:nnn
+      { coder }
+      { :n }
+      { No~unrestricted~shell~escape~for~"pygmentize".}
+  }
+}
+%    \end{MacroCode}
+% \section{Messages}
+%    \begin{MacroCode}[ok]
+\msg_new:nnn { coder } { unknown-choice } {
+  #1~given~value~`#3'~not~in~#2
+}
+%    \end{MacroCode}
+% \section{Constants}
+% \begin{variable}{\c_CDR_tag,\c_CDR_get,\c_CDR_tag_get}
+% Paths of \pkg{L3keys} modules.\\
+% Used to get or set values.\\
+% These are root path components used throughout the pakage.
+%    \begin{MacroCode}[ok]
+\str_const:Nn \c_CDR_tags { CDR@tags }
+\str_const:Nn \c_CDR_tag { CDR@tags/tag }
+\str_const:Nn \c_CDR_get { CDR@get }
+\str_const:Nn \c_CDR_tag_get { CDR@tag@get }
+\str_const:Nx \c_CDR_slash { \tl_to_str:n {/} }
+%    \end{MacroCode}
+% \end{variable}
+%
+% \section{Implementation details}
+% As far as possible, macro making assignments
+% to variables are protected.
+% \section{Utilities}
+% \begin{function}[EXP]{\CDR_tag:n, \CDR_tag:o}
+% \begin{syntax}
+% \cs{CDR_tag:n} \Arg{tag name}
+% \end{syntax}
+% Build a key path.
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag:n #1 {
+  \c_CDR_tag \c_CDR_slash #1
+}
+\cs_generate_variant:Nn \CDR_tag:n { o }
+%    \end{MacroCode}
+%\end{function}
+% \begin{function}[EXP]{\CDR_code_engine:n, \CDR_block_engine:n}
+% \begin{syntax}
+% \cs{CDR_code_engine:n} \Arg{engine name}
+% \cs{CDR_block_engine:n} \Arg{engine name}
+% \end{syntax}
+% |\CDR_code_engine:n| builds a command sequence name
+% based on \metatt{engine name}.
+% |\CDR_block_engine:n| builds an environment name
+% based on \metatt{engine name}.
+%\end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_code_engine:n #1 {
+  CDR \c_CDR_slash colored \c_CDR_slash code \c_CDR_slash #1:n
+}
+\cs_new:Npn \CDR_block_engine:n #1 {
+  CDR \c_CDR_slash colored \c_CDR_slash block \c_CDR_slash #1
+}
+%    \end{MacroCode}
+%
+% \section{Variables}
+% \subsection{Internal scratch variables}
+% These local variables are used in a very limited scope.
+% \begin{variable}{\l_CDR_str}
+% Local scratch variable.
+%    \begin{MacroCode}[ok]
+\str_new:N \l_CDR_str
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\l_CDR_seq}
+% Local scratch variable.
+%    \begin{MacroCode}[ok]
+\seq_new:N \l_CDR_seq
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\l_CDR_prop}
+% Local scratch variable.
+%    \begin{MacroCode}[ok]
+\prop_new:N \l_CDR_prop
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\l_CDR_clist}
+% The comma separated list of current chunks.
+%    \begin{MacroCode}[ok]
+\clist_new:N \l_CDR_clist
+%    \end{MacroCode}
+% \end{variable}
+% \subsection{Files}
+% \begin{variable}{\l_CDR_in}
+% Input file identifier
+%    \begin{MacroCode}[ok]
+\ior_new:N \l_CDR_in
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\l_CDR_out}
+% Output file identifier
+%    \begin{MacroCode}[ok]
+\iow_new:N \l_CDR_out
+%    \end{MacroCode}
+% \end{variable}
+% \subsection{Global variables}
+% Line number counter for the code chunks.
+% \begin{variable}{\g_CDR_code_int}
+% Chunk number counter.
+%    \begin{MacroCode}
+\int_new:N \g_CDR_code_int
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\g_CDR_code_prop}
+% Global code property list.
+%    \begin{MacroCode}
+\prop_new:N \g_CDR_code_prop
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\g_CDR_chunks_tl,\l_CDR_chunks_tl}
+% The comma separated list of current chunks.
+% If the next list of chunks is the same as the current one,
+% then it might not display. 
+%    \begin{MacroCode}
+\tl_new:N \g_CDR_chunks_tl
+\tl_new:N \l_CDR_chunks_tl
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\g_CDR_vars}
+% Tree storage for global variables.
+%    \begin{MacroCode}
+\prop_new:N \g_CDR_vars
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\g_CDR_hook_tl}
+% Hook general purpose.
+%    \begin{MacroCode}
+\tl_new:N \g_CDR_hook_tl
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\g/CDR/Chunks/<name>}
+% List of chunk keys for given named code.
+% \end{variable}
+%
+% \subsection{Local variables}
+% \begin{variable}{\l_CDR_recorded_tl}
+% Full verbatim body of the \texttt{CDR} environment.
+%    \begin{MacroCode}
+\tl_new:N \l_CDR_recorded_tl
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\g_CDR_int}
+% Global integer to store linenos locally in time.
+%    \begin{MacroCode}
+\int_new:N \g_CDR_int
+%    \end{MacroCode}
+% \end{variable}
+%
+% \begin{variable}{\l_CDR_line_tl}
+% Token list for one line.
+%    \begin{MacroCode}
+\tl_new:N \l_CDR_line_tl
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\l_CDR_lineno_tl}
+% Token list for lineno display.
+%    \begin{MacroCode}
+\tl_new:N \l_CDR_lineno_tl
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\l_CDR_name_tl}
+% Token list for chunk name display.
+%    \begin{MacroCode}
+\tl_new:N \l_CDR_name_tl
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\l_CDR_info_tl}
+% Token list for the info of line.
+%    \begin{MacroCode}
+\tl_new:N \l_CDR_info_tl
+%    \end{MacroCode}
+% \end{variable}
+%
+% \section{Tree data storage}
+% \subsection{Store}
+% \begin{function}{\CDR_set:nnn}
+% \begin{syntax}
+% \cs{CDR_set:nnn} \Arg{dir} \Arg{relative key path} \Arg{value}
+% \end{syntax}
+% Store \metatt{value}, which is retrieved with the instruction
+% |\CDR_get:nn {|\metatt{dir}|} {|\metatt{relative key path}|}|.
+% Only \metatt{dir} and \metatt{relative key path}
+% containing no |@| character are supported.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_set:nnn #1 #2 #3 {
+  \cs_set:cpn { \c_CDR_get @ #1 @ #2 : } { \exp_not:n { #3 } }
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_set:n}
+% \begin{syntax}
+% \cs{CDR_set:n} \Arg{value}
+% \end{syntax}
+% This must be indirectly called by |\keys_set:nn|.
+% Parse the current value of the \pkg{l3keys} variable
+% |\l_keys_path_str| to guess a \metatt{dir}
+% and a \metatt{relative key path} to feed
+% |\CDR_set:nnn|.
+% More precisely, |\l_keys_path_str| is expected to read something like
+% |CDR/|\metatt{dir}|/|\metatt{relative key path}, an exception is raised on the contrary.
+% 
+% Implementation detail: the required parameter will be read by
+% the last instruction.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_set:n {
+  \exp_args:NnV
+  \regex_extract_once:nnNTF {
+    ^CDR/([^/]*?)/(.*?\s*)$
+  } \l_keys_path_str \l_CDR_seq {
+    \exp_args:Nxx
+    \CDR_set:nnn
+      { \seq_item:Nn \l_CDR_seq 2 }
+      { \seq_item:Nn \l_CDR_seq 3 }
+  } {
+    \PackageWarning
+      { coder }
+      { Unexpected~key~`\l_keys_path_str' }
+    \use_none:n
+  }
+}
+%    \end{MacroCode}
+%
+% \subsection{Get}
+% \begin{function}[EXP]{\CDR_get_path:nn}
+% \begin{syntax}
+% \cs{CDR_get_path:nn} \Arg{dir} \Arg{relative key path}
+% \end{syntax}
+% Internal: return a unique key based on the arguments.
+% Used to store and retrieve values.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_get_path:nn #1 #2 {
+  \c_CDR_get @ #1 @ #2 :
+}
+%    \end{MacroCode}
+% \begin{function}[TF,EXP]{\CDR_if_exist_here:nn}
+% \begin{syntax}
+% \cs{CDR_if_exist_here:nnTF} \Arg{dir} \meta{relative key path} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% If the \metatt{relative key path} is known within \metatt{dir},
+% the \metatt{true code} is executed,
+% otherwise, the \metatt{false code} is executed.
+% Do not use inheritance.
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_if_exist_here:nn { T, F, TF } {
+  \cs_if_exist:cTF { \CDR_get_path:nn { #1 } { #2 } } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}[TF,EXP]{\CDR_if_exist:nn}
+% \begin{syntax}
+% \cs{CDR_if_exist:nnTF} \Arg{dir} \meta{relative key path} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% If the \metatt{relative key path} is known within \metatt{dir} or one of its parents,
+% the \metatt{true code} is executed,
+% otherwise, the \metatt{false code} is executed.
+% Takes care of inheritance.
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_if_exist:nn { T, F, TF } {
+  \cs_if_exist:cTF { \CDR_get_path:nn { #1 } { #2 } } {
+    \prg_return_true:
+  } {
+    \seq_if_exist:cTF { \CDR_parent_seq:n { #1 } } {
+      \seq_map_tokens:cn
+        { \CDR_parent_seq:n { #1 } }
+        { \CDR_if_exist_alt_f:nn { #2 } }
+    } {
+      \prg_return_false:
+    }
+  }
+}
+\cs_new:Npn \CDR_if_exist_f:nn #1 #2 {
+  \quark_if_no_value:nTF { #2 } {
+    \seq_map_break:n {
+      \prg_return_false:
+    }
+  } {
+    \CDR_if_exist:nnT { #2 } { #1 } {
+      \seq_map_break:n {
+        \prg_return_true:
+      }
+    }
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}[EXP]{\CDR_get_here:nn}
+% \begin{syntax}
+% \cs{CDR_get_here:nn} \Arg{dir} \Arg{relative key path}
+% \end{syntax}
+% Leave in the input stream whatever was previously stored with an instruction like
+% |\CDR_set:nnn {|\metatt{dir}|} {|\metatt{relative key path}|} {|\metatt{value}|}|.
+% Do not use inheritance.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_get_here:nn #1 #2 {
+  \CDR_if_exist_here:nnT { #1 } { #2 } {
+    \use:c { \CDR_get_path:nn { #1 } { #2 } }
+  }
+}
+%    \end{MacroCode}
+% \begin{function}[EXP]{\CDR_get:nn}
+% \begin{syntax}
+% \cs{CDR_get:nn} \Arg{dir} \Arg{relative key path}
+% \end{syntax}
+% Leave in the input stream whatever was previously stored with an instruction like
+% |\CDR_set:nnn {|\metatt{dir}|} {|\metatt{relative key path}|} {|\metatt{value}|}|.
+% Uses inheritance.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_get:nn #1 #2 {
+  \CDR_if_exist_here:nnTF { #1 } { #2 } {
+    \use:c { \CDR_get_path:nn { #1 } { #2 } }
+  } {
+    \seq_if_exist:cT { \CDR_parent_seq:n { #1 } } {
+      \seq_map_tokens:cn
+        { \CDR_parent_seq:n { #1 } }
+        { \CDR_get_f:nn { #2 } }
+    }
+  }
+}
+\cs_new:Npn \CDR_get_f:nn #1 #2 {
+  \quark_if_no_value:nF { #2 } {
+    \CDR_if_exist_here:nnT { #2 } { #1 } {
+      \seq_map_break:n {
+        \use:c { \CDR_get_path:nn { #2 } { #1 } }  
+      }
+    }
+  }
+}
+%    \end{MacroCode}
+% \begin{function}[TF]{\CDR_get_here:nnN}
+% \begin{syntax}
+% \cs{CDR_get_here:nnNTF} \Arg{dir} \Arg{relative key path} \Arg{tl var} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% If \metatt{relative key path} is known within \metatt{dir}, fill \metatt{tl var}
+% with the corresponding value and execute \metatt{true code}.
+% Execute \metatt{false code} otherwise.
+% No inheritance.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_get_here:nnN { T, F, TF } {
+  \CDR_if_exist_here:nnTF { #1 } { #2 } {
+    \tl_set:Nx #3 { \CDR_get_here:nn { #1 } { #2 } }
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+% \begin{function}[TF]{\CDR_get:nnN}
+% \begin{syntax}
+% \cs{CDR_get:nnNTF} \Arg{dir} \Arg{relative key path} \Arg{tl var} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% If \metatt{relative key path} is known within \metatt{dir}, fill \metatt{tl var}
+% with the corresponding value and execute \metatt{true code}.
+% Execute \metatt{false code} otherwise.
+% Takes care of inheritance.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_get:nnN { T, F, TF } {
+  \CDR_if_exist_here:nnTF { #1 } { #2 } {
+    \tl_set:Nx #3 { \CDR_get_here:nn { #1 } { #2 } }
+    \prg_return_true:
+  } {
+    \seq_if_exist:cTF { \CDR_parent_seq:n { #1 } } {
+      \seq_map_inline:cn { \CDR_parent_seq:n { #1 } } {
+        \quark_if_no_value:nF { ##1 } {
+          \CDR_if_exist_here:nnT { ##1 } { #2 } {
+            \seq_map_break:n {
+              \tl_set:Nx #3 { \CDR_get_here:nn { ##1 } { #2 } }
+              \use:c { \CDR_get_path:nn { ##1 } { #2 } }  
+              \prg_return_true:
+            }
+          }
+        }
+      }
+    } {
+      \prg_return_false:
+    }  
+  }
+}
+%    \end{MacroCode}
+% \subsection{Inherit}
+% \begin{function}[EXP]{\CDR_parent_seq:n}
+% \begin{syntax}
+% \cs{CDR_parent_seq:n} \Arg{dir}
+% \end{syntax}
+% Return the name of the sequence variable containing the list of the parents.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_parent_seq:n #1 {
+  g_CDR:parent @ #1 _seq
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_inherit:nn}
+% \begin{syntax}
+% \cs{CDR_inherit:nn} \Arg{dir} \Arg{parent comma list}
+% \end{syntax}
+% Set the parents of \metatt{dir} to the
+% given list.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_inherit:nn #1 #2 {
+  \tl_set:Nx \l_CDR_tl { \CDR_parent_seq:n { #1 } }
+  \seq_set_from_clist:cn \l_CDR_tl { #2 }
+  \seq_remove_duplicates:c \l_CDR_tl
+  \seq_remove_all:cn \l_CDR_tl {}
+  \seq_put_right:cn \l_CDR_tl { \q_no_value }
+}
+%    \end{MacroCode}
+% \section{Tag properties}
+% The tag properties concern the code chunks level.
+% They are set from different path, such that
+% |\l_keys_path_str| must
+% be properly parsed for that purpose.
+% Commands in this section and the next one contain |CDR_tag|.
+% \subsection{Set}
+% \begin{variable}{\g_CDR_tag_path_seq}
+% Global variable to store relative key path.
+%    \begin{MacroCode}[ok]
+\seq_new:N \g_CDR_tag_path_seq
+%    \end{MacroCode}
+% \end{variable}
+%
+% \begin{function}{\CDR_tag_set:n}
+% \begin{syntax}
+% \cs{CDR_tag_set:n} \Arg{value}
+% \end{syntax}
+% The value is provided but not the \meta{dir} nor the \meta{relative key path}:
+% which a tag name, both are guessed from |\l_keys_path_str|.
+% More precisely, |\l_keys_path_str| is expected to read something like
+% |CDR@tag/|\metatt{tag name}|/|\metatt{relative key path},
+% an exception is raised on the contrary.
+% Record the relative key path (the part after the tag name)
+% of the current full key path in |g_CDR_tag_path_seq|.
+% Useful for automatic management to know what has been defined.
+% This is meant to be call from |\keys_define:nn| argument.
+% Implementation detail: the last argument is parsed by the last command.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_set:n {
+  \exp_args:NnV
+  \regex_extract_once:nnNTF {
+    ^CDR@tag/([^/]*)/(.*)$
+  } \l_keys_path_str \l_CDR_seq {
+    \seq_gput_left:Nx \g_CDR_tag_path_seq { \seq_item:Nn \l_CDR_seq 3 }
+    \CDR_tag_set:nnn
+      { \seq_item:Nn \l_CDR_seq 2 }
+      { \seq_item:Nn \l_CDR_seq 3 }
+  } {
+    \PackageWarning
+      { coder }
+      { Unexpected~key~path~`\l_keys_path_str' }
+    \use_none:n
+  }
+}
+%    \end{MacroCode}
+% \begin{function}[EXP]{\CDR_tag_get_path:nn}
+% \begin{syntax}
+% \cs{CDR_tag_get_path:nn} \Arg{tag name} \Arg{relative key path}
+% \end{syntax}
+% Internal: return a unique key based on the arguments.
+% Used to store and retrieve values.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_get_path:nn #1 #2 {
+  \c_CDR_tag_get @ #1 @ #2 :
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_tag_set:nnn}
+% \begin{syntax}
+% \cs{CDR_tag_set:nnn} \Arg{tag name} \Arg{relative key path} \Arg{value}
+% \end{syntax}
+% Store \metatt{value}, which is retrieved with the instruction
+% |\CDR_tag_get:nn {|\metatt{tag name}|}| \linebreak[3]|{|\metatt{relative key path}|}|.
+% Only \metatt{tag name} and \metatt{relative key path}
+% containing no |@| character are supported.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_set:nnn #1 #2 #3 {
+    \seq_gput_left:Nx \g_CDR_tag_path_seq { #2 }
+  \cs_set:cpn { \CDR_tag_get_path:nn { #1 } { #2 } } { \exp_not:n { #3 } }
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_tag_set:n}
+% \begin{syntax}
+% \cs{CDR_tag_set:n} \Arg{value}
+% \end{syntax}
+% The value is provided but not the \meta{dir} nor the \meta{relative key path}:
+% which a tag name, both are guessed from |\l_keys_path_str|.
+% More precisely, |\l_keys_path_str| is expected to read something like
+% |CDR@tag/|\metatt{tag name}|/|\metatt{relative key path},
+% an exception is raised on the contrary.
+% Record the relative key path (the part after the tag name)
+% of the current full key path in |g_CDR_tag_path_seq|.
+% Useful for automatic management to know what has been defined.
+% This is meant to be call from |\keys_define:nn| argument.
+% Implementation detail: the last argument is parsed by the last command.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_set:n {
+  \exp_args:NnV
+  \regex_extract_once:nnNTF {
+    ^CDR@tag/([^/]*)/(.*)$
+  } \l_keys_path_str \l_CDR_seq {
+    \CDR_tag_set:nnn
+      { \seq_item:Nn \l_CDR_seq 2 }
+      { \seq_item:Nn \l_CDR_seq 3 }
+  } {
+    \PackageWarning
+      { coder }
+      { Unexpected~key~path~`\l_keys_path_str' }
+    \use_none:n
+  }
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_tag_set:nn}
+% \begin{syntax}
+% \cs{CDR_tag_set:nn} \Arg{key path} \Arg{value}
+% \end{syntax}
+% When the last component of |\l_keys_path_str| should not be used
+% to store the \metatt{value}, but \metatt{key path} should be used instead.
+% This last component is replaced and |\CDR_tag_set:n| is called afterwards.
+% Implementation detail: the second argument is parsed by the last command
+% of the expansion.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_set:nn #1 {
+  \exp_args:NnV
+  \regex_extract_once:nnNTF {
+    ^CDR@tag/([^/]*)/.*$
+  } \l_keys_path_str \l_CDR_seq {
+    \CDR_tag_set:nnn
+      { \seq_item:Nn \l_CDR_seq 2 }
+      { #1 }
+  } {
+    \PackageWarning
+      { coder }
+      { Unexpected~key~path~`\l_keys_path_str' }
+    \use_none:n
+  }
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_tag_choices:}
+% \begin{syntax}
+% \cs{CDR_tag_choices:}
+% \end{syntax}
+% Ensure that the |\l_keys_path_str| is set properly.
+% This is where a syntax like |\keys_set:nn {...} { choice/a }|
+% is managed.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_choices: {
+  \exp_args:NVV
+  \str_if_eq:nnT \l_keys_key_tl \l_keys_choice_tl {
+    \exp_args:NnV
+    \regex_extract_once:nnNT {
+      ^(.*)/.*$
+    } \l_keys_path_str \l_CDR_seq {
+      \str_set:Nx \l_keys_path_str {
+        \seq_item:Nn \l_CDR_seq 2
+      }
+    }
+  }
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_tag_choices_set:}
+% \begin{syntax}
+% \cs{CDR_tag_choices_set:}
+% \end{syntax}
+% Calls |\CDR_tag_set:n| with the content of |\l_keys_choice_tl| as value.
+% Before, ensure that the |\l_keys_path_str| is set properly.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_choices_set: {
+  \CDR_tag_choices:
+  \exp_args:NV
+  \CDR_tag_set:n \l_keys_choice_tl
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_tag_boolean_set:}
+% \begin{syntax}
+% \cs{CDR_tag_boolean_set:}
+% \end{syntax}
+% Calls |\CDR_tag_set:n| with |false| if the first item is selected,
+% |true| otherwise.
+% Before, ensure that the |\l_keys_path_str| is set properly.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_boolean_set: {
+  \CDR_tag_choices:
+  \exp_args:Nx
+  \CDR_tag_set:n {
+    \int_compare:nNnTF \l_keys_index_tl = 1 { false } { true }
+  }
+}
+%    \end{MacroCode}
+%
+% \subsection{Retrieving tag properties}
+% Internally, all tag properties are collected with a full key path like
+% |\c_CDR_tag_get/|\metatt{tag name}|/|\metatt{relative key path}.
+% When typesetting some code with either the \cs{CDRCode} command or the
+% |CDRBlock| environment, all properties defined locally are collected under
+% the reserved |\c_CDR_tag_get/__local/|\metatt{relative path} full key paths.
+% The \pkg{l3keys} module |\c_CDR_tag_get/__local| is modified in \TeX{} groups only.
+% For running text code chunks, this module inherits from
+% \begin{enumerate}
+% \item |\c_CDR_tag_get/|\metatt{tag name} for the provided \metatt{tag name},
+% \item |\c_CDR_tag_get/default.code|
+% \item |\c_CDR_tag_get/default|
+% \end{enumerate}
+% For text block code chunks, this module inherits from
+% \begin{enumerate}
+% \item |\c_CDR_tag_get/|\metatt{name_1}, ..., |\c_CDR_tag_get/|\metatt{name_n}
+% for each tag name of the ordered tags list
+% \item |\c_CDR_tag_get/default.block|
+% \item |\c_CDR_tag_get/default|
+% \end{enumerate}
+%
+% \begin{function}[TF,EXP]{\CDR_tag_if_exist:nn}
+% \begin{syntax}
+% \cs{CDR_tag_if_exist:nnTF} \Arg{tag name} \meta{relative key path} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% If the \metatt{relative key path} is known within \metatt{tag name},
+% the \metatt{true code} is executed,
+% otherwise, the \metatt{false code} is executed.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_tag_if_exist:nn { T, F, TF } {
+  \cs_if_exist:cTF { \CDR_tag_get_path:nn { #1 } { #2 } } {
+    \prg_return_true:
+  } {
+    \seq_if_exist:cTF { \CDR_tag_parent_seq:n { #1 } } {
+      \seq_map_tokens:cn
+        { \CDR_tag_parent_seq:n { #1 } }
+        { \CDR_tag_if_exist_f:nn { #2 } }
+    } {
+      \prg_return_false:
+    }
+  }
+}
+\cs_new:Npn \CDR_tag_if_exist_f:nn #1 #2 {
+  \quark_if_no_value:nTF { #2 } {
+    \seq_map_break:n {
+      \prg_return_false:
+    }
+  } {
+    \CDR_tag_if_exist:nnT { #2 } { #1 } {
+      \seq_map_break:n {
+        \prg_return_true:
+      }
+    }
+  }
+}
+%    \end{MacroCode}
+% \begin{function}[EXP]{\CDR_tag_get:nn}
+% \begin{syntax}
+% \cs{CDR_tag_get:nn} \Arg{tag name} \Arg{relative key path}
+% \end{syntax}
+% The property value stored for \metatt{tag name}
+% and \metatt{relative key path}.
+% Takes care of inheritance.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_get:nn #1 #2 {
+  \CDR_tag_if_exist_here:nnTF { #1 } { #2 } {
+    \use:c { \CDR_tag_get_path:nn { #1 } { #2 } }
+  } {
+    \seq_if_exist:cT { \CDR_tag_parent_seq:n { #1 } } {
+      \seq_map_tokens:cn
+        { \CDR_parent_seq:n { #1 } }
+        { \CDR_tag_get_f:nn { #2 } }
+    }
+  }
+}
+\cs_new:Npn \CDR_tag_get_f:nn #1 #2 {
+  \quark_if_no_value:nF { #2 } {
+    \CDR_if_exist_here:nnT { #2 } { #1 } {
+      \seq_map_break:n {
+        \use:c { \CDR_tag_get_path:nn { #2 } { #1 } }  
+      }
+    }
+  }
+}
+%    \end{MacroCode}
+% \begin{function}[EXP]{\CDR_tag_get:n}
+% \begin{syntax}
+% \cs{CDR_tag_get:n} \Arg{relative key path}
+% \end{syntax}
+% The property value stored for the |__local| \metatt{tag name}
+% and \metatt{relative key path}.
+% Takes care of inheritance.
+% Implementation detail: the parameter is parsed by the last command of the expansion.
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_get:n {
+  \CDR_tag_get:nn { __local }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}{\CDR_tag_get:nN}
+% \begin{syntax}
+% \cs{CDR_tag_get:nN} \Arg{relative key path} \Arg{tl variable}
+% \end{syntax}
+% Put in \metatt{tl variable} the property value stored
+% for the |__local| \metatt{tag name} and \metatt{relative key path}.
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_get:nN #1 #2 {
+  \tl_set:Nx #2 { \CDR_tag_get:n { #1 } }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}[TF]{\CDR_tag_get:nnN}
+% \begin{syntax}
+% \cs{CDR_tag_get:nnNTF} \Arg{tag name} \Arg{relative key path} \meta{tl var} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Getter with branching.
+% If the \metatt{relative key path} is knwon,
+% save the value into \metatt{tl var} and
+% execute \meta{true code}.
+% Otherwise, execute \metatt{false code}.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_tag_get:nnN { T, F, TF } {
+  \CDR_tag_if_exist:nnTF { #1 } { #2 } {
+    \tl_set:Nx #3 \CDR_tag_get:nn { #1 } { #2 }
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+%
+% \subsection{Inherit}
+% \begin{function}[EXP]{\CDR_tag_parent_seq:n}
+% \begin{syntax}
+% \cs{CDR_tag_parent_seq:n} \Arg{tag name}
+% \end{syntax}
+% Return the name of the sequence variable containing the list of the parents.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_parent_seq:n #1 {
+  g_CDR:parent.tag @ #1 _seq
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_tag_inherit:nn}
+% \begin{syntax}
+% \cs{CDR_tag_inherit:nn} \Arg{tag name} \Arg{parent comma list}
+% \end{syntax}
+% Set the parents of \metatt{tag name} to the
+% given list.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_tag_inherit:nn #1 #2 {
+  \tl_set:Nx \l_CDR_tl { \CDR_tag_parent_seq:n { #1 } }
+  \seq_set_from_clist:cn \l_CDR_tl { #2 }
+  \seq_remove_duplicates:c \l_CDR_tl
+  \seq_remove_all:cn \l_CDR_tl {}
+  \seq_put_right:cn \l_CDR_tl { \q_no_value }
+}
+%    \end{MacroCode}
+% \subsection{Handling unknown tags}
+% \begin{function}{\keys_define:on,\keys_define:ox,\keys_define:oo,\keys_set:xn,\keys_set_known:onoN,\keys_set_known:oooN}
+% Various variants
+% \vspace{3.5\baselineskip}
+%    \begin{MacroCode}
+\clist_map_inline:nn { o, ox, oo } {
+  \cs_generate_variant:Nn \keys_define:nn { #1 }
+}
+\cs_generate_variant:Nn \keys_set:nn { x }
+\clist_map_inline:nn { ono, ooo } {
+  \cs_generate_variant:Nn \keys_set_known:nnnN { #1 }
+}
+%    \end{MacroCode}
+% \end{function}
+% While using |\keys_set:nn| and variants, each time a full key path similar to
+% |\c_CDR_tag/|\metatt{tag name}|/|\metatt{relative key path}
+% is not recognized, we assume that the client implicitly wants a tag
+% with the given \metatt{tag name} to be defined. For that purpose, we collect
+% unknown keys with |\keys_set_known:nnnN| then process them to find
+% each \metatt{tag name} and define
+% the new tag accordingly.
+% A similar situation occurs for display engine options where the
+% full key path reads
+% |\c_CDR_tag/|\metatt{tag name}|/|\metatt{engine name}| engine options|
+% where \metatt{engine name} is not known in advance.
+% \begin{function}{\CDR_tag_provide_from_clist:n,\CDR_tag_provide_from_keyval:n}
+% \begin{syntax}
+% \cs{CDR_tag_provide_from_clist:n} \Arg{deep comma list}
+% \cs{CDR_tag_provide_from_keyval:n} \Arg{key-value list}
+% \end{syntax}
+% \metatt{deep comma list} has format
+% |\c_CDR_tag/|\metatt{tag name comma list}.
+% Parse the \metatt{key-value list} for full key path matching
+% |\c_CDR_tag/|\metatt{tag name}|/|\metatt{relative key path},
+% then ensure that |\c_CDR_tag/|\metatt{tag name} is a known full key path.
+% For that purpose, we use |\keys_parse:nnn| with two |\CDR_tag_provide:| helper.
+%
+% Notice that a tag name should contain no `/'.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_keys_tag_set:nn #1 {
+  \keys_set:xn { \CDR_tag:n { #1 } }
+}
+\cs_new:Npn \CDR_tag_provide_from_clist:n #1 {
+  \exp_args:No
+  \regex_extract_once:nnNT {
+    ^\c_CDR_tag/([^/]*)(?:/(.*)$)?
+  } { #1 } \l_CDR_seq {
+    \tl_set:Nx \l_CDR_tl { \seq_item:Nn \l_CDR_seq 3 }
+    \exp_args:Nx
+    \clist_map_inline:nn {
+      \seq_item:Nn \l_CDR_seq 2
+    } {
+      \exp_args:NV
+      \keys_if_exist:nnF \c_CDR_tag { ##1 } {
+        \keys_define:on \c_CDR_tag {
+          ##1 .inherit:n = \c_CDR_tag / default,
+          ##1 .code:n = \CDR_keys_tag_set:nn { ##1 } { ####1 },
+          ##1 .value_required:n = true,
+        }
+      }
+      \exp_args:NoV
+      \keys_if_exist:nnF { \c_CDR_tag / ##1 } \l_CDR_tl {
+        \exp_args:NnV
+        \regex_match:nnT {
+          ^[^/]*\sengine\soptions$
+        } \l_CDR_tl {
+          \keys_define:oo { \c_CDR_tag / ##1 } {
+            \l_CDR_tl .code:n = \exp_not:n { \CDR_tag_set:n { ####1 } },
+            \l_CDR_tl .value_required:n = true,
+          }
+        }
+      }
+    }
+  }
+}
+\cs_new:Npn \CDR_tag_provide_from_clist:nn #1 #2 {
+  \CDR_tag_provide_from_clist:n { #1 }
+}
+\cs_new:Npn \CDR_tag_provide_from_keyval:n {
+  \keys_parse:nnn {
+    \CDR_tag_provide_from_clist:n
+  } {
+    \CDR_tag_provide_from_clist:nn
+  }
+}
+%    \end{MacroCode}
+%
+% \section{Cache management}
+% If there is no \metatt{jobname}|.aux| file, there should be no cached files either,
+% \CDRLua{} is asked to clean all of them, if any.
+%    \begin{MacroCode}[ok]
+\AddToHook { begindocument/before } {
+  \IfFileExists {./\jobname.aux} {} {
+   \lua_now:n {CDR:cache_clean_all()}
+  }
+}
+%    \end{MacroCode}
+% At the end of the document, \CDRLua{} is asked to clean all
+% unused cached files that could come from a previous process.
+%    \begin{MacroCode}[ok]
+\AddToHook { enddocument/end } {
+  \lua_now:n {CDR:cache_clean_unused()}
+}
+%    \end{MacroCode}
+%
+% \section{Utilities}
+% \begin{variable}{\g_CDR_has_pygment_bool}
+% Whether \pkg{pygment} is available.
+%    \begin{MacroCode}[ok]
+\bool_new:N \g_CDR_has_pygment_bool
+\sys_get_shell:nnN {which~pygmentize} {} \l_CDR_tl
+\bool_set:Nn \g_CDR_has_pygment_bool {
+  \exp_args:NV
+  \str_if_in_p:nn \l_CDR_tl { pygmensize }
+}
+%    \end{MacroCode}
+% \end{variable}
+% \begin{function}[EXP,TF]
+%   {\CDR_if_has_pygment:}
+%   \begin{syntax}
+%     \cs{CDR_if_has_pygment:TF} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+%   Execute \metatt{true code} when \pkg{pygment} is available,
+% \meta{false code} otherwise.
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_if_has_pygment: { T, F, TF } {
+  \bool_if:NTF \g_CDR_has_pygment_bool {
+    \prg_return_false:
+  } {
+    \prg_return_true:
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+% Utilities
+% \begin{function}{\CDR_clist_map_inline:Nnn}
+% \begin{syntax}
+% \cs{CDR_clist_map_inline:Nnn} \meta{clist var} \Arg{non empty code} \Arg{empty code}
+% \end{syntax}
+% Call \texttt{\cs{clist_map_inline:Nnn} \meta{clist var}
+% then \metatt{non empty code}} when the list is not empty,
+% execute \metatt{empty code} otherwise.
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_clist_map_inline:Nnn #1 #2 #3 {
+  \clist_if_empty:NTF #1 { #3 } {
+    \clist_map_inline:Nn #1 { #2 }
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{variable}{\g_CDR_block_bool}
+%    \begin{MacroCode}[ok]
+\bool_new:N \g_CDR_block_bool
+%    \end{MacroCode}
+% \end{variable}
+% \begin{function}[EXP,TF]{\CDR_if_block:}
+% \begin{syntax}
+% \cs{CDR_if_block:TF} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Execute \metatt{true code} when inside a code block,
+% \metatt{false code} otherwise.
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_if_block: { T, F, TF } {
+  \bool_if:NTF \g_CDR_block_bool {
+    \prog_return_true:
+  } {
+    \prog_return_false:
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}{\CDR_process_record:}
+% Record the current line or not.
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_process_record: {}
+%    \end{MacroCode}
+% \end{function}
+%
+% \section{\pkg{l3keys} modules}
+%
+% \subsection{ \texttt{\textbackslash c_CDR_tag} \pkg{l3keys} module}
+% 
+% Each action is meant to store the values in the tree storage.
+%
+% \subsection{\texttt{\textbackslash c_CDR_tag/default}}
+%    \begin{MacroCode}[ok]
+\keys_define:on { \c_CDR_tag / default } {
+%    \end{MacroCode}
+% Keys are:
+% \begin{description}
+% \itemtt[\CDRCheckRed lang=\meta{language name}]^^A
+%where \meta{language name} is recognized by \texttt{pygment}, including a void string,
+%    \begin{MacroCode}[ok]
+  lang .code:n = \CDR_tag_set:n { #1 },
+  lang .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed pygment{[=true$\vert$false]}]^^A
+% whether \pkg{pygment} should be used for syntax coloring.
+% Initially |true| if \pkg{pygment} is available,
+% |false| otherwise.
+%    \begin{MacroCode}[ok]
+  pygment .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed style=\meta{name}]^^A
+% the \pkg{pygment} style to use.
+% Initially \texttt{default}.
+%    \begin{MacroCode}[ok]
+  style .code:n = \CDR_tag_set:n { #1 },
+  style .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed post processor=\meta{command}]^^A
+% the command for \pkg{pygment} post processor.
+% This is a string where every occurrence of ``|%%file%%|'' is replaced by
+% the full path of the |*.pyg.tex| file to be post processed
+% and then executed as terminal instruction.
+% Initially empty.
+%    \begin{MacroCode}[ok]
+  post~processor .code:n = \CDR_tag_set:n { #1 },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed parskip]^^A
+% the value of the \cs{parskip} in code blocks,
+%    \begin{MacroCode}[ok]
+  parskip .code:n = \CDR_tag_set:n { #1 },
+  parskip .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed engine=\meta{engine name}]^^A
+% to specify the engine used to display inline code or blocks.
+% Initially |default|.
+%    \begin{MacroCode}[ok]
+  engine .code:n = \CDR_tag_set:n { #1 },
+  engine .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed default options =\meta{default engine options}]^^A
+% to specify the corresponding options,
+%    \begin{MacroCode}[ok]
+  default~engine~options .code:n = \CDR_tag_set:n { #1 },
+  default~engine~options .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed \meta{engine name} options=\meta{engine options}]^^A
+% to specify the options
+% for the named engine,
+% \itemtt[\CDRCheckRed __initialize_default]^^A
+% to initialize storage properly. We cannot use |.initial:n| actions
+% because the |\l_keys_path_str| is not set up properly.
+%    \begin{MacroCode}[ok]
+  __initialize_default .meta:n = {
+    lang = tex,
+    pygment = \CDR_if_has_pygment:TF { true } { false },
+    style = default,
+    post~processor = ,
+    parskip = \the\parskip,
+    engine = default,
+    default~engine~options = ,
+  },
+%    \end{MacroCode}
+%
+% \end{description}
+%    \begin{MacroCode}[ok]
+}
+%    \end{MacroCode}
+%
+% \subsection{\texttt{\textbackslash c_CDR_tag/__pygment}}
+% These are \pkg{pygment}'s |LatexFormatter| options.
+% \begin{description}
+% \itemtt[\CDRCheckRed style=\meta{name}]^^A
+% the \pkg{pygment} style to use.
+% Initially \texttt{default}.
+% \itemtt[\CDRCheckProhibited full]^^A
+% Tells the formatter to output a "full" document, i.e. a complete
+%        self-contained document (default: |false|).
+% Forbidden.
+% \itemtt[\CDRCheckProhibited title]^^A
+% If |full| is true, the title that should be used to caption the
+%         document (default empty).
+% Forbidden.
+% \itemtt[\CDRCheckProhibited docclass]^^A
+% If the |full| option is enabled, this is the document class to use
+% (default: |article|).
+% Forbidden.
+% \itemtt[\CDRCheckProhibited]^^A
+% If the |full| option is enabled, this can be further preamble commands,
+% e.g. ``|\usepackage|`` (default |empty|).
+% Forbidden.
+% \itemtt[\CDRCheckRed linenos{[=true$\vert$false]}]^^A
+% If set to |true|, output line numbers.
+% Initially |false|: no numbering.
+% Ignored in |code| mode.
+% \itemtt[\CDRCheckRed linenostart=\meta{integer}]^^A
+% The line number for the first line.
+% Initially 1: numbering starts from 1.
+% Ignored in |code| mode.
+% \itemtt[\CDRCheckRed linenostep=\meta{integer}]^^A
+% If set to a number n > 1, only every nth line number is printed.
+% Ignored in |code| mode.
+% Additional options given to the Verbatim environment (see the *fancyvrb*
+%         docs for possible values).
+% Initially empty.
+% \itemtt[\CDRCheckProhibited verboptions]^^A
+% Forbidden.
+% \itemtt[\CDRCheckRed commandprefix=\meta{text}]^^A
+% The LaTeX commands used to produce colored output are constructed
+%        using this prefix and some letters.
+% Initially |PY|.
+% \itemtt[\CDRCheckRed texcomments{[=true$\vert$false]}]^^A
+% If set to |true|, enables \LaTeX{} comment lines.  That is, \LaTeX{} markup
+%        in comment tokens is not escaped so that \LaTeX{} can render it.
+% Initially |false|.
+% \itemtt[\CDRCheckRed mathescape{[=true$\vert$false]}]^^A
+% If set to |true|, enables \LaTeX{} math mode escape in comments. That
+%        is, |$...$| inside a comment will trigger math mode.
+% Initially |false|.
+% \itemtt[\CDRCheckRed escapeinside=\meta{before}\meta{after}]^^A
+% If set to a string of length 2, enables escaping to \LaTeX{}. Text
+%        delimited by these 2 characters is read as LaTeX code and
+%        typeset accordingly. It has no effect in string literals. It has
+%        no effect in comments if |texcomments| or `mathescape` is
+%        set.
+% Initially empty.
+% \itemtt[\CDRCheckRed envname=\meta{name}]^^A
+% Allows you to pick an alternative environment name replacing Verbatim.
+%        The alternate environment still has to support Verbatim's option syntax.
+% Initially |Verbatim|.
+% \end{description}
+%
+% \subsection{\texttt{\textbackslash c_CDR_tag/default.block}}
+%    \begin{MacroCode}[ok]
+\keys_define:on { \c_CDR_tag / default.block } {
+%    \end{MacroCode}
+% Known keys include:
+% \begin{description}
+% \itemtt[\CDRCheckRed show tags{[=true$\vert$false]}]^^A
+% to enable/disable the display
+% of the code chunks tags.
+% Initially |true|.
+%    \begin{MacroCode}[ok]
+  show~tags .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed only top{[=true$\vert$false]}]^^A
+% to avoid chunk tags repetitions, if on the same page,
+% two consecutive code chunks have the same tag names, the second names are not displayed.
+%    \begin{MacroCode}[ok]
+  only~top .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed use margin{[=true$\vert$false]}]^^A
+% to use the magin to display line numbers
+% and tag names, or not,
+%    \begin{MacroCode}[ok]
+  use~margin .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed tags format=\meta{format}]^^A
+%, where \meta{format} is used
+% to display the tag names (mainly font, size and color),
+%    \begin{MacroCode}[ok]
+  tags~format .code:n = \CDR_tag_set:n { #1 },
+  tags~format .required_value:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed blockskip]^^A
+% the separation with the surrounding text, above and below.
+% Initially |\topsep|.
+%    \begin{MacroCode}[ok]
+  blockskip .code:n = \CDR_tag_set:n { #1 },
+  blockskip .required_value:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed __initialize_block]^^A
+% the separation with the surrounding text.
+% Initially |\topsep|.
+%    \begin{MacroCode}[ok]
+  __initialize_default.block .meta:n = {
+    show~tags = true,
+    only~top = true,
+    use~margin = true,
+    tags~format = {
+      \sffamily
+      \scriptsize
+      \color{gray}
+    },
+    blockskip = \topsep,
+  }
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[ok]
+}
+%    \end{MacroCode}
+%
+% \section{\pkg{fancyvrb}}
+% These are \pkg{fancyvrb} options verbatim.
+% The \pkg{fancyvrb} manual has more details, only some parts are reproduced hereafter.
+% All of these options may not be relevant for all situations.
+% Some of them make no sense in |code| mode, whereas others may not be
+% compatible with the display engine.
+%
+% \CDRCheckRed THERE IS A BIG PROBLEM WITH THE \pkg{l3keys} |.initial:n| design
+% when I am relying on |\l_keys_path_str| to save values.
+% It is based on the module path used for the definition.
+%
+% \subsection{\texttt{\textbackslash c_CDR_tag/__fancyvrb.block}}
+% Block specific options.
+%    \begin{MacroCode}[ok]
+\keys_define:on { \c_CDR_tag / __fancyvrb.block } {
+%    \end{MacroCode}
+% \begin{description}
+% \itemtt[\CDRCheckRed commentchar=\meta{character}]^^A
+% lines starting with this character are ignored.
+% Initially empty.
+%    \begin{MacroCode}[ok]
+  commentchar .code:n = \CDR_tag_set:n { #1 },
+  commentchar .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed gobble=\meta{integer}]^^A
+% number of characters to suppress
+% at the beginning of each line (from 0 to 9),
+% mainly useful when environments are indented.
+% Only |block| mode.
+%    \begin{MacroCode}[ok]
+  gobble .choices:nn = {
+    0,1,2,3,4,5,6,7,8,9
+  } {
+    \CDR_tag_choices_set:
+  },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed frame=none$\vert$leftline$\vert$topline$\vert$bottomline$\vert$lines$\vert$single]^^A
+% type of frame around the verbatim environment.
+% With \texttt{leftline} and \texttt{single} modes, a space of a length given
+% by the \LaTeX{} |\fboxsep| macro is added between the left vertical line
+% and the text. Initially \texttt{none}: no frame.
+%    \begin{MacroCode}[ok]
+  frame .choices:nn =
+    { none, leftline, topline, bottomline, lines, single }
+    { \CDR_tag_choices_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed label={\{[\meta{top string}]^^A
+%\meta{string}\}}]
+% label(s) to print on top, bottom or both, frame lines.
+% If the label(s) contains special characters, comma or equal sign,
+% it must be placed inside a group.
+% If an optional \metatt{top string} is given between square brackets,
+% it will be used for the top line and \metatt{string} for the bottom line.
+% Otherwise, \metatt{string} is used for both the top or bottom lines.
+% Label(s) are printed only if the \texttt{frame} parameter is one of
+% \texttt{topline}, \texttt{bottomline}, \texttt{lines} or \texttt{single}.
+% Initially empty: no label.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  label .code:n = \CDR_tag_set:n { #1 },
+  label .value_required:n = true,
+%    \end{MacroCode}
+
+
+% \itemtt[\CDRCheckRed labelposition=none$\vert$topline$\vert$bottomline$\vert$all]^^A
+% position where to print the label(s) when defined.
+% When options happen to be contradictory,
+% like |frame=topline|,  |labelposition=bottomline|,
+% nothing is displayed.
+% Initially |none| when no labels are defined,
+% |topline| for one label and |all| otherwise.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  labelposition .choices:nn =
+    { none, topline, bottomline, all }
+    { \CDR_tag_choices_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed numbers=none$\vert$left$\vert$right]^^A
+% numbering of the verbatim lines.
+% If requested, this numbering is done outside the verbatim environment.
+% Initially none: no numbering.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  numbers .choices:nn =
+    { none, left, right }
+    { \CDR_tag_choices_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed numbersep=\meta{dimension}]^^A
+% gap between numbers and verbatim lines.
+% Initially 12pt.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  numbersep .code:n = \CDR_tag_set:n { #1 },
+  numbersep .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed firstnumber=auto$\vert$last$\vert$\meta{integer}]^^A
+% number of the first line.
+% |last| means that the numbering is continued from the previous verbatim environment.
+% If an integer is given, its value will be used to start the numbering.
+% Initially \texttt{auto}: numbering starts from 1.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  firstnumber .code:n = {
+    \regex_match:nnTF { ^(+|-)?\d+$ } { #1 } {
+      \CDR_tag_set:n { #1 }
+    } {
+      \str_case:nnF { #1 } {
+        { auto } { \CDR_tag_set:n { #1 } }
+        { last } { \CDR_tag_set:n { #1 } }
+      } {
+        \PackageWarning
+          { CDR }
+          { Value~`#1'~not~in~auto,~last. }
+      }
+    }
+  },
+  firstnumber .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed stepnumber=\meta{integer}]^^A
+% interval at which line numbers are printed.
+% Initially 1: all lines are numbered.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  stepnumber .code:n = \CDR_tag_set:n { #1 },
+  stepnumber .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed numberblanklines{[=true$\vert$false]}]^^A
+% to number or not the white lines (really empty or containing blank characters only).
+% Initially |true|: all lines are numbered.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  numberblanklines .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed firstline=\meta{integer}]^^A
+% first line to print.
+% Initially empty: all lines from the first are printed.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  firstline .code:n = \CDR_tag_set:n { #1 },
+  firstline .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed lastline=\meta{integer}]^^A
+% last line to print.
+% Initially empty: all lines until the last one are printed.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  lastline .code:n = \CDR_tag_set:n { #1 },
+  lastline .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed baselinestretch=auto$\vert$\meta{dimension}]^^A
+% value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
+% Initially \texttt{auto}: its current value just before the verbatim command.
+%    \begin{MacroCode}[ok]
+  baselinestretch .code: = \CDR_tag_set:n { #1 }, 
+  baselinestretch .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed xleftmargin=\meta{dimension}]^^A
+% indentation to add at the start of each line.
+% Initially |0pt|: no left margin.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  xleftmargin .code: = \CDR_tag_set:n { #1 }, 
+  xleftmargin .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed xrightmargin=\meta{dimension}]^^A
+% right margin to add after each line.
+% Initially |0pt|: no right margin.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  xrightmargin .code: = \CDR_tag_set:n { #1 }, 
+  xrightmargin .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed resetmargins{[=true$\vert$false]}]^^A
+% reset the left margin, which is useful if we are inside other indented environments.
+% Initially |true|.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  resetmargins .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: }, 
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed hfuzz=\meta{dimension}]^^A
+% value to give to the \TeX{} |\hfuzz| dimension for text to format.
+% This can be used to avoid seeing some unimportant overfull box messages.
+% Initially 2pt.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  hfuzz .code: = \CDR_tag_set:n { #1 }, 
+  hfuzz .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed samepage{[=true$\vert$false]}]^^A
+% in very special circumstances, we may want to make sure that a verbatim environment
+% is not broken, even if it does not fit on the current page.
+% To avoid a page break, we can set the samepage parameter to |true|.
+% Initially |false|.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  samepage .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckGreen __initialize_fancyvrb.block]^^A
+% Initialization.
+%    \begin{MacroCode}[ok]
+  __initialize_fancyvrb .meta:n = {
+    commentchar = ,
+    gobble = 0,
+    frame = none,
+    label = ,
+    labelposition = none,% auto?
+    numbers = left,
+    numbersep = \hspace{1ex},
+    firstnumber = auto,
+    stepnumber = 1,
+    numberblanklines = true,
+    firstline = ,
+    lastline = ,
+    baselinestretch = auto,
+    resetmargins = true,
+    xleftmargin = 0pt,
+    xrightmargin = 0pt,
+    hfuzz = 2pt,
+    samepage = false,
+  },
+  __initialize_fancyvrb.block .value_required:n = true,
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[ok]
+}
+%    \end{MacroCode}
+%
+% \subsection{ \texttt{\textbackslash c_CDR_tag / __fancyvrb } }
+%    \begin{MacroCode}[ok]
+\keys_define:on { \c_CDR_tag / __fancyvrb } {
+%    \end{MacroCode}
+% \begin{description}
+% \itemtt[\CDRCheckRed formatcom=\meta{command}]^^A
+% execute before printing verbatim text.
+% Initially empty.
+% Ignored in |code| mode.
+%    \begin{MacroCode}[ok]
+  formatcom .code:n = \CDR_tag_set:n { #1 },
+  formatcom .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed fontfamily=\meta{family name}]^^A
+% font family to use. |tt|, |courier| and |helvetica| are pre-defined.
+% Initially \texttt{tt}.
+%    \begin{MacroCode}[ok]
+  fontfamily .code:n = \CDR_tag_set:n { #1 },
+  fontfamily .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed fontsize=\meta{font size}]^^A
+% size of the font to use. If you use the \pkg{relsize} package as well,
+% you can require a change of the size proportional to the current one
+% (for instance: |fontsize=\relsize{-2}|).
+% Initially \texttt{auto}: the same as the current font.
+%    \begin{MacroCode}[ok]
+  fontsize .code:n = \CDR_tag_set:n { #1 },
+  fontsize .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed fontshape=\meta{font shape}]^^A
+% font shape to use. Initially \texttt{auto}: the same as the current font.
+%    \begin{MacroCode}[ok]
+  fontshape .code:n = \CDR_tag_set:n { #1 },
+  fontshape .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed showspaces{[=true$\vert$false]}]^^A
+% print a special character representing each space.
+% Initially |false|: spaces not shown.
+%    \begin{MacroCode}[ok]
+  showspaces .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed showtabs=true$\vert$false]^^A
+% explicitly show tab characters.
+% Initially |false|: tab characters not shown.
+%    \begin{MacroCode}[ok]
+  showtabs .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed obeytabs=true$\vert$false]^^A
+% position characters according to the tabs.
+% Initially false: tab characters are added to the current position.
+%    \begin{MacroCode}[ok]
+  obeytabs .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed tabsize=\meta{integer}]^^A
+% number of spaces given by a tab character,
+% Initially 2 (8 for \pkg{fancyvrb}).
+%    \begin{MacroCode}[ok]
+  tabsize .code:n = \CDR_tag_set:n { #1 },
+  tabsize .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed commandchars=\meta{three characters}]^^A
+% characters that define the character that starts a macro and marks the beginning
+% and end of a group; allows to introduce escape sequences in the verbatim code.
+% Of course, it is better to choose special characters that are not used in
+% the verbatim text!
+% Initially |none|.
+% Ignored in \pkg{pygment} mode.
+%    \begin{MacroCode}[ok]
+  commandchars .code: = \CDR_tag_set:n { #1 }, 
+  commandchars .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed codes=\meta{macro}]^^A
+% to specify catcode changes.
+% For instance, this allows us to include formatted mathematics in verbatim text.
+% Initially empty.
+% Ignored in \pkg{pygment} mode.
+%    \begin{MacroCode}[ok]
+  codes .code: = \CDR_tag_set:n { #1 }, 
+  codes .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed defineactive=\meta{macro}]^^A
+% to define the effect of active characters.
+% This allows to do some devious tricks, see the \pkg{fancyvrb} package.
+% Initially empty.
+%    \begin{MacroCode}[ok]
+  defineactive .code: = \CDR_tag_set:n { #1 }, 
+  defineactive .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckGreen reflabel=\meta{label}]^^A
+% define a label to be used with |\pageref|.
+% Initially empty.
+%    \begin{MacroCode}[ok]
+  reflabel .code: = \CDR_tag_set:n { #1 }, 
+  reflabel .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckGreen __initialize_fancyvrb]^^A
+% Initialization.
+%    \begin{MacroCode}[ok]
+    formatcom = ,
+    fontfamily = tt,
+    fontsize = auto,
+    fontshape = auto,
+    showspaces = false,
+    showtabs = false,
+    obeytabs = false,
+    tabsize = 2,
+    commandchars = ,
+    codes = ,
+    defineactive = ,
+    reflabel = ,
+  },
+  __initialize_fancyvrb .value_required:n = true,
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[ok]
+}
+%    \end{MacroCode}
+%
+% \section{\cs{CDRSet}}
+% \begin{function}{\CDRSet}
+% \begin{syntax}
+% \cs{CDRSet} \Arg{key[=value] list}
+% \end{syntax}
+% To set up the package. This is executed at least once at the end of the preamble.
+% The unique mandatory argument of \cs{CDRSet} is a
+% list of \texttt{\meta{key}[=\meta{value}]} items defined by
+% the \texttt{CDR:set} \pkg{l3keys} module.
+% \end{function}
+%
+% \subsection{Branching}
+% \begin{function}[TF]{\CDR_if_only_description:}
+% \begin{syntax}
+% \cs{CDR_if_only_description:TF} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Execute \metatt{true code} when only the description is expected,
+% \metatt{false code} otherwise.
+% \end{function}
+%
+% \subsection{\texttt{CDR:set} \pkg{l3keys} module}
+%    \begin{MacroCode}[ok]
+\keys_define:nn { CDR:set } {
+%    \end{MacroCode}
+% \begin{description}
+% \itemtt[\CDRCheckRed only description]^^A
+% to typeset only the description
+% section and ignore the implementation section.
+%    \begin{MacroCode}[ok]
+  only~description .choices:nn = { false, true, {} } {
+    \int_compare:nNnTF \l_keys_index_tl = 1 {
+      \cs_set_eq:NN \CDR_if_only_description:TF \use_ii:nn
+      \cs_set_eq:NN \CDR_if_only_description:F \use:n
+      \cs_set_eq:NN \CDR_if_only_description:T \use_none:n
+    } {
+      \cs_set_eq:NN \CDR_if_only_description:TF \use_i:nn
+      \cs_set_eq:NN \CDR_if_only_description:F \use_none:n
+      \cs_set_eq:NN \CDR_if_only_description:T \use:n
+    }
+  },
+  only~description .initial:n = false
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[ok]
+}
+%    \end{MacroCode}
+%
+%
+% \subsection{Implementation}
+% \begin{function}{\CDR_check_unknown:V}
+% \begin{syntax}
+% \cs{CDR_check_unknown:V} \marg{tl variable}
+% \end{syntax}
+% Check for unknown keys.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_check_unknown:V #1 {
+  \tl_if_empty:NF #1 {
+    \cs_set:Npn \CDRSet_unknown:n ##1 {
+      \PackageWarning
+        { coder }
+        { Unknow~key~`##1' }
+    }
+    \cs_set:Npn \CDRSet_unknown:nn ##1 ##2 {
+      \CDRSet_unknown:n { ##1 }
+    }
+    \exp_args:Nnno
+    \keys_parse:nnn {
+      \CDRSet_unknown:n
+    } {
+      \CDRSet_unknown:nn
+    } #1
+  }
+}
+%    \end{MacroCode}
+%    \begin{MacroCode}[ok]
+\NewDocumentCommand \CDRSet { m } {
+  \keys_set:nn { CDR:set } { __initialize_set }
+  \keys_set_known:nnnN { CDR:set } { #1 } { CDR:set } \l_CDR_tl
+  \keys_set_known:oooN
+    \c_CDR_tag \l_CDR_tl \c_CDR_tag \l_CDR_tl
+  \exp_args:NV
+  \CDR_tag_provide_from_keyval:n \l_CDR_tl
+  \keys_set_known:oooN
+    { \c_CDR_tag / default.block } { \l_CDR_tl }
+    { \c_CDR_tag / default.block } \l_CDR_tl
+  \keys_set_known:oooN
+    { \c_CDR_tag / default.code } { \l_CDR_tl }
+    { \c_CDR_tag / default.code } \l_CDR_tl
+  \keys_set_known:oooN
+    { \c_CDR_tag / default } { \l_CDR_tl }
+    { \c_CDR_tag / default } \l_CDR_tl
+  \CDR_check_unknown:V \l_CDR_tl
+}
+%    \end{MacroCode}
+%
+%
+% \section{\cs{CDRExport}}
+% \begin{function}{\CDRExport}
+% \begin{syntax}
+% \cs{CDRExport} \Arg{key[=value] controls}
+% \end{syntax}
+% The \texttt{\meta{key}[=\meta{value}]} controls are defined by
+% \texttt{CDR:export} \pkg{l3keys} module.
+% \end{function}
+%
+% \subsection{Storage}
+% \begin{variable}{\g_CDR_export_prop}
+% Global storage for \texttt{\meta{file name}=\meta{file export info}}
+%    \begin{MacroCode}[ok]
+\prop_new:N \g_CDR_export_prop
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\l_CDR_file_tl}
+% Store the file name used for exportation, used as key in the above property list.
+%    \begin{MacroCode}[ok]
+\tl_new:N \l_CDR_file_tl
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\l_CDR_tags_clist}
+% Used by \texttt{CDR:export} \pkg{l3keys} module to temporarily store tags
+% during the export declaration.
+%    \begin{MacroCode}[ok]
+\clist_new:N \l_CDR_tags_clist
+%    \end{MacroCode}
+% \end{variable}
+%
+% \begin{variable}{\l_CDR_export_prop}
+% Used by \texttt{CDR:export} \pkg{l3keys} module to temporarily store properties.
+% \emph{Nota Bene}: nothing similar with |\g_CDR_export_prop| except the name.
+%    \begin{MacroCode}[ok]
+\prop_new:N \l_CDR_export_prop
+%    \end{MacroCode}
+% \end{variable}
+%
+% \subsection{\texttt{CDR:export} \pkg{l3keys} module}
+% No initial value is given for every key.
+% An |__initialize_export| action will set the storage with proper initial values.
+%    \begin{MacroCode}[ok]
+\keys_define:nn { CDR:export } {
+%    \end{MacroCode}
+% \begin{description}
+% \itemtt[\CDRCheckRed file=\meta{name}]^^A
+% the output file name, must be provided otherwise an error is raised.
+%    \begin{MacroCode}[ok]
+  file .tl_set:N = \l_CDR_file_tl,
+  file .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed tags=\meta{tags comma list}]^^A
+% the list of tags. No exportation when this list is void.
+% Initially empty.
+%    \begin{MacroCode}[ok]
+  tags .code:n = {
+    \clist_set:Nn \l_CDR_clist { #1 }
+    \clist_remove_duplicates:N \l_CDR_clist
+    \clist_remove_all:Nn \l_CDR_clist {}
+    \prop_put:Noo \l_CDR_export_prop \l_keys_key_str \l_CDR_clist
+  },
+  tags .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed lang]^^A
+% one of the languages \pkg{pygment} is aware of.
+% Initially |tex|.
+%    \begin{MacroCode}[ok]
+  lang .code:n = {
+    \prop_put:Non \l_CDR_export_prop \l_keys_key_str { #1 }
+  },
+  lang .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed preamble]^^A
+% the added preamble.
+% Initially empty.
+%    \begin{MacroCode}[ok]
+  preamble .code:n = {
+    \prop_put:Non \l_CDR_export_prop \l_keys_key_str { #1 }
+  },
+  preamble .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed postamble]^^A
+% the added postamble.
+% Initially empty.
+%    \begin{MacroCode}[ok]
+  postamble .code:n = {
+    \prop_put:Non \l_CDR_export_prop \l_keys_key_str { #1 }
+  },
+  postamble .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed raw{[=true$\vert$false]}]^^A
+% true to remove any additional material, false otherwise.
+% Initially |false|.
+%    \begin{MacroCode}[ok]
+  raw .choices:nn = { false, true, {} } {
+    \prop_put:Nxx \l_CDR_export_prop \l_keys_key_str {
+      \int_compare:nNnTF
+        \l_keys_index_tl = 1 { false } { true }
+    }
+  },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckGreen __initialize_export]^^A
+% Meta key to properly initialize all the variables.
+%    \begin{MacroCode}[ok]
+  __initialize_export .meta:n = {
+    __initialize_prop,
+    file=,
+    tags=,
+    lang=tex,
+    preamble=,
+    postamble=,
+    raw=false,
+  },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckGreen __initialize_prop]^^A
+% properly initialize the local property storage.
+%    \begin{MacroCode}[ok]
+  __initialize_prop .code:n = \prop_clear:N \l_CDR_export_prop,
+%    \end{MacroCode}
+% \end{description}
+% 
+% \subsection{Implementation}
+%    \begin{MacroCode}[ok]
+\DeclareDocumentCommand \CDRExport { m } {
+  \keys_set:nn { CDR:export } { __initialize_export }
+  \keys_set_known:nnnN
+    { CDR:export } { #1 } { CDR:export } \l_CDR_tl
+  \tl_if_empty:NTF \l_CDR_file_tl {
+    \PackageWarning
+      { coder }
+      { Missing~key~`file' }
+  } {
+    \CDR_check_unknown:V \l_CDR_tl
+    \prop_put:Nno \l_CDR_prop { file } \l_CDR_file_tl
+    \prop_gput:Noo \g_CDR_export_prop \l_CDR_file_tl \l_CDR_prop
+%    \end{MacroCode}
+% If a |lang| is given, forwards the declaration
+% to all the tagged chunks.
+%    \begin{MacroCode}[ok]
+    \prop_get:NnNT \l_CDR_prop { tags } \l_CDR_clist {
+      \prop_get:NnNT \l_CDR_prop { lang } \l_CDR_tl {
+        \clist_map_inline:Nn \l_CDR_clist {
+          \exp_args:Nnno
+          \CDR_tag_set:nnn { ##1 } { lang } \l_CDR_tl
+        }
+      }
+    }
+  }
+}
+%    \end{MacroCode}
+% \begin{function}[TF]{\CDR_if_truthy:x}
+% \begin{syntax}
+% \cs{CDR_if_truthy:xTF} \Arg{token list} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Execute \metatt{true code} when \metatt{token list} is a truthy value
+% once expanded, \metatt{false code} otherwise.
+% A truthy value is a text which leading character is one of ``tTyY''.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_if_truthy:x { T, F, TF } {
+  \exp_args:Nnx
+  \regex_match:nnTF { ^[tTyY] } { #1 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+% Files are created at the end of the typesetting process.
+%    \begin{MacroCode}[ok]
+\AddToHook { enddocument / end } {
+  \prop_map_inline:Nn \g_CDR_export_prop {
+    \tl_set:Nn \l_CDR_prop { #2 }
+    \str_set:Nx \l_CDR_str {
+      \prop_item:Nn \l_CDR_prop { file }
+    }
+    \lua_now:n { CDR:export_file('l_CDR_str') }
+    \clist_map_inline:nn {
+      tags, raw, preamble, postamble
+    } {
+      \str_set:Nx \l_CDR_str {
+        \prop_item:Nn \l_CDR_prop { ##1 }
+      }
+      \lua_now:n {
+        CDR:export_file_info('##1','l_CDR_str')
+      }
+    }
+    \lua_now:n { CDR:export_file_complete() }
+  }
+}
+%    \end{MacroCode}
+%
+% \section{Creating display engines}
+% \begin{function}{\CDRNewCodeEngine, \CDRRenewCodeEngine}
+% \begin{syntax}
+% \cs{CDRNewCodeEngine}\Arg{engine name}\Arg{method body}
+% \cs{CDRRenewCodeEngine}\Arg{engine name}\Arg{method body}
+% \end{syntax}
+% \metatt{engine name} is a non void string, once expanded.
+% The code methods create a command with a unique argument which is the colored code.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDRNewCodeEngine #1 #2 {
+  \exp_args:Nx
+  \str_if_empty:nTF { #1 } {
+    \PackageWarning
+      { coder }
+      { The~engine~cannot~be~void. }
+  } {
+    \cs_new:cpn { \CDR_code_engine:n {#1} } ##1 {
+      #2
+    }
+    \ignorespaces
+  }
+}
+%    \end{MacroCode}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDRRenewCodeEngine #1 #2 {
+  \exp_args:Nx
+  \str_if_empty:nTF { #1 } {
+    \PackageWarning
+      { coder }
+      { The~engine~cannot~be~void. }
+  } {
+    \cs_if_exist:cTF { \CDR_code_engine:n { #1 } } {
+      \cs_set:cpn { \CDR_code_engine:n { #1 } ##1 {
+        #2
+      }
+    } {
+      \PackageWarning
+        { coder }
+        { No~code~method~#1.}
+    }
+    \ignorespaces
+  }
+}
+%    \end{MacroCode}
+% \begin{function}{\CDRNewBlockEngine, \CDRRenewBlockEngine}
+% \begin{syntax}
+% \cs{CDRNewBlockEngine}\Arg{engine name}\Arg{begin instructions}\Arg{end instructions}
+% \cs{CDRRenewBlockEngine}\Arg{engine name}\Arg{begin instructions}\Arg{end instructions}
+% \end{syntax}
+% \metatt{engine name} is a non void string.
+% The block methods create an environment.
+% Various options are available with the |\CDRGetOption| function.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDRNewBlockEngine #1 #2 {
+  \NewDocumentEnvironment { \CDR_block_engine:n { #1 } } {} {
+    \cs_set_eq:NN \CDRGetOption \CDR_tag_get:n
+    #2
+  }
+}
+%    \end{MacroCode}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDRRenewBlockEngine #1 #2 {
+  \tl_if_empty:nTF { #1 } {
+    \PackageWarning
+      { coder }
+      { The~engine~cannot~be~void. }
+      \use_none:n
+  } {
+    \RenewDocumentEnvironment { \CDR_block_engine:n { #1 } } {} {
+      \cs_set_eq:NN \CDRGetOption \CDR_tag_get:n
+      #2
+    }
+  }
+}
+%    \end{MacroCode}
+% \begin{function}[EXP,TF]{\CDR_has_code_engine:n}
+% \begin{syntax}
+% \cs{CDR_has_code_engine:nTF} \Arg{engine name} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% If there exists a code engine with the given \metatt{engine name},
+% execute \metatt{true code}.
+% Otherwise, execute \metatt{false code}.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_has_code_engine:n { T, F, TF } {
+  \cs_if_exist:cTF { \CDR_code_engine:n { #1 } } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+% \begin{function}[EXP,TF]{\CDR_has_block_engine:n}
+% \begin{syntax}
+% \cs{CDR_has_block_engine:n} \Arg{engine name} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% If there exists a block engine with the given \metatt{engine name},
+% execute \metatt{true code}, otherwise, execute \metatt{false code}.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_has_block_engine:n { T, F, TF } {
+  \cs_if_exist:cTF { \CDR_block_engine:n { #1 } } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+%
+% \subsection{Code mode default engine}
+%    \begin{MacroCode}
+\CDRNewCodeEngine {} {
+}
+%    \end{MacroCode}
+% 
+% \subsection{Block mode default engine}
+%    \begin{MacroCode}
+\CDRNewBlockEngine {} {
+} {
+}
+%    \end{MacroCode}
+% 
+% \section{\cs{CDRCode} function}
+%
+% \subsection{Storage}
+% \begin{variable}{\l_CDR_tag_tl}
+% To store the tag given.
+%    \begin{MacroCode}[ok]
+\tl_new:N \l_CDR_tag_tl
+%    \end{MacroCode}
+% \end{variable}
+%
+% \subsection{\texttt{CDR/code} \pkg{l3keys} module}
+% This is the module used to parse the user interface of the \cs{CDRCode} command.
+%    \begin{MacroCode}[ok]
+\keys_define:nn { CDR/code } {
+%    \end{MacroCode}
+% \begin{description}
+% \itemtt[\CDRCheckGreen tag=\meta{name}]^^A
+% to use the settings of the already existing named tag to display.
+%    \begin{MacroCode}[ok]
+  tag .tl_set:N = \l_CDR_tag_tl,
+  tag .value_required:n = true,
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[ok]
+}
+%    \end{MacroCode}
+%
+% \subsection{Implementation}
+% \begin{function}{\CDRCode}
+% \begin{syntax}
+% \cs{CDRCode}\Arg{key[=value]}\meta{delimiter}\meta{code}\meta{same delimiter}
+% \end{syntax}
+% \end{function}
+%    \begin{MacroCode}[ok]
+\NewDocumentCommand \CDRCode { mm } {
+  \group_begin:
+    \keys_define:ox { \c_CDR_tag } {
+      __local .inherit:n = {
+        CDR/code,
+        \c_CDR_tag/default.code,
+        \c_CDR_tag/default,
+      }, 
+    }
+    \str_set:No \l_CDR_str { \CDR_tag:n { __local } }
+    \keys_set_known:onoN
+      \l_CDR_str { #1 } \l_CDR_str \l_CDR_tl
+    \CDR_check_unknown:V \l_CDR_tl
+    \exp_aegs:Nono
+    \keys_set_known:onoN
+      \l_CDR_str { #1 } \l_CDR_str \l_CDtl
+    \CDR_check_unknown:V \l_CDtl
+    \DefineShortVerb { #2 }
+    \exp_args:Nnx
+    \CDR_tag_inherit:nn { __local } {
+      \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
+      default.code,
+      default,
+    }
+    \CDR_to_lua:
+    \exp_args:Nx \label { \CDR_tag_get:n {reflabel} }
+    \SaveVerb
+      [aftersave={
+       \UndefineShortVerb { #2 }
+       \lua_now:n {CDR:process_code('FV@SV@CDRCode')}
+       \group_end:
+      }]
+      {CDRCode}
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\CDR_to_lua:}
+% \begin{syntax}
+% \cs{CDR_to_lua:}
+% \end{syntax}
+% Retrieve info from the tree storage and forwards to |lua|.
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_to_lua: {
+  \lua_now:n { CDR:options_reset() }
+  \prop_clear:N \l_CDR_prop
+  \seq_map_inline:Nn \g_CDR_tag_path_seq {
+    \CDR_tag_get:nNT { ##1 } \l_CDR_tl {
+      \str_set:Nx \l_CDR_str { \l_CDR_tl }
+      \lua_now:n { CDR:option_add('##1','l_CDR_str') }
+    }
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+%
+%
+% \section{\texttt{CDRBlock} environment}
+%
+% \begin{environment}{CDRBlock}
+% \begin{syntax}
+% \cs{begin}\{CDRBlock\}\Arg{key[=value list]} ... \cs{end}\{CDRBlock\}
+% \end{syntax}
+% \end{environment}
+%
+%
+% \subsection{Storage}
+% \begin{variable}{\l_CDR_tags_tl}
+%    \begin{MacroCode}
+\tl_new:N \l_CDR_tags_tl
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\l_CDR_block_prop}
+%    \begin{MacroCode}
+\prop_new:N \l_CDR_block_prop
+%    \end{MacroCode}
+% \end{variable}
+%
+% \subsection{\texttt{CDR/block} \pkg{l3keys} module}
+% This is the module used to parse the user interface of the |CDRBlock| environment.
+% \begin{description}
+% \itemtt[tag related keys]^^A
+% See \texttt{\textbackslash c_CDR_tag} \pkg{l3keys} module,
+%    \begin{MacroCode}
+\keys_define:nn { CDR } {
+  block .inherit:n = {CDR/default.block, CDR/default}, 
+}
+\keys_define:nn { CDR / block } {
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed tags=\meta{tag name comma list}]^^A
+% to export and display.
+%    \begin{MacroCode}
+  tags .code:n = {
+    \clist_set:Nn \l_CDR_clist { #1 }
+    \clist_remove_duplicates:N \l_CDR_clist
+    \clist_remove_all:N \l_CDR_clist {}
+    \exp_args:Nx \CDR_tag_set:n { \clist_use:Nn \l_CDR_clist , }
+  },
+  tags .required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed ignore{[=true$\vert$false]}]^^A
+% to ignore this code chunk.
+%    \begin{MacroCode}
+  ignore .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+  ignore .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed test{[=true$\vert$false]}]^^A
+% whether the chunk is a test,
+%    \begin{MacroCode}
+  test .choices:nn =
+    { false, true, {} } { \CDR_tag_boolean_set: },
+  test .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed __initialize_block]^^A
+% initialize
+%    \begin{MacroCode}
+  __initialize_block .meta:n = {
+    __initialize_default,
+    __initialize_default.block,
+    tags = ,
+    ignore = false,
+    test= false,
+  },
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}
+}
+%    \end{MacroCode}
+%
+% \subsection{Context}
+% Inside the |CDRBlock| environments,
+% some local variables are available:
+% \begin{description}
+% \item [\CDRCheckRed \cs{l_CDR_tags_clist}]
+% \end{description}
+% \subsection{Implementation}
+% We start by saving some macros that we further want to extend.
+% The unique mandatory argument of these macros will eventually be recorded
+% to be saved later on.
+%    \begin{MacroCode}
+\cs_set_eq:NN \CDR@ListProcessLine@i \FV@ListProcessLine@i
+\cs_set_eq:NN \CDR@ListProcessLine@ii \FV@ListProcessLine@ii
+\cs_set_eq:NN \CDR@ListProcessLine@iii \FV@ListProcessLine@iii
+\cs_set_eq:NN \CDR@ListProcessLine@iv \FV@ListProcessLine@iv
+\cs_new:Npn \CDR_record_line:n #1 {
+  \tl_set:Nn \l_CDR_tl { #1 }
+  \lua_now:n {CDR:record_line('\l_CDR_tl', 'l_CDR_tags_tl')}
+}
+%    \end{MacroCode}
+
+%    \begin{MacroCode}
+\def\FVB@CDRBlock #1 {
+  \@bsphack
+  \group_begin:
+  \keys_define:ox { \c_CDR_tag } {
+    __local .inherit:n = {
+      CDR/block,
+      \CDR_tag:n { default.block },
+      \CDR_tag:n { default },
+    }
+  }
+  \keys_set:xn { \CDR_tag: { __local } } { #1 }
+  \keys_define:ox { \c_CDR_tag_get } {
+    __local .inherit:n = {
+      \clist_if_empty:NF \l_CDR_tags_clist {
+        \c_CDR_tag_get/\clist_use:Nn \l_CDR_tags_clist {,\c_CDR_tag_get/}
+      },
+      \c_CDR_tag_get/default.block,      
+      \c_CDR_tag_get/default,
+    }
+  }
+  \CDR_feed_local_prop:
+  \CDR_tag_get:nN {reflabel} \l_CDR_tl
+  \exp_args:NV \label \l_CDR_tl
+  \tl_if_empty:NF \l_CDR_tags_tl {
+    \lua_now:n { CDR:record_new('l_CDR_tags_tl') }
+    \cs_set:Npn \FV@ListProcessLine@i ##1 {
+      \CDR_record_line:n { ##1 }
+      \CDR@ListProcessLine@i { ##1 }
+    }
+    \cs_set:Npn \FV@ListProcessLine@ii ##1 {
+      \CDR_record_line:n { ##1 }
+      \CDR@ListProcessLine@ii { ##1 }
+    }
+    \cs_set:Npn \FV@ListProcessLine@iii ##1 {
+      \CDR_record_line:n { ##1 }
+      \CDR@ListProcessLine@iii { ##1 }
+    }
+    \cs_set:Npn \FV@ListProcessLine@iv ##1 {
+      \CDR_record_line:n { ##1 }
+      \CDR@ListProcessLine@iv { ##1 }
+    }
+  }
+  \FV@VerbatimBegin
+  \FV@Scan
+}
+\def\FVE@CDRBlock{
+  \FV@VerbatimEnd
+  \group_end:
+  \@esphack
+}
+\DefineVerbatimEnvironment{CDRBlock}{CDRBlock}{}
+
+
+\NewDocumentEnvironment{pygmented}{+O{}m}{%
+  \lua_now:n {CDR:record_start()}
+  \CDR@process@options{#1}%
+  \immediate\write\CDR@outfile{<@@CDR@display@\the\CDR@counter}%
+  \immediate\write\CDR@outfile{
+    \exp_args:NV\detokenize\CDR@global@options,\detokenize{#1}
+  }%
+  \VerbatimEnvironment
+  \begin{VerbatimOutAppend}{\CDR@outfile}%
+}{%
+  \end{VerbatimOutAppend}%
+  \immediate\write\CDR@outfile{>@@CDR@display@\the\CDR@counter}%
+  \csname CDR@snippet@\the\CDR@counter\endcsname
+  \global\advance\CDR@counter by 1\relax
+}
+
+%    \end{MacroCode}
+% 
+%
+% \section{The \texttt{\CDRPygVerbatim} environment}
+% This is the environment wrapping the \pkg{pygment}ized code when in block mode.
+% It is the sole content of the various |*.pyg.tex| files.
+%    \begin{MacroCode}
+\def\FVB@CDR@Pyg@Verbatim #1 {
+  \group_begin:
+  \FV@VerbatimBegin
+  \FV@Scan
+}
+\def\FVE@CDR@Pyg@Verbatim{
+  \FV@VerbatimEnd
+  \group_end:
+}
+\DefineVerbatimEnvironment{CDR@Pyg@Verbatim}{CDR@Pyg@Verbatim}{}
+
+%    \end{MacroCode}
+% 
+%
+% \section{More}
+% \begin{function} [EXP, TF] {\CDR_if_record:}
+%   \begin{syntax}
+%     \cs{CDR_if_record:TF} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+% Execute \meta{true code} when code should be recorded, \meta{false code} otherwise.
+% The code should be recorded for the |CDRBlock| environment
+% when there is a non empty list of tags and pygment is used.
+% \emph{Implementation details}: we assume that if |\l_CDR_tags_clist| is not empty
+% then we are in a |CDRBlock| environment.
+%    \begin{MacroCode}[ok]
+\prg_new_conditional:Nnn \CDR_if_record: { T, F, TF } {
+  \clist_if_empty:NTF \l_CDR_tags_clist {
+    \prg_return_false:
+  } {
+    \CDR_if_use_pygment:TF {
+      \prg_return_true:
+    } {
+      \prg_return_false:
+    }
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_process_record: {
+  \tl_put_right:Nx \l_CDR_recorded_tl { \the\verbatim@line \iow_newline: }
+  \group_begin:
+  \tl_set:Nx \l_tmpa_tl { \the\verbatim@line }
+  \lua_now:e {CDR.records.append([===[\l_tmpa_tl]===])}
+  \group_end:
+}
+%    \end{MacroCode}
+% \begin{environment}{CDR}
+% \begin{syntax}
+% \cs{begin}\Arg{CDR} ... \cs{end}\Arg{CDR}
+% \end{syntax}
+% Private environment.
+% \end{environment}
+%    \begin{MacroCode}
+\newenvironment{CDR}{
+  \def \verbatim@processline {
+    \group_begin:
+    \CDR_processline_code_append:
+    \group_end:
+  }
+%  \CDR_if_show_code:T {
+%    \CDR_if_use_minted:TF {
+%      \Needspace* { 2\baselineskip }
+%    } {
+%      \frenchspacing\@vobeyspaces
+%    }
+%  }
+} {
+  \CDR:nNTF { lang } \l_tmpa_tl {
+    \tl_if_empty:NT \l_tmpa_tl {
+      \clist_map_inline:Nn \l_CDR_clist {
+        \CDR:nnNT { ##1 } { lang } \l_tmpa_tl {
+          \tl_if_empty:NF \l_tmpa_tl {
+            \clist_map_break:
+          }
+        }
+      }
+      \tl_if_empty:NT \l_tmpa_tl {
+        \tl_set:Nn \l_tmpa_tl { tex }
+      }
+    }
+  } {
+    \tl_set:Nn \l_tmpa_tl { tex }
+  }
+% NO WAY
+  \clist_map_inline:Nn \l_CDR_clist {
+    \CDR_gput:nnV { ##1 } { lang } \l_tmpa_tl
+  }
+}
+%    \end{MacroCode}
+% \begin{environment}{CDR.M}
+% \begin{syntax}
+% \cs{begin}\Arg{CDR.M} ... \cs{end}\Arg{CDR.N}
+% \end{syntax}
+% Private environment when \texttt{minted}.
+% \end{environment}
+%    \begin{MacroCode}
+\newenvironment{CDR_M}{
+  \setkeys { FV } { firstnumber=last, }
+  \clist_if_empty:NTF \l_CDR_clist {
+    \exp_args:Nnx \setkeys { FV } {
+      firstnumber=\CDR_int_use:n { },
+  } } {
+    \clist_map_inline:Nn \l_CDR_clist {
+      \exp_args:Nnx \setkeys { FV } {
+        firstnumber=\CDR_int_use:n { ##1 },
+      }
+      \clist_map_break:
+  } }
+  \iow_open:Nn \minted@code { \jobname.pyg }
+  \tl_set:Nn \l_CDR_line_tl {
+    \tl_set:Nx \l_tmpa_tl { \the\verbatim@line }
+    \exp_args:NNV \iow_now:Nn \minted@code \l_tmpa_tl
+  }
+} {
+  \CDR_if_show_code:T {
+    \CDR_if_use_minted:TF {
+      \iow_close:N \minted@code
+      \vspace* { \dimexpr -\topsep-\parskip }
+      \tl_if_empty:NF \l_CDR_info_tl {
+        \tl_use:N \l_CDR_info_tl
+        \vspace* { \dimexpr -\topsep-\parskip-\baselineskip }        
+        \par\noindent
+      }
+      \exp_args:NV \minted@pygmentize \l_tmpa_tl
+      \DeleteFile { \jobname.pyg }
+      \vspace* { \dimexpr -\topsep -\partopsep }
+    } {
+      \@esphack
+    }
+  }
+}
+%    \end{MacroCode}
+% \begin{environment}{CDR.P}
+% \begin{syntax}
+% \cs{begin}\Arg{CDR.P} ... \cs{end}\Arg{CDR.P}
+% \end{syntax}
+% Private pseudo environment.
+% This is just a practical way of declaring balanced actions.
+% \end{environment}
+%    \begin{MacroCode}
+\newenvironment{CDR_P}{
+  \if_mode_vertical:
+    \noindent
+  \else
+    \vspace*{ \topsep }
+    \par\noindent
+  \fi
+  \CDR_gset_chunks:
+  \tl_if_empty:NTF \g_CDR_chunks_tl {
+    \CDR_if:nTF {show_lineno} {
+      \CDR_if_use_margin:TF {
+%    \end{MacroCode}
+% No chunk name, line numbers in the margin
+%    \begin{MacroCode}
+        \tl_set:Nn \l_CDR_info_tl {
+          \hbox_overlap_left:n {
+            \CDR:n { format/code }
+            {
+              \CDR:n { format/name }
+              \CDR:n { format/lineno }
+              \clist_if_empty:NTF \l_CDR_clist {
+                \CDR_int_use:n { }
+              } {
+                \clist_map_inline:Nn \l_CDR_clist {
+                  \CDR_int_use:n { ##1 }
+                  \clist_map_break:
+                }
+              }
+            }
+            \hspace*{1ex}
+          }
+        }
+      } {
+%    \end{MacroCode}
+% No chunk name, line numbers not in the margin
+%    \begin{MacroCode}
+        \tl_set:Nn \l_CDR_info_tl {
+          {
+            \CDR:n { format/code }
+            {
+              \CDR:n { format/name }
+              \CDR:n { format/lineno }
+              \hspace*{3ex}
+              \hbox_overlap_left:n {
+                \clist_if_empty:NTF \l_CDR_clist {
+                  \CDR_int_use:n { }
+                } {
+                  \clist_map_inline:Nn \l_CDR_clist {
+                    \CDR_int_use:n { ##1 }
+                    \clist_map_break:
+                  }
+                }
+              }
+              \hspace*{1ex}
+            }
+          }
+        }        
+      }
+    } {
+%    \end{MacroCode}
+% No chunk name, no line numbers
+%    \begin{MacroCode}
+      \tl_clear:N \l_CDR_info_tl
+    }    
+  } {
+    \CDR_if:nTF {show_lineno} {
+%    \end{MacroCode}
+% Chunk names, line numbers, in the margin
+%    \begin{MacroCode}
+      \tl_set:Nn \l_CDR_info_tl {
+        \hbox_overlap_left:n {
+          \CDR:n { format/code }
+          {
+            \CDR:n { format/name }
+            \g_CDR_chunks_tl :
+            \hspace*{1ex}
+            \CDR:n { format/lineno }
+            \clist_map_inline:Nn \l_CDR_clist {
+              \CDR_int_use:n { ####1 }
+              \clist_map_break:
+            }
+          }
+          \hspace*{1ex}
+        }
+        \tl_set:Nn \l_CDR_info_tl {
+          \hbox_overlap_left:n {
+            \CDR:n { format/code }
+            {
+              \CDR:n { format/name }
+              \CDR:n { format/lineno }
+              \clist_map_inline:Nn \l_CDR_clist {
+                \CDR_int_use:n { ####1 }
+                \clist_map_break:
+              }
+            }
+            \hspace*{1ex}
+          }
+        }
+      }
+    } {
+%    \end{MacroCode}
+% Chunk names, no line numbers, in the margin
+%    \begin{MacroCode}
+      \tl_set:Nn \l_CDR_info_tl {
+        \hbox_overlap_left:n {
+          \CDR:n { format/code }
+          {
+            \CDR:n { format/name }
+            \g_CDR_chunks_tl :
+          }
+          \hspace*{1ex}
+        }
+        \tl_clear:N \l_CDR_info_tl
+      }
+    }
+  }
+  \CDR_if_use_minted:F {
+    \tl_set:Nn \l_CDR_line_tl {
+      \noindent
+      \hbox_to_wd:nn { \textwidth } {
+        \tl_use:N \l_CDR_info_tl
+        \CDR:n { format/code }
+        \the\verbatim@line        
+        \hfill
+      }
+      \par
+    }
+    \@bsphack
+  }
+} {
+  \vspace*{ \topsep }
+  \par
+  \@esphack
+}
+%    \end{MacroCode}
+%
+% \section{Management}
+% \begin{variable}{\g_CDR_in_impl_bool}
+% Whether we are currently in the implementation section.
+%    \begin{MacroCode}
+\bool_new:N \g_CDR_in_impl_bool
+%    \end{MacroCode}
+% \end{variable}
+% \begin{function}[TF]
+%   {\CDR_if_show_code:}
+%   \begin{syntax}
+%     \cs{CDR_if_show_code:TF} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+%   Execute \meta{true code} when code should be printed, \meta{false code} otherwise.
+%    \begin{MacroCode}
+\prg_new_conditional:Nnn \CDR_if_show_code: { T, F, TF } {
+  \bool_if:nTF {
+    \g_CDR_in_impl_bool && !\g_CDR_with_impl_bool
+  } {
+    \prg_return_false:
+  } {
+    \prg_return_true:
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+%
+% \begin{variable}{\g_CDR_with_impl_bool}
+%    \begin{MacroCode}
+\bool_new:N \g_CDR_with_impl_bool
+%    \end{MacroCode}
+% \end{variable}
+%
+% \section{\texttt{minted} and \texttt{pygment}}
+% \begin{variable}{\g_CDR_minted_on_bool}
+% Whether minted is available, initially set to \texttt{false}.
+%    \begin{MacroCode}
+\bool_new:N \g_CDR_minted_on_bool
+%    \end{MacroCode}
+% \end{variable}
+% \begin{variable}{\g_CDR_use_minted_bool}
+% Whether minted is used, initially set to \texttt{false}.
+%    \begin{MacroCode}
+\bool_new:N \g_CDR_use_minted_bool
+%    \end{MacroCode}
+% \end{variable}
+% \begin{function}[TF]
+%   {\CDR_if_use_minted:}
+%   \begin{syntax}
+%     \cs{CDR_if_use_minted:TF} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+%   Execute \meta{true code} when using |minted|, \meta{false code} otherwise.
+%    \begin{MacroCode}
+\prg_new_conditional:Nnn \CDR_if_use_minted: { T, F, TF } {
+  \bool_if:NTF \g_CDR_use_minted_bool
+    { \prg_return_true:  }
+    { \prg_return_false: }
+}
+%    \end{MacroCode}
+% \end{function}
+%
+% \begin{function}{\_CDR_minted_on:}
+% \begin{syntax}
+% \cs{_CDR_minted_on:}
+% \end{syntax}
+% Private function. During the preamble, loads \pkg{minted},
+% sets \cs{g_CDR_minted_on_bool} to \texttt{true} and prepares \texttt{pygment} processing.
+% \end{function}
+%    \begin{MacroCode}
+\cs_set:Npn \_CDR_minted_on: {
+  \bool_gset_true:N \g_CDR_minted_on_bool
+  \RequirePackage{minted}
+  \setkeys{ minted@opt@g } { linenos=false }
+  \minted@def@opt{post~processor}
+  \minted@def@opt{post~processor~args}
+  \pretocmd\minted@inputpyg{
+    \CDR@postprocesspyg {\minted@outputdir\minted@infile}
+  }{}{\fail}  
+%    \end{MacroCode}
+% In the execution context of \cs{minted@inputpyg},
+% \begin{description}
+% \item[\texttt{\#1}] is the name of the python script, e.g., ``\texttt{process.py}''
+% \item[\texttt{\#2}] is the input ``.pygtex'' file ``\cs{minted@outputdir}\cs{minted@infile}''
+% \item[\texttt{\#3}] are more args passed to the python script, possibly empty
+% \end{description}
+%    \begin{MacroCode}
+  \newcommand{\CDR@postprocesspyg}[1]{%
+    \group_begin:
+    \tl_set:Nx \l_tmpa_tl {\CDR:n { post_processor } }
+    \tl_if_empty:NF \l_tmpa_tl {
+%    \end{MacroCode}
+% Execute \texttt{`python3 <script.py> <file.pygtex> <more_args>`}
+%    \begin{MacroCode}
+      \tl_set:Nx \l_tmpb_tl {\CDR:n { post_processor_args } }
+      \exp_args:Nx
+      \sys_shell_now:n {
+        python3\space
+        \l_tmpa_tl\space
+        ##1\space
+        \l_tmpb_tl
+      }  
+    }
+    \group_end:
+  }
+}
+%    \end{MacroCode}
+%    \begin{MacroCode}
+%\AddToHook { begindocument / end } {
+%  \cs_set_eq:NN \_CDR_minted_on: \prg_do_nothing:
+%}
+%    \end{MacroCode}
+% Utilities to setup |pygment| post processing.
+% The |pygment| post processor marks some code with \cs{CDREmph}.
+%    \begin{MacroCode}
+\ProvideDocumentCommand{\CDREmph}{m}{\textcolor{red}{#1}}
+%    \end{MacroCode}
+%
+% \begin{function}{\CDRPreamble}
+% \begin{syntax}
+% \cs{CDRPreamble} \Arg{variable} \Arg{file name}
+% \end{syntax}
+% Store the content of \meta{file name} into the variable \meta{variable}.
+% \end{function}
+%    \begin{MacroCode}
+\DeclareDocumentCommand \CDRPreamble { m m } {
+  \msg_info:nnn
+    { coder }
+    { :n }
+    { Reading~preamble~from~file~"#2". }
+  \group_begin:
+  \tl_set:Nn \l_tmpa_tl { #2 }
+  \exp_args:NNNx
+  \group_end:  
+  \tl_set:Nx #1 { \directlua{CDR.print_file_content('l_tmpa_tl')} }
+}
+%    \end{MacroCode}
+%
+% \section{Section separators}
+% \begin{function}{\CDRImplementation,\CDRFinale}
+% \begin{syntax}
+% \cs{CDRImplementation}
+% \cs{CDRFinale}
+% \end{syntax}
+% \cs{CDRImplementation} start an implementation part
+% where all the sectioning commands do nothing,
+% whereas \cs{CDRFinale} stop an implementation part.
+% \end{function}
+% \section{Finale}
+%    \begin{MacroCode}
+\newcounter{CDR@impl@page}
+\DeclareDocumentCommand \CDRImplementation {} {
+  \bool_if:NF \g_CDR_with_impl_bool {
+    \clearpage
+    \bool_gset_true:N \g_CDR_in_impl_bool
+    \let\CDR@old@part\part
+    \DeclareDocumentCommand\part{som}{}
+    \let\CDR@old@section\section
+    \DeclareDocumentCommand\section{som}{}
+    \let\CDR@old@subsection\subsection
+    \DeclareDocumentCommand\subsection{som}{}
+    \let\CDR@old@subsubsection\subsubsection
+    \DeclareDocumentCommand\subsubsection{som}{}
+    \let\CDR@old@paragraph\paragraph
+    \DeclareDocumentCommand\paragraph{som}{}
+    \let\CDR@old@subparagraph\subparagraph
+    \DeclareDocumentCommand\subparagraph{som}{}
+    \cs_if_exist:NT \refsection{ \refsection }
+    \setcounter{ CDR@impl@page }{ \value{page} }
+  }
+}
+\DeclareDocumentCommand\CDRFinale {} {
+  \bool_if:NF \g_CDR_with_impl_bool {
+    \clearpage
+    \bool_gset_false:N \g_CDR_in_impl_bool
+    \let\part\CDR@old@part
+    \let\section\CDR@old@section
+    \let\subsection\CDR@old@subsection
+    \let\subsubsection\CDR@old@subsubsection
+    \let\paragraph\CDR@old@paragraph
+    \let\subparagraph\CDR@old@subparagraph
+    \setcounter { page } { \value{ CDR@impl@page } }
+  }
+}
+\cs_set_eq:NN \CDR_line_number: \prg_do_nothing:
+%    \end{MacroCode}
+% \section{Finale}
+%    \begin{MacroCode}
+\AddToHook { cmd/FancyVerbFormatLine/before } {
+  \CDR_line_number:
+}
+\AddToHook { shipout/before } {
+  \tl_gclear:N \g_CDR_chunks_tl
+}
+\CDRSet {}
+%    \end{MacroCode}
+%    \begin{MacroCode}
+% =========================================================
+% Auxiliary:
+%   finding the widest string in a comma
+%   separated list of strings delimited by parenthesis
+% =========================================================
+
+% arguments:
+% #1) text: a comma separeted list of strings
+% #2) formatter: a macro to format each string
+% #3) dimension: will hold the result
+
+\cs_new:Npn \CDRWidest (#1) #2 #3 {
+  \group_begin:
+  \dim_set:Nn #3 { 0pt }
+  \clist_map_inline:nn { #1 } {
+    \hbox_set:Nn \l_tmpa_box { #2{##1} }
+    \dim_set:Nn \l_tmpa_dim { \dim_eval:n { \box_wd:N \l_tmpa_box } }
+    \dim_compare:nNnT { #3 } < { \l_tmpa_dim } {
+      \dim_set_eq:NN #3 \l_tmpa_dim
+    }
+  }
+  \exp_args:NNNV
+  \group_end:
+  \dim_set_eq:NN #3 #3
+}
+\ExplSyntaxOff
+
+%    \end{MacroCode}
+% \section{\pkg{pygmentex} implementation}
+%    \begin{MacroCode}
+% =========================================================
+% fancyvrb new commands to append to a file
+% =========================================================
+
+% See http://tex.stackexchange.com/questions/47462/inputenc-error-with-unicode-chars-and-verbatim
+
+\ExplSyntaxOn
+
+\seq_new:N \l_CDR_records_seq
+
+\long\def\unexpanded@write#1#2{\write#1{\unexpanded{#2}}}
+
+\def\CDRAppend{\FV@Environment{}{CDRAppend}}
+
+\def\FVB@CDRAppend#1{%
+  \@bsphack
+  \begingroup
+    \seq_clear:N \l_CDR_records_seq
+    \FV@UseKeyValues
+    \FV@DefineWhiteSpace
+    \def\FV@Space{\space}%
+    \FV@DefineTabOut
+    \def\FV@ProcessLine{%##1
+      \seq_put_right:Nn \l_CDR_records_seq { ##1 }%
+      \immediate\unexpanded@write#1%{##1}
+    }%
+    \let\FV@FontScanPrep\relax
+    \let\@noligs\relax
+    \FV@Scan
+}
+\def\FVE@CDRAppend{
+  \seq_use:Nn \l_CDR_records_seq /
+  \endgroup
+  \@esphack
+}
+\DefineVerbatimEnvironment{CDRAppend}{CDRAppend}{}
+
+\DeclareDocumentEnvironment { Inline } { m } {
+  \directlua{CDR:record_start()}
+  \clist_clear:N \l_CDR_clist
+  \keys_set:nn { CDR_code } { #1 }
+  \clist_map_inline:Nn \l_CDR_clist {
+    \CDR_int_if_exist:nF { ##1 } {
+      \CDR_int_new:nn { ##1 } { 1 }
+      \seq_new:c { g/CDR/chunks/##1 }
+    }
+  }
+  \CDR_if:nT {reset} {
+    \CDR_clist_map_inline:Nnn \l_CDR_clist {
+      \CDR_int_gset:nn { ##1 } 1
+    } {
+      \CDR_int_gset:nn { } 1
+    }
+  }
+  \tl_clear:N \l_CDR_code_name_tl
+  \clist_map_inline:Nn \l_CDR_clist {
+    \prop_concat:ccc
+      {g/CDR/Code/}
+      {g/CDR/Code/##1/}
+      {g/CDR/Code/}
+    \tl_set:Nn \l_CDR_code_name_tl { ##1 }
+    \clist_map_break:
+  }
+  \int_gset:Nn \g_CDR_int
+    { \CDR_int_use:n { \l_CDR_code_name_tl } }
+  \tl_clear:N \l_CDR_info_tl
+  \tl_clear:N \l_CDR_name_tl
+  \tl_clear:N \l_CDR_recorded_tl
+  \tl_clear:N \l_CDR_chunks_tl
+  \cs_set:Npn \verbatim@processline {
+    \CDR_process_record:
+  }
+  \CDR_if_show_code:TF {
+    \exp_args:NNx
+    \skip_set:Nn \parskip { \CDR:n { parskip } }
+    \clist_if_empty:NTF \l_CDR_clist {
+      \tl_gclear:N \g_CDR_chunks_tl
+    } {
+      \clist_set_eq:NN \l_tmpa_clist \l_CDR_clist
+      \clist_sort:Nn \l_tmpa_clist {
+        \str_compare:nNnTF { ##1 } > { ##2 } {
+          \sort_return_swapped:
+        } {
+          \sort_return_same:
+        }
+      }
+      \tl_set:Nx \l_tmpa_tl { \clist_use:Nn \l_tmpa_clist , }
+      \CDR_if:nT {show_name} {
+        \CDR_if:nT {use_margin} {
+          \CDR_if:nT {only_top} {
+            \tl_if_eq:NNT \l_tmpa_tl \g_CDR_chunks_tl {
+              \tl_gset_eq:NN \g_CDR_chunks_tl \l_tmpa_tl
+              \tl_clear:N \l_tmpa_tl
+            }
+          }
+          \tl_if_empty:NF \l_tmpa_tl {
+            \tl_set:Nx \l_CDR_chunks_tl {
+              \clist_use:Nn \l_CDR_clist ,
+            }
+            \tl_set:Nn \l_CDR_name_tl {
+              {
+                \CDR:n { format/name }
+                \l_CDR_chunks_tl :
+                \hspace*{1ex}
+              }
+            }
+          }
+        }
+        \tl_if_empty:NF \l_tmpa_tl {
+          \tl_gset_eq:NN \g_CDR_chunks_tl \l_tmpa_tl          
+        }
+      }
+    }
+    \if_mode_vertical:
+    \else:
+    \par
+    \fi:
+    \vspace{ \CDR:n { sep } }
+    \noindent
+    \frenchspacing
+    \@vobeyspaces
+    \normalfont\ttfamily
+    \CDR:n { format/code }
+    \hyphenchar\font\m@ne
+    \@noligs
+    \CDR_if_record:F {
+      \cs_set_eq:NN \CDR_process_record: \prg_do_nothing:
+    }
+    \CDR_if_use_minted:F {
+      \CDR_if:nT {show_lineno} {
+        \CDR_if:nTF {use_margin} {
+          \tl_set:Nn \l_CDR_info_tl {
+            \hbox_overlap_left:n {
+              {
+                \l_CDR_name_tl
+                \CDR:n { format/name }
+                \CDR:n { format/lineno }
+                \int_use:N \g_CDR_int
+                \int_gincr:N \g_CDR_int
+              }
+              \hspace*{1ex}
+            }
+          }
+        } {
+          \tl_set:Nn \l_CDR_info_tl {
+            {
+              \CDR:n { format/name }
+              \CDR:n { format/lineno }
+              \hspace*{3ex}
+              \hbox_overlap_left:n {
+                \int_use:N \g_CDR_int
+                \int_gincr:N \g_CDR_int
+              }
+            }
+            \hspace*{1ex}
+          }
+        }
+      }
+      \cs_set:Npn \verbatim@processline {
+        \CDR_process_record:
+        \hspace*{\dimexpr \linewidth-\columnwidth}%
+        \hbox_to_wd:nn { \columnwidth } {
+          \l_CDR_info_tl
+          \the\verbatim@line
+          \color{lightgray}\dotfill
+        }
+        \tl_clear:N \l_CDR_name_tl
+        \par\noindent
+      }
+    }
+  } {
+    \@bsphack
+  }
+  \group_begin:
+  \g_CDR_hook_tl
+  \let \do \@makeother
+  \dospecials \catcode `\^^M \active
+  \verbatim@start
+} {
+  \int_gsub:Nn \g_CDR_int {
+    \CDR_int_use:n { \l_CDR_code_name_tl }
+  }
+  \int_compare:nNnT { \g_CDR_int } > { 0 } {
+    \CDR_clist_map_inline:Nnn \l_CDR_clist {
+      \CDR_int_gadd:nn { ##1 } { \g_CDR_int }
+    } {
+      \CDR_int_gadd:nn { } { \g_CDR_int }
+    }
+    \int_gincr:N \g_CDR_code_int
+    \tl_set:Nx \l_tmpb_tl { \int_use:N \g_CDR_code_int }
+    \clist_map_inline:Nn \l_CDR_clist {
+      \seq_gput_right:cV { g/CDR/chunks/##1 } \l_tmpb_tl
+    }
+    \prop_gput:NVV \g_CDR_code_prop \l_tmpb_tl \l_CDR_recorded_tl
+  }
+  \group_end:
+  \CDR_if_show_code:T {
+  }
+  \CDR_if_show_code:TF {
+    \CDR_if_use_minted:TF {
+      \tl_if_empty:NF \l_CDR_recorded_tl {
+        \exp_args:Nnx \setkeys { FV } {
+          firstnumber=\CDR_int_use:n { \l_CDR_code_name_tl },
+        }
+        \iow_open:Nn \minted@code { \jobname.pyg }
+        \exp_args:NNV \iow_now:Nn \minted@code \l_CDR_recorded_tl
+        \iow_close:N \minted@code
+        \vspace* { \dimexpr -\topsep-\parskip }
+        \tl_if_empty:NF \l_CDR_info_tl {
+          \tl_use:N \l_CDR_info_tl
+          \skip_vertical:n { \dimexpr -\topsep-\parskip-\baselineskip }        
+          \par\noindent
+        }
+        \exp_args:Nnx \minted@pygmentize { \jobname.pyg } { \CDR:n { lang } }
+        %\DeleteFile { \jobname.pyg }
+        \skip_vertical:n { -\topsep-\partopsep }        
+      }
+    } {
+      \exp_args:Nx \skip_vertical:n { \CDR:n { sep } }
+      \noindent
+    }
+  } {
+    \@esphack
+  }  
+}
+% =========================================================
+% Main options
+% =========================================================
+
+\newif\ifCDR@left
+\newif\ifCDR@right
+
+
+%    \end{MacroCode}
+%
+% \section{Display engines}
+% Inserting code snippets follows one of two modes: run or block.
+% The former is displayed as running text and used by the \cs{CDRCode} command
+% whereas the latter is displayed as a separate block and used
+% by the |CDRBlock| environment. Both have one single required argument,
+% which is a \meta{key-value} configuration list conforming to
+% \texttt{CDR_code} \pkg{l3keys} module.
+% The contents is then colorized with the aid of \CDRPy{}
+% which will return some code enclosed within an environment created
+% by one of \cs{CDRNewCodeEngine}, \cs{CDRRenewCodeEngine}, \cs{CDRNewBlockEngine},
+% \cs{CDRRenewBlockEngine} functions.
+% \subsection{Run mode \texttt{efbox} engine}
+% \begin{function}[EXP]{CDRCallWithOptions}
+% \begin{syntax}
+% \cs{CDRCallWithOptions}\meta{cs}
+% \end{syntax}
+% Call \meta{cs}, assuming it has a first optional argument.
+% It will receive the arguments passed to \cs{CDRCode} with the \texttt{options} key.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDRCallWithOptions #1 {
+  \exp_last_unbraced:NNx
+  #1[\CDR:n { options }]
+}
+\CDRNewCodeEngine {efbox} {
+  \CDRCallWithOptions\efbox{#1}%
+}
+%    \end{MacroCode}
+% \subsection{Block mode default engine}
+%    \begin{MacroCode}
+\CDRNewBlockEngine {} {
+} {
+}
+%    \end{MacroCode}
+%
+
+% \subsection{\texttt{options} key-value controls}
+% We accept any value because we do not know in advance the real target.
+% Everything is collected in \cs{l_CDR_options_clist}.
+% \begin{variable}{\l_CDR_options_clist}
+% All the \meta{key[=value] items} passed as options are collected here.
+% This hould be cleared before arguments are parsed.
+% \end{variable}
+% There are 2 ways to collect options:
+% \section{Something else}
+% some settings used by fancyvrb:
+% * for line numbering:
+%     numbers, numbersep, firstnumber, stepnumber, numberblanklines
+% * for selection of lines to print:
+%     firstline, lastline,
+%    \begin{MacroCode}
+\pgfkeys{%
+  /CDR.cd,
+  % 
+  % 
+  % 
+  label/.code          = \CDR_set:nn {label} { #1 },
+  caption/.code        = \CDR_set:nn {caption} { #1 },
+  % 
+  % 
+  linenos/.code        = \CDR_set:nn {linenos} { #1 },% boolean
+  linenostart/.code    = \CDR_set:nn {linenostart} { #1 },
+  linenostep/.code     = \CDR_set:nn {linenostep} { #1 },
+  linenosep/.code      = \CDR_set:nn {linenosep} { #1 },
+  %
+  colback/.code        = \CDR_set:nn {colback} { #1 },
+  font/.code           = \CDR_set:nn {font} { #1 },
+  % 
+  linenos/.default     = true,
+}
+
+\pgfqkeys{/CDR}{
+  block~method = mdframed,
+  run~method = efbox,
+  sty           = default,
+  linenos       = false,
+  linenosep     = 2pt,
+  font          = \ttfamily,
+  tabsize       = 0,
+}
+
+% =========================================================
+% pygmented commands and environments
+% =========================================================
+
+\newwrite\CDR@outfile
+
+\newcount\CDR@counter
+
+  WHERE ? \fvset{gobble=0,tabsize=0}%
+
+
+\newcommand\inputpygmented[2][]{%
+  \begingroup
+    \CDR@process@options{#1}%
+    \immediate\write\CDR@outfile{<@@CDR@input@\the\CDR@counter}%
+    \immediate\write\CDR@outfile{\exp_args:NV\detokenize\CDR@global@options,\detokenize{#1}}%
+    \immediate\write\CDR@outfile{#2}%
+    \immediate\write\CDR@outfile{>@@CDR@input@\the\CDR@counter}%
+    %
+    \csname CDR@snippet@\the\CDR@counter\endcsname
+    \global\advance\CDR@counter by 1\relax
+  \endgroup
+}
+
+\cs_generate_variant:Nn \exp_last_unbraced:NnNo { NxNo }
+
+\newcommand\CDR@snippet@run[1]{%
+  \group_begin:
+  \typeout{DEBUG~PY~STYLE:< \CDR:n { style } > }
+  \use_c:n { PYstyle }
+  \CDR_when:nT { style } {
+    \use_c:n { PYstyle \CDR:n { style } }
+  }
+  \cs_if_exist:cTF {PY} {PYOK} {PYKO}
+  \CDR:n {font}
+  \CDR@process@more@options{ \CDR:n {engine} }%
+  \exp_last_unbraced:NxNo
+  \use:c { \CDR:n {engine} } [ \CDRRemainingOptions ]{#1}%
+  \group_end:
+}
+
+% ERROR: JL undefined \CDR@alllinenos
+
+\ProvideDocumentCommand\captionof{mm}{}
+\def\CDR@alllinenos{(0)}
+\prg_new_conditional:Nnn \CDR_yorn:n { T, F, TF } {
+  \group_begin:
+  \prop_get:cnNT {g/CDR/Code/} { #1 } \l_tmpa_tl {
+    \exp_args:NnV
+    \regex_match:nnT {^[tTyY]} \l_tmpa_tl {
+      \group_end:
+      \prg_return_true:
+    }
+  }
+  \group_end:
+  \prg_return_false:
+}
+\newenvironment{CDR@snippet@framed}{%
+  \group_begin:
+  \CDR@leftmargin\z@
+  \CDR_yorn:nT {linenos} {
+    \expandafter \CDRWidest\CDR@alllinenos{\FormatLineNumber}{\CDR@leftmargin}%
+    \exp_args:NNx
+    \advance\CDR@leftmargin { \CDR:n {linenosep} }
+  }
+  %
+  \tl_clear:N \l_CDR_tl
+  \CDR:nNTF {label} \l_tmpa_tl {
+    \tl_set:N \l_CDR_tl {%
+      \captionof{pygcode}{\label{\CDR:n {label}} \CDR:n {caption}}%
+      % \nopagebreak
+      \vskip -0.7\baselineskip
+    }%
+  } {
+    \CDR:nNT {caption} \l_tmpa_tl {
+      \tl_set:N \l_CDR_tl {%
+        \captionof {pygcode} {\l_tmpa_tl}%
+        % \nopagebreak
+        \vskip -0.7\baselineskip
+      }%
+    }
+  }
+  \l_CDR_tl
+  %
+  \exp_args:Nx \tl_if_empty:nF { \CDR:n {block_engine} } {
+    \exp_args:Nx
+    \CDR@process@more@options { \CDR:n {block_engine} }%
+    \exp_last_unbraced:NxNo
+    \begin { \CDR:n {block_engine} } [ \CDRRemainingOptions ]
+  }
+  \csname PYstyle\CDR@opt@style\endcsname
+  \CDR@opt@font
+  \noindent
+} {
+  \exp_args:Nx \tl_if_empty:nF { \CDR:n {block_engine} } {
+    \exp_args:Nx
+    \end { \CDR:n {block_engine} }
+  }
+  \group_end:
+}
+
+\def\FormatLineNumber#1{{\rmfamily\tiny#1}}
+
+\newdimen\CDR@leftmargin
+\newdimen\CDR@linenosep
+
+\def\CDR@lineno@do#1{%
+  \CDR@linenosep 0pt%
+  \use:c { CDR@ \CDR:n {block_engine} @margin }
+  \exp_args:NNx
+  \advance \CDR@linenosep { \CDR:n {linenosep} }
+  \hbox_overlap_left:n {%
+    \FormatLineNumber{#1}%
+    \hspace*{\CDR@linenosep}%
+  }%
+}
+
+\newcommand\CDR@tcbox@more@options{%
+  nobeforeafter,%
+  tcbox~raise~base,%
+  left=0mm,%
+  right=0mm,%
+  top=0mm,%
+  bottom=0mm,%
+  boxsep=2pt,%
+  arc=1pt,%
+  boxrule=0pt,%
+  \CDR_options_if_in:nT {colback} {
+    colback=\CDR:n {colback}
+  }
+}
+
+\newcommand\CDR@mdframed@more@options{%
+  leftmargin=\CDR@leftmargin,%
+  frametitlerule=true,%
+  \CDR_if_in:nT {colback} {
+    backgroundcolor=\CDR:n {colback}
+  }
+}
+
+\newcommand\CDR@tcolorbox@more@options{%
+  grow~to~left~by=-\CDR@leftmargin,%
+  \CDR_if_in:nNT {colback} {
+    colback=\CDR:n {colback}
+  }
+}
+
+\newcommand\CDR@boite@more@options{%
+  leftmargin=\CDR@leftmargin,%
+  \ifcsname CDR@opt@colback\endcsname
+    colback=\CDR@opt@colback,%
+  \fi
+}
+
+\newcommand\CDR@mdframed@margin{%
+  \advance \CDR@linenosep \mdflength{outerlinewidth}%
+  \advance \CDR@linenosep \mdflength{middlelinewidth}%
+  \advance \CDR@linenosep \mdflength{innerlinewidth}%
+  \advance \CDR@linenosep \mdflength{innerleftmargin}%
+}
+
+\newcommand\CDR@tcolorbox@margin{%
+  \advance \CDR@linenosep \kvtcb@left@rule
+  \advance \CDR@linenosep \kvtcb@leftupper
+  \advance \CDR@linenosep \kvtcb@boxsep
+}
+
+\newcommand\CDR@boite@margin{%
+  \advance \CDR@linenosep \boite@leftrule
+  \advance \CDR@linenosep \boite@boxsep
+}
+
+\def\CDR@global@options{}
+
+\newcommand\setpygmented[1]{%
+  \def\CDR@global@options{/CDR.cd,#1}%
+}
+
+%    \end{MacroCode}
+% \section{Counters}
+% \begin{function}{\CDR_int_new:nn}
+% \begin{syntax}
+% \cs{CDR_int_new:n} \Arg{name} \Arg{value}
+% \end{syntax}
+% Create an integer after \meta{name} and
+% set it globally to \meta{value}.
+% \meta{name} is a code name.
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_int_new:nn #1 #2 {
+  \int_new:c {g/CDR/int/#1}
+  \int_gset:cn {g/CDR/int/#1} { #2 }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}{\CDR_int_set:nn,\CDR_int_gset:nn}
+% \begin{syntax}
+% \cs{CDR_int_set:n} \Arg{name} \Arg{value}
+% \end{syntax}
+% Set the integer named after \meta{name} to the \meta{value}. \cs{CDR_int_gset:n} makes a global change.
+% \meta{name} is a code name.
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_int_set:nn #1 #2 {
+  \int_set:cn {g/CDR/int/#1} { #2 }
+}
+\cs_new:Npn \CDR_int_gset:nn #1 #2 {
+  \int_gset:cn {g/CDR/int/#1} { #2 }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}{\CDR_int_add:nn,\CDR_int_gadd:nn}
+% \begin{syntax}
+% \cs{CDR_int_add:n} \Arg{name} \Arg{value}
+% \end{syntax}
+% Add the \meta{value} to the integer named after \meta{name}. \cs{CDR_int_gadd:n} makes a global change.
+% \meta{name} is a code name.
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_int_add:nn #1 #2 {
+  \int_add:cn {g/CDR/int/#1} { #2 }
+}
+\cs_new:Npn \CDR_int_gadd:nn #1 #2 {
+  \int_gadd:cn {g/CDR/int/#1} { #2 }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}{\CDR_int_sub:nn,\CDR_int_gsub:nn}
+% \begin{syntax}
+% \cs{CDR_int_sub:n} \Arg{name} \Arg{value}
+% \end{syntax}
+% Substract the \meta{value} from the integer named after \meta{name}. \cs{CDR_int_gsub:n} makes a global change.
+% \meta{name} is a code name.
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_int_sub:nn #1 #2 {
+  \int_sub:cn {g/CDR/int/#1} { #2 }
+}
+\cs_new:Npn \CDR_int_gsub:nn #1 #2 {
+  \int_gsub:cn {g/CDR/int/#1} { #2 }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}[TF]
+%   {\CDR_int_if_exist:n}
+%   \begin{syntax}
+%     \cs{CDR_int_if_exist:nTF} \Arg{name} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+%   Execute \meta{true code} when
+% an integer named after \meta{name} exist,
+% \meta{false code} otherwise.
+%    \begin{MacroCode}
+\prg_new_conditional:Nnn \CDR_int_if_exist:n { T, F, TF } {
+  \int_if_exist:cTF {g/CDR/int/#1} {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{variable}{\g/CDR/int/}
+% \begin{variable}{\g/CDR/int/<name>}
+% Generic and named line number counter.
+% \cs{l_CDR_code_name_t} is used as \meta{name}.
+%    \begin{MacroCode}
+\CDR_int_new:nn {} { 1 }
+%    \end{MacroCode}
+% \end{variable}
+% \end{variable}
+% \begin{function}[EXP]{\CDR_int_use:n}
+% \begin{syntax}
+% \cs{CDR_int_use:n} \Arg{name}
+% \end{syntax}
+% \meta{name} is a code name.
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_int_use:n #1 {
+  \int_use:c {g/CDR/int/#1}
+}
+%    \end{MacroCode}
+% \end{function}
+% \section{Global properties}
+% This package is using a key--value design to store and retrieve properties
+% with the aid of getters and setters. We only use 3 different types of variables:
+% |tl|s, |bool|s and |clist|s. Nevertheless, they are all stored as |tl|s to
+% allow \CDRLua{} access them directly through method |token.get_macro|.
+% Some normalization takes place for |bool| and |clist| data types.
+%
+% \CDRLua{} can read macros defined on the \LaTeX{} side, except what concerns
+% category codes. Moreover, it cannot expand them. This is why before giving
+% \CDRLua{} a chance to read a macro, it must be exhaustively expanded.  
+%
+% The internals of properties storage are private and should not be relied upon.
+% \subsection{\meta{domain}}
+% \begin{variable}{\g_CDR_domain_tl}
+% It defaults to |var| but can be overriden locally within \TeX{} groups.
+% It will also take the value |file|.
+%    \begin{MacroCode}
+\tl_new:N \g_CDR_domain_tl
+\tl_set:Nn \g_CDR_domain_tl { var }
+%    \end{MacroCode}
+% \end{variable}
+% \subsection{\meta{name}}
+% \begin{variable}{\g_CDR_name_tl}
+% This is the value of \metatt{name} in next functions,
+% when not explicitely provided.
+% It defaults to |default| but can be overriden locally within \TeX{} groups.
+%    \begin{MacroCode}
+\tl_new:N \g_CDR_name_tl
+\tl_set:Nn \g_CDR_name_tl { default }
+%    \end{MacroCode}
+% \end{variable}
+% \subsection{Modifying properties}
+% \begin{function}{\CDR_set:nnn,\CDR_set:nnV,\CDR_gput:nnn,\CDR_gput:nnV,\CDR_set:nn,\CDR_set:nV,\CDR_gput:nn,\CDR_gput:nV}
+% \begin{syntax}
+% \cs{CDR_put:nnn} \Arg{name} \Arg{key} \Arg{value}
+% \cs{CDR_put:nn} \Arg{key} \Arg{value}
+% \end{syntax}
+% The value is stored in a variable uniquely named
+% after \metatt{name} and \metatt{key}.
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_set:nnnn #1 #2 #3 {
+  \tl_set:cn {CDR.#1/#2/#3}
+}
+\cs_new:Npn \CDR_gput:nnn #1 #2 {
+  \tl_gset:cn {CDR.#1/#2/#3}
+}
+\cs_new:Npn \CDR_set:nnn #1 #2 {
+  \tl_set:cn {CDR.\g_CDR_domain_tl/#1/#2}
+}
+\cs_new:Npn \CDR_gput:nnn #1 #2 {
+  \tl_gset:cn {CDR.\g_CDR_domain_tl/#1/#2}
+}
+\cs_new:Npn \CDR_set:nn {
+  \exp_args:NVV \CDR_set:nnnn \g_CDR_domain_tl \g_CDR_name_tl
+}
+\cs_new:Npn \CDR_gput:nn {
+  \exp_args:NVV \CDR_gput:nnnn \g_CDR_domain_tl \g_CDR_name_tl
+}
+%    \end{MacroCode}
+% \end{function}
+%    \begin{MacroCode}
+\cs_generate_variant:Nn \CDR_set:nnnn { nnnV }
+\cs_generate_variant:Nn \CDR_gput:nnnn { nnnV }
+\cs_generate_variant:Nn \CDR_set:nnn { nnV }
+\cs_generate_variant:Nn \CDR_gput:nnn { nnV }
+\cs_generate_variant:Nn \CDR_set:nn { nV }
+\cs_generate_variant:Nn \CDR_gput:nn { nV }
+%    \end{MacroCode}
+% \begin{function}{\CDR_put_bool:nnnn,\CDR_put_not_bool:nnnn,\CDR_gput_bool:nnnn,\CDR_gput_not_bool:nnnn,\CDR_put_bool:nnn,\CDR_put_not_bool:nnn,\CDR_gput_bool:nnn,\CDR_gput_not_bool:nnn,\CDR_put_bool:nn,\CDR_put_not_bool:nn,\CDR_gput_bool:nn,\CDR_gput_not_bool:nn}
+% \begin{syntax}
+% \cs{CDR_put_bool:nnnn} \Arg{domain} \Arg{name} \Arg{key} \Arg{bool literal}
+% \cs{CDR_put_not_bool:nnnn} \Arg{domain} \Arg{name} \Arg{key} \Arg{bool literal}
+% \cs{CDR_put_bool:nnn} \Arg{name} \Arg{key} \Arg{bool literal}
+% \cs{CDR_put_not_bool:nnn} \Arg{name} \Arg{key} \Arg{bool literal}
+% \cs{CDR_put_bool:nn} \Arg{key} \Arg{bool literal}
+% \cs{CDR_put_not_bool:nn} \Arg{key} \Arg{bool literal}
+% \end{syntax}
+% The value is stored in a variable uniquely named
+% after \metatt{name} and \metatt{key}.
+% |bool|s are normalized before storage, only |true| and |false| literals are used
+% afterwards.
+% In the |_not_| variants, the inverse of the value is stored instead.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_put_bool:nnn #1 #2 #3 #4 {
+  \group_begin:
+  \tl_set:Nn \l_tmpa_tl { \CDR_set:nnnn { #1 } { #2 } { #3 } }
+  \tl_put_right:Nx \l_tmpa_tl { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #4 } { true } { false }
+  }
+  \exp_last_unbraced:NV \group_end: \l_tmpa_tl
+}
+\cs_new:Npn \CDR_put_not_bool:nnnn #1 #2 #3 #4 {
+  \group_begin:
+  \tl_set:Nn \l_tmpa_tl { \CDR_set:nnnn { #1 } { #2 } { #3 } }
+  \tl_put_right:Nx \l_tmpa_tl { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #4 } { false } { true }
+  }
+  \exp_last_unbraced:NV \group_end: \l_tmpa_tl
+}
+\cs_new:Npn \CDR_put_bool:nnn #1 #2 #3 {
+  \exp_args:Nnx
+  \CDR_set:nnn { #1 } { #2 } { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #3 } { true } { false }
+  }
+}
+\cs_new:Npn \CDR_put_not_bool:nnn #1 #2 #3 {
+  \exp_args:Nnx
+  \CDR_set:nnn { #1 } { #2 } { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #3 } { false } { true }
+  }
+}
+\cs_new:Npn \CDR_put_bool:nn #1 #2 {
+  \exp_args:Nnx
+  \CDR_set:nn { #1 } { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #2 } { true } { false }
+  }
+}
+\cs_new:Npn \CDR_put_not_bool:nn {
+  \exp_args:Nnx
+  \CDR_set:nn { #1 } { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #2 } { false } { true }
+  }
+}
+\cs_new:Npn \CDR_put_bool:nnn #1 #2 #3 #4 {
+  \group_begin:
+  \tl_set:Nn \l_tmpa_tl { \CDR_gput:nnnn { #1 } { #2 } { #3 } }
+  \tl_put_right:Nx \l_tmpa_tl { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #4 } { true } { false }
+  }
+  \exp_last_unbraced:NV \group_end: \l_tmpa_tl
+}
+\cs_new:Npn \CDR_put_not_bool:nnnn #1 #2 #3 #4 {
+  \group_begin:
+  \tl_set:Nn \l_tmpa_tl { \CDR_gput:nnnn { #1 } { #2 } { #3 } }
+  \tl_put_right:Nx \l_tmpa_tl { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #4 } { false } { true }
+  }
+  \exp_last_unbraced:NV \group_end: \l_tmpa_tl
+}
+\cs_new:Npn \CDR_gput_bool:nnn #1 #2 #3 {
+  \exp_args:Nnnx
+  \CDR_gput:nnn { #1 } { #2 } { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #3 } { true } { false }
+  }
+}
+\cs_new:Npn \CDR_gput_not_bool:nnn #1 #2 #3 {
+  \exp_args:Nnnx
+  \CDR_gput:nn { #1 } { #2 } { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #3 } { false } { true }
+  }
+}
+\cs_new:Npn \CDR_gput_bool:nn #1 #2 {
+  \exp_args:Nnx
+  \CDR_gput:nn { #1 } { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #2 } { true } { false }
+  }
+}
+\cs_new:Npn \CDR_gput_not_bool:nn {
+  \exp_args:Nnx
+  \CDR_gput:nn { #1 } { 
+    \regex_match:nnTF { ^\s*[tTyY] } { #2 } { false } { true }
+  }
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\CDR_put_clist:nnnn, \CDR_gput_clist:nnnn, \CDR_put_clist:nnn, \CDR_gput_clist:nnn, \CDR_put_clist:nn, \CDR_gput_clist:nn}
+% \begin{syntax}
+% \cs{CDR_put_clist:nnn} \Arg{name} \Arg{key} \Arg{clist literal}
+% \cs{CDR_put_clist:nn} \Arg{key} \Arg{clist literal}
+% \end{syntax}
+% The value is stored in a variable uniquely named
+% after \metatt{name} and \metatt{key}.
+% |clist|s are normalized before storage, spaces around values are discarded.
+% Not strictly necessary yet.
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_put_clist:nnnn #1 #2 #3 #4 {
+  \group_begin:
+  \tl_set:Nn \l_tmpa_tl { \CDR_set:nnnn { #1 } { #2 } { #3 } }
+  \clist_set:Nn \l_tmpa_clist { #4 }
+  \tl_put_right:Nx \l_tmpa_tl { \clist_use:nn { #4 } , }
+  \exp_args:NNnx
+  \group_end:
+  \CDR_set:nn { #2 } { \clist_use:Nn \l_tmpa_clist , }
+}
+\cs_new:Npn \CDR_gput_clist:nnnn #1 #2 #3 #4 {
+  \group_begin:
+  \tl_set:Nx \g_CDR_name_tl { #1 }
+  \clist_set:Nn \l_tmpa_clist { #3 }
+  \exp_args:NNnx
+  \group_end:
+  \CDR_gput:nn { #2 } { \clist_use:Nn \l_tmpa_clist , }
+}
+\cs_new:Npn \CDR_put_clist:nnn #1 #2 #3 {
+  \group_begin:
+  \tl_set:Nx \g_CDR_name_tl { #1 }
+  \clist_set:Nn \l_tmpa_clist { #3 }
+  \exp_args:NNnx
+  \group_end:
+  \CDR_set:nn { #2 } { \clist_use:Nn \l_tmpa_clist , }
+}
+\cs_new:Npn \CDR_gput_clist:nnn #1 #2 #3 {
+  \group_begin:
+  \tl_set:Nx \g_CDR_name_tl { #1 }
+  \clist_set:Nn \l_tmpa_clist { #3 }
+  \exp_args:NNnx
+  \group_end:
+  \CDR_gput:nn { #2 } { \clist_use:Nn \l_tmpa_clist , }
+}
+\cs_new:Npn \CDR_put_clist:nnn #1 #2  {
+  \group_begin:
+  \clist_set:Nn \l_tmpa_clist { #2 }
+  \exp_args:NNnx
+  \group_end:
+  \CDR_set:nn { #1 } { \clist_use:Nn \l_tmpa_clist , }
+}
+\cs_new:Npn \CDR_gput_clist:nnn #1 #2  {
+  \group_begin:
+  \clist_set:Nn \l_tmpa_clist { #2 }
+  \exp_args:NNnx
+  \group_end:
+  \CDR_gput:nn { #1 } { \clist_use:Nn \l_tmpa_clist , }
+}
+%    \end{MacroCode}
+% \end{function}
+% \subsection{Retrieving properties}
+% \begin{function}[EXP]{\CDR:nn, \CDR:n}
+% \begin{syntax}
+% \cs{CDR:nn} \Arg{name} \Arg{key}
+% \cs{CDR:n} \Arg{key}
+% \end{syntax}
+% The value previously stored for the given \meta{name} and \meta{key}
+% is left in the input stream.
+% If nothing was previously store, the property for |default| instead
+% of \meta{name}, and \meta{key} is left in the input stream if any. 
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR:nn #1 #2 {
+  \cs_if_exist:cTF { CDR.var/#1/#2 } {
+    \tl_use:c { CDR.var/#1/#2 }
+  } {
+    \cs_if_exist:cT { CDR.var/default/#2 } {
+      \tl_use:c { CDR.var/default/#2 }
+    }
+  }
+}
+\cs_new:Npn \CDR:n {
+  \exp_args:NV \CDR:nn \g_CDR_name_tl
+}
+%    \end{MacroCode}
+% \subsection{Property conditionals}
+% \begin{function} [TF,EXP] {\CDR_when:nn, \CDR_when:n}
+% \begin{syntax}
+%   \cs{CDR_when:nTF} \Arg{key} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Execute \meta{true code} when there is a property for \texttt{\meta{key}},
+% \meta{false code} otherwise.
+%    \begin{MacroCode}
+\prg_new_conditional:Nnn \CDR_when:nn { T, F, TF } {
+  \cs_if_exist:cTF { CDR.var/#1/#2 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+\prg_new_conditional:Nnn \CDR_when:n { T, F, TF } {
+  \cs_if_exist:cTF { CDR.var/\g_CDR_name_tl/#1 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function} [TF,EXP] {\CDR_when:nnN, \CDR_when:nN}
+% \begin{syntax}
+% \cs{CDR_when:nNTF} \Arg{name} \Arg{key} \meta{tl var} \Arg{true code} \Arg{false code}
+% \cs{CDR_when:nNTF} \Arg{key} \meta{tl var} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Execute \metatt{true code} when the property for given \metatt{name} and \metatt{key}
+% is retrieved into \metatt{tl var}, \metatt{false code} otherwise.
+%    \begin{MacroCode}
+\prg_new_conditional:Nnn \CDR_when:nnN { T, F, TF } {
+  \cs_if_exist:cTF { CDR.var/#1/#2 } {
+    \tl_set_eq:Nc #3 { CDR.var/#1/#2 }
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+\prg_new_conditional:Nnn \CDR_when:nN { T, F, TF } {
+  \cs_if_exist:cTF { CDR.var/\g_CDR_name_tl/#1 } {
+    \tl_set_eq:Nc #2 { CDR.var/\g_CDR_name_tl/#1 }
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}[EXP,TF]{\CDR_if:n}
+% \begin{syntax}
+% \cs{CDR_if:nTF} \Arg{key} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Execute \metatt{true code} if the property for \metatt{key} is truthy,
+% \metatt{false code} otherwise.
+% Mainly for boolean properties.
+% \end{function}
+%    \begin{MacroCode}
+\prg_new_conditional:Nnn \CDR_if:n { T, F, TF } {
+  \group_begin:
+  \CDR_when:nNTF { #1 } \l_tmpa_tl {
+    \exp_args:NnV
+    \regex_match:nnTF { ^\s*[tTyY] } \l_tmpa_tl
+      { \group_end: \prg_return_true:  }
+      { \group_end: \prg_return_false: }
+  } { \group_end: \prg_return_false: }
+}
+%    \end{MacroCode}
+% \subsection{Properties and \TeX{} groups}
+% Removing a property at a group level is not straightforward.
+% Once a property has been modified inside a \TeX{} group,
+% the value outside the group is definitely overriden and is no longer
+% available until the end of the group.
+% \section{Constants}
+% \begin{variable}{\c_CDR_comment_prop}
+% One line comment marker per language.
+%    \begin{MacroCode}
+\prop_const_from_keyval:Nn \c_CDR_comment_prop {
+  tex=\c_percent_str,
+  lua=--,
+  python=\c_hash_str,
+  c=//,
+  c++=//,
+  javascript=//,
+}
+%    \end{MacroCode}
+% \end{variable}
+% \section{REMAINING}
+% \begin{variable}{\l_CDR_code_name_tl}
+% Locally used as \meta{name} in \cs{g/CDR/Code/<name>/}
+% \cs{g/CDR/int/<name>} and similar.
+%    \begin{MacroCode}
+\tl_new:N \l_CDR_code_name_tl
+%    \end{MacroCode}
+% \end{variable}
+%
+% \section{\pkg{l3keys} modules}
+% The various \pkg{l3keys} modules define the \LaTeX{} user interface of
+% commands and environments.
+%
+% \subsection{Utilities}
+% Values are stored in some property list, the key gives a hint on the type.
+% \begin{function}{\CDR_put_boolean:nn, \CDR_put_clist:nn}
+% \begin{syntax}
+% \cs{CDR_put_bool:nn} \Arg{key} \Arg{value}
+% \cs{CDR_put_inverse_bool:nn} \Arg{key} \Arg{value}
+% \cs{CDR_put_clist:nn} \Arg{key} \Arg{value}
+% \end{syntax}
+% The \meta{key} is appended with the data type.
+% The value is obtained by \cs{key_set:nn}.
+% They rely on \cs{CDR_put:nn}.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_put_bool:nn #1 #2 {
+  \regex_match:nnTF { ^[tTyY] } { #1 } {
+    \CDR_set:nn {#1_bool} { \c_true_bool }
+  } {
+    \CDR_set:nn {#1_bool} { \c_false_bool }
+  }
+}
+\cs_new:Npn \CDR_put_inverse_bool:nn #1 #2 {
+  \regex_match:nnTF { ^[tTyY] } { #1 } {
+    \CDR_set:nn {#1_bool} { \c_false_bool }
+  } {
+    \CDR_set:nn {#1_bool} { \c_true_bool }
+  }
+}
+\cs_new:Npn \CDR_put_clist:nn #1 #2 {
+  \group_begin:
+  \clist_set:Nn \l_tmpa_clist { #2 }
+  \exp_args:NNnC
+  \group_end:
+  \CDR_set:nn {#1_clist} \l_tmpa_clist
+}
+%    \end{MacroCode}
+%
+%    \begin{MacroCode}
+% =========================================================
+% final actions
+% =========================================================
+
+\AtEndOfPackage{%
+  \IfFileExists{\jobname.pygmented}{%
+    \input{\jobname.pygmented}%
+  }{%
+    \PackageWarning{coder}{File `\jobname.pygmented' not found.}%
+  }%
+  \immediate\openout\CDR@outfile\jobname.snippets%
+}
+
+\AtEndDocument{%
+  \closeout\CDR@outfile%
+}
+\ExplSyntaxOff
+%    \end{MacroCode}
+%    \begin{MacroCode}
+%</sty>
+%    \end{MacroCode}
+% \end{implementation}
+%\Finale
+%
+% % ^^A \PrintIndex
