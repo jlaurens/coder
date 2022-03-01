@@ -314,10 +314,10 @@ file name with extension of information to specify which processing is required
           counter += 1
         lines.append(line)
       ans_code.append(fr'''%
-\begin{{CDR/block/engine/{options.style}}}
+\begin{{CDR@Block/engine/{options.style}}}
 \CDRBlock@linenos@used:n {{{','.join(numbers)}}}%
 {m.group(1)}{'\n'.join(lines)}{m.group(3)}%
-\end{{CDR/block/engine/{options.style}}}
+\end{{CDR@Block/engine/{options.style}}}
 ''' )
       ans_code = "".join(ans_code)
     return ans_code

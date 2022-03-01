@@ -15,12 +15,12 @@
 -- See http://www.latex-project.org/lppl.txt
 -- 
 
-local lpeg   = require("lpeg")
+local lfs   = _ENV.lfs
+local tex   = _ENV.tex
+local token = _ENV.token
+local rep   = string.rep
+local lpeg  = require("lpeg")
 local P, Cg, Cp, V = lpeg.P, lpeg.Cg, lpeg.Cp, lpeg.V
-local lfs    = _ENV.lfs
-local tex    = _ENV.tex
-local token  = _ENV.token
-local rep    = string.rep
 require("lualibs.lua")
 local json   = _ENV.utilities.json
 local CDR_PY_PATH = io.popen(
@@ -88,35 +88,14 @@ local function safe_equals(s)
   local i, j = 0, 0
   local max = 0
   while true do
-    j, i = eq_pattern:match(s, i)
-    if j == nil then
+    i, j = eq_pattern:match(s, j)
+    if i == nil then
       return rep('=', max + 1)
     end
-    j = i - j
-    if j > max then
-      max = j
+    i = j - i
+    if i > max then
+      max = i
     end
-  end
-end
-local function record_start(self, tags_variable)
-  local records = self['.records']
-  local tags = assert(token.get_macro(tags_variable))
-  tags = tags:gmatch('[^,]*')
-  local list = {}
-  for _,tag in ipairs(tags) do
-    local t = records[tag] or {}
-    records[tag] = t
-    list[#list+1] = t
-  end
-  self.record_line = function (this, line_variable)
-    local line = assert(token.get_macro(line_variable))
-    for _,t in ipairs(list) do
-      t[#t+1]=line
-    end
-  end
-end
-local function record_stop(self)
-  self.record_line = function (this, line_variable)
   end
 end
 local parse_pattern
@@ -139,33 +118,14 @@ local function load_exec_output(self, s)
       self.load_exec(cmd)
     elseif tag == '?LUA' then
       local eqs = self.safe_equals(cmd)
+      cmd = '['..eqs..'['..cmd..']'..eqs..']'
       tex.print([[%
-\directlua{self.load_exec([=]]..eqs..[[]..cmd..[[]=]]..eqs..[[])}%
+\directlua{CDR:load_exec(]]..cmd..[[)}%
 ]])
     else
       return
     end
   end
-end
-local function process_code(self, code_name)
-  if lfs.attributes(json_p,"mode") ~= nil then
-    os.remove(json_p)
-  end
-  local t = {
-    ['code']    = token.get_macro(code_name),
-    ['jobname'] = jobname,
-    ['options'] = self.options or {},
-    ['already'] = self.already and 'true' or 'false'
-  }
-  local s = json.tostring(t,true)
-  local fh = assert(io.open(json_p,'w'))
-  fh:write(s, '\n')
-  fh:close()
-  local cmd = "python3 "..CDR_PY_PATH..' "'..self.escape(json_p)..'"'
-  fh = assert(io.popen(cmd))
-  self.already = true
-  s = fh:read('a')
-  self:load_exec_output(s)
 end
 local function options_reset(self)
   self['.options'] = {}
@@ -174,59 +134,42 @@ local function option_add(self, key, value_name)
   local p = self['.options']
   p[key] = token.get_macro(assert(value_name))
 end
-local function options_reset(self)
-  self.options = {}
+local function export_file(self, file_name)
+  self['.name'] = assert(tex.token(assert(file_name)))
+  self['.export'] = {}
 end
-local function option_add(self,k,v)
-  self.options[k] = v
-end
-
-local function export_file(self, name, tags)
-  local t = {}
-  tags:gsub(
-    '([^,]*)',
-    function(tag) t[#t+1] = tag end
-  )
-  self['.export_files'][name] = t
-end
-local function export(self, file, tags, preamble, postamble)
-  local exports = self['.exports']
-  file = assert(token.get_macro(assert(file)))
-  local t = {}
-  tags = assert(token.get_macro(assert(tags)))
-  t.tags = tags:gmatch('[^,]*')
-  if #preamble>0 then
-    t.preamble = assert(token.get_macro(preamble))
+local function export_file_info(self, key, value)
+  local export = self['.export']
+  key = assert(token.get_macro(assert(key)))
+  if value then
+    value = assert(token.get_macro(value))
+    exportation[key] = value
   end
-  if #postamble>0 then
-    t.postamble = assert(token.get_macro(postamble))
-  end
-  exports[file] = t
 end
-local function export_all_files(self)
-  local exports = self['.exports']
-  local records = self['.records']
-  for name, export in pairs(exports) do
-    local tt = {}
-    local s = export.preamble
-    if s then
-      tt[#tt+1] = s
-    end
-    for _,tag in ipairs(export.tags) do
-      s = records[tag]:concat('\n')
-      tt[#tt+1] = s
-      records[tag] = { [1] = s }
-    end
-    s = export.postamble
-    if s then
-      tt[#tt+1] = s
-    end
-    if #tt>0 then
-      local fh = assert(io.open(name,'w'))
-      fh:write(tt:concat('\n'))
-      fh:close()
-    end
+local function export_complete(self)
+  local name = sef['.name']
+  local export = sef['.export']
+  local tt = {}
+  local s = export.preamble
+  if s then
+    tt[#tt+1] = s
   end
+  for _,tag in ipairs(export.tags) do
+    s = records[tag]:concat('\n')
+    tt[#tt+1] = s
+    records[tag] = { [1] = s }
+  end
+  s = export.postamble
+  if s then
+    tt[#tt+1] = s
+  end
+  if #tt>0 then
+    local fh = assert(io.open(name,'w'))
+    fh:write(tt:concat('\n'))
+    fh:close()
+  end
+  self['.file'] = nil
+  self['.exportation'] = nil
 end
 local function cache_clean_all(self)
   local to_remove = {}
@@ -252,27 +195,6 @@ local function cache_clean_unused(self)
     os.remove(dir_p .. k)
   end
 end
-local function field_group_begin(self, domain)
-  self['.fields'][domain] = setmetatable(
-    {},
-    self['.fields'][domain]
-  )
-end
-local function field_group_end(self, domain)
-  self['.fields'][domain] = assert(
-    getmetatable(self['.fields'][domain])
-  )
-end
-local function field_put(self, domain, key, value)
-  value = token.get_macro(assert(value))
-  self['.fields'][domain][key] = value
-end
-local function field_get(self, domain, key)
-  return self['.fields'][domain][key]
-end
-local function field_print(self, domain, key)
-  tex.print(self:field_get(domain, key))
-end
 local _DESCRIPTION = [[Global coder utilities on the lua side]]
 return {
   _DESCRIPTION       = _DESCRIPTION,
@@ -282,6 +204,7 @@ return {
   escape             = escape,
   make_directory     = make_directory,
   load_exec          = load_exec,
+  load_exec_output   = load_exec_output,
   record_start       = record_start,
   record_stop        = record_stop,
   record_line        = function(self,line) end,
@@ -293,14 +216,8 @@ return {
   option_add         = option_add,
   ['.style_set']     = {},
   ['.colored_set']   = {},
-  ['.export_files']  = {},
-  ['.records']       = {},
-  ['.fields']        = {},
   ['.options']       = {},
-  field_group_begin  = field_group_begin,
-  field_group_end    = field_group_end,
-  field_put          = field_put,
-  field_get          = field_get,
-  field_print        = field_print,
+  ['.export']        = {},
+  ['.name']          = nil,
   already            = false,
 }
