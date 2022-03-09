@@ -1,0 +1,165 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+\noindent
+
+\newfontfamily\CDRVerbatimFont{TeX Gyre Cursor}[NFSSFamily=CDRVerbatimFont]
+\newfontfamily\CDRMenloFont{Menlo}[NFSSFamily=Menlo]
+
+
+\ExplSyntaxOn
+\group_begin:
+
+\cs_new:Npn \CDRVerbA #1 {
+  \DefineShortVerb{#1}
+  \SaveVerb[aftersave={\UndefineShortVerb{#1}},]{Verb}#1
+}
+
+
+\CDRVerbA!ABCD!
+
+
+
+ABCDE
+\UseVerb{Verb}
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{Other}
+\ExplSyntaxOn
+\group_begin:
+
+\cs_new:Npn \CDR_code_fvset_braced:nn #1 #2 {
+  \fvset { #1 = { #2 } }
+}
+
+\cs_set:Npn \CDR_code_fvset: {
+  \tl_clear:N \l_CDR_options_tl
+  \clist_map_inline:nn {
+    formatcom,
+    fontfamily,
+    fontsize,
+    fontshape,
+    showspaces,
+    showtabs,
+    obeytabs,
+    tabsize,
+%    defineactive,
+%    reflabel,
+  } {
+    \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { ##1 } }
+    \tl_if_in:NnTF \l_CDR_tl { , } {
+      \exp_args:NnV
+      \CDR_code_fvset_braced:nn { ##1 } \l_CDR_tl
+    } {
+      \tl_put_left:Nn \l_CDR_tl { ##1 = }
+      \exp_args:NV
+      \fvset \l_CDR_tl
+    }
+  }
+}
+
+\cs_set:Npn \CDR_apply_code_engine:n {
+  \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { engine } }
+  \CDR_if_code_engine:VTF \l_CDR_tl {
+    \use:c { \CDR_code_engine:V \l_CDR_tl }
+  } {
+    \PackageError
+      { coder }
+      { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
+      {See~\CDRNewCodeEngine~in~the~coder~manual}
+    \use:c { \CDR_code_engine:c { default } }
+  }  
+}
+\cs_set:Npn \CDR_code:n #1 {
+  \CDR_tag_inherit:cx { __local } {
+    __code, __pygments,
+    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
+    default.code, default,
+    __fancyvrb, __fancyvrb.all,
+  }
+    \DefineShortVerb { #1 }
+    \SaveVerb [
+      aftersave = {
+        \UndefineShortVerb { #1 }
+        \CDR_code_fvset:
+        \CDR_apply_code_engine:n { \UseVerb { CDR@Code } }
+        \group_end:
+      }
+    ] { CDR@Code } #1
+}
+\RenewDocumentCommand \CDRCode { O{} } {
+  \group_begin:
+  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
+    \prg_return_false:
+  }  
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __pygments, default.code, default, __fancyvrb, __fancyvrb.all
+  }
+  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
+  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
+  \exp_args:NnV
+  \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
+  \CDR_code:n
+}
+\noindent
+
+\noindent
+
+\CDRCode!<ABC DEF>!\\
+1\\
+\CDRCode[fontfamily=Menlo]!<fontfamily=Menlo>!\\
+2\\
+\CDRCode[showspaces=true]!<showspaces = true>!\\
+3\\
+\CDRCode[fontsize=\Large]|<fontsize=\Large>|\\
+4\\
+\group_begin:
+\cs_set:Npn \PackageError #1 #2 #3 {
+\tl_to_str:n{\PackageError} #1\\
+\exp_args:Ne \tl_to_str:n{#2}\\
+\exp_args:Ne \tl_to_str:n{#3}\\
+}
+\CDRCode[engine=flower]|<engine=flower>|\\
+\group_end:
+5\\
+\CDRNewCodeEngine{wave}{wavy(#1)}
+\CDRCode[engine=wave]|<engine=wave>|\\
+LAST\\
+\CDRCode|<THIS IS THE LAST!!!>|\\
+%
+%\CDRCode|ABC DEF GHI|
+
+\ExplSyntaxOff
+
+\begin{Verbatim}[
+%  fontshape=b,
+  fontfamily=CDRVerbatimFont,%tt,%helvetica, courier
+  fontseries=b,
+  fontsize=\large,
+  showspaces=true,
+  showtabs=true,
+  tabsize=4,
+  reflabel=verb0
+]
+First verba	tim line.
+Second verbatim line.
+\end{Verbatim}
+See the verbatim on page~\pageref{verb0}
+\\
+\DefineShortVerb{\?}%
+YYY%
+\SaveVerb{ABC}?XXX?%
+\fvset{
+fontfamily=Menlo,
+fontshape=it,
+fontseries=auto,
+fontsize=\Large,
+}%
+\UseVerb{ABC}%
+YYY
+
+\ExplSyntaxOn
+\group_end:
+
+\ExplSyntaxOff

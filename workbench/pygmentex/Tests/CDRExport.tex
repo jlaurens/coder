@@ -1,0 +1,47 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+\noindent
+
+\ExplSyntaxOn
+\group_begin:
+
+\cs_set:Npn \CDR_test:ccn #1 #2 #3 {
+  \tl_if_eq:xnF
+    { \CDR_export_get:cc { #1 } { #2 } }
+    { #3 }
+    { \fp_add:Nn \l_CDR_fail_fp { \l_CDR_test_fp } }
+  \fp_set:Nn \l_CDR_test_fp {  2 * \l_CDR_test_fp }
+}
+
+\CDRExport{
+    __initialize_prop,
+    file=A,
+    tags={B,C,D},
+    lang=pipo,
+    preamble=C,
+    postamble=D,
+    raw=false,
+  }
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    file=A,
+    tags={B,C,D},
+    lang=pipo,
+    preamble=C,
+    postamble=D,
+    raw=false,
+}
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:ccn { A } { #1 } { #2 }
+}
+\clist_map_inline:nn {B, C, D} {
+  \tl_if_eq:xnF
+    { \CDR_tag_get:cc { #1 } { lang } }
+    { pipo }
+    { \fp_add:Nn \l_CDR_fail_fp { \l_CDR_test_fp } }
+  \fp_set:Nn \l_CDR_test_fp {  2 * \l_CDR_test_fp }
+}
+
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff

@@ -1,0 +1,439 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+Tests of \cs{CDRSet}
+\noindent
+
+\newcommand\meta[1]{{$\langle$}{\itshape #1}{$\rangle$}}
+
+\ExplSyntaxOn
+
+\cs_new:Npn \CDR_test:cncn #1 #2 #3 #4 {
+  \use:c{#2_if_eq:xnF}
+    { \CDR_tag_get:cc { #1 } { #3 } }
+    { #4 }
+    { \fp_add:Nn \l_CDR_fail_fp { \l_CDR_test_fp } }
+  \fp_set:Nn \l_CDR_test_fp {  2 * \l_CDR_test_fp }
+}
+\ExplSyntaxOff
+
+\subsection{\texttt{default}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+  post~processor=ABCD,
+  parskip = 2.34\baselineskip,
+  engine = falbala,
+  default~engine~options=DEFAULT,
+  falbala~engine~options=FALBALA,
+}
+\CDR_test:cncn { default } { tl } { post~processor } { ABCD }
+
+X\hspace{\CDR_tag_get:cc { default } { parskip }}X
+\exp_last_unbraced:Nx \hskip {\CDR_tag_get:cc { default } { parskip }}X
+
+\CDR_test:cncn { default } { skip } { parskip } { 2.34\baselineskip }
+\CDR_test:cncn { default } { tl } { engine } { falbala }
+\CDR_test:cncn { default } { tl } { default~engine~options } { DEFAULT }
+\CDR_test:cncn { default } { tl } { falbala~engine~options } { FALBALA }
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+
+\subsection{\texttt{tag/default}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+  tag/default/post~processor=ABCD,
+  tag/default/parskip = 2.34\baselineskip,
+  tag/default/engine = falbala,
+  tag/default/default~engine~options=DEFAULT,
+  tag/default/falbala~engine~options=FALBALA,
+}
+\CDR_test:cncn { default } { tl } { post~processor } { ABCD }
+
+X\hspace{\CDR_tag_get:cc { default } { parskip }}X
+\exp_last_unbraced:Nx \hskip {\CDR_tag_get:cc { default } { parskip }}X
+
+\CDR_test:cncn { default } { skip } { parskip } { 2.34\baselineskip }
+\CDR_test:cncn { default } { tl } { engine } { falbala }
+\CDR_test:cncn { default } { tl } { default~engine~options } { DEFAULT }
+\CDR_test:cncn { default } { tl } { falbala~engine~options } { FALBALA }
+
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{__pygments}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+  lang = A,
+  pygments = B,
+  style=C,
+  commandprefix=D,
+  mathescape=F,
+  escapeinside=H,
+}
+
+\CDR_test:cncn { __pygments } { tl } { lang } { A }
+\CDR_test:cncn { __pygments } { tl } { pygments } { true }
+\CDR_test:cncn { __pygments } { tl } { style } { C }
+\CDR_test:cncn { __pygments } { tl } { commandprefix } { D }
+\CDR_test:cncn { __pygments } { tl } { mathescape } { false }
+\CDR_test:cncn { __pygments } { tl } { escapeinside } { H }
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{tag/<name>:__pygments}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+  tag/<name>/lang = A,
+  tag/<name>/pygments = B,
+  tag/<name>/style=C,
+  tag/<name>/commandprefix=D,
+  tag/<name>/mathescape=F,
+  tag/<name>/escapeinside=H,
+}
+
+\CDR_test:cncn { <name> } { tl } { lang } { A }
+\CDR_test:cncn { <name> } { tl } { pygments } { true }
+\CDR_test:cncn { <name> } { tl } { style } { C }
+\CDR_test:cncn { <name> } { tl } { commandprefix } { D }
+\CDR_test:cncn { <name> } { tl } { mathescape } { false }
+\CDR_test:cncn { <name> } { tl } { escapeinside } { H }
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{__pygments.block}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+  texcomments = A,
+  texcomments = F,
+}
+
+\CDR_test:cncn { __pygments.block } { tl } { texcomments} { false }
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{tag/<name>:__pygments.block}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+  tag/<name>/texcomments = A,
+  tag/<name>/texcomments = F,
+}
+
+\CDR_test:cncn { <name> } { tl } { texcomments } { false }
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{default.code}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+}
+
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{tag/<name>:default.code}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+}
+
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{default.block}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    tags = A,
+    show~tags = F,
+    only~top = true,
+    use~margin = false,
+    tags~format = H,
+    blockskip = \topsep,
+}
+
+\CDR_test:cncn { default.block } { tl } { tags } { A }
+\CDR_test:cncn { default.block } { tl } { show~tags } { false }
+\CDR_test:cncn { default.block } { tl } { only~top } { true }
+\CDR_test:cncn { default.block } { tl } { use~margin } { false }
+\CDR_test:cncn { default.block } { tl } { tags~format } { H }
+\CDR_test:cncn { default.block } { skip } { blockskip } { \topsep }
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{tag/<name>:default.block}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    tag/<name>/tags = A,
+    tag/<name>/show~tags = F,
+    tag/<name>/only~top = true,
+    tag/<name>/use~margin = false,
+    tag/<name>/tags~format = H,
+    tag/<name>/blockskip = \topsep,
+}
+
+\CDR_test:cncn { <name> } { tl } { tags } { A }
+\CDR_test:cncn { <name> } { tl } { show~tags } { false }
+\CDR_test:cncn { <name> } { tl } { only~top } { true }
+\CDR_test:cncn { <name> } { tl } { use~margin } { false }
+\CDR_test:cncn { <name> } { tl } { tags~format } { H }
+\CDR_test:cncn { <name> } { skip } { blockskip } { \topsep }
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{__fancyvrb}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    formatcom = A,
+    fontfamily = B,
+    fontsize = C,
+    fontshape = D,
+    fontseries = DD,
+    showspaces = true,
+    showtabs = false,
+    obeytabs = true,
+    tabsize = 4,
+    defineactive = E,
+    reflabel = F,
+}
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    formatcom = A,
+    fontfamily = B,
+    fontsize = C,
+    fontshape = D,
+    fontseries = DD,
+    showspaces = true,
+    showtabs = false,
+    obeytabs = true,
+    tabsize = 4,
+    defineactive = E,
+    reflabel = F,
+}
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:cncn { __fancyvrb } { tl } { #1 } { #2 }
+}
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{tag/<name>:__fancyvrb}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    tag/<name>/formatcom = A,
+    tag/<name>/fontfamily = B,
+    tag/<name>/fontsize = C,
+    tag/<name>/fontshape = D,
+    tag/<name>/showspaces = true,
+    tag/<name>/showtabs = false,
+    tag/<name>/obeytabs = true,
+    tag/<name>/tabsize = 4,
+    tag/<name>/defineactive = E,
+    tag/<name>/reflabel = F,
+}
+
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    formatcom = A,
+    fontfamily = B,
+    fontsize = C,
+    fontshape = D,
+    showspaces = true,
+    showtabs = false,
+    obeytabs = true,
+    tabsize = 4,
+    defineactive = E,
+    reflabel = F,
+}
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:cncn { <name> } { tl } { #1 } { #2 }
+}
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{__fancyvrb.block}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    commentchar = A,
+    gobble = 0,
+    frame = none,
+    label = B,
+    labelposition = none,% auto?
+    numbers = left,
+    numbersep = \hspace{1ex},
+    firstnumber = auto,
+    stepnumber = 1,
+    numberblanklines = true,
+    firstline = C,
+    lastline = D,
+    baselinestretch = auto,
+    resetmargins = true,
+    xleftmargin = 0pt,
+    xrightmargin = 0pt,
+    hfuzz = 2pt,
+    samepage = false,
+}
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    commentchar = A,
+    gobble = 0,
+    frame = none,
+    label = B,
+    labelposition = none,% auto?
+    numbers = left,
+    numbersep = \hspace{1ex},
+    firstnumber = auto,
+    stepnumber = 1,
+    numberblanklines = true,
+    firstline = C,
+    lastline = D,
+    baselinestretch = auto,
+    resetmargins = true,
+    xleftmargin = 0pt,
+    xrightmargin = 0pt,
+    hfuzz = 2pt,
+    samepage = false,
+}
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:cncn { __fancyvrb.block } { tl } { #1 } { #2 }
+}
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{tag/<name>:__fancyvrb.block}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    tag/<name>/commentchar = A,
+    tag/<name>/gobble = 0,
+    tag/<name>/frame = none,
+    tag/<name>/label = B,
+    tag/<name>/labelposition = none,% auto?
+    tag/<name>/numbers = left,
+    tag/<name>/numbersep = \hspace{1ex},
+    tag/<name>/firstnumber = auto,
+    tag/<name>/stepnumber = 1,
+    tag/<name>/numberblanklines = true,
+    tag/<name>/firstline = C,
+    tag/<name>/lastline = D,
+    tag/<name>/baselinestretch = auto,
+    tag/<name>/resetmargins = true,
+    tag/<name>/xleftmargin = 0pt,
+    tag/<name>/xrightmargin = 0pt,
+    tag/<name>/hfuzz = 2pt,
+    tag/<name>/samepage = false,
+}
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    commentchar = A,
+    gobble = 0,
+    frame = none,
+    label = B,
+    labelposition = none,% auto?
+    numbers = left,
+    numbersep = \hspace{1ex},
+    firstnumber = auto,
+    stepnumber = 1,
+    numberblanklines = true,
+    firstline = C,
+    lastline = D,
+    baselinestretch = auto,
+    resetmargins = true,
+    xleftmargin = 0pt,
+    xrightmargin = 0pt,
+    hfuzz = 2pt,
+    samepage = false,
+}
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:cncn { <name> } { tl } { #1 } { #2 }
+}
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{__fancyvrb.all}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    commandchars = A,
+    codes = B,
+  }
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    commandchars = A,
+    codes = B,
+  }
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:cncn { __fancyvrb.all } { tl } { #1 } { #2 }
+}
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{tag/<name>:__fancyvrb.all}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    tag/<name>/commandchars = A,
+    tag/<name>/codes = B,
+  }
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    commandchars = A,
+    codes = B,
+  }
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:cncn { <name> } { tl } { #1 } { #2 }
+}
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+

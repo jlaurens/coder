@@ -1,0 +1,22 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+Tests of \cs{CDR_tag_boolean_set:n}
+
+\ExplSyntaxOn
+\CDR_tag_keys_define:nn { CDR_tag_boolean_set:n } {
+  numberblanklines .code:n = \CDR_tag_boolean_set:n { #1 },
+}
+\CDR_tag_keys_set:nn { CDR_tag_boolean_set:n } {
+  numberblanklines,
+}
+\tl_if_eq:xnF { \CDR_tag_get:cc { CDR_tag_boolean_set:n } { numberblanklines } } { true } { FAIL 76\\ }
+\CDR_tag_keys_set:nn { CDR_tag_boolean_set:n } {
+  numberblanklines = false,
+}
+\tl_if_eq:xnF { \CDR_tag_get:cc { CDR_tag_boolean_set:n } { numberblanklines } } { false } { FAIL 80\\ }
+\CDR_tag_keys_set:nn { CDR_tag_boolean_set:n } {
+  numberblanklines = true,
+}
+\tl_if_eq:xnF { \CDR_tag_get:cc { CDR_tag_boolean_set:n } { numberblanklines } } { true } { FAIL 84\\ }
+
+\ExplSyntaxOff

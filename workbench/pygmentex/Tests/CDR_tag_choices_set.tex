@@ -1,0 +1,21 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+Tests of \cs{CDR_tag_choices_set:}
+
+\ExplSyntaxOn
+\CDR_tag_keys_define:nn { CDR_tag_choices_set: } {
+  gobble .choices:nn = {
+    0,1,2,3,4,5,6,7,8,9
+  } {
+    \CDR_tag_choices_set:
+  },
+}
+\CDR_tag_keys_set:nn { CDR_tag_choices_set: } {
+  gobble = 9,
+}
+\CDR_tag_get:cc { CDR_tag_choices_set: } { gobble }
+%\CDR_tag_keys_set:nn { CDR_tag_choices_set: } {
+%  gobble = 10,
+%}
+\CDR_tag_get:cc { CDR_tag_choices_set: } { gobble }
+\ExplSyntaxOff

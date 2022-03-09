@@ -1,0 +1,75 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+Tests of the tag mechanism.
+
+\subsection {groups}
+\ExplSyntaxOn
+\group_begin:
+
+\CDR_tag_set:ccn { A } { B } { THIS_IS_C }
+THIS_IS_C=\CDR_tag_get:cc { A } { B }\\
+
+\group_end:
+
+THIS_IS_VOID=\CDR_tag_get:cc { A } { B }\\
+
+\ExplSyntaxOff
+
+\subsection{Other}
+\ExplSyntaxOn
+\group_begin:
+
+
+\CDR_tag_set:ccn { A } { B } { OK }
+\str_set:Nx \l_keys_path_str {
+  \c_CDR_tag / a / b / c
+}
+\CDR_tag_set:n { OK }
+
+\prg_generate_conditional_variant:Nnn \tl_if_eq:nn { xn } { T, F, TF }
+
+\tl_if_eq:xnF { \CDR_tag_get:cc { a } { b/c } } { OK } { FAIL \CurrentFile 3\\ }
+\tl_set:Nx \l_tmpa_tl { \CDR_tag_get_path:cc { a } { b/c } }
+\tl_set:Nx \l_tmpb_tl { \CDR_tag_get_path:cc { a/b } { c } }
+\tl_if_eq:NNF \l_tmpa_tl  \l_tmpb_tl { FAIL 35\\ }
+\tl_if_eq:xnF { \CDR_tag_get:cc { a/b } { c } } { OK } { FAIL \CurrentFile 36\\ }
+
+\CDR_tag_set:cn { d / e } { OK }
+\tl_if_eq:xnF { \CDR_tag_get:cc { a/d } { e } } { OK } { FAIL \CurrentFile 39\\ }
+
+
+
+\group_end:
+\tl_if_eq:xnT { \CDR_tag_get:cc { a/d } { e } } { OK } { FAIL \CurrentFile 27\\ }
+\ExplSyntaxOff
+
+Inheritance
+
+\ExplSyntaxOn
+\group_begin:
+\CDR_keys_inherit:nnn { A } { child } { a, b }
+\keys_define:nn { A/a } { a .tl_set:N = \l_tmpa_tl }
+\keys_define:nn { A/a } { b .tl_set:N = \l_tmpb_tl }
+\keys_set:nn { A/child } { a=a, b=b }
+\tl_if_eq:xnF { \l_tmpa_tl } { a } { FAIL \CurrentFile 38\\ }
+\tl_if_eq:xnF { \l_tmpb_tl } { b } { FAIL \CurrentFile 39\\ }
+\group_end:
+\group_begin:
+\clist_set:Nn \l_tmpa_clist { a, b }
+\CDR_keys_inherit:VnV \c_CDR_tag { child } \l_tmpa_clist
+\CDR_tag_keys_define:nn { a } { a .tl_set:N = \l_tmpa_tl }
+\CDR_tag_keys_define:nn { b } { b .tl_set:N = \l_tmpb_tl }
+\CDR_tag_keys_set:nn { child } { a=a, b=b }
+\tl_if_eq:xnF { \l_tmpa_tl } { a } { FAIL \CurrentFile 47\\ }
+\tl_if_eq:xnF { \l_tmpb_tl } { b } { FAIL \CurrentFile 48\\ }
+
+\group_end:
+\ExplSyntaxOff
+
+TO BE REMOVED
+
+\ExplSyntaxOn
+\group_begin:
+\seq_use:Nn \g_CDR_tag_path_seq \par
+\group_end:
+\ExplSyntaxOff

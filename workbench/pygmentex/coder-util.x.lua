@@ -100,11 +100,11 @@ local function safe_equals(s)
 end
 local parse_pattern
 do
-  local tag = P('?TEX') + '!LUA' + '?LUA'
+  local tag = P('!') + '?'
   local stp = '>>>>>'
   local cmd = P(1)^0 - stp
   parse_pattern = P({
-    '<<<<<' * Cg(tag - ':') * ':' * Cg(cmd) * stp * Cp() + 1 * V(1)
+    '<<<<<' * Cg(tag - 'LUA:') * ':' * Cg(cmd) * stp * Cp() + 1 * V(1)
   })
 end
 local function load_exec_output(self, s)
@@ -112,11 +112,9 @@ local function load_exec_output(self, s)
   i = 0
   while true do
     tag, cmd, i = parse_pattern:match(s, i)
-    if tag == '?TEX' then
-      tex.print(cmd)
-    elseif tag == '!LUA' then
+    if tag == '!' then
       self.load_exec(cmd)
-    elseif tag == '?LUA' then
+    elseif tag == '?' then
       local eqs = self.safe_equals(cmd)
       cmd = '['..eqs..'['..cmd..']'..eqs..']'
       tex.print([[%
@@ -134,21 +132,73 @@ local function option_add(self, key, value_name)
   local p = self['.options']
   p[key] = token.get_macro(assert(value_name))
 end
+local function hilight_code(self, code_name)
+  local code = assert(tex.token(assert(code_name)))
+  local config = {
+    ['__cls__'] = 'Arguments'
+  }
+  local texopts = {
+    ['__cls__'] = 'TeXOpts'
+  }
+  texopts.sty_template = [[
+\makeatletter
+\CDR@StyleDefine {]]..pygopts.style..[[} {%
+<placeholder:style_defs>%
+}%
+\makeatother
+]]
+  texopts.white_line_template = [[<placeholder:line>]]
+  texopts.black_line_template = [[
+    \CDR@Number{<placeholder:number>}<placeholder:line>]]
+  texopts.single_line_template = [[\CDR@Number{<placeholder:number>}<placeholder:line>]]
+  texopts.first_line_template = [[<placeholder:line>]]
+  texopts.second_line_template = [[<placeholder:line>]]
+  config['texopts'] = texopts
+  local fv_opts = {
+    ['__cls__'] = 'FVOpts'
+  }
+  config['fv_opts'] = fv_opts
+  local pyg_opts = {
+    ['__cls__'] = 'PygOpts'
+  }
+  config['pyg_opts'] = pyg_opts
+
+end
+local function process_block_new(self, tags_clist)
+  local t = {}
+  for tag in string.gmatch(tags_clist, '([^,]+)') do
+    t[#t+1]=tag
+  end
+  self['block tags']  = tags_clist
+  self['.lines'] = {}
+end
+local function process_line(self, line_variable_name)
+  local line = assert(tex.token(assert(line_variable_name)))
+  local ll = self['.lines']
+  ll[#ll+1] = line
+  local lt = self['lines by tag'] or {}
+  self['lines by tag'] = lt
+  for tag in self['block tags']:gmatch('([^,]+)') do
+    ll = lt[tag] or {}
+    lt[tag] = ll
+    ll[#ll+1] = line
+  end
+end
+local function hilight_block(self, block_name)
+end
 local function export_file(self, file_name)
   self['.name'] = assert(tex.token(assert(file_name)))
   self['.export'] = {}
 end
 local function export_file_info(self, key, value)
   local export = self['.export']
-  key = assert(token.get_macro(assert(key)))
-  if value then
-    value = assert(token.get_macro(value))
-    exportation[key] = value
-  end
+  value = assert(token.get_macro(assert(value)))
+  export[key] = value
 end
 local function export_complete(self)
-  local name = sef['.name']
-  local export = sef['.export']
+  local name    = self['.name']
+  local export  = self['.export']
+  local records = self['.records']
   local tt = {}
   local s = export.preamble
   if s then
@@ -205,10 +255,10 @@ return {
   make_directory     = make_directory,
   load_exec          = load_exec,
   load_exec_output   = load_exec_output,
-  record_start       = record_start,
-  record_stop        = record_stop,
   record_line        = function(self,line) end,
-  process_code       = process_code,
+  hilight_code       = hilight_code,
+  process_block_new  = process_block_new,
+  hilight_block      = hilight_block,
   cache_clean_all    = cache_clean_all,
   cache_record       = cache_record,
   cache_clean_unused = cache_clean_unused,

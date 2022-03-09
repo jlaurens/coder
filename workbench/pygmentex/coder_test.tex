@@ -1,0 +1,69 @@
+% !TeX program=lualatex
+
+\documentclass[10pt,a4paper]{article}
+
+\usepackage{fontspec}
+\usepackage{coder}
+
+\usepackage{luacode} % JL
+\ExplSyntaxOn
+\prop_new:N \l_CDR_test_prop
+\cs_new:Npn \cs #1 {\texttt{\textbackslash\tl_rescan:nn {\cctab_select:N \c_str_cctab} {#1}}}
+\cs_new:Npn \CDRCmd #1 {\texttt{\tl_rescan:nn {\cctab_select:N \c_str_cctab} {#1}}}
+\cs_set:Nn \CDR_helper:n {
+  \typeout{KEY:#1}
+}
+\cs_set:Nn \CDR_helper:nn {
+  \typeout{KV:#1->#2}
+}
+\ExplSyntaxOn
+\fp_zero_new:N \l_CDR_test_fp
+\fp_zero_new:N \l_CDR_fail_fp
+
+\fp_set:Nn \l_CDR_test_fp { 1 }
+\fp_set:Nn \l_CDR_fail_fp { 0 }
+
+
+\cs_new:Npn \CDR_assert_tl_empty:n #1 {
+  \tl_if_empty:nF { #1 } { \fp_add:Nn \l_CDR_fail_fp { \l_CDR_test_fp } }
+  \fp_set:Nn \l_CDR_test_fp {  2 * \l_CDR_test_fp }
+}
+
+\prg_generate_conditional_variant:Nnn \skip_if_eq:nn { x } { p, T, F, TF }
+\cs_new:Npn \CDR_test: {
+  \fp_compare:nNnT \l_CDR_fail_fp > 0 { \CurrentFile : ERROR: \fp_use:N \l_CDR_fail_fp\\ }
+}
+\ExplSyntaxOff
+
+\ExplSyntaxOff
+
+\begin{document}
+
+\title{Testing the \textsf{coder} package}
+\author{Jérôme LAURENS}
+\maketitle
+
+\section{Have \textsf{pygments}?}
+\ExplSyntaxOn
+\sys_get_shell:nnN {which~pygmentize} {} \l_CDR_tl
+Path=\l_CDR_tl\\
+\ExplSyntaxOff
+
+\section{Testing the tag mechanism}
+\input{Tests/tag_mechanism}
+\section{\cs{CDR_tag_choices_set:}}
+\input{Tests/CDR_tag_choices_set}
+\section{\cs{CDR_tag_boolean_set:}}
+\input{Tests/CDR_tag_boolean_set}
+
+\section{\cs{CDRSet}}
+%\input{Tests/CDRSet}
+
+\section{\cs{CDRCode}}
+\input{Tests/CDRCode}
+
+\section{\cs{CDRExport}}
+%\input{Tests/CDRExport}
+
+\end{document}
+

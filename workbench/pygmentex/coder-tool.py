@@ -30,73 +30,124 @@ import re
 from pathlib import Path
 import hashlib
 import json
-from pygments import highlight
+from pygments import highlight as hilight
 from pygments.formatters.latex import LatexEmbeddedLexer, LatexFormatter
 from pygments.lexers import get_lexer_by_name
 from pygments.util import ClassNotFound
 from pygments.util import guess_decode
-class Controller:
+class Options(object):
   @staticmethod
   def ensure_bool(x):
     if x == True or x == False: return x
     x = x[0:1]
     return x == 'T' or x == 't'
-  class Object(object):
-    def __new__(cls, d={}, *args, **kvargs):
-      __cls__ = d.get('__cls__', 'arguments')
-      if __cls__ == 'options':
-        return super(Controller.Object, cls)['__new__'](
-          Controller.Options, *args, **kvargs
-        )
-      elif __cls__ == 'FV':
-        return super(Controller.Object, cls)['__new__'](
-          Controller.FV, *args, **kvargs
-        )
-      else:
-        return super(Controller.Object, cls)['__new__'](
-          Controller.Arguments, *args, **kvargs
-        )
-    def __init__(self, d={}):
-      for k, v in d.items():
-        if type(v) == str:
-          if v.lower() == 'true':
-            setattr(self, k, True)
-            continue
-          elif v.lower() == 'false':
-            setattr(self, k, False)
-            continue
-        setattr(self, k, v)
-    def __repr__(self):
-      return f"{object['__repr__'](self)}: {self['__dict__']}"
-  class Options(Object):
-    docclass = 'article'
-    style = 'autumn'
-    preamble = ''
-    lang = 'tex'
-    escapeinside = ""
-    gobble = 0
-    tabsize = 4
-    style = 'default'
-    already_style = False
-    texcomments = False
-    mathescape =  False
-    linenos = False
-    linenostart = 1
-    linenostep = 1
-    linenosep = '0pt'
-    encoding = 'guess'
-    verboptions = ''
-    nobackground = False
-    commandprefix = 'Py'
-  class FV(Object):
-    pass
-  class Arguments(Object):
-    cache = False
-    debug = False
-    code = ""
-    json = ""
-    options = None
-    directory = ""
+  def __new__(cls, d={}, *args, **kvargs):
+    __cls__ = d.get('__cls__', 'arguments')
+    if __cls__ == 'PygOpts':
+      return super(Controller.Options, cls)['__new__'](
+        Controller.PygOpts, *args, **kvargs
+      )
+    elif __cls__ == 'FVOpts':
+      return super(Controller.Options, cls)['__new__'](
+        Controller.FVOpts, *args, **kvargs
+      )
+    elif __cls__ == 'TeXOpts':
+      return super(Controller.Options, cls)['__new__'](
+        Controller.TeXOpts, *args, **kvargs
+      )
+    else:
+      return super(Controller.Options, cls)['__new__'](
+        Controller.Arguments, *args, **kvargs
+      )
+  def __init__(self, d={}):
+    for k, v in d.items():
+      if type(v) == str:
+        if v.lower() == 'true':
+          setattr(self, k, True)
+          continue
+        elif v.lower() == 'false':
+          setattr(self, k, False)
+          continue
+      setattr(self, k, v)
+  def __repr__(self):
+    return f"{object['__repr__'](self)}: {self['__dict__']}"
+class TeXOpts(Options):
+  tags = ''
+  inline = True
+  already_style = False
+  sty_template='<placeholder:style_defs>'
+  code_template ='<placeholder:hilighted>'
+  single_line_template='<placeholder:number><placeholder:line>'
+  first_line_template='<placeholder:number><placeholder:line>'
+  second_line_template='<placeholder:number><placeholder:line>'
+  white_line_template='<placeholder:number><placeholder:line>'
+  black_line_template='<placeholder:number><placeholder:line>'
+  block_template='<placeholder:count><placeholder:hilighted>'
+  def __init__(self, *args, **kvargs):
+    super().__init__(*args, **kvargs)
+    self.inline = self.ensure_bool(self.inline)
+class PygOpts(Options):
+  style = 'default'
+  nobackground = False
+  linenos = False
+  linenostart = 1
+  linenostep = 1
+  commandprefix = 'Py'
+  texcomments = False
+  mathescape =  False
+  escapeinside = ""
+  envname = 'Verbatim'
+  lang = 'tex'
+  def __init__(self, *args, **kvargs):
+    super().__init__(*args, **kvargs)
+    self.linenos = Controller.ensure_bool(self.linenos)
+    self.linenostart = abs(int(self.linenostart))
+    self.linenostep  = abs(int(self.linenostep))
+    self.texcomments = Controller.ensure_bool(self.texcomments)
+    self.mathescape  = Controller.ensure_bool(self.mathescape)
+class FVOpts(Options):
+  gobble = 0
+  tabsize = 4
+  linenosep = '0pt'
+  commentchar = ''
+  frame = 'none'
+  label = ''
+  labelposition = 'none'
+  numbers = 'left'
+  numbersep = r'\hspace{1ex}'
+  firstnumber = 'auto'
+  stepnumber = 1
+  numberblanklines = True
+  firstline = ''
+  lastline = ''
+  baselinestretch = 'auto'
+  resetmargins = True
+  xleftmargin = '0pt'
+  xrightmargin = '0pt'
+  hfuzz = '2pt'
+  samepage = False
+  def __init__(self, *args, **kvargs):
+    super().__init__(*args, **kvargs)
+    self.gobble  = abs(int(self.gobble))
+    self.tabsize  = abs(int(self.tabsize))
+    if self.firstnumber != 'auto':
+      self.firstnumber = abs(int(self.firstnumber))
+    self.stepnumber = abs(int(self.stepnumber))
+    self.linenostep  = abs(int(self.linenostep))
+    self.numberblanklines = Controller.ensure_bool(self.numberblanklines)
+    self.resetmargins  = Controller.ensure_bool(self.resetmargins)
+    self.samepage  = Controller.ensure_bool(self.samepage)
+class Arguments(Options):
+  cache = False
+  debug = False
+  code = ""
+  json = ""
+  directory = "."
+  texopts = TeXOpts()
+  pygopts = PygOpts()
+  fv_opts = FVOpts()
+  directory = ""
+class Controller:
   _json_p = None
   @property
   def json_p(self):
@@ -109,10 +160,10 @@ class Controller:
         p = Path(p).resolve()
     self._json_p = p
     return p
-  _directory_p = None
+  _pygd_p = None
   @property
-  def directory_p(self):
-    p = self._directory_p
+  def pygd_p(self):
+    p = self._pygd_p
     if p:
       return p
     p = self.arguments.directory
@@ -127,33 +178,18 @@ class Controller:
     if p:
       p = p.resolve().with_suffix(".pygd")
       p.mkdir(exist_ok=True)
-    self._directory_p = p
-    return p
-  _colored_p = None
-  @property
-  def colored_p(self):
-    p = self._colored_p
-    if p:
-      return p
-    p = self.arguments.output
-    if p:
-      p = Path(p).resolve()
-    else:
-      p = self.json_p
-      if p:
-        p = p.with_suffix(".pyg.tex")
-    self._colored_p = p
+    self._pygd_p = p
     return p
   @property
-  def sty_p(self):
-    return (self.directory_p / self.options.style).with_suffix(".pyg.sty")
+  def pyg_sty_p(self):
+    return (self.pygd_p / self.pygopts.style).with_suffix(".pyg.sty")
   @property
   def parser(self):
     parser = argparse.ArgumentParser(
       prog=sys.argv[0],
       description='''
 Writes to the output file a set of LaTeX macros describing
-the syntax highlighting of the input file as given by pygments.
+the syntax hilighting of the input file as given by pygments.
 '''
     )
     parser.add_argument(
@@ -172,19 +208,16 @@ the syntax highlighting of the input file as given by pygments.
       "json",
       metavar="json data file",
       help="""
-file name with extension of information to specify which processing is required
+file name with extension, contains processing information
 """
     )
     return parser
 
   @staticmethod
-  def tex_command(cmd):
-    print(f'<<<<<?TEX:{cmd}>>>>>')
-  @staticmethod
   def lua_command(cmd):
     print(f'<<<<<?LUA:{cmd}>>>>>')
   @staticmethod
-  def lua_command_new(cmd):
+  def lua_command_now(cmd):
     print(f'<<<<<!LUA:{cmd}>>>>>')
   def __init__(self, argv = sys.argv):
     argv = argv[1:] if re.match(".*coder\-tool\.py$", argv[0]) else argv
@@ -196,19 +229,18 @@ file name with extension of information to specify which processing is required
         f,
         object_hook=Controller.Object
       )
-    options = self.options = self.arguments.options
-    formatter = self.formatter = LatexFormatter(style=options.style)
-    formatter.docclass = options.docclass
-    formatter.preamble = options.preamble
-    formatter.linenos = self.ensure_bool(options.linenos)
-    formatter.linenostart = abs(options.linenostart)
-    formatter.linenostep = abs(options.linenostep)
-    formatter.verboptions = options.verboptions
-    formatter.nobackground = self.ensure_bool(options.nobackground)
-    formatter.commandprefix = options.commandprefix
-    formatter.texcomments = self.ensure_bool(options.texcomments)
-    formatter.mathescape = self.ensure_bool(options.mathescape)
-    formatter.envname = u'CDR@Pyg@Verbatim'
+    texopts = self.texopts = self.arguments.texopts
+    pygopts = self.pygopts = self.arguments.pygopts
+    fv_opts = self.fv_opts = self.arguments.fv_opts
+    formatter = self.formatter = LatexFormatter(
+      style=pygopts.style,
+      nobackground = pygopts.nobackground,
+      commandprefix = pygopts.commandprefix,
+      texcomments = pygopts.texcomments,
+      mathescape = pygopts.mathescape,
+      escapeinside = pygopts.escapeinside,
+      envname = u'CDR@Pyg@Verbatim',
+    )
 
     try:
       lexer = self.lexer = get_lexer_by_name(self.arguments.lang)
@@ -216,7 +248,7 @@ file name with extension of information to specify which processing is required
       sys.stderr.write('Error: ')
       sys.stderr.write(str(err))
 
-    escapeinside = options.escapeinside
+    escapeinside = pygopts.escapeinside
     # When using the LaTeX formatter and the option `escapeinside` is
     # specified, we need a special lexer which collects escaped text
     # before running the chosen language lexer.
@@ -225,134 +257,130 @@ file name with extension of information to specify which processing is required
       right = escapeinside[1]
       lexer = self.lexer = LatexEmbeddedLexer(left, right, lexer)
 
-    gobble = abs(int(self.gobble))
+    gobble = fv_opts.gobble
     if gobble:
       lexer.add_filter('gobble', n=gobble)
-    tabsize = abs(int(self.tabsize))
+    tabsize = fv_opts.tabsize
     if tabsize:
       lexer.tabsize = tabsize
     lexer.encoding = ''
 
-  def get_tex_p(self, digest):
-    return (self.directory_p / digest).with_suffix(".pyg.tex")
-  def process(self):
-    self.create_style()
-    self.create_pygmented()
-    print('create_tool.py: done')
-    return 0
+  def get_pyg_tex_p(self, digest):
+    return (self.pygd_p / digest).with_suffix(".pyg.tex")
   def create_style(self):
-    options = self.options
+    pyg_sty_p = self.pyg_sty_p
+    if self.arguments.cache and pyg_sty_p.exists():
+      print("Already available:", pyg_sty_p)
+      return
+    texopts = self.texopts
+    if texopts.already_style:
+      return
     formatter = self.formatter
-    style = None
-    if not self.ensure_boolean(options.already_style):
-      style = formatter.get_style_defs() \
-        .replace(r'\makeatletter', '') \
-        .replace(r'\makeatother', '') \
-        .replace('\n', '%\n')
-      style = re.sub(
-        r"\expandafter\def\csname\s*(.*?)\endcsname",
-        r'\cs_new:cpn{\1}',
-        style,
-        flags=re.M
-      )
-      style = re.sub(
-        r"\csname\s*(.*?)\endcsname",
-        r'\use:c{\1}',
-        style,
-        flags=re.M
-      )
-      style = fr'''%
-\ExplSyntaxOn
-\makeatletter
-\CDR_style_gset:nn {{{options.style}}} {{%
-{style}%
-}}%
-\makeatother
-\ExplSyntaxOff
-'''
-    sty_p = self.sty_p
-    if self.arguments.cache and sty_p.exists():
-      print("Already available:", sty_p)
-    else:
-      with sty_p.open(mode='w',encoding='utf-8') as f:
-        f.write(style)
-  def pygmentize(self, code, inline=True):
-    options = self.options
-    formatter = self.formatter
-    mode = 'Code' if inline else 'Block'
-    envname = formatter.envname = rf'CDR@Pyg@{mode}'
-    code = highlight(code, self.lexer, formatter)
+    style_defs = formatter.get_style_defs() \
+      .replace(r'\makeatletter', '') \
+      .replace(r'\makeatother', '') \
+      .replace('\n', '%\n')
+    sty = self.texopts.sty_template.replace(
+      '<placeholder:style_defs>',
+      style_defs,
+    )
+    with pyg_sty_p.open(mode='w',encoding='utf-8') as f:
+      f.write(sty)
+  def pygmentize(self, code):
+    code = hilight(code, self.lexer, self.formatter)
     m = re.match(
-      rf'(\begin{{{envname}}}.*?\n)(.*?)(\n'
-      rf'\end{{{envname}}}\s*)\Z',
+      r'\begin{CDR@Pyg@Verbatim}.*?\n(.*?)\n\end{CDR@Pyg@Verbatim}\s*\Z',
       code,
       flags=re.S
     )
     assert(m)
-    if inline:
-      ans_code = rf'''\bgroup
-\CDRCode@Prepare:n {{{options.style}}}%
-{m.group(2)}%
-\egroup
-'''
-    else:
-      ans_code = []
-      linenos = options.linenos
-      linenostart = abs(int(options.linenostart))
-      linenostep = abs(int(options.linenostep))
-      numbers = []
-      lines = []
-      counter = linenostart
-      all_lines = m.group(2).split('\n')
-      for line in all_lines:
-        line = re.sub(r'^ ', r'\vphantom{Xy}~', line)
-        line = re.sub(r' ', '~', line)
-        if linenos:
-          if (counter - linenostart) % linenostep == 0:
-            line = rf'\CDR_lineno:n{{{counter}}}' + line
-            numbers.append(str(counter))
-          counter += 1
-        lines.append(line)
-      ans_code.append(fr'''%
-\begin{{CDR@Block/engine/{options.style}}}
-\CDRBlock@linenos@used:n {{{','.join(numbers)}}}%
-{m.group(1)}{'\n'.join(lines)}{m.group(3)}%
-\end{{CDR@Block/engine/{options.style}}}
-''' )
-      ans_code = "".join(ans_code)
-    return ans_code
+    hilighted = m.group(1)
+    texopts = self.texopts
+    if texopts.inline:
+      return texopts.code_template.replace('<placeholder:hilighted>',hilighted)
+    fv_opts = self.fv_opts
+    lines = hilighted.split('\n')
+    number = firstnumber = fv_opts.firstnumber
+    stepnumber = fv_opts.stepnumber
+    no = ''
+    numbering = fv_opts.numbers != 'none'
+    ans_code = []
+    def more(template):
+      ans_code.append(template.replace(
+          '<placeholder:number>', f'{number}',
+        ).replace(
+          '<placeholder:line>', line,
+      ))
+      number += 1
+
+    if len(lines) == 1:
+      line = lines.pop(0)
+      more(texopts.single_line_template)
+    elif len(lines):
+      line = lines.pop(0)
+      more(texopts.first_line_template)
+      line = lines.pop(0)
+      more(texopts.second_line_template)
+      if stepnumber < 2:
+        def template():
+          return texopts.black_line_template
+      elif stepnumber % 5 == 0:
+        def template():
+          return texopts.black_line_template if number %\
+            linenostep == 0 else texopts.white_line_template
+      else:
+        def template():
+          return texopts.black_line_template if (number - firstnumber) %\
+            linenostep == 0 else texopts.white_line_template
+
+      for line in lines:
+        more(template())
+
+      hilighted = '\n'.join(ans_code)
+      return texopts.block_template.replace(
+        '<placeholder:count>', f'{counter-firstnumber}'
+      ).replace(
+        '<placeholder:hilighted>', hilighted
+      )
+#%
+#%    ans_code.append(fr'''%
+#%\begin{{CDR@Block/engine/{pygopts.style}}}
+#%\CDRBlock@linenos@used:n {{{','.join(numbers)}}}%
+#%{m.group(1)}{'\n'.join(lines)}{m.group(3)}%
+#%\end{{CDR@Block/engine/{pygopts.style}}}
+#%''' )
+#%      ans_code = "".join(ans_code)
+#%    return texopts.block_template.replace('<placeholder:hilighted>',hilighted)
   def create_pygmented(self):
-    code = self.arguments.code
+    arguments = self.arguments
+    code = arguments.code
     if not code:
       return False
-    code = self.pygmentize(code, self.ensure_bool(self.arguments.inline))
-    h = hashlib.md5(str(code).encode('utf-8'))
-    out_p = self.get_tex_p(h.hexdigest())
-    if self.arguments.cache and out_p.exists():
-      print("Already available:", out_p)
-    else:
-      with out_p.open(mode='w',encoding='utf-8') as f:
-        f.write(r'''% -*- mode: latex -*-
-\makeatletter
-''')
-        f.write(code)
-        f.write(r'''\makeatother
-''')
-    self.tex_command( rf'''%
-\CDR_remove:n {{colored:}}%
-\input {{ \tl_to_str:n {{{out_p}}} }}%
-\CDR:n {{colored:}}%
-''')
-    sty_p = self.sty_p
-    if sty_p.parent.stem != 'SHARED':
+    inline = self.texopts.inline
+    h = hashlib.md5(f'{str(code)}:{inline}'.encode('utf-8'))
+    pyg_tex_p = self.get_pyg_tex_p(h.hexdigest())
+    if arguments.cache and pyg_tex_p.exists():
+      print("Already available:", pyg_tex_p)
+      return True
+    code = self.pygmentize(code)
+    with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
+      f.write(code)
+    self.lua_command_now( f'self:input({pyg_tex_p})' )
+# \CDR_remove:n {{colored:}}%
+# \input {{ \tl_to_str:n {{}} }}%
+# \CDR:n {{colored:}}%
+    pyg_sty_p = self.pyg_sty_p
+    if pyg_sty_p.parent.stem != 'SHARED':
       self.lua_command_now( fr'''
-CDR:cache_record({sty_p.name}),{out_p.name})
+CDR:cache_record([=====[{pyg_sty_p.name}]=====],[=====[{pyg_tex_p.name}]=====])
 ''' )
     print("PREMATURE EXIT")
     exit(1)
 if __name__ == '__main__':
   try:
     ctrl = Controller()
-    sys.exit(ctrl.process())
+    x = ctrl.create_style() or ctrl.create_pygmented()
+    print(f'{sys.argv[0]}: done')
+    sys.exit(x)
   except KeyboardInterrupt:
     sys.exit(1)
