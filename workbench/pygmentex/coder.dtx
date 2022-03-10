@@ -2000,7 +2000,7 @@ if __name__ == '__main__':
 % \begin{variable}{\c_CDR_tag_regex}
 % To parse a \pkg{l3keys} full key path.
 %    \begin{MacroCode}[ok]
-\tl_set:Nn \l_CDR_tl { /([^/]*)/(.*)$ } % $
+\tl_set:Nn \l_CDR_tl { /([^/]*)/(.*)$ } \use_none:n { $ }
 \tl_put_left:NV \l_CDR_tl \c_CDR_tag
 \tl_put_left:Nn \l_CDR_tl { ^ }
 \exp_args:NNV
@@ -2085,11 +2085,12 @@ if __name__ == '__main__':
 % is managed.
 % \end{function}
 %    \begin{MacroCode}[ok]
+\regex_const:Nn \c_CDR_root_regex { ^(.*)/.*$ } \use_none:n { $ }
 \cs_new:Npn \CDR_tag_choices: {
   \exp_args:NVV
   \str_if_eq:nnT \l_keys_key_tl \l_keys_choice_tl {
     \exp_args:NnV
-    \regex_extract_once:nnNT { ^(.*)/.*$ } % $
+    \regex_extract_once:NnNT \c_CDR_root_regex
         \l_keys_path_str \l_CDR_seq {
       \str_set:Nx \l_keys_path_str {
         \seq_item:Nn \l_CDR_seq 2
@@ -2488,7 +2489,7 @@ if __name__ == '__main__':
 % \begin{variable}{\c_CDR_provide_regex}
 % To parse a \pkg{l3keys} full key path.
 %    \begin{MacroCode}[ok]
-\tl_set:Nn \l_CDR_tl { /([^/]*)(?:/(.*))?$ } % $
+\tl_set:Nn \l_CDR_tl { /([^/]*)(?:/(.*))?$ } \use_none:n { $ }
 \tl_put_left:NV \l_CDR_tl \c_CDR_tag
 \tl_put_left:Nn \l_CDR_tl { ^ }
 \exp_args:NNV
@@ -2511,7 +2512,7 @@ if __name__ == '__main__':
 % Notice that a tag name should contain no `/'.
 % \end{function}
 %    \begin{MacroCode}[ok]
-\regex_const:Nn \c_CDR_engine_regex { ^[^/]*\sengine\soptions$ }
+\regex_const:Nn \c_CDR_engine_regex { ^[^/]*\sengine\soptions$ } \use_none:n { $ }
 \cs_new:Npn \CDR_tag_provide_from_clist:n #1 {
   \exp_args:NNx
   \regex_extract_once:NnNTF \c_CDR_provide_regex {
@@ -2986,6 +2987,7 @@ if __name__ == '__main__':
 % \pkg{l3keys} module}
 % Block specific options.
 %    \begin{MacroCode}[ok]
+\regex_const:Nn \c_CDR_integer_regex { ^(+|-)?\d+$ } \use_none:n { $ }
 \CDR_tag_keys_define:nn { __fancyvrb.block } {
 %    \end{MacroCode}
 % \begin{description}
@@ -3069,7 +3071,7 @@ if __name__ == '__main__':
 % Initially \texttt{auto}: numbering starts from 1.
 %    \begin{MacroCode}[ok]
   firstnumber .code:n = {
-    \regex_match:nnTF { ^(+|-)?\d+$ } { #1 } { % $
+    \regex_match:NnTF \c_CDR_integer_regex { #1 } {
       \CDR_tag_set:
     } {
       \str_case:nnF { #1 } {
@@ -3901,6 +3903,48 @@ if __name__ == '__main__':
   \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
 }
 \cs_generate_variant:Nn \CDR_brace_if_contains_comma:n { V }
+\cs_new:Npn \CDR_code_fvset_braced:nn #1 #2 {
+  \fvset { #1 = { #2 } }
+}
+
+\cs_set:Npn \CDR_code_fvset: {
+  \tl_clear:N \l_CDR_options_tl
+  \clist_map_inline:nn {
+    formatcom,
+    fontfamily,
+    fontsize,
+    fontshape,
+    showspaces,
+    showtabs,
+    obeytabs,
+    tabsize,
+%    defineactive,
+%    reflabel,
+  } {
+    \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { ##1 } }
+    \tl_if_in:NnTF \l_CDR_tl { , } {
+      \exp_args:NnV
+      \CDR_code_fvset_braced:nn { ##1 } \l_CDR_tl
+    } {
+      \tl_put_left:Nn \l_CDR_tl { ##1 = }
+      \exp_args:NV
+      \fvset \l_CDR_tl
+    }
+  }
+}
+
+\cs_set:Npn \CDR_apply_code_engine:n {
+  \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { engine } }
+  \CDR_if_code_engine:VTF \l_CDR_tl {
+    \use:c { \CDR_code_engine:V \l_CDR_tl }
+  } {
+    \PackageError
+      { coder }
+      { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
+      {See~\CDRNewCodeEngine~in~the~coder~manual}
+    \use:c { \CDR_code_engine:c { default } }
+  }  
+}
 \cs_new:Npn \CDR_feed_options_clist:N #1 {
   \clist_map_inline:nn {
     formatcom, fontfamily, fontsize, fontshape,
@@ -3947,6 +3991,20 @@ if __name__ == '__main__':
       }
     ] { CDR@Code } #1
   }
+}
+\NewDocumentCommand \CDRCode { O{} } {
+  \group_begin:
+  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
+    \prg_return_false:
+  }  
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __pygments, default.code, default, __fancyvrb, __fancyvrb.all
+  }
+  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
+  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
+  \exp_args:NnV
+  \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
+  \CDR_code:n
 }
 %    \end{MacroCode}
 %

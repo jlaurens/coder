@@ -120,7 +120,7 @@
   \exp_args:NnnV
   \CDR_tag_set:ccn { #1 } { #2 } #3
 }
-\tl_set:Nn \l_CDR_tl { /([^/]*)/(.*)$ } % $
+\tl_set:Nn \l_CDR_tl { /([^/]*)/(.*)$ } \use_none:n { $ }
 \tl_put_left:NV \l_CDR_tl \c_CDR_tag
 \tl_put_left:Nn \l_CDR_tl { ^ }
 \exp_args:NNV
@@ -157,11 +157,12 @@
     \use_none:n
   }
 }
+\regex_const:Nn \c_CDR_root_regex { ^(.*)/.*$ } \use_none:n { $ }
 \cs_new:Npn \CDR_tag_choices: {
   \exp_args:NVV
   \str_if_eq:nnT \l_keys_key_tl \l_keys_choice_tl {
     \exp_args:NnV
-    \regex_extract_once:nnNT { ^(.*)/.*$ } % $
+    \regex_extract_once:NnNT \c_CDR_root_regex
         \l_keys_path_str \l_CDR_seq {
       \str_set:Nx \l_keys_path_str {
         \seq_item:Nn \l_CDR_seq 2
@@ -312,12 +313,12 @@
   \CDR_keys_set_known:xnN { \c_CDR_tag / \exp_not:n { #1 } }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set_known:nnN { nV }
-\tl_set:Nn \l_CDR_tl { /([^/]*)(?:/(.*))?$ } % $
+\tl_set:Nn \l_CDR_tl { /([^/]*)(?:/(.*))?$ } \use_none:n { $ }
 \tl_put_left:NV \l_CDR_tl \c_CDR_tag
 \tl_put_left:Nn \l_CDR_tl { ^ }
 \exp_args:NNV
 \regex_const:Nn \c_CDR_provide_regex \l_CDR_tl
-\regex_const:Nn \c_CDR_engine_regex { ^[^/]*\sengine\soptions$ }
+\regex_const:Nn \c_CDR_engine_regex { ^[^/]*\sengine\soptions$ } \use_none:n { $ }
 \cs_new:Npn \CDR_tag_provide_from_clist:n #1 {
   \exp_args:NNx
   \regex_extract_once:NnNTF \c_CDR_provide_regex {
@@ -516,6 +517,7 @@
 \AtBeginDocument{
   \CDR_tag_keys_set:nn { __fancyvrb } { __initialize }
 }
+\regex_const:Nn \c_CDR_integer_regex { ^(+|-)?\d+$ } \use_none:n { $ }
 \CDR_tag_keys_define:nn { __fancyvrb.block } {
   commentchar .code:n = \CDR_tag_set:,
   commentchar .value_required:n = true,
@@ -538,7 +540,7 @@
   numbersep .code:n = \CDR_tag_set:,
   numbersep .value_required:n = true,
   firstnumber .code:n = {
-    \regex_match:nnTF { ^(+|-)?\d+$ } { #1 } { % $
+    \regex_match:NnTF \c_CDR_integer_regex { #1 } {
       \CDR_tag_set:
     } {
       \str_case:nnF { #1 } {
@@ -905,6 +907,46 @@
   \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
 }
 \cs_generate_variant:Nn \CDR_brace_if_contains_comma:n { V }
+\cs_new:Npn \CDR_code_fvset_braced:nn #1 #2 {
+  \fvset { #1 = { #2 } }
+}
+
+\cs_set:Npn \CDR_code_fvset: {
+  \tl_clear:N \l_CDR_options_tl
+  \clist_map_inline:nn {
+    formatcom,
+    fontfamily,
+    fontsize,
+    fontshape,
+    showspaces,
+    showtabs,
+    obeytabs,
+    tabsize,
+  } {
+    \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { ##1 } }
+    \tl_if_in:NnTF \l_CDR_tl { , } {
+      \exp_args:NnV
+      \CDR_code_fvset_braced:nn { ##1 } \l_CDR_tl
+    } {
+      \tl_put_left:Nn \l_CDR_tl { ##1 = }
+      \exp_args:NV
+      \fvset \l_CDR_tl
+    }
+  }
+}
+
+\cs_set:Npn \CDR_apply_code_engine:n {
+  \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { engine } }
+  \CDR_if_code_engine:VTF \l_CDR_tl {
+    \use:c { \CDR_code_engine:V \l_CDR_tl }
+  } {
+    \PackageError
+      { coder }
+      { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
+      {See~\CDRNewCodeEngine~in~the~coder~manual}
+    \use:c { \CDR_code_engine:c { default } }
+  }
+}
 \cs_new:Npn \CDR_feed_options_clist:N #1 {
   \clist_map_inline:nn {
     formatcom, fontfamily, fontsize, fontshape,

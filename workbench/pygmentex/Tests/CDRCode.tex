@@ -6,6 +6,8 @@
 \newfontfamily\CDRMenloFont{Menlo}[NFSSFamily=Menlo]
 
 
+\subsection{Fancyvrb basics}
+
 \ExplSyntaxOn
 \group_begin:
 
@@ -25,52 +27,38 @@ ABCDE
 \group_end:
 \ExplSyntaxOff
 
+\begin{Verbatim}[
+%  fontshape=b,
+  fontfamily=CDRVerbatimFont,%tt,%helvetica, courier
+  fontseries=b,
+  fontsize=\large,
+  showspaces=true,
+  showtabs=true,
+  tabsize=4,
+  reflabel=verb0
+]
+First verba	tim line.
+Second verbatim line.
+\end{Verbatim}
+See the verbatim on page~\pageref{verb0}
+\\
+\DefineShortVerb{\?}%
+YYY%
+\SaveVerb{ABC}?XXX?%
+\fvset{
+fontfamily=Menlo,
+fontshape=it,
+fontseries=auto,
+fontsize=\Large,
+}%
+\UseVerb{ABC}%
+YYY
+
+
 \subsection{Other}
 \ExplSyntaxOn
 \group_begin:
 
-\cs_new:Npn \CDR_code_fvset_braced:nn #1 #2 {
-  \fvset { #1 = { #2 } }
-}
-
-\cs_set:Npn \CDR_code_fvset: {
-  \tl_clear:N \l_CDR_options_tl
-  \clist_map_inline:nn {
-    formatcom,
-    fontfamily,
-    fontsize,
-    fontshape,
-    showspaces,
-    showtabs,
-    obeytabs,
-    tabsize,
-%    defineactive,
-%    reflabel,
-  } {
-    \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { ##1 } }
-    \tl_if_in:NnTF \l_CDR_tl { , } {
-      \exp_args:NnV
-      \CDR_code_fvset_braced:nn { ##1 } \l_CDR_tl
-    } {
-      \tl_put_left:Nn \l_CDR_tl { ##1 = }
-      \exp_args:NV
-      \fvset \l_CDR_tl
-    }
-  }
-}
-
-\cs_set:Npn \CDR_apply_code_engine:n {
-  \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { engine } }
-  \CDR_if_code_engine:VTF \l_CDR_tl {
-    \use:c { \CDR_code_engine:V \l_CDR_tl }
-  } {
-    \PackageError
-      { coder }
-      { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
-      {See~\CDRNewCodeEngine~in~the~coder~manual}
-    \use:c { \CDR_code_engine:c { default } }
-  }  
-}
 \cs_set:Npn \CDR_code:n #1 {
   \CDR_tag_inherit:cx { __local } {
     __code, __pygments,
@@ -132,32 +120,6 @@ LAST\\
 
 \ExplSyntaxOff
 
-\begin{Verbatim}[
-%  fontshape=b,
-  fontfamily=CDRVerbatimFont,%tt,%helvetica, courier
-  fontseries=b,
-  fontsize=\large,
-  showspaces=true,
-  showtabs=true,
-  tabsize=4,
-  reflabel=verb0
-]
-First verba	tim line.
-Second verbatim line.
-\end{Verbatim}
-See the verbatim on page~\pageref{verb0}
-\\
-\DefineShortVerb{\?}%
-YYY%
-\SaveVerb{ABC}?XXX?%
-\fvset{
-fontfamily=Menlo,
-fontshape=it,
-fontseries=auto,
-fontsize=\Large,
-}%
-\UseVerb{ABC}%
-YYY
 
 \ExplSyntaxOn
 \group_end:
