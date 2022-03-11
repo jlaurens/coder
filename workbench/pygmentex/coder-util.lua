@@ -23,14 +23,25 @@ local lpeg  = require("lpeg")
 local P, Cg, Cp, V = lpeg.P, lpeg.Cg, lpeg.Cp, lpeg.V
 require("lualibs.lua")
 local json   = _ENV.utilities.json
-local CDR_PY_PATH = io.popen(
-  [[kpsewhich coder-tool.py]]
-):read('a'):match("^%s*(.-)%s*$")
+local CDR_PY_PATH = kpse.find_file('coder-tool.py')
+local PYTHON_PATH = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
+local function set_python_path(self, path_var)
+  local path = assert(token.get_macro(assert(path_var)))
+  if #path>0 then
+    local mode,_,__ = lfs.attributes(self.PYTHON_PATH,'mode')
+    assert(mode == 'file' or mode == 'link')
+  else
+    path = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
+  end
+  self.PYTHON_PATH = path
+end
 local function escape(s)
+  s = s:gsub(' ','\\ ')
   s = s:gsub('\\','\\\\')
   s = s:gsub('\r','\\r')
   s = s:gsub('\n','\\n')
   s = s:gsub('"','\\"')
+  s = s:gsub("'","\\'")
   return s
 end
 local function make_directory(path)
@@ -83,7 +94,7 @@ local function load_exec(chunk)
     print('chunk:', chunk)
   end
 end
-local eq_pattern = P({ Cp() * P('=')^1 * Cp() + 1 * V(1) })
+local eq_pattern = P({ Cp() * P('=')^1 * Cp() + P(1) * V(1) })
 local function safe_equals(s)
   local i, j = 0, 0
   local max = 0
@@ -102,23 +113,24 @@ local parse_pattern
 do
   local tag = P('!') + '?'
   local stp = '>>>>>'
-  local cmd = P(1)^0 - stp
+  local cmd = (P(1) - stp)^0
   parse_pattern = P({
-    '<<<<<' * Cg(tag - 'LUA:') * ':' * Cg(cmd) * stp * Cp() + 1 * V(1)
+    P('<<<<<') * Cg(tag) * 'LUA:' * Cg(cmd) * stp * Cp() + P(1) * V(1)
   })
 end
+
 local function load_exec_output(self, s)
   local i, tag, cmd
-  i = 0
+  i = 1
   while true do
-    tag, cmd, i = parse_pattern:match(s, i)
+    tag, cmd, i = lpeg.match(parse_pattern,s, i)
     if tag == '!' then
       self.load_exec(cmd)
     elseif tag == '?' then
       local eqs = self.safe_equals(cmd)
       cmd = '['..eqs..'['..cmd..']'..eqs..']'
       tex.print([[%
-\directlua{CDR:load_exec(]]..cmd..[[)}%
+\directlua{CDR.load_exec(]]..cmd..[[)}%
 ]])
     else
       return
@@ -133,35 +145,16 @@ local function option_add(self, key, value_name)
   p[key] = token.get_macro(assert(value_name))
 end
 local function hilight_code(self, code_name)
-  local code = assert(tex.token(assert(code_name)))
-  local config = {
-    ['__cls__'] = 'Arguments'
+  local args = {
+    __cls__ = 'Arguments',
+    code = assert(token.get_macro(assert(code_name))),
   }
-  local texopts = {
-    ['__cls__'] = 'TeXOpts'
+  args.templates = {
+    __cls__ = 'Templates',
   }
-  texopts.sty_template = [[
-\makeatletter
-\CDR@StyleDefine {]]..pygopts.style..[[} {%
-<placeholder:style_defs>%
-}%
-\makeatother
-]]
-  texopts.white_line_template = [[<placeholder:line>]]
-  texopts.black_line_template = [[
-    \CDR@Number{<placeholder:number>}<placeholder:line>]]
-  texopts.single_line_template = [[\CDR@Number{<placeholder:number>}<placeholder:line>]]
-  texopts.first_line_template = [[<placeholder:line>]]
-  texopts.second_line_template = [[<placeholder:line>]]
-  config['texopts'] = texopts
-  local fv_opts = {
-    ['__cls__'] = 'FVOpts'
+  args.pygopts = {
+    __cls__ = 'PygOpts',
   }
-  config['fv_opts'] = fv_opts
-  local pyg_opts = {
-    ['__cls__'] = 'PygOpts'
-  }
-  config['pyg_opts'] = pyg_opts
 
 end
 local function process_block_new(self, tags_clist)
@@ -173,7 +166,7 @@ local function process_block_new(self, tags_clist)
   self['.lines'] = {}
 end
 local function process_line(self, line_variable_name)
-  local line = assert(tex.token(assert(line_variable_name)))
+  local line = assert(token.get_macro(assert(line_variable_name)))
   local ll = self['.lines']
   ll[#ll+1] = line
   local lt = self['lines by tag'] or {}
@@ -187,7 +180,7 @@ end
 local function hilight_block(self, block_name)
 end
 local function export_file(self, file_name)
-  self['.name'] = assert(tex.token(assert(file_name)))
+  self['.name'] = assert(token.get_macro(assert(file_name)))
   self['.export'] = {}
 end
 local function export_file_info(self, key, value)
@@ -251,6 +244,8 @@ return {
   _VERSION           = token.get_macro('fileversion'),
   date               = token.get_macro('filedate'),
   CDR_PY_PATH        = CDR_PY_PATH,
+  PYTHON_PATH        = PYTHON_PATH,
+  set_python_path    = set_python_path,
   escape             = escape,
   make_directory     = make_directory,
   load_exec          = load_exec,
@@ -270,4 +265,5 @@ return {
   ['.export']        = {},
   ['.name']          = nil,
   already            = false,
+  json_p             = json_p,
 }

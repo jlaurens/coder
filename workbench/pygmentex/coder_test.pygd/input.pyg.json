@@ -1,0 +1,9 @@
+{
+ "__cls__" : "Arguments",
+ "code" : "ABCD",
+ "pygopts" : {
+  "__cls__" : "PygOpts",
+  "lang" : "tex",
+  "style" : "default"
+ }
+}

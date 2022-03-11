@@ -47,17 +47,20 @@
 \ExplSyntaxOn
 \sys_get_shell:nnN {which~pygmentize} {} \l_CDR_tl
 Path=\l_CDR_tl\\
+\CDR_has_pygments:TF { WITH~PYGMENTS } { WITHOUT~PYGMENTS }
 \ExplSyntaxOff
 
 \section{Testing the tag mechanism}
 \input{Tests/tag_mechanism}
+
 \section{\cs{CDR_tag_choices_set:}}
 \input{Tests/CDR_tag_choices_set}
+
 \section{\cs{CDR_tag_boolean_set:}}
 \input{Tests/CDR_tag_boolean_set}
 
 \section{\cs{CDRSet}}
-%\input{Tests/CDRSet}
+\input{Tests/CDRSet}
 
 \section{\cs{CDRCode}}
 \input{Tests/CDRCode}

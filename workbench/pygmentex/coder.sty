@@ -176,6 +176,7 @@
   \CDR_tag_set:n \l_keys_choice_tl
 }
 \prg_new_conditional:Nnn \CDR_if_truthy:n { p, T,  F, TF } {
+  \exp_args:Nf
   \str_compare:nNnTF { \str_lowercase:n { #1 } } = { false } {
     \prg_return_false:
   } {
@@ -183,7 +184,7 @@
   }
 }
 \prg_generate_conditional_variant:Nnn \CDR_if_truthy:n { e } { p, T, F, TF }
-\cs_new:Npn \CDR_tag_boolean_set:n #1 {
+\cs_new_protected:Npn \CDR_tag_boolean_set:n #1 {
   \CDR_if_truthy:nTF { #1 } {
     \CDR_tag_set:n { true }
   } {
@@ -618,7 +619,11 @@
       \prg_set_conditional:Nnn \CDR_if_only_description: { p, T, F, TF } { \prg_return_false: }
     }
   },
-  only~description .initial:n = false
+  only~description .initial:n = false,
+  python~path .code:n = {
+    \str_set:Nn \l_CDR_str { #1 }
+    \lua_now:n { CDR:set_python_path('l_CDR_str') }
+  },
 }
 \exp_args_generate:n { xV, nnV }
 \cs_new:Npn \CDR_check_unknown:N #1 {
@@ -780,7 +785,7 @@
   \prop_put:Nnn \l_CDR_style_prop
 }
 \cs_new:Npn \CDR_code_engine:c #1 {
-  CDR@colored/code/#1:n
+  CDR@colored/code/#1:nn
 }
 \cs_new:Npn \CDR_block_engine:c #1 {
   CDR@colored/block/#1
@@ -799,7 +804,7 @@
       { coder }
       { The~engine~cannot~be~void. }
   } {
-    \cs_new:cpn { \CDR_code_engine:c {#1} } ##1 {
+    \cs_new:cpn { \CDR_code_engine:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
@@ -815,7 +820,7 @@
       \use_none:n
   } {
     \cs_if_exist:cTF { \CDR_code_engine:c { #1 } } {
-      \cs_set:cpn { \CDR_code_engine:c { #1 } } ##1 {
+      \cs_set:cpn { \CDR_code_engine:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
         #2
       }
@@ -827,17 +832,18 @@
     \ignorespaces
   }
 }
-\cs_set:Npn \CDR_apply_code_engine:n {
-  \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { engine } }
-  \CDR_if_code_engine:VTF \l_CDR_tl {
-    \use:c { \CDR_code_engine:V \l_CDR_tl }
-  } {
+\cs_new:Npn \CDR_apply_code_engine:n {
+  \str_set:Nx \l_CDR_str { \CDR_tag_get:c { engine } }
+  \CDR_if_code_engine:VF \l_CDR_str {
     \PackageError
       { coder }
-      { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
+      { \l_CDR_str\space code~engine~unknown,~replaced~by~'default' }
       {See~\CDRNewCodeEngine~in~the~coder~manual}
-    \use:c { \CDR_code_engine:c { default } }
+    \str_set:Nn \l_CDR_str { default }
   }
+  \exp_args:Nnx
+  \use:c { \CDR_code_engine:V \l_CDR_str }
+    { \CDR_tag_get:c { \l_CDR_str~engine~options } }
 }
 \NewDocumentCommand \CDRNewBlockEngine { mm } {
   \NewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
@@ -886,7 +892,7 @@
     \prg_return_false:
   }
 }
-\CDRNewCodeEngine { default } { #1 }
+\CDRNewCodeEngine { default } { #2 }
 \CDRNewBlockEngine { default } { } { }
 \tl_new:N \l_CDR_tag_tl
 \CDR_tag_keys_define:nn { __code } {
@@ -936,17 +942,19 @@
 }
 
 \cs_set:Npn \CDR_apply_code_engine:n {
-  \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { engine } }
-  \CDR_if_code_engine:VTF \l_CDR_tl {
-    \use:c { \CDR_code_engine:V \l_CDR_tl }
-  } {
+  \str_set:Nx \l_CDR_str { \CDR_tag_get:c { engine } }
+  \CDR_if_code_engine:VF \l_CDR_str {
     \PackageError
       { coder }
-      { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
+      { \l_CDR_str\space code~engine~unknown,~replaced~by~'default' }
       {See~\CDRNewCodeEngine~in~the~coder~manual}
-    \use:c { \CDR_code_engine:c { default } }
+    \str_set:Nn \l_CDR_str { default }
   }
+  \exp_args:Nnx
+  \use:c { \CDR_code_engine:V \l_CDR_str }
+    { \CDR_tag_get:c { \l_CDR_str~engine~options } }
 }
+
 \cs_new:Npn \CDR_feed_options_clist:N #1 {
   \clist_map_inline:nn {
     formatcom, fontfamily, fontsize, fontshape,
@@ -973,7 +981,7 @@
   \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
     \PackageWarning
       { coder }
-      { pygments~unsuported }
+      { pygments~suported~IN~PROGRESS }
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
@@ -981,7 +989,7 @@
         \lua_now:n {CDR:hilight_code('FV@SV@CDR@Code')}
         \group_end:
       }
-    ] { CDR@Code }
+    ] { CDR@Code } #1
   } {
     \DefineShortVerb { #1 }
     \SaveVerb [
@@ -993,6 +1001,20 @@
       }
     ] { CDR@Code } #1
   }
+}
+\NewDocumentCommand \CDRCode { O{} } {
+  \group_begin:
+  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
+    \prg_return_false:
+  }
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __pygments, default.code, default, __fancyvrb, __fancyvrb.all
+  }
+  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
+  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
+  \exp_args:NnV
+  \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
+  \CDR_code:n
 }
 \cs_new:Npn \CDR_to_lua: {
   \lua_now:n { CDR:options_reset() }
@@ -1146,7 +1168,7 @@ ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
 \newenvironment{CDR}{
   \def \verbatim@processline {
     \group_begin:
-    \CDR_processline_code_append:
+    \CDR_process_line_code_append:
     \group_end:
   }
 } {
@@ -1377,7 +1399,7 @@ ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
   \tl_set:Nn \l_tmpa_tl { #2 }
   \exp_args:NNNx
   \group_end:
-  \tl_set:Nx #1 { \directlua{CDR.print_file_content('l_tmpa_tl')} }
+  \tl_set:Nx #1 { \lua_now:n {CDR.print_file_content('l_tmpa_tl')} }
 }
 \newcounter{CDR@impl@page}
 \DeclareDocumentCommand \CDRImplementation {} {

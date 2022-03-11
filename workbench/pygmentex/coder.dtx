@@ -297,7 +297,7 @@ and the derived files           \jobname.ins,
 % This is particularly interesting when different code files share some logic
 % and should be documented all at once.
 %
-% The file \texttt{\jobname-manual} gives different examples. Here is the implementation of the package.
+% The file \url{coder-manual.pdf} gives different examples. Here is the implementation of the package.
 %
 % This \LaTeX{} package requires \LuaTeX{} and may use syntax coloring based on \pkg{pygments}.
 % \end{abstract}
@@ -313,7 +313,8 @@ and the derived files           \jobname.ins,
 % full document classes with similar features but
 % many more that are unrelated.
 % \pkg{\jobname} focuses on code inlining and interfaces very well with \pkg{pygments}
-% for a smart syntax hilighting.
+% for a smart and efficient syntax hilighting.
+% \item The \pkg{pygmentex} and \pkg{minted} packages were somehow a source of inspiration.
 % \end{description}
 %
 % \section{Known bugs and limitations}
@@ -339,7 +340,7 @@ and the derived files           \jobname.ins,
 %
 % The |c| argument specifier is used here in a more general acception.
 % Normaly , it means that the argument is turned to a command sequence name.
-% Here, it means that the argument is a part of something bigger
+% Here, it means that the argument is part of something bigger
 % which is turned to a command sequence name.
 %
 % \section{Presentation}
@@ -352,7 +353,7 @@ and the derived files           \jobname.ins,
 % \CDRSty{} mainly declares the \cs{CDRCode} command and the |CDRBlock| environment.
 % The former allows to insert code chunks as running text whereas the latter allows
 % to instert code snippets as blocks.
-% Moreover, both code chunks can be exported to files, once declared with \cs{CDRExport} command.
+% Moreover, block code chunks can be exported to files, once declared with \cs{CDRExport} command.
 % The \cs{CDRSet} command is used to set various parameters,
 % including display engines declared with either \cs{CDRNewCodeEngine} or \cs{CDRNewBlockEngine}.
 %
@@ -410,13 +411,11 @@ and the derived files           \jobname.ins,
 
 % \subsection{Properties and inheritance}
 % Properties cover various informations, from the language of the code,
-% to the color and font. They are uniquely identified by a path,
-% and may be defined at the \emph{global} level
-% or at the \emph{tag} level.
-% \begin{description}
-% \item [the \emph{global} level] is set by |\CDRSet| and |\CDRExport|, it consists of global variables,
-% \item [the \emph{tag} level] is set by |\CDRSet|, |\CDRCode| and |CDRBlock| environment.
-% \end{description}
+% to the color and font. They are uniquely identified by a path component,
+% the \emph{tag}, which is used for inheritance. All tags starting with
+% two leading underscore characters are reserved by the package.
+% Other tags are at the user disposal.
+%
 % Each processed code chunk has a list of associate tags.
 % Most tag inherits from default ones.
 %
@@ -692,23 +691,52 @@ local json   = _ENV.utilities.json
 % This will cause an error if |kpsewhich| is not available.
 % The |PATH| must be properly set up.
 %    \begin{MacroCode}[ok]
-local CDR_PY_PATH = io.popen(
-  [[kpsewhich coder-tool.py]]
-):read('a'):match("^%s*(.-)%s*$")
+local CDR_PY_PATH = kpse.find_file('coder-tool.py')
 %    \end{MacroCode}
 % \end{variable}
+%
+% \begin{variable}{PYTHON_PATH}
+% Location of the |python| utility, defaults to 'python'.
+%    \begin{MacroCode}[ok]
+local PYTHON_PATH = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
+%    \end{MacroCode}
+% \end{variable}
+%
+% \begin{function}{set_python_path}
+% \begin{syntax}
+% CDR:set_python_path(\meta{path var})
+% \end{syntax}
+% \CDRCheckRed Set manually the path of the |python| utility with the contents
+% of the \metatt{path var}.
+% If the given path does not point to a file or a link then an error is raised.
+% \end{function}
+%    \begin{MacroCode}[ok]
+local function set_python_path(self, path_var)
+  local path = assert(token.get_macro(assert(path_var)))
+  if #path>0 then
+    local mode,_,__ = lfs.attributes(self.PYTHON_PATH,'mode')
+    assert(mode == 'file' or mode == 'link')
+  else
+    path = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
+  end
+  self.PYTHON_PATH = path  
+end
+%    \end{MacroCode}
+%
 % \begin{function}{escape}
 % \begin{syntax}
 % <variable> = CDR.escape(<string>)
 % \end{syntax}
-% \CDRCheckRed Escape the given string. NEVER USED.
+% \CDRCheckRed Escape the given string to be used by the shell.
 % \end{function}
 %    \begin{MacroCode}[ok]
 local function escape(s)
+  s = s:gsub(' ','\\ ')
   s = s:gsub('\\','\\\\')
   s = s:gsub('\r','\\r')
   s = s:gsub('\n','\\n')
   s = s:gsub('"','\\"')
+  s = s:gsub("'","\\'")
   return s
 end
 %    \end{MacroCode}
@@ -808,7 +836,7 @@ end
 % nor \texttt{]\meta{ans}]}.
 % \end{function}
 %    \begin{MacroCode}[ok]
-local eq_pattern = P({ Cp() * P('=')^1 * Cp() + 1 * V(1) })
+local eq_pattern = P({ Cp() * P('=')^1 * Cp() + P(1) * V(1) })
 local function safe_equals(s)
   local i, j = 0, 0
   local max = 0
@@ -837,7 +865,7 @@ end
 % asynchronously once the control comes back to \TeX{}.
 % \item[\texttt{!LUA}:\metatt{!Lua instructions}] the \metatt{!Lua instructions} are executed
 % synchronously. When not properly designed, these instruction may cause a
-% forever loop on execution, for example, they must not use \texttt{CDR:hilight_code}.
+% forever loop on execution, for example, they must not use \texttt{CDR:if_code_engine}.
 % \item[\texttt{?LUA}:\metatt{?Lua instructions}] these \metatt{?Lua instructions} are executed
 % asynchronously once the control comes back to \TeX{} through a call to \cs{directlua},
 % which means that they will wait until any previous asynchronous \metatt{?TeX instructions}
@@ -849,9 +877,9 @@ local parse_pattern
 do
   local tag = P('!') + '?'
   local stp = '>>>>>'
-  local cmd = P(1)^0 - stp
+  local cmd = (P(1) - stp)^0
   parse_pattern = P({
-    '<<<<<' * Cg(tag - 'LUA:') * ':' * Cg(cmd) * stp * Cp() + 1 * V(1)
+    P('<<<<<') * Cg(tag) * 'LUA:' * Cg(cmd) * stp * Cp() + 1 * V(1)
   })
 end
 local function load_exec_output(self, s)
@@ -915,35 +943,38 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function hilight_code(self, code_name)
-  local code = assert(tex.token(assert(code_name)))
-  local config = {
-    ['__cls__'] = 'Arguments'
+  local args = {
+    __cls__ = 'Arguments',
+    code = assert(token.get_macro(assert(code_name))),
   }
-  local texopts = {
-    ['__cls__'] = 'TeXOpts'
+  args.templates = {
+    __cls__ = 'Templates',
   }
-  texopts.sty_template = [[
-\makeatletter
-\CDR@StyleDefine {]]..pygopts.style..[[} {%
-<placeholder:style_defs>%
-}%
-\makeatother
-]]
-  texopts.white_line_template = [[<placeholder:line>]]
-  texopts.black_line_template = [[
-    \CDR@Number{<placeholder:number>}<placeholder:line>]]
-  texopts.single_line_template = [[\CDR@Number{<placeholder:number>}<placeholder:line>]]
-  texopts.first_line_template = [[<placeholder:line>]]
-  texopts.second_line_template = [[<placeholder:line>]]
-  config['texopts'] = texopts
-  local fv_opts = {
-    ['__cls__'] = 'FVOpts'
+  args.pygopts = {
+    __cls__ = 'PygOpts',
   }
-  config['fv_opts'] = fv_opts
-  local pyg_opts = {
-    ['__cls__'] = 'PygOpts'
-  }
-  config['pyg_opts'] = pyg_opts
+%  texopts.sty_template = [[
+%\makeatletter
+%\CDR@StyleDefine {]]..pygopts.style..[[} {%
+%<placeholder:style_defs>%
+%}%
+%\makeatother
+%]]
+%  texopts.white_line_template = [[<placeholder:line>]]
+%  texopts.black_line_template = [[
+%    \CDR@Number{<placeholder:number>}<placeholder:line>]]
+%  texopts.single_line_template = [[\CDR@Number{<placeholder:number>}<placeholder:line>]]
+%  texopts.first_line_template = [[<placeholder:line>]]
+%  texopts.second_line_template = [[<placeholder:line>]]
+%  config['texopts'] = texopts
+%  local fv_opts = {
+%    ['__cls__'] = 'FVOpts'
+%  }
+%  config['fv_opts'] = fv_opts
+%  local pyg_opts = {
+%    ['__cls__'] = 'PygOpts'
+%  }
+%  config['pyg_opts'] = pyg_opts
   
 end
 %    \end{MacroCode}
@@ -975,7 +1006,7 @@ end
 % \end{function}
 %    \begin{MacroCode}[ok]
 local function process_line(self, line_variable_name)
-  local line = assert(tex.token(assert(line_variable_name)))
+  local line = assert(token.get_macro(assert(line_variable_name)))
   local ll = self['.lines']
   ll[#ll+1] = line
   local lt = self['lines by tag'] or {}
@@ -1016,7 +1047,7 @@ end
 % \end{function}
 %    \begin{MacroCode}[ok]
 local function export_file(self, file_name)
-  self['.name'] = assert(tex.token(assert(file_name)))
+  self['.name'] = assert(token.get_macro(assert(file_name)))
   self['.export'] = {}
 end
 %    \end{MacroCode}
@@ -1144,8 +1175,11 @@ return {
 %    \begin{MacroCode}
   date               = token.get_macro('filedate'),
 %    \end{MacroCode}
+% \item[Various paths],
 %    \begin{MacroCode}
   CDR_PY_PATH        = CDR_PY_PATH,
+  PYTHON_PATH        = PYTHON_PATH,
+  set_python_path    = set_python_path,
 %    \end{MacroCode}
 % \item[escape]
 %    \begin{MacroCode}
@@ -1206,6 +1240,10 @@ return {
 %    \begin{MacroCode}
   already            = false,
 %    \end{MacroCode}
+% \itemtt[Other]
+%    \begin{MacroCode}
+  json_p             = json_p,
+%    \end{MacroCode}
 % \end{description}
 %    \begin{MacroCode}
 }
@@ -1238,8 +1276,8 @@ __version__ = '0.10'
 __YEAR__  = '2022'
 __docformat__ = 'restructuredtext'
 
-from posixpath import split
 import sys
+import os
 import argparse
 import re
 from pathlib import Path
@@ -1257,7 +1295,7 @@ from pygments.util import guess_decode
 % The real class is given by the |__cls__| key.
 %  
 %    \begin{MacroCode}[ok]
-class Options(object):
+class BaseOpts(object):
   @staticmethod
   def ensure_bool(x):
     if x == True or x == False: return x
@@ -1265,24 +1303,6 @@ class Options(object):
     return x == 'T' or x == 't'
 %    \end{MacroCode}
 %    \begin{MacroCode}[ok]
-  def __new__(cls, d={}, *args, **kvargs):
-    __cls__ = d.get('__cls__', 'arguments')
-    if __cls__ == 'PygOpts':
-      return super(Controller.Options, cls)['__new__'](
-        Controller.PygOpts, *args, **kvargs
-      )
-    elif __cls__ == 'FVOpts':
-      return super(Controller.Options, cls)['__new__'](
-        Controller.FVOpts, *args, **kvargs
-      )
-    elif __cls__ == 'TeXOpts':
-      return super(Controller.Options, cls)['__new__'](
-        Controller.TeXOpts, *args, **kvargs
-      )
-    else:
-      return super(Controller.Options, cls)['__new__'](
-        Controller.Arguments, *args, **kvargs
-      )
   def __init__(self, d={}):
     for k, v in d.items():
       if type(v) == str:
@@ -1300,7 +1320,7 @@ class Options(object):
 % \subsection{\texttt{TeXOpts} nested class}
 %
 %    \begin{MacroCode}
-class TeXOpts(Options):
+class TeXOpts(BaseOpts):
   tags = ''
   inline = True
   already_style = False
@@ -1309,8 +1329,14 @@ class TeXOpts(Options):
 % The style template wraps the style definitions provided by \pkg{pygments}.
 % It may include the style name
 %    \begin{MacroCode}
-  sty_template='<placeholder:style_defs>'
-  code_template ='<placeholder:hilighted>'
+  sty_template=r'''\makeatletter
+\CDR@StyleDefine{<placeholder:style_name>}{%
+  <placeholder:style_defs>
+}%
+\makeatother
+'''
+  code_template =r'\CDR_apply_code_engine:n {<placeholder:hilighted>}'
+
   single_line_template='<placeholder:number><placeholder:line>'
   first_line_template='<placeholder:number><placeholder:line>'
   second_line_template='<placeholder:number><placeholder:line>'
@@ -1328,7 +1354,7 @@ class TeXOpts(Options):
 % In particular, line numbering is governed by \pkg{fancyvrb} options.
 % The description of these options is in a forthcoming section.
 %    \begin{MacroCode}
-class PygOpts(Options):
+class PygOpts(BaseOpts):
   style = 'default'
   nobackground = False
   linenos = False
@@ -1342,17 +1368,17 @@ class PygOpts(Options):
   lang = 'tex'
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
-    self.linenos = Controller.ensure_bool(self.linenos)
+    self.linenos = self.ensure_bool(self.linenos)
     self.linenostart = abs(int(self.linenostart))
     self.linenostep  = abs(int(self.linenostep))
-    self.texcomments = Controller.ensure_bool(self.texcomments)
-    self.mathescape  = Controller.ensure_bool(self.mathescape)
+    self.texcomments = self.ensure_bool(self.texcomments)
+    self.mathescape  = self.ensure_bool(self.mathescape)
 %    \end{MacroCode}
 %
 % \subsection{\texttt{FV} nested class}
 % 
 %    \begin{MacroCode}
-class FVOpts(Options):
+class FVOpts(BaseOpts):
   gobble = 0
   tabsize = 4
   linenosep = '0pt'
@@ -1380,25 +1406,39 @@ class FVOpts(Options):
     if self.firstnumber != 'auto':
       self.firstnumber = abs(int(self.firstnumber))
     self.stepnumber = abs(int(self.stepnumber))
-    self.linenostep  = abs(int(self.linenostep))
-    self.numberblanklines = Controller.ensure_bool(self.numberblanklines)
-    self.resetmargins  = Controller.ensure_bool(self.resetmargins)
-    self.samepage  = Controller.ensure_bool(self.samepage)
+    self.numberblanklines = self.ensure_bool(self.numberblanklines)
+    self.resetmargins  = self.ensure_bool(self.resetmargins)
+    self.samepage  = self.ensure_bool(self.samepage)
 %    \end{MacroCode}
 %
 % \subsection{\texttt{Arguments} nested class}
 %
 %    \begin{MacroCode}
-class Arguments(Options):
+class Arguments(BaseOpts):
   cache = False
   debug = False
-  code = ""
-  json = ""
+  code  = ""
+  style = "default"
+  json  = ""
   directory = "."
   texopts = TeXOpts()
   pygopts = PygOpts()
   fv_opts = FVOpts()
   directory = ""
+%    \end{MacroCode}
+% \section{\texttt{Hook} for json parsing}
+%    \begin{MacroCode}[ok]
+class Hook(object):
+  def __new__(cls, d={}, *args, **kvargs):
+    __cls__ = d.get('__cls__', 'arguments')
+    if __cls__ == 'PygOpts':
+      return PygOpts.__new__(PygOpts, *args, **kvargs)
+    elif __cls__ == 'FVOpts':
+      return FVOpts.__new__(FVOpts, *args, **kvargs)
+    elif __cls__ == 'TeXOpts':
+      return TeXOpts.__new__(TeXOpts, d, *args, **kvargs)
+    else:
+      return Arguments.__new__(Arguments, d, *args, **kvargs)
 %    \end{MacroCode}
 %
 % \section{\texttt{Controller} main class}
@@ -1445,7 +1485,7 @@ class Controller:
     else:
       p = self.json_p
       if p:
-        p = p.parent / p.stem
+        p = p.parent
       else:
         p = Path('SHARED')
     if p:
@@ -1486,12 +1526,13 @@ the syntax hilighting of the input file as given by pygments.
     )
     parser.add_argument(
       "--debug",
+      action='store_true',
       default=None,
       help="display informations useful for debugging"
     )
     parser.add_argument(
       "json",
-      metavar="json data file",
+      metavar="<json data file>",
       help="""
 file name with extension, contains processing information
 """
@@ -1502,7 +1543,7 @@ file name with extension, contains processing information
 %
 % \subsection{Static methods}
 %
-% \begin{function}{Controller.lua_command,Controller.lua_command_now}
+% \begin{function}{lua_command,lua_command_now}
 % \begin{syntax}
 % self.lua_command(\meta{asynchronous lua command})
 % self.lua_command_now(\meta{synchronous lua command})
@@ -1534,13 +1575,15 @@ file name with extension, contains processing information
     with open(ns.json, 'r') as f:
       self.arguments = json.load(
         f,
-        object_hook=Controller.Object
+        object_hook=Hook
       )
-    texopts = self.texopts = self.arguments.texopts
-    pygopts = self.pygopts = self.arguments.pygopts
-    fv_opts = self.fv_opts = self.arguments.fv_opts
+    args = self.arguments
+    args.json = ns.json
+    texopts = self.texopts = args.texopts
+    pygopts = self.pygopts = args.pygopts
+    fv_opts = self.fv_opts = args.fv_opts
     formatter = self.formatter = LatexFormatter(
-      style=pygopts.style,
+      style = pygopts.style,
       nobackground = pygopts.nobackground,
       commandprefix = pygopts.commandprefix,
       texcomments = pygopts.texcomments,
@@ -1550,7 +1593,7 @@ file name with extension, contains processing information
     )
 
     try:
-      lexer = self.lexer = get_lexer_by_name(self.arguments.lang)
+      lexer = self.lexer = get_lexer_by_name(pygopts.lang)
     except ClassNotFound as err:
       sys.stderr.write('Error: ')
       sys.stderr.write(str(err))
@@ -1612,11 +1655,26 @@ file name with extension, contains processing information
       .replace(r'\makeatother', '') \
       .replace('\n', '%\n')
     sty = self.texopts.sty_template.replace(
-      '<placeholder:style_defs>',
+      '<placeholder:style_name>',
+      self.pygopts.style,
+    ).replace(
+      '<placeholder:style_defs>', 
       style_defs,
+    ).replace(
+      '{}%',
+      '{%}\n}%{'
+    ).replace(
+      '[}%',
+      '[%]\n}%'
+    ).replace(
+      '{]}%',
+      '{%[\n]}%'
     )
     with pyg_sty_p.open(mode='w',encoding='utf-8') as f:  
       f.write(sty)
+      self.lua_command_now(
+        rf'tex.print([[\input{{./{os.path.relpath(pyg_sty_p)}}}%]])'
+      )
 %    \end{MacroCode}
 %
 %
@@ -1669,18 +1727,18 @@ file name with extension, contains processing information
       elif stepnumber % 5 == 0:
         def template():
           return texopts.black_line_template if number %\
-            linenostep == 0 else texopts.white_line_template
+            stepnumber == 0 else texopts.white_line_template
       else:
         def template():
           return texopts.black_line_template if (number - firstnumber) %\
-            linenostep == 0 else texopts.white_line_template
+            stepnumber == 0 else texopts.white_line_template
          
       for line in lines:
         more(template())
 
       hilighted = '\n'.join(ans_code)
       return texopts.block_template.replace(
-        '<placeholder:count>', f'{counter-firstnumber}'
+        '<placeholder:count>', f'{number-firstnumber}'
       ).replace(
         '<placeholder:hilighted>', hilighted
       )
@@ -2125,6 +2183,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[ok]
 \prg_new_conditional:Nnn \CDR_if_truthy:n { p, T,  F, TF } {
+  \exp_args:Nf
   \str_compare:nNnTF { \str_lowercase:n { #1 } } = { false } {
     \prg_return_false:
   } {
@@ -2142,7 +2201,7 @@ if __name__ == '__main__':
 % |false| otherwise.
 % \end{function}
 %    \begin{MacroCode}[ok]
-\cs_new:Npn \CDR_tag_boolean_set:n #1 {
+\cs_new_protected:Npn \CDR_tag_boolean_set:n #1 {
   \CDR_if_truthy:nTF { #1 } {
     \CDR_tag_set:n { true }
   } {
@@ -3268,7 +3327,17 @@ if __name__ == '__main__':
       \prg_set_conditional:Nnn \CDR_if_only_description: { p, T, F, TF } { \prg_return_false: }
     }
   },
-  only~description .initial:n = false
+  only~description .initial:n = false,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed python path]^^A
+% if automatic processing is not available, manually setting the path
+% to the |python| utility is required. Giving a void path forces an automatic
+% guess using |which|.
+%    \begin{MacroCode}[ok]
+  python~path .code:n = {
+    \str_set:Nn \l_CDR_str { #1 }
+    \lua_now:n { CDR:set_python_path('l_CDR_str') }
+  },
 %    \end{MacroCode}
 % \end{description}
 %    \begin{MacroCode}[ok]
@@ -3648,7 +3717,7 @@ if __name__ == '__main__':
 %\end{function}
 %    \begin{MacroCode}[ok]
 \cs_new:Npn \CDR_code_engine:c #1 {
-  CDR@colored/code/#1:n
+  CDR@colored/code/#1:nn
 }
 \cs_new:Npn \CDR_block_engine:c #1 {
   CDR@colored/block/#1
@@ -3698,7 +3767,7 @@ if __name__ == '__main__':
       { coder }
       { The~engine~cannot~be~void. }
   } {
-    \cs_new:cpn { \CDR_code_engine:c {#1} } ##1 {
+    \cs_new:cpn { \CDR_code_engine:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
@@ -3716,7 +3785,7 @@ if __name__ == '__main__':
       \use_none:n
   } {
     \cs_if_exist:cTF { \CDR_code_engine:c { #1 } } {
-      \cs_set:cpn { \CDR_code_engine:c { #1 } } ##1 {
+      \cs_set:cpn { \CDR_code_engine:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
         #2
       }
@@ -3735,19 +3804,21 @@ if __name__ == '__main__':
 % \end{syntax}
 % Get the code engine and apply.
 % When the code engine is not recognized, an error is raised.
+% \emph{Implementation detail}: the argument is parsed by the last macro.
 % \end{function}
 %    \begin{MacroCode}[ok]
-\cs_set:Npn \CDR_apply_code_engine:n {
-  \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { engine } }
-  \CDR_if_code_engine:VTF \l_CDR_tl {
-    \use:c { \CDR_code_engine:V \l_CDR_tl }
-  } {
+\cs_new:Npn \CDR_apply_code_engine:n {
+  \str_set:Nx \l_CDR_str { \CDR_tag_get:c { engine } }
+  \CDR_if_code_engine:VF \l_CDR_str {
     \PackageError
       { coder }
-      { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
+      { \l_CDR_str\space code~engine~unknown,~replaced~by~'default' }
       {See~\CDRNewCodeEngine~in~the~coder~manual}
-    \use:c { \CDR_code_engine:c { default } }
-  }  
+    \str_set:Nn \l_CDR_str { default }
+  }
+  \exp_args:Nnx
+  \use:c { \CDR_code_engine:V \l_CDR_str }
+    { \CDR_tag_get:c { \l_CDR_str~engine~options } }
 }
 %    \end{MacroCode}
 % \begin{function}{\CDRNewBlockEngine, \CDRRenewBlockEngine}
@@ -3842,7 +3913,7 @@ if __name__ == '__main__':
 % \subsection{Default code engine}
 % The default code engine does nothing special and forwards its argument as is.
 %    \begin{MacroCode}[ok]
-\CDRNewCodeEngine { default } { #1 }
+\CDRNewCodeEngine { default } { #2 }
 %    \end{MacroCode}
 % 
 % \subsection{Default block engine}
@@ -3934,17 +4005,19 @@ if __name__ == '__main__':
 }
 
 \cs_set:Npn \CDR_apply_code_engine:n {
-  \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { engine } }
-  \CDR_if_code_engine:VTF \l_CDR_tl {
-    \use:c { \CDR_code_engine:V \l_CDR_tl }
-  } {
+  \str_set:Nx \l_CDR_str { \CDR_tag_get:c { engine } }
+  \CDR_if_code_engine:VF \l_CDR_str {
     \PackageError
       { coder }
-      { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
+      { \l_CDR_str\space code~engine~unknown,~replaced~by~'default' }
       {See~\CDRNewCodeEngine~in~the~coder~manual}
-    \use:c { \CDR_code_engine:c { default } }
-  }  
+    \str_set:Nn \l_CDR_str { default }
+  }
+  \exp_args:Nnx
+  \use:c { \CDR_code_engine:V \l_CDR_str }
+    { \CDR_tag_get:c { \l_CDR_str~engine~options } }
 }
+
 \cs_new:Npn \CDR_feed_options_clist:N #1 {
   \clist_map_inline:nn {
     formatcom, fontfamily, fontsize, fontshape,
@@ -3971,7 +4044,7 @@ if __name__ == '__main__':
   \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
     \PackageWarning
       { coder }
-      { pygments~unsuported }
+      { pygments~suported~IN~PROGRESS }
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
@@ -3979,7 +4052,7 @@ if __name__ == '__main__':
         \lua_now:n {CDR:hilight_code('FV@SV@CDR@Code')}
         \group_end:
       }
-    ] { CDR@Code }
+    ] { CDR@Code } #1
   } {
     \DefineShortVerb { #1 }
     \SaveVerb [
@@ -4264,7 +4337,7 @@ ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
 \newenvironment{CDR}{
   \def \verbatim@processline {
     \group_begin:
-    \CDR_processline_code_append:
+    \CDR_process_line_code_append:
     \group_end:
   }
 %  \CDR_if_show_code:T {
@@ -4616,7 +4689,7 @@ ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
   \tl_set:Nn \l_tmpa_tl { #2 }
   \exp_args:NNNx
   \group_end:  
-  \tl_set:Nx #1 { \directlua{CDR.print_file_content('l_tmpa_tl')} }
+  \tl_set:Nx #1 { \lua_now:n {CDR.print_file_content('l_tmpa_tl')} }
 }
 %    \end{MacroCode}
 %

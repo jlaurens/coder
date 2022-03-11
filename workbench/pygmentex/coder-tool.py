@@ -23,8 +23,8 @@ __version__ = '0.10'
 __YEAR__  = '2022'
 __docformat__ = 'restructuredtext'
 
-from posixpath import split
 import sys
+import os
 import argparse
 import re
 from pathlib import Path
@@ -35,30 +35,12 @@ from pygments.formatters.latex import LatexEmbeddedLexer, LatexFormatter
 from pygments.lexers import get_lexer_by_name
 from pygments.util import ClassNotFound
 from pygments.util import guess_decode
-class Options(object):
+class BaseOpts(object):
   @staticmethod
   def ensure_bool(x):
     if x == True or x == False: return x
     x = x[0:1]
     return x == 'T' or x == 't'
-  def __new__(cls, d={}, *args, **kvargs):
-    __cls__ = d.get('__cls__', 'arguments')
-    if __cls__ == 'PygOpts':
-      return super(Controller.Options, cls)['__new__'](
-        Controller.PygOpts, *args, **kvargs
-      )
-    elif __cls__ == 'FVOpts':
-      return super(Controller.Options, cls)['__new__'](
-        Controller.FVOpts, *args, **kvargs
-      )
-    elif __cls__ == 'TeXOpts':
-      return super(Controller.Options, cls)['__new__'](
-        Controller.TeXOpts, *args, **kvargs
-      )
-    else:
-      return super(Controller.Options, cls)['__new__'](
-        Controller.Arguments, *args, **kvargs
-      )
   def __init__(self, d={}):
     for k, v in d.items():
       if type(v) == str:
@@ -71,12 +53,18 @@ class Options(object):
       setattr(self, k, v)
   def __repr__(self):
     return f"{object['__repr__'](self)}: {self['__dict__']}"
-class TeXOpts(Options):
+class TeXOpts(BaseOpts):
   tags = ''
   inline = True
   already_style = False
-  sty_template='<placeholder:style_defs>'
-  code_template ='<placeholder:hilighted>'
+  sty_template=r'''\makeatletter
+\CDR@StyleDefine{<placeholder:style_name>}{%
+  <placeholder:style_defs>
+}%
+\makeatother
+'''
+  code_template =r'\CDR_apply_code_engine:n {<placeholder:hilighted>}'
+
   single_line_template='<placeholder:number><placeholder:line>'
   first_line_template='<placeholder:number><placeholder:line>'
   second_line_template='<placeholder:number><placeholder:line>'
@@ -86,7 +74,7 @@ class TeXOpts(Options):
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
     self.inline = self.ensure_bool(self.inline)
-class PygOpts(Options):
+class PygOpts(BaseOpts):
   style = 'default'
   nobackground = False
   linenos = False
@@ -100,12 +88,12 @@ class PygOpts(Options):
   lang = 'tex'
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
-    self.linenos = Controller.ensure_bool(self.linenos)
+    self.linenos = self.ensure_bool(self.linenos)
     self.linenostart = abs(int(self.linenostart))
     self.linenostep  = abs(int(self.linenostep))
-    self.texcomments = Controller.ensure_bool(self.texcomments)
-    self.mathescape  = Controller.ensure_bool(self.mathescape)
-class FVOpts(Options):
+    self.texcomments = self.ensure_bool(self.texcomments)
+    self.mathescape  = self.ensure_bool(self.mathescape)
+class FVOpts(BaseOpts):
   gobble = 0
   tabsize = 4
   linenosep = '0pt'
@@ -133,20 +121,31 @@ class FVOpts(Options):
     if self.firstnumber != 'auto':
       self.firstnumber = abs(int(self.firstnumber))
     self.stepnumber = abs(int(self.stepnumber))
-    self.linenostep  = abs(int(self.linenostep))
-    self.numberblanklines = Controller.ensure_bool(self.numberblanklines)
-    self.resetmargins  = Controller.ensure_bool(self.resetmargins)
-    self.samepage  = Controller.ensure_bool(self.samepage)
-class Arguments(Options):
+    self.numberblanklines = self.ensure_bool(self.numberblanklines)
+    self.resetmargins  = self.ensure_bool(self.resetmargins)
+    self.samepage  = self.ensure_bool(self.samepage)
+class Arguments(BaseOpts):
   cache = False
   debug = False
-  code = ""
-  json = ""
+  code  = ""
+  style = "default"
+  json  = ""
   directory = "."
   texopts = TeXOpts()
   pygopts = PygOpts()
   fv_opts = FVOpts()
   directory = ""
+class Hook(object):
+  def __new__(cls, d={}, *args, **kvargs):
+    __cls__ = d.get('__cls__', 'arguments')
+    if __cls__ == 'PygOpts':
+      return PygOpts.__new__(PygOpts, *args, **kvargs)
+    elif __cls__ == 'FVOpts':
+      return FVOpts.__new__(FVOpts, *args, **kvargs)
+    elif __cls__ == 'TeXOpts':
+      return TeXOpts.__new__(TeXOpts, d, *args, **kvargs)
+    else:
+      return Arguments.__new__(Arguments, d, *args, **kvargs)
 class Controller:
   _json_p = None
   @property
@@ -172,7 +171,7 @@ class Controller:
     else:
       p = self.json_p
       if p:
-        p = p.parent / p.stem
+        p = p.parent
       else:
         p = Path('SHARED')
     if p:
@@ -201,12 +200,13 @@ the syntax hilighting of the input file as given by pygments.
     )
     parser.add_argument(
       "--debug",
+      action='store_true',
       default=None,
       help="display informations useful for debugging"
     )
     parser.add_argument(
       "json",
-      metavar="json data file",
+      metavar="<json data file>",
       help="""
 file name with extension, contains processing information
 """
@@ -227,13 +227,15 @@ file name with extension, contains processing information
     with open(ns.json, 'r') as f:
       self.arguments = json.load(
         f,
-        object_hook=Controller.Object
+        object_hook=Hook
       )
-    texopts = self.texopts = self.arguments.texopts
-    pygopts = self.pygopts = self.arguments.pygopts
-    fv_opts = self.fv_opts = self.arguments.fv_opts
+    args = self.arguments
+    args.json = ns.json
+    texopts = self.texopts = args.texopts
+    pygopts = self.pygopts = args.pygopts
+    fv_opts = self.fv_opts = args.fv_opts
     formatter = self.formatter = LatexFormatter(
-      style=pygopts.style,
+      style = pygopts.style,
       nobackground = pygopts.nobackground,
       commandprefix = pygopts.commandprefix,
       texcomments = pygopts.texcomments,
@@ -243,7 +245,7 @@ file name with extension, contains processing information
     )
 
     try:
-      lexer = self.lexer = get_lexer_by_name(self.arguments.lang)
+      lexer = self.lexer = get_lexer_by_name(pygopts.lang)
     except ClassNotFound as err:
       sys.stderr.write('Error: ')
       sys.stderr.write(str(err))
@@ -281,11 +283,26 @@ file name with extension, contains processing information
       .replace(r'\makeatother', '') \
       .replace('\n', '%\n')
     sty = self.texopts.sty_template.replace(
+      '<placeholder:style_name>',
+      self.pygopts.style,
+    ).replace(
       '<placeholder:style_defs>',
       style_defs,
+    ).replace(
+      '{}%',
+      '{%}\n}%{'
+    ).replace(
+      '[}%',
+      '[%]\n}%'
+    ).replace(
+      '{]}%',
+      '{%[\n]}%'
     )
     with pyg_sty_p.open(mode='w',encoding='utf-8') as f:
       f.write(sty)
+      self.lua_command_now(
+        rf'tex.print([[\input{{./{os.path.relpath(pyg_sty_p)}}}%]])'
+      )
   def pygmentize(self, code):
     code = hilight(code, self.lexer, self.formatter)
     m = re.match(
@@ -327,18 +344,18 @@ file name with extension, contains processing information
       elif stepnumber % 5 == 0:
         def template():
           return texopts.black_line_template if number %\
-            linenostep == 0 else texopts.white_line_template
+            stepnumber == 0 else texopts.white_line_template
       else:
         def template():
           return texopts.black_line_template if (number - firstnumber) %\
-            linenostep == 0 else texopts.white_line_template
+            stepnumber == 0 else texopts.white_line_template
 
       for line in lines:
         more(template())
 
       hilighted = '\n'.join(ans_code)
       return texopts.block_template.replace(
-        '<placeholder:count>', f'{counter-firstnumber}'
+        '<placeholder:count>', f'{number-firstnumber}'
       ).replace(
         '<placeholder:hilighted>', hilighted
       )
