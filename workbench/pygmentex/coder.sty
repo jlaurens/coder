@@ -422,6 +422,8 @@
   \CDR_tag_keys_set:nn { __pygments.block } { __initialize }
 }
 \CDR_tag_keys_define:nn { default } {
+  cache .code:n = \CDR_tag_boolean_set:x { #1 },
+  debug .code:n = \CDR_tag_boolean_set:x { #1 },
   post~processor .code:n = \CDR_tag_set:,
   post~processor .value_required:n = true,
   parskip .code:n = \CDR_tag_set:,
@@ -431,6 +433,8 @@
   default~engine~options .code:n = \CDR_tag_set:,
   default~engine~options .value_required:n = true,
   __initialize .meta:n = {
+    cache = false,
+    debug = false,
     post~processor = ,
     parskip = \the\parskip,
     engine = default,
@@ -780,10 +784,20 @@
     \lua_now:n { CDR:export_file_complete() }
   }
 }
-\prop_new:N \l_CDR_style_prop
-\cs_new:Npn \CDR@StyleDefine {
-  \prop_put:Nnn \l_CDR_style_prop
+\cs_set:Npn \CDR@StyleDefine #1 {
+  \tl_gset:cn { g_CDR@Style/#1 }
 }
+\cs_set:Npn \CDR@StyleUse #1 {
+  \tl_use:c { g_CDR@Style/#1 }
+}
+\prg_new_conditional:Nnn \CDR@StyleIfExist:c { TF } {
+  \tl_if_exist:cTF { g_CDR@Style/#1 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+\cs_set_eq:NN \CDR@StyleIfExist \CDR@StyleIfExist:cTF
 \cs_new:Npn \CDR_code_engine:c #1 {
   CDR@colored/code/#1:nn
 }
@@ -832,18 +846,18 @@
     \ignorespaces
   }
 }
-\cs_new:Npn \CDR_apply_code_engine:n {
-  \str_set:Nx \l_CDR_str { \CDR_tag_get:c { engine } }
-  \CDR_if_code_engine:VF \l_CDR_str {
+\cs_new:Npn \CDR@CodeEngineApply {
+  \CDR_tag_get:cN { engine } \l_CDR_tl
+  \CDR_if_code_engine:VF \l_CDR_tl {
     \PackageError
       { coder }
-      { \l_CDR_str\space code~engine~unknown,~replaced~by~'default' }
+      { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
       {See~\CDRNewCodeEngine~in~the~coder~manual}
-    \str_set:Nn \l_CDR_str { default }
+    \tl_set:Nn \l_CDR_tl { default }
   }
   \exp_args:Nnx
-  \use:c { \CDR_code_engine:V \l_CDR_str }
-    { \CDR_tag_get:c { \l_CDR_str~engine~options } }
+  \use:c { \CDR_code_engine:V \l_CDR_tl }
+    { \CDR_tag_get:c { \l_CDR_tl~engine~options } }
 }
 \NewDocumentCommand \CDRNewBlockEngine { mm } {
   \NewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
@@ -903,20 +917,9 @@
   },
   __initialize .value_forbidden:n = true,
 }
-\cs_new:Npn \CDR_tl_put_right_braced:Nn #1 #2 {
-  \tl_put_right:Nn #1 { { #2 } }
-}
-\cs_new:Npn \CDR_tl_put_left_braced:Nn #1 #2 {
-  \tl_put_left:Nn #1 { { #2 } }
-}
-\cs_new:Npn \CDR_brace_if_contains_comma:n #1 {
-  \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
-}
-\cs_generate_variant:Nn \CDR_brace_if_contains_comma:n { V }
 \cs_new:Npn \CDR_code_fvset_braced:nn #1 #2 {
   \fvset { #1 = { #2 } }
 }
-
 \cs_set:Npn \CDR_code_fvset: {
   \tl_clear:N \l_CDR_options_tl
   \clist_map_inline:nn {
@@ -941,20 +944,10 @@
   }
 }
 
-\cs_set:Npn \CDR_apply_code_engine:n {
-  \str_set:Nx \l_CDR_str { \CDR_tag_get:c { engine } }
-  \CDR_if_code_engine:VF \l_CDR_str {
-    \PackageError
-      { coder }
-      { \l_CDR_str\space code~engine~unknown,~replaced~by~'default' }
-      {See~\CDRNewCodeEngine~in~the~coder~manual}
-    \str_set:Nn \l_CDR_str { default }
-  }
-  \exp_args:Nnx
-  \use:c { \CDR_code_engine:V \l_CDR_str }
-    { \CDR_tag_get:c { \l_CDR_str~engine~options } }
+\cs_new:Npn \CDR_brace_if_contains_comma:n #1 {
+  \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
 }
-
+\cs_generate_variant:Nn \CDR_brace_if_contains_comma:n { V }
 \cs_new:Npn \CDR_feed_options_clist:N #1 {
   \clist_map_inline:nn {
     formatcom, fontfamily, fontsize, fontshape,
@@ -971,6 +964,30 @@
     \tl_put_left:Nx #1 { ##1 = \CDR_tag_get:cN { ##1 }, }
   }
 }
+\cs_new:Npn \CDR_code_format: {
+  \frenchspacing
+  \CDR_tag_get:cN { baselinestretch } \l_CDR_tl
+  \tl_if_eq:NnF \l_CDR_tl { auto } {
+    \exp_args:NNV
+    \def \baselinestretch \l_CDR_tl
+  }
+  \CDR_tag_get:cN { fontfamily } \l_CDR_tl
+  \tl_if_eq:NnT \l_CDR_tl { tt } { \tl_set:Nn \l_CDR_tl { lmtt } }
+  \exp_args:NV
+  \fontfamily \l_CDR_tl
+  \clist_map_inline:nn { series, shape } {
+    \CDR_tag_get:cN { font##1 } \l_CDR_tl
+    \tl_if_eq:NnF \l_CDR_tl { auto } {
+      \exp_args:NnV
+      \use:c { font##1 } \l_CDR_tl
+    }
+  }
+  \CDR_tag_get:cN { fontsize } \l_CDR_tl
+  \tl_if_eq:NnF \l_CDR_tl { auto } {
+    \tl_use:N \l_CDR_tl
+  }
+  \selectfont
+}
 \cs_new:Npn \CDR_code:n #1 {
   \CDR_tag_inherit:cx { __local } {
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
@@ -979,14 +996,25 @@
   \clist_clear:N \l_CDR_options_clist
   \CDR_feed_options_clist:N \l_CDR_options_clist
   \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
-    \PackageWarning
-      { coder }
-      { pygments~suported~IN~PROGRESS }
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
         \UndefineShortVerb { #1 }
-        \lua_now:n {CDR:hilight_code('FV@SV@CDR@Code')}
+        \lua_now:n { CDR:hilight_code_prepare() }
+        \CDR@StyleIfExist { \l_CDR_tl } {
+          \lua_now:n { CDR:hilight_set('already_style', 'true') }
+        } { }
+        \CDR_tag_get:cN {cache} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('cache') }
+        \CDR_tag_get:cN {debug} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('debug') }
+        \CDR_tag_get:cN {style} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('style') }
+        \CDR_tag_get:cN {lang} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('lang') }
+        \lua_now:n { CDR:hilight_set_var('code', 'FV@SV@CDR@Code') }
+        \CDR_code_format:
+        \lua_now:n { CDR:hilight_code() }
         \group_end:
       }
     ] { CDR@Code } #1
@@ -996,7 +1024,7 @@
       aftersave = {
         \UndefineShortVerb { #1 }
         \CDR_code_fvset:
-        \CDR_apply_code_engine:n { \UseVerb { CDR@Code } }
+        \CDR@CodeEngineApply { \UseVerb { CDR@Code } }
         \group_end:
       }
     ] { CDR@Code } #1
@@ -1084,7 +1112,7 @@
         { No~(default)~tags~provided. }
     }
   }
-  \lua_now:n { CDR:process_block_new('l_CDR_tags_clist') }
+  \lua_now:n { CDR:hilight_block_prepare('l_CDR_tags_clist') }
   \bool_set_false:N \l_CDR_bool
   \clist_map_inline:Nn \l_CDR_tags_clist {
     \CDR_if_truthy:eT { \CDR_tag_get:cc { ##1 } { pygments } } {

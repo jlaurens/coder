@@ -3,7 +3,7 @@
 \noindent
 
 \newfontfamily\CDRVerbatimFont{TeX Gyre Cursor}[NFSSFamily=CDRVerbatimFont]
-\newfontfamily\CDRMenloFont{Menlo}[NFSSFamily=Menlo]
+\newfontfamily\CDRMenloFont{Menlo}[NFSSFamily=menlo]
 
 \ExplSyntaxOn
 \cs_new:Npn \CDR_process_line_code_append: { CDR_processline_code_append: }
@@ -50,7 +50,7 @@ YYY%
 \SaveVerb{ABC}?XXX?%
 \UndefineShortVerb{\?}
 \fvset{
-fontfamily=Menlo,
+fontfamily=menlo,
 fontshape=it,
 fontseries=auto,
 fontsize=\Large,
@@ -66,7 +66,7 @@ YYY
 
 \CDRCode!<ABC DEF>!\\
 1\\
-\CDRCode[fontfamily=Menlo]!<fontfamily=Menlo>!\\
+\CDRCode[fontfamily=menlo]!<fontfamily=menlo>!\\
 2\\
 \CDRCode[showspaces=true]!<showspaces = true>!\\
 3\\
@@ -90,67 +90,67 @@ LAST\\
 %\CDRCode|ABC DEF GHI|
 
 \group_end:
-\cs_set:Npn \CDR_apply_code_engine:n {
-  \str_set:Nx \l_CDR_str { \CDR_tag_get:c { engine } }
-  \CDR_if_code_engine:VF \l_CDR_str {
-    \PackageError
-      { coder }
-      { \l_CDR_str\space code~engine~unknown,~replaced~by~'default' }
-      {See~\CDRNewCodeEngine~in~the~coder~manual}
-    \str_set:Nn \l_CDR_str { default }
-  }
-  \exp_args:Nnx
-  \use:c { \CDR_code_engine:V \l_CDR_str }
-    { \CDR_tag_get:c { \l_CDR_str~engine~options } }
-}
-
-\cs_set:Npn \CDR_code:n #1 {
-  \CDR_tag_inherit:cx { __local } {
-    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-    __code, default.code, default, __pygments, __fancyvrb,
-  }
-  \clist_clear:N \l_CDR_options_clist
-  \CDR_feed_options_clist:N \l_CDR_options_clist
-  \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
-    \PackageWarning
-      { coder }
-      { pygments~unsuported }
-    \DefineShortVerb { #1 }
-    \SaveVerb [
-      aftersave = {
-        \UndefineShortVerb { #1 }
-        %\lua_now:n {CDR:hilight_code('FV@SV@CDR@Code')}
-        \CDR_code_fvset:
-        \CDR_apply_code_engine:n { \UseVerb { CDR@Code } }
-        \group_end:
-      }
-    ] { CDR@Code } #1
-  } {
-    \DefineShortVerb { #1 }
-    \SaveVerb [
-      aftersave = {
-        \UndefineShortVerb { #1 }
-        \CDR_code_fvset:
-        \CDR_apply_code_engine:n { \UseVerb { CDR@Code } }
-        \group_end:
-      }
-    ] { CDR@Code } #1
-  }
-}
-\RenewDocumentCommand \CDRCode { O{} } {
-  \group_begin:
-  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
-    \prg_return_false:
-  }  
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __pygments, default.code, default, __fancyvrb, __fancyvrb.all
-  }
-  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
-  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
-  \exp_args:NnV
-  \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
-  \CDR_code:n
-}
+%\cs_set:Npn \CDR_apply_code_engine:n {
+%  \str_set:Nx \l_CDR_str { \CDR_tag_get:c { engine } }
+%  \CDR_if_code_engine:VF \l_CDR_str {
+%    \PackageError
+%      { coder }
+%      { \l_CDR_str\space code~engine~unknown,~replaced~by~'default' }
+%      {See~\CDRNewCodeEngine~in~the~coder~manual}
+%    \str_set:Nn \l_CDR_str { default }
+%  }
+%  \exp_args:Nnx
+%  \use:c { \CDR_code_engine:V \l_CDR_str }
+%    { \CDR_tag_get:c { \l_CDR_str~engine~options } }
+%}
+%
+%\cs_set:Npn \CDR_code:n #1 {
+%  \CDR_tag_inherit:cx { __local } {
+%    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
+%    __code, default.code, default, __pygments, __fancyvrb,
+%  }
+%  \clist_clear:N \l_CDR_options_clist
+%  \CDR_feed_options_clist:N \l_CDR_options_clist
+%  \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
+%    \PackageWarning
+%      { coder }
+%      { pygments~unsupported }
+%    \DefineShortVerb { #1 }
+%    \SaveVerb [
+%      aftersave = {
+%        \UndefineShortVerb { #1 }
+%        %\lua_now:n {CDR:hilight_code('FV@SV@CDR@Code')}
+%        \CDR_code_fvset:
+%        \CDR_apply_code_engine:n { \UseVerb { CDR@Code } }
+%        \group_end:
+%      }
+%    ] { CDR@Code } #1
+%  } {
+%    \DefineShortVerb { #1 }
+%    \SaveVerb [
+%      aftersave = {
+%        \UndefineShortVerb { #1 }
+%        \CDR_code_fvset:
+%        \CDR_apply_code_engine:n { \UseVerb { CDR@Code } }
+%        \group_end:
+%      }
+%    ] { CDR@Code } #1
+%  }
+%}
+%\RenewDocumentCommand \CDRCode { O{} } {
+%  \group_begin:
+%  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
+%    \prg_return_false:
+%  }  
+%  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+%    __pygments, default.code, default, __fancyvrb, __fancyvrb.all
+%  }
+%  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
+%  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
+%  \exp_args:NnV
+%  \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
+%  \CDR_code:n
+%}
 \ExplSyntaxOff
 
 
@@ -163,68 +163,15 @@ tex.print('python=='..CDR.PYTHON_PATH)
 local json = _ENV.utilities.json
 local lfs   = _ENV.lfs
 
-
-function CDR:hilight_set(key, var)
-  local args = self['.arguments']
-  local t = args
-  if t[key] == nil then
-    t = args.pygopts
-    assert(t[key] ~= nil)
-  end
-  t[key] = assert(token.get_macro(var or 'l_CDR_tl'))
-end
-
-function CDR:hilight_prepare()
-  self['.arguments'] = {
-    __cls__ = 'Arguments',
-    code = '',
-    pygopts = {
-      __cls__ = 'PygOpts',
-      lang = 'tex',
-      style = 'default'
-    }
-  }
-end
-
-CDR.hilight_code = function(self)
-  local args = self['.arguments']
-  print(self.json_p)
-  print("json=="..json.tostring(args, true))
-  local json_p = self.json_p
-  local f = assert(io.open(json_p, 'w'))
-  local ok, err = f:write(json.tostring(args, true))
-  f:close()
-  if ok == nil then
-    print('File error('..json_p..'): '..err)
-  end
-  print(self.CDR_PY_PATH)
-  print(self.PYTHON_PATH)
-  local cmd = ('%s %s %q'):format(
-    self.PYTHON_PATH,
-    self.CDR_PY_PATH,
-    json_p
-  )
-  print(cmd)
-  local o = io.popen(cmd):read('a')
-  print(o)
-  self:load_exec_output(o)
-end
-
 CDR.cache_clean_unused = function (self)
 end
 
-function CDR:set_template(name, macro_name)
-  local t = self['.templates'] or {}
-  self['.templates'] = t
-  t[name] = assert(token.get_macro(assert(macro_name)))
-  print("TEMPLATE:"..name.."=<<<"..t[name]..">>>")
-end
+local load_exec = CDR.load_exec
 
-function CDR:get_template(name)
-  print([[get template named: ]]..name)
-  return self['.templates'][name]
+CDR.Xload_exec = function (cmd)
+print('CMD', cmd)
+load_exec(cmd)
 end
-
 \end{luacode}
 
 
@@ -262,77 +209,63 @@ PATH==\directlua{tex.print(CDR.PYTHON_PATH)}\\
 \group_begin:
 \CDRSet{pygments=true}
 
-\makeatletter
-
-% \begin{function}{\CDR@StyleDefine}
-% \begin{syntax}
-% \cs{CDR@StyleDefine} \Arg{pygments style name} \Arg{definitions}
-% \end{syntax}
-% Define the definitions for the given \metatt{pygments style name}.
-% \end{function}
-%    \begin{MacroCode}
-\cs_set:Npn \CDR@StyleDefine #1 {
-  STYLE~DEFINED: #1\\
-  \tl_gset:cn { g_CDR@StyleDefs_#1 }
-}
-%    \end{MacroCode}
-% \begin{function}{\CDR@StyleUse}
-% \begin{syntax}
-% \cs{CDR@StyleUse} \Arg{pygments style name}
-% \end{syntax}
-% Use the definitions for the given \metatt{pygments style name}. No safe check is made.
-% \end{function}
-%    \begin{MacroCode}
-\cs_set:Npn \CDR@StyleUse #1 {
-  \tl_use:c { g_CDR@StyleDefs_#1 }
-}
-%    \end{MacroCode}
-
-\cs_set:Npn \CDR_code:n #1 {
-  \CDR_tag_inherit:cx { __local } {
-    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-    __code, default.code, default, __pygments, __fancyvrb,
-  }
-  \clist_clear:N \l_CDR_options_clist
-  \CDR_feed_options_clist:N \l_CDR_options_clist
-  \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
-    \PackageWarning
-      { coder }
-      { pygments~suport~IN~PROGRESS }
-    \DefineShortVerb { #1 }    
-    \SaveVerb [
-      aftersave = {
-        \UndefineShortVerb { #1 }
-        \lua_now:n { CDR:hilight_prepare() }
-        \CDR_tag_get:cN {style} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set('style') }
-        \CDR_tag_get:cN {lang} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set('lang') }
-        \lua_now:n { CDR:hilight_set('code', 'FV@SV@CDR@Code') }
-        \lua_now:n { CDR:hilight_code() }
-        \CDR_code_fvset:
-        \CDR_apply_code_engine:n { PYGMENTS:\UseVerb { CDR@Code } }
-        \group_end:
-      }
-    ] { CDR@Code } #1
-  } {
-    \DefineShortVerb { #1 }
-    \SaveVerb [
-      aftersave = {
-        \UndefineShortVerb { #1 }
-        \CDR_code_fvset:
-        \CDR_apply_code_engine:n { FANCYVRB:\UseVerb { CDR@Code } }
-        \group_end:
-      }
-    ] { CDR@Code } #1
-  }
-}
-\makeatother
+%\makeatletter
+%
+%\cs_gset:Npn \CDR_warning: {
+%  \PackageWarning
+%    { coder }
+%    { pygments~support~IN~PROGRESS }
+%  \cs_gset_eq:NN \CDR_warning: \prg_do_nothing:
+%}
+%\cs_set:Npn \CDR_code:n #1 {
+%  \CDR_tag_inherit:cx { __local } {
+%    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
+%    __code, default.code, default, __pygments, __fancyvrb,
+%  }
+%  \clist_clear:N \l_CDR_options_clist
+%  \CDR_feed_options_clist:N \l_CDR_options_clist
+%  \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
+%    \CDR_warning:
+%    \DefineShortVerb { #1 }    
+%    \SaveVerb [
+%      aftersave = {
+%        \UndefineShortVerb { #1 }
+%        \lua_now:n { CDR:hilight_prepare() }
+%        \CDR_tag_get:cN {style} \l_CDR_tl
+%        \lua_now:n { CDR:hilight_set('style') }
+%        \CDR_tag_get:cN {lang} \l_CDR_tl
+%        \lua_now:n { CDR:hilight_set('lang') }
+%        \lua_now:n { CDR:hilight_set('code', 'FV@SV@CDR@Code') }
+%        \CDR_code_format:
+%        \lua_now:n { CDR:hilight_code() }
+%        \group_end:
+%      }
+%    ] { CDR@Code } #1
+%  } {
+%    \DefineShortVerb { #1 }
+%    \SaveVerb [
+%      aftersave = {
+%        \UndefineShortVerb { #1 }
+%        \CDR_code_fvset:
+%        \CDR@CodeEngineApply { FANCYVRB:\UseVerb { CDR@Code } }
+%        \group_end:
+%      }
+%    ] { CDR@Code } #1
+%  }
+%}
+%\makeatother
 
 \CDRSet{pygments=false}
 ABCD=\CDRCode|ABCD|\\
 \CDRSet{pygments=true}
-ABCD=\CDRCode|ABCD|\\
+ABCD=\CDRCode|ABCD\textbf{AB}|\\
+ABCD=\CDRCode[fontfamily=menlo]|ABCD\textbf{AB}|\\
 
 \group_end:
 \ExplSyntaxOff
+\CDRSet{pygments=true}
+ABCD=\CDRCode|ABCD\textbf{AB}| et la suite\\
+ABCD=\CDRCode[style=autumn]|ABCD\textbf{AB}| et la suite\\
+ABCD=\CDRCode[cache=true]|ABCD\textbf{AB}| et la suite\\
+ABCD=\CDRCode[cache=true,debug=true]|ABCD\textbf{AB}| et la suite\\
+\CDRSet{pygments=false}

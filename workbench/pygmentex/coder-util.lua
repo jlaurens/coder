@@ -111,27 +111,28 @@ local function safe_equals(s)
 end
 local parse_pattern
 do
-  local tag = P('!') + '?'
+  local tag = P('!') + '*' + '?'
   local stp = '>>>>>'
   local cmd = (P(1) - stp)^0
   parse_pattern = P({
-    P('<<<<<') * Cg(tag) * 'LUA:' * Cg(cmd) * stp * Cp() + P(1) * V(1)
+    P('<<<<<') * Cg(tag) * 'LUA:' * Cg(cmd) * stp * Cp() + 1 * V(1)
   })
 end
-
 local function load_exec_output(self, s)
   local i, tag, cmd
   i = 1
   while true do
-    tag, cmd, i = lpeg.match(parse_pattern,s, i)
+    tag, cmd, i = parse_pattern:match(s, i)
     if tag == '!' then
       self.load_exec(cmd)
-    elseif tag == '?' then
-      local eqs = self.safe_equals(cmd)
+    elseif tag == '*' then
+      local eqs = safe_equals(cmd)
       cmd = '['..eqs..'['..cmd..']'..eqs..']'
       tex.print([[%
-\directlua{CDR.load_exec(]]..cmd..[[)}%
+\directlua{CDR:load_exec(]]..cmd..[[)}%
 ]])
+    elseif tag == '?' then
+      print('\nDEBUG/coder: '..cmd)
     else
       return
     end
@@ -144,20 +145,59 @@ local function option_add(self, key, value_name)
   local p = self['.options']
   p[key] = token.get_macro(assert(value_name))
 end
-local function hilight_code(self, code_name)
-  local args = {
+local function hilight_code_prepare(self)
+  self['.arguments'] = {
     __cls__ = 'Arguments',
-    code = assert(token.get_macro(assert(code_name))),
+    code = '',
+    cache = false,
+    debug = false,
+    pygopts = {
+      __cls__ = 'PygOpts',
+      lang = 'tex',
+      style = 'default',
+    },
+    texopts = {
+      __cls__ = 'TeXOpts',
+      already_style = false
+    }
   }
-  args.templates = {
-    __cls__ = 'Templates',
-  }
-  args.pygopts = {
-    __cls__ = 'PygOpts',
-  }
-
 end
-local function process_block_new(self, tags_clist)
+
+local function hilight_set(self, key, value)
+  local args = self['.arguments']
+  local t = args
+  if t[key] == nil then
+    t = args.pygopts
+    if t[key] == nil then
+      t = args.texopts
+      assert(t[key] ~= nil)
+    end
+  end
+  t[key] = value
+end
+
+local function hilight_set_var(self, key, var)
+  self:hilight_set(key, assert(token.get_macro(var or 'l_CDR_tl')))
+end
+
+local function hilight_code(self)
+  local args = self['.arguments']
+  local json_p = self.json_p
+  local f = assert(io.open(json_p, 'w'))
+  local ok, err = f:write(json.tostring(args, true))
+  f:close()
+  if ok == nil then
+    print('File error('..json_p..'): '..err)
+  end
+  local cmd = ('%s %s %q'):format(
+    self.PYTHON_PATH,
+    self.CDR_PY_PATH,
+    json_p
+  )
+  local o = io.popen(cmd):read('a')
+  self:load_exec_output(o)
+end
+local function hilight_block_prepare(self, tags_clist)
   local t = {}
   for tag in string.gmatch(tags_clist, '([^,]+)') do
     t[#t+1]=tag
@@ -251,9 +291,12 @@ return {
   load_exec          = load_exec,
   load_exec_output   = load_exec_output,
   record_line        = function(self,line) end,
-  hilight_code       = hilight_code,
-  process_block_new  = process_block_new,
-  hilight_block      = hilight_block,
+  hilight_code_prepare = hilight_code_prepare,
+  hilight_set          = hilight_set,
+  hilight_set_var      = hilight_set_var,
+  hilight_code         = hilight_code,
+  hilight_block_prepare = hilight_block_prepare,
+  hilight_block         = hilight_block,
   cache_clean_all    = cache_clean_all,
   cache_record       = cache_record,
   cache_clean_unused = cache_clean_unused,

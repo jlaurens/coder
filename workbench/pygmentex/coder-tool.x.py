@@ -51,19 +51,20 @@ class BaseOpts(object):
           setattr(self, k, False)
           continue
       setattr(self, k, v)
-  def __repr__(self):
-    return f"{object['__repr__'](self)}: {self['__dict__']}"
 class TeXOpts(BaseOpts):
   tags = ''
   inline = True
   already_style = False
-  sty_template=r'''\makeatletter
+  sty_template=r'''% !TeX root=...
+\makeatletter
 \CDR@StyleDefine{<placeholder:style_name>}{%
-  <placeholder:style_defs>
-}%
-\makeatother
-'''
-  code_template =r'\CDR_apply_code_engine:n {<placeholder:hilighted>}'
+  <placeholder:style_defs>}%
+\makeatother'''
+  code_template =r'''% !TeX root=...
+\makeatletter
+\CDR@StyleUse{<placeholder:style_name>}%
+\CDR@CodeEngineApply{<placeholder:hilighted>}%
+\makeatother'''
 
   single_line_template='<placeholder:number><placeholder:line>'
   first_line_template='<placeholder:number><placeholder:line>'
@@ -135,18 +136,35 @@ class Arguments(BaseOpts):
   pygopts = PygOpts()
   fv_opts = FVOpts()
   directory = ""
-class Hook(object):
-  def __new__(cls, d={}, *args, **kvargs):
-    __cls__ = d.get('__cls__', 'arguments')
-    if __cls__ == 'PygOpts':
-      return PygOpts.__new__(PygOpts, *args, **kvargs)
-    elif __cls__ == 'FVOpts':
-      return FVOpts.__new__(FVOpts, *args, **kvargs)
-    elif __cls__ == 'TeXOpts':
-      return TeXOpts.__new__(TeXOpts, d, *args, **kvargs)
-    else:
-      return Arguments.__new__(Arguments, d, *args, **kvargs)
 class Controller:
+  @staticmethod
+  def object_hook(d):
+    __cls__ = d.get('__cls__', 'Arguments')
+    print('HOOK __cls__', __cls__, d.get('code', 'FAILED'))
+    if __cls__ == 'PygOpts':
+      return PygOpts(d)
+    elif __cls__ == 'FVOpts':
+      return FVOpts(d)
+    elif __cls__ == 'TeXOpts':
+      return TeXOpts(d)
+    else:
+      return Arguments(d)
+  @staticmethod
+  def lua_command(cmd):
+    print(f'<<<<<*LUA:{cmd}>>>>>')
+  @staticmethod
+  def lua_command_now(cmd):
+    print(f'<<<<<!LUA:{cmd}>>>>>')
+  @staticmethod
+  def lua_debug(msg):
+    print(f'<<<<<?LUA:{msg}>>>>>')
+  @staticmethod
+  def lua_text_escape(s):
+    k = 0
+    for m in re.findall('=+', s):
+      if len(m) > k: k = len(m)
+    k = (k + 1) * "="
+    return f'[{k}[{s}]{k}]'
   _json_p = None
   @property
   def json_p(self):
@@ -213,12 +231,6 @@ file name with extension, contains processing information
     )
     return parser
 
-  @staticmethod
-  def lua_command(cmd):
-    print(f'<<<<<?LUA:{cmd}>>>>>')
-  @staticmethod
-  def lua_command_now(cmd):
-    print(f'<<<<<!LUA:{cmd}>>>>>')
   def __init__(self, argv = sys.argv):
     argv = argv[1:] if re.match(".*coder\-tool\.py$", argv[0]) else argv
     ns = self.parser.parse_args(
@@ -227,7 +239,7 @@ file name with extension, contains processing information
     with open(ns.json, 'r') as f:
       self.arguments = json.load(
         f,
-        object_hook=Hook
+        object_hook = Controller.object_hook
       )
     args = self.arguments
     args.json = ns.json
@@ -241,7 +253,7 @@ file name with extension, contains processing information
       texcomments = pygopts.texcomments,
       mathescape = pygopts.mathescape,
       escapeinside = pygopts.escapeinside,
-      envname = u'CDR@Pyg@Verbatim',
+      envname = 'CDR@Pyg@Verbatim',
     )
 
     try:
@@ -272,10 +284,14 @@ file name with extension, contains processing information
   def create_style(self):
     pyg_sty_p = self.pyg_sty_p
     if self.arguments.cache and pyg_sty_p.exists():
-      print("Already available:", pyg_sty_p)
+      if self.arguments.debug:
+        self.lua_debug(f'Style already available: {os.path.relpath(pyg_sty_p)}')
       return
     texopts = self.texopts
+    style = self.pygopts.style
     if texopts.already_style:
+      if self.arguments.debug:
+        self.lua_debug(f'Syle already available: {style}')
       return
     formatter = self.formatter
     style_defs = formatter.get_style_defs() \
@@ -284,7 +300,7 @@ file name with extension, contains processing information
       .replace('\n', '%\n')
     sty = self.texopts.sty_template.replace(
       '<placeholder:style_name>',
-      self.pygopts.style,
+      style,
     ).replace(
       '<placeholder:style_defs>',
       style_defs,
@@ -300,13 +316,14 @@ file name with extension, contains processing information
     )
     with pyg_sty_p.open(mode='w',encoding='utf-8') as f:
       f.write(sty)
-      self.lua_command_now(
-        rf'tex.print([[\input{{./{os.path.relpath(pyg_sty_p)}}}%]])'
-      )
+    cmd = rf'\input{{./{os.path.relpath(pyg_sty_p)}}}%'
+    self.lua_command_now(
+      rf'tex.print({self.lua_text_escape(cmd)})'
+    )
   def pygmentize(self, code):
     code = hilight(code, self.lexer, self.formatter)
     m = re.match(
-      r'\begin{CDR@Pyg@Verbatim}.*?\n(.*?)\n\end{CDR@Pyg@Verbatim}\s*\Z',
+      r'\\begin{CDR@Pyg@Verbatim}.*?\n(.*?)\n\\end{CDR@Pyg@Verbatim}\s*\Z',
       code,
       flags=re.S
     )
@@ -314,7 +331,11 @@ file name with extension, contains processing information
     hilighted = m.group(1)
     texopts = self.texopts
     if texopts.inline:
-      return texopts.code_template.replace('<placeholder:hilighted>',hilighted)
+      return texopts.code_template.replace(
+        '<placeholder:hilighted>',hilighted
+      ).replace(
+        '<placeholder:style_name>',self.pygopts.style
+      )
     fv_opts = self.fv_opts
     lines = hilighted.split('\n')
     number = firstnumber = fv_opts.firstnumber
@@ -329,7 +350,6 @@ file name with extension, contains processing information
           '<placeholder:line>', line,
       ))
       number += 1
-
     if len(lines) == 1:
       line = lines.pop(0)
       more(texopts.single_line_template)
@@ -376,21 +396,28 @@ file name with extension, contains processing information
     inline = self.texopts.inline
     h = hashlib.md5(f'{str(code)}:{inline}'.encode('utf-8'))
     pyg_tex_p = self.get_pyg_tex_p(h.hexdigest())
-    if arguments.cache and pyg_tex_p.exists():
+    cmd = rf'\input{{./{os.path.relpath(pyg_tex_p)}}}%'
+    if self.arguments.cache and pyg_tex_p.exists():
       print("Already available:", pyg_tex_p)
+      self.lua_command_now(
+        rf'tex.print({self.lua_text_escape(cmd)})'
+      )
       return True
     code = self.pygmentize(code)
     with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
       f.write(code)
-    self.lua_command_now( f'self:input({pyg_tex_p})' )
+    self.lua_command_now(
+      rf'tex.print({self.lua_text_escape(cmd)})'
+    )
 # \CDR_remove:n {{colored:}}%
 # \input {{ \tl_to_str:n {{}} }}%
 # \CDR:n {{colored:}}%
     pyg_sty_p = self.pyg_sty_p
     if pyg_sty_p.parent.stem != 'SHARED':
-      self.lua_command_now( fr'''
-CDR:cache_record([=====[{pyg_sty_p.name}]=====],[=====[{pyg_tex_p.name}]=====])
-''' )
+      self.lua_command_now( f'''CDR:cache_record(
+  {self.lua_text_escape(pyg_sty_p.name)},
+  {self.lua_text_escape(pyg_tex_p.name)}
+)''' )
     print("PREMATURE EXIT")
     exit(1)
 if __name__ == '__main__':

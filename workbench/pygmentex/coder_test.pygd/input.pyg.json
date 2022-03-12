@@ -1,9 +1,15 @@
 {
  "__cls__" : "Arguments",
- "code" : "ABCD",
+ "cache" : "true",
+ "code" : "ABCD\u005Ctextbf{AB}",
+ "debug" : "true",
  "pygopts" : {
   "__cls__" : "PygOpts",
   "lang" : "tex",
   "style" : "default"
+ },
+ "texopts" : {
+  "__cls__" : "TeXOpts",
+  "already_style" : false
  }
 }
