@@ -82,7 +82,7 @@ Expecting\space ERROR:\\
 \CDRCode[engine=flower]|<engine=flower>|\\
 \group_end:
 5\\
-\CDRNewCodeEngine{wave}{wavy(#2)}
+\CDRCodeEngineNew{wave}{wavy(#2)}
 \CDRCode[engine=wave]|<engine=wave>|\\
 LAST\\
 \CDRCode|<THIS IS THE LAST!!!>|\\
@@ -90,67 +90,6 @@ LAST\\
 %\CDRCode|ABC DEF GHI|
 
 \group_end:
-%\cs_set:Npn \CDR_apply_code_engine:n {
-%  \str_set:Nx \l_CDR_str { \CDR_tag_get:c { engine } }
-%  \CDR_if_code_engine:VF \l_CDR_str {
-%    \PackageError
-%      { coder }
-%      { \l_CDR_str\space code~engine~unknown,~replaced~by~'default' }
-%      {See~\CDRNewCodeEngine~in~the~coder~manual}
-%    \str_set:Nn \l_CDR_str { default }
-%  }
-%  \exp_args:Nnx
-%  \use:c { \CDR_code_engine:V \l_CDR_str }
-%    { \CDR_tag_get:c { \l_CDR_str~engine~options } }
-%}
-%
-%\cs_set:Npn \CDR_code:n #1 {
-%  \CDR_tag_inherit:cx { __local } {
-%    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-%    __code, default.code, default, __pygments, __fancyvrb,
-%  }
-%  \clist_clear:N \l_CDR_options_clist
-%  \CDR_feed_options_clist:N \l_CDR_options_clist
-%  \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
-%    \PackageWarning
-%      { coder }
-%      { pygments~unsupported }
-%    \DefineShortVerb { #1 }
-%    \SaveVerb [
-%      aftersave = {
-%        \UndefineShortVerb { #1 }
-%        %\lua_now:n {CDR:hilight_code('FV@SV@CDR@Code')}
-%        \CDR_code_fvset:
-%        \CDR_apply_code_engine:n { \UseVerb { CDR@Code } }
-%        \group_end:
-%      }
-%    ] { CDR@Code } #1
-%  } {
-%    \DefineShortVerb { #1 }
-%    \SaveVerb [
-%      aftersave = {
-%        \UndefineShortVerb { #1 }
-%        \CDR_code_fvset:
-%        \CDR_apply_code_engine:n { \UseVerb { CDR@Code } }
-%        \group_end:
-%      }
-%    ] { CDR@Code } #1
-%  }
-%}
-%\RenewDocumentCommand \CDRCode { O{} } {
-%  \group_begin:
-%  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
-%    \prg_return_false:
-%  }  
-%  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-%    __pygments, default.code, default, __fancyvrb, __fancyvrb.all
-%  }
-%  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
-%  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
-%  \exp_args:NnV
-%  \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
-%  \CDR_code:n
-%}
 \ExplSyntaxOff
 
 
@@ -272,8 +211,9 @@ ABCD=\CDRCode[cache=true,debug=true]|ABCD\textbf{AB}| et la suite\\
 \group_begin:
 \ExplSyntaxOff
 \CDRSet{tag/X/style=autumn}
-style autumn ABCD=\CDRCode[tag=X]|ABCD\textbf{AB}| et la suite\\
-style autumn ABCD=\CDRCode[tag=Y]|ABCD\textbf{AB}| et la suite\\
+style autumn  ABCD=\CDRCode[tag=X]|ABCD\textbf{AB}| et la suite\\
+style default ABCD=\CDRCode[tag=Y]|ABCD\textbf{AB}| et la suite\\
+style default ABCD=\CDRCode[engine=efbox, efbox engine options={hidealllines,backgroundcolor=red}, engine options={backgroundcolor=yellow}]|ABCD\textbf{AB}| et la suite\\
 \ExplSyntaxOn
 \group_end:
 \ExplSyntaxOff

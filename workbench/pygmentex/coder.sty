@@ -34,7 +34,6 @@
 \RequirePackage{color}
 \RequirePackage{emoji}
 \RequirePackage{ifthen}
-\RequirePackage{efbox}
 \RequirePackage[framemethod=tikz]{mdframed}
 
 
@@ -811,7 +810,7 @@
   \exp_args:NV \CDR_block_engine:c
 }
 \tl_new:N \l_CDR_engine_tl
-\NewDocumentCommand \CDRNewCodeEngine { mm } {
+\NewDocumentCommand \CDRCodeEngineNew { mm } {
   \exp_args:Nx
   \tl_if_empty:nTF { #1 } {
     \PackageWarning
@@ -825,7 +824,7 @@
     \ignorespaces
   }
 }
-\NewDocumentCommand \CDRRenewCodeEngine { mm } {
+\NewDocumentCommand \CDRCodeEngineRenew { mm } {
   \exp_args:Nx
   \tl_if_empty:nTF { #1 } {
     \PackageWarning
@@ -852,20 +851,31 @@
     \PackageError
       { coder }
       { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
-      {See~\CDRNewCodeEngine~in~the~coder~manual}
+      {See~\CDRCodeEngineNew~in~the~coder~manual}
     \tl_set:Nn \l_CDR_tl { default }
   }
-  \exp_args:Nnx
-  \use:c { \CDR_code_engine:V \l_CDR_tl }
-    { \CDR_tag_get:c { \l_CDR_tl~engine~options } }
+  \tl_set:Nf \l_CDR_options_tl {
+    \CDR_tag_get:c { engine~options }
+  }
+  \tl_if_empty:NTF \l_CDR_options_tl {
+    \tl_set:Nf \l_CDR_options_tl {
+      \CDR_tag_get:c { \l_CDR_tl\space engine~options }
+    }
+  } {
+    \tl_put_left:Nx \l_CDR_options_tl {
+      \CDR_tag_get:c { \l_CDR_tl\space engine~options } ,
+    }
+  }
+  \exp_args:NnV
+  \use:c { \CDR_code_engine:V \l_CDR_tl } \l_CDR_options_tl
 }
-\NewDocumentCommand \CDRNewBlockEngine { mm } {
+\NewDocumentCommand \CDRBlockEngineNew { mm } {
   \NewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
     \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
     #2
   }
 }
-\NewDocumentCommand \CDRRenewBlockEngine { mm } {
+\NewDocumentCommand \CDRBlockEngineRenew { mm } {
   \tl_if_empty:nTF { #1 } {
     \PackageWarning
       { coder }
@@ -906,14 +916,27 @@
     \prg_return_false:
   }
 }
-\CDRNewCodeEngine { default } { #2 }
-\CDRNewBlockEngine { default } { } { }
+\CDRCodeEngineNew { default } { #2 }
+\CDRBlockEngineNew { default } { } { }
+\AtBeginDocument {
+  \@ifpackageloaded{efbox} {
+    \CDRCodeEngineNew {efbox} {
+      \efbox[#1]{#2}%
+    }
+  }
+}
+\CDRBlockEngineNew {} {
+} {
+}
 \tl_new:N \l_CDR_tag_tl
 \CDR_tag_keys_define:nn { __code } {
   tag .tl_set:N = \l_CDR_tag_tl,
   tag .value_required:n = true,
+  engine~options .code:n = \CDR_tag_set:,
+  engine~options .value_required:n = true,
   __initialize .meta:n = {
     tag = default,
+    engine~options = ,
   },
   __initialize .value_forbidden:n = true,
 }
@@ -943,27 +966,10 @@
     }
   }
 }
-
 \cs_new:Npn \CDR_brace_if_contains_comma:n #1 {
   \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
 }
 \cs_generate_variant:Nn \CDR_brace_if_contains_comma:n { V }
-\cs_new:Npn \CDR_feed_options_clist:N #1 {
-  \clist_map_inline:nn {
-    formatcom, fontfamily, fontsize, fontshape,
-    tabsize, defineactive, reflabel
-  } {
-    \CDR_tag_get:cN { ##1 } \l_CDR_tl
-    \tl_if_empty:NF \l_CDR_tl  {
-      \tl_put_left:Nn #1 {
-        ##1 = \CDR_brace_if_contains_comma:V \l_CDR_tl,
-      }
-    }
-  }
-  \clist_map_inline:nn { showspaces, showtabs, obeytabs } {
-    \tl_put_left:Nx #1 { ##1 = \CDR_tag_get:cN { ##1 }, }
-  }
-}
 \cs_new:Npn \CDR_code_format: {
   \frenchspacing
   \CDR_tag_get:cN { baselinestretch } \l_CDR_tl
@@ -993,8 +999,6 @@
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, default.code, default, __pygments, __fancyvrb,
   }
-  \clist_clear:N \l_CDR_options_clist
-  \CDR_feed_options_clist:N \l_CDR_options_clist
   \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
     \DefineShortVerb { #1 }
     \SaveVerb [
@@ -1060,11 +1064,12 @@
   test .code:n = \CDR_tag_boolean_set:x { #1 },
   test .default:n = true,
   engine~options .code:n = \CDR_tag_set:,
-  engine options .default:n = true,
+  engine~options .value_required:n = true,
   __initialize .meta:n = {
     tags = ,
     ignore = false,
-    test= false,
+    test = false,
+    engine~options = ,
   },
   __initialize .value_forbidden:n = true,
 }
@@ -1711,17 +1716,6 @@ ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
 
 \newif\ifCDR@left
 \newif\ifCDR@right
-
-\cs_new:Npn \CDRCallWithOptions #1 {
-  \exp_last_unbraced:NNx
-  #1[\CDR:n { options }]
-}
-\CDRNewCodeEngine {efbox} {
-  \CDRCallWithOptions\efbox{#1}%
-}
-\CDRNewBlockEngine {} {
-} {
-}
 
 
 

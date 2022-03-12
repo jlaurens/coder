@@ -151,7 +151,6 @@ and the derived files           \jobname.ins,
 \RequirePackage{ifthen}
 %\RequirePackage[font=small,format=plain,labelfont=bf,up,textfont=it,up]{caption}
 %\RequirePackage{caption}
-\RequirePackage{efbox}
 \RequirePackage[framemethod=tikz]{mdframed}
 
 %\DeclareCaptionType[within=chapter]{pygcode}[Listagem][Lista de listagens]
@@ -355,7 +354,7 @@ and the derived files           \jobname.ins,
 % to instert code snippets as blocks.
 % Moreover, block code chunks can be exported to files, once declared with \cs{CDRExport} command.
 % The \cs{CDRSet} command is used to set various parameters,
-% including display engines declared with either \cs{CDRNewCodeEngine} or \cs{CDRNewBlockEngine}.
+% including display engines declared with either \cs{CDRCodeEngineNew} or \cs{CDRBlockEngineNew}.
 %
 % \subsection{Code flow}
 % The normal code flow is
@@ -400,8 +399,8 @@ and the derived files           \jobname.ins,
 % \subsection{Display engine}
 % The display management is partly delegated to other packages.
 % \CDRSty{} provides default engines for running code and code blocks,
-% and new engines can be declared with \cs{CDRNewCodeEngine}
-% and \cs{CDRNewBlockEngine}.
+% and new engines can be declared with \cs{CDRCodeEngineNew}
+% and \cs{CDRBlockEngineNew}.
 % 
 % \subsection{\LaTeX{} user interface}
 % The first required argument of both commands and environment
@@ -3845,10 +3844,10 @@ if __name__ == '__main__':
 % \end{function}
 %
 % \subsection{Implementation}
-% \begin{function}{\CDRNewCodeEngine, \CDRRenewCodeEngine}
+% \begin{function}{\CDRCodeEngineNew, \CDRCodeEngineRenew}
 % \begin{syntax}
-% \cs{CDRNewCodeEngine}  \Arg{engine name}\Arg{engine body}
-% \cs{CDRRenewCodeEngine}\Arg{engine name}\Arg{engine body}
+% \cs{CDRCodeEngineNew}  \Arg{engine name}\Arg{engine body}
+% \cs{CDRCodeEngineRenew}\Arg{engine name}\Arg{engine body}
 % \end{syntax}
 % \metatt{engine name} is a non void string, once expanded.
 % The \metatt{engine body} is a list of instructions which may refer to
@@ -3857,7 +3856,7 @@ if __name__ == '__main__':
 % and the second argument as |#2|, which is the colored code.
 % \end{function}
 %    \begin{MacroCode}[ok]
-\NewDocumentCommand \CDRNewCodeEngine { mm } {
+\NewDocumentCommand \CDRCodeEngineNew { mm } {
   \exp_args:Nx
   \tl_if_empty:nTF { #1 } {
     \PackageWarning
@@ -3873,7 +3872,7 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %    \begin{MacroCode}[ok]
-\NewDocumentCommand \CDRRenewCodeEngine { mm } {
+\NewDocumentCommand \CDRCodeEngineRenew { mm } {
   \exp_args:Nx
   \tl_if_empty:nTF { #1 } {
     \PackageWarning
@@ -3910,18 +3909,29 @@ if __name__ == '__main__':
     \PackageError
       { coder }
       { \l_CDR_tl\space code~engine~unknown,~replaced~by~'default' }
-      {See~\CDRNewCodeEngine~in~the~coder~manual}
+      {See~\CDRCodeEngineNew~in~the~coder~manual}
     \tl_set:Nn \l_CDR_tl { default }
   }
-  \exp_args:Nnx
-  \use:c { \CDR_code_engine:V \l_CDR_tl }
-    { \CDR_tag_get:c { \l_CDR_tl~engine~options } }
+  \tl_set:Nf \l_CDR_options_tl {
+    \CDR_tag_get:c { engine~options }
+  }
+  \tl_if_empty:NTF \l_CDR_options_tl {
+    \tl_set:Nf \l_CDR_options_tl {
+      \CDR_tag_get:c { \l_CDR_tl\space engine~options }
+    }
+  } {
+    \tl_put_left:Nx \l_CDR_options_tl {
+      \CDR_tag_get:c { \l_CDR_tl\space engine~options } ,
+    }
+  }
+  \exp_args:NnV
+  \use:c { \CDR_code_engine:V \l_CDR_tl } \l_CDR_options_tl
 }
 %    \end{MacroCode}
-% \begin{function}{\CDRNewBlockEngine, \CDRRenewBlockEngine}
+% \begin{function}{\CDRBlockEngineNew, \CDRBlockEngineRenew}
 % \begin{syntax}
-% \cs{CDRNewBlockEngine}   \Arg{engine name} \Arg{begin instructions} \Arg{end instructions}
-% \cs{CDRRenewBlockEngine} \Arg{engine name} \Arg{begin instructions} \Arg{end instructions}
+% \cs{CDRBlockEngineNew}   \Arg{engine name} \Arg{begin instructions} \Arg{end instructions}
+% \cs{CDRBlockEngineRenew} \Arg{engine name} \Arg{begin instructions} \Arg{end instructions}
 % \end{syntax}
 % Create a \LaTeX{} environment uniquely named after \metatt{engine name},
 % which must be a non void string once expanded.
@@ -3934,7 +3944,7 @@ if __name__ == '__main__':
 % |\NewDocumentEnvironment|.
 % \end{function}
 %    \begin{MacroCode}[ok]
-\NewDocumentCommand \CDRNewBlockEngine { mm } {
+\NewDocumentCommand \CDRBlockEngineNew { mm } {
   \NewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
     \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
     #2
@@ -3942,7 +3952,7 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %    \begin{MacroCode}[ok]
-\NewDocumentCommand \CDRRenewBlockEngine { mm } {
+\NewDocumentCommand \CDRBlockEngineRenew { mm } {
   \tl_if_empty:nTF { #1 } {
     \PackageWarning
       { coder }
@@ -4010,19 +4020,44 @@ if __name__ == '__main__':
 % \subsection{Default code engine}
 % The default code engine does nothing special and forwards its argument as is.
 %    \begin{MacroCode}[ok]
-\CDRNewCodeEngine { default } { #2 }
+\CDRCodeEngineNew { default } { #2 }
 %    \end{MacroCode}
 % 
 % \subsection{Default block engine}
 % The default block engine does nothing.
 %    \begin{MacroCode}[ok]
-\CDRNewBlockEngine { default } { } { }
+\CDRBlockEngineNew { default } { } { }
 %    \end{MacroCode}
 % 
+% \subsection{\pkg{efbox} code engine}
+%    \begin{MacroCode}
+\AtBeginDocument {
+  \@ifpackageloaded{efbox} {
+    \CDRCodeEngineNew {efbox} {
+      \efbox[#1]{#2}%
+    }
+  }
+}
+%    \end{MacroCode}
+% \subsection{Block mode default engine}
+%    \begin{MacroCode}
+\CDRBlockEngineNew {} {
+} {
+}
+%    \end{MacroCode}
+%
 % \subsection{\pkg{tcolorbox} related engine}
 % If the \pkg{tcolorbox} is loaded, related code and block engines are available.
 % 
 % \section{\cs{CDRCode} function}
+%
+% \subsection{API}
+% \begin{function}{\CDRCode}
+% \begin{syntax}
+% \cs{CDRCode}\Arg{key[=value]}\meta{delimiter}\meta{code}\meta{same delimiter}
+% \end{syntax}
+% Public method to declare inline code.
+% \end{function}
 %
 % \subsection{Storage}
 % \begin{variable}{\l_CDR_tag_tl}
@@ -4044,11 +4079,19 @@ if __name__ == '__main__':
   tag .tl_set:N = \l_CDR_tag_tl,
   tag .value_required:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed engine options=\meta{engine options}]^^A
+% options forwarded to the engine. They are appended to the options
+% given with key \metatt{engine name}| engine options|.
+%    \begin{MacroCode}[ok]
+  engine~options .code:n = \CDR_tag_set:,
+  engine~options .value_required:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed __initialize]^^A
 % initialize
 %    \begin{MacroCode}[ok]
   __initialize .meta:n = { 
     tag = default,
+    engine~options = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -4058,10 +4101,12 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %
 % \subsection{Implementation}
-% \begin{function}{\CDRCode}
+%
+% \begin{function}{\CDR_code_fvset:}
 % \begin{syntax}
-% \cs{CDRCode}\Arg{key[=value]}\meta{delimiter}\meta{code}\meta{same delimiter}
+% \cs{CDR_code_fvset:}
 % \end{syntax}
+% Private method.
 % \end{function}
 %    \begin{MacroCode}[ok]
 \cs_new:Npn \CDR_code_fvset_braced:nn #1 #2 {
@@ -4092,27 +4137,19 @@ if __name__ == '__main__':
     }
   }
 }
-
+%    \end{MacroCode}
+%
+% \begin{function}{\CDR_code_format:}
+% \begin{syntax}
+% \cs{CDR_code_format:}
+% \end{syntax}
+% Private utility to setup the formatting.
+% \end{function}
+%    \begin{MacroCode}[ok]
 \cs_new:Npn \CDR_brace_if_contains_comma:n #1 {
   \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
 }
 \cs_generate_variant:Nn \CDR_brace_if_contains_comma:n { V }
-\cs_new:Npn \CDR_feed_options_clist:N #1 {
-  \clist_map_inline:nn {
-    formatcom, fontfamily, fontsize, fontshape,
-    tabsize, defineactive, reflabel
-  } {
-    \CDR_tag_get:cN { ##1 } \l_CDR_tl
-    \tl_if_empty:NF \l_CDR_tl  {
-      \tl_put_left:Nn #1 {
-        ##1 = \CDR_brace_if_contains_comma:V \l_CDR_tl,
-      }
-    }
-  }
-  \clist_map_inline:nn { showspaces, showtabs, obeytabs } {
-    \tl_put_left:Nx #1 { ##1 = \CDR_tag_get:cN { ##1 }, }
-  }
-}
 \cs_new:Npn \CDR_code_format: {
   \frenchspacing
   \CDR_tag_get:cN { baselinestretch } \l_CDR_tl
@@ -4138,13 +4175,20 @@ if __name__ == '__main__':
   \selectfont
 %  \@noligs ?? this is in fancyvrb but does not work here as is
 }
+%    \end{MacroCode}
+%
+% \begin{function}{\CDR_code:n}
+% \begin{syntax}
+% \cs{CDR_code:n} \meta{delimiter}
+% \end{syntax}
+% Main utility used by |\CDRCode|.
+% \end{function}
+%    \begin{MacroCode}[ok]
 \cs_new:Npn \CDR_code:n #1 {
   \CDR_tag_inherit:cx { __local } {
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, default.code, default, __pygments, __fancyvrb,
   }
-  \clist_clear:N \l_CDR_options_clist
-  \CDR_feed_options_clist:N \l_CDR_options_clist
   \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
     \DefineShortVerb { #1 }
     \SaveVerb [
@@ -4180,6 +4224,9 @@ if __name__ == '__main__':
     ] { CDR@Code } #1
   }
 }
+%    \end{MacroCode}
+%
+%    \begin{MacroCode}[ok]
 \NewDocumentCommand \CDRCode { O{} } {
   \group_begin:
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
@@ -4201,7 +4248,6 @@ if __name__ == '__main__':
 % \cs{CDR_to_lua:}
 % \end{syntax}
 % Retrieve info from the tree storage and forwards to |lua|.
-% 
 %    \begin{MacroCode}[ok]
 \cs_new:Npn \CDR_to_lua: {
   \lua_now:n { CDR:options_reset() }
@@ -4251,11 +4297,11 @@ if __name__ == '__main__':
   test .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed engine options=\meta{engine options}]^^A
-% exact options forwarded to the engine. Normally, options are appended
-% to the default ones, assuming a key--value interface.
+% options forwarded to the engine. They are appended to the options
+% given with key \metatt{engine name}| engine options|.
 %    \begin{MacroCode}[ok]
   engine~options .code:n = \CDR_tag_set:,
-  engine options .default:n = true,
+  engine~options .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed __initialize]^^A
 % initialize
@@ -4263,7 +4309,8 @@ if __name__ == '__main__':
   __initialize .meta:n = {
     tags = ,
     ignore = false,
-    test= false,
+    test = false,
+    engine~options = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -4717,6 +4764,7 @@ ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
 \bool_new:N \g_CDR_use_minted_bool
 %    \end{MacroCode}
 % \end{variable}
+%
 % \begin{function}[TF]
 %   {\CDR_if_use_minted:}
 %   \begin{syntax}
@@ -5130,49 +5178,8 @@ ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
 
 %    \end{MacroCode}
 %
-% \section{Display engines}
-% Inserting code snippets follows one of two modes: run or block.
-% The former is displayed as running text and used by the \cs{CDRCode} command
-% whereas the latter is displayed as a separate block and used
-% by the |CDRBlock| environment. Both have one single required argument,
-% which is a \meta{key-value} configuration list conforming to
-% \texttt{CDR_code} \pkg{l3keys} module.
-% The contents is then colorized with the aid of \CDRPy{}
-% which will return some code enclosed within an environment created
-% by one of \cs{CDRNewCodeEngine}, \cs{CDRRenewCodeEngine}, \cs{CDRNewBlockEngine},
-% \cs{CDRRenewBlockEngine} functions.
-% \subsection{Run mode \texttt{efbox} engine}
-% \begin{function}[EXP]{CDRCallWithOptions}
-% \begin{syntax}
-% \cs{CDRCallWithOptions}\meta{cs}
-% \end{syntax}
-% Call \meta{cs}, assuming it has a first optional argument.
-% It will receive the arguments passed to \cs{CDRCode} with the \texttt{options} key.
-% \end{function}
-%    \begin{MacroCode}
-\cs_new:Npn \CDRCallWithOptions #1 {
-  \exp_last_unbraced:NNx
-  #1[\CDR:n { options }]
-}
-\CDRNewCodeEngine {efbox} {
-  \CDRCallWithOptions\efbox{#1}%
-}
-%    \end{MacroCode}
-% \subsection{Block mode default engine}
-%    \begin{MacroCode}
-\CDRNewBlockEngine {} {
-} {
-}
-%    \end{MacroCode}
-%
-
 % \subsection{\texttt{options} key-value controls}
 % We accept any value because we do not know in advance the real target.
-% Everything is collected in \cs{l_CDR_options_clist}.
-% \begin{variable}{\l_CDR_options_clist}
-% All the \metatt{key[=value] items} passed as options are collected here.
-% This should be cleared before arguments are parsed.
-% \end{variable}
 % There are 2 ways to collect options:
 % \section{Something else}
 %    \begin{MacroCode}
