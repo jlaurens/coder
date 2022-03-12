@@ -268,4 +268,13 @@ ABCD=\CDRCode|ABCD\textbf{AB}| et la suite\\
 ABCD=\CDRCode[style=autumn]|ABCD\textbf{AB}| et la suite\\
 ABCD=\CDRCode[cache=true]|ABCD\textbf{AB}| et la suite\\
 ABCD=\CDRCode[cache=true,debug=true]|ABCD\textbf{AB}| et la suite\\
+\ExplSyntaxOn
+\group_begin:
+\ExplSyntaxOff
+\CDRSet{tag/X/style=autumn}
+style autumn ABCD=\CDRCode[tag=X]|ABCD\textbf{AB}| et la suite\\
+style autumn ABCD=\CDRCode[tag=Y]|ABCD\textbf{AB}| et la suite\\
+\ExplSyntaxOn
+\group_end:
+\ExplSyntaxOff
 \CDRSet{pygments=false}
