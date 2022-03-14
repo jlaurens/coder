@@ -5,45 +5,35 @@
 \bgroup
 \ExplSyntaxOn
 \makeatletter
+
+\cs_new:Npn \CDR_hilight_record:n #1 {
+}
+
+% \begin{variable}{\l_CDR_pygments_bool}
+%    \begin{MacroCode}[OK]
 \bool_new:N \l_CDR_pygments_bool
 \bool_set_false:N \l_CDR_pygments_bool
-%\cs_set:Npn \FVBX@CDRBlock #1 {
-%  \@bsphack
-%  \group_begin:
+%    \end{MacroCode}
+% \end{variable}
 %
-%
-%
-%  
-%ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
-%  \clist_if_empty:NF \l_CDR_tags_clist {
-%    \cs_map_inline:nn { i, ii, iii, iv } {
-%      \cs_set:cpn { FV@ListProcessLine@ ####1 } ##1 {
-%        \CDR_process_line:n { ##1 }
-%        \use:c { CDR@ListProcessLine@ ####1 } { ##1 }
-%      }
-%    }
-%  }
-%  \CDR_tag_get:cNF { engine } \l_CDR_engine_tl {
-%    \tl_set:Nn \l_CDR_engine_tl { default }
-%  }
-%  \CDR_tag_get:xNF { \l_CDR_engine_tl~engine~options } \l_CDR_tl {
-%    \tl_clear:N \l_CDR_tl
-%  }
-%  \exp_args:NnV
-%  \begin { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_tl
-%  \FV@VerbatimBegin
-%  \FV@Scan
-%}
-%\def \FVB@CDRBlock #1 {
-%  \@bsphack
-%  \bgroup
-%  \FV@VerbatimBegin
-%  \FV@Scan
-%}
-%
+
 \def\FVB@MyVerbatim{\FV@VerbatimBegin\FV@Scan}
 \def\FVE@MyVerbatim{\FV@VerbatimEnd}
 \DefineVerbatimEnvironment{MyVerbatim}{MyVerbatim}{}
+
+\prg_set_conditional:Nnn \CDR_if_tag_truthy:c { p, T,  F, TF } {
+  \exp_args:Ne
+  \str_compare:nNnTF {
+    \exp_args:Ne \str_lowercase:n { \CDR_tag_get:c { #1 } }
+  } = { false } {
+    \prg_return_false:
+  } {
+    \prg_return_true:
+  }
+}
+
+
+%    \begin{MacroCode}[OK]
 \def\FVB@CDRBlock {
   \@bsphack
   \group_begin:
@@ -65,20 +55,46 @@
   \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
   \exp_args:NnV
   \CDR_tag_keys_set_known:nnN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
-  \clist_if_empty:NT \l_CDR_tags_clist {
-    \PackageWarning
-      { coder }
-      { No~(default)~tags~provided. }
-  }
 %    \end{MacroCode}
-% |\l_CDR_pygments_bool| is |true| iff one of the tags needs \pkg{pygments}.
+% |\l_CDR_pygments_bool| is |true| iff one of the tags needs \pkg{pygments} or there is no tag and |pygments=true| was given.
 %    \begin{MacroCode}
-  \clist_map_inline:Nn \l_CDR_tags_clist {
-    \CDR_if_truthy:eT { \CDR_tag_get:cc { ##1 } { pygments } } {
-      \clist_map_break:n {
-        \bool_set_true:N \l_CDR_pygments_bool
+  \CDR_tag_inherit:cn { __local } {
+    __block, default.block, __pygments.block, __fancyvrb.block,
+     __pygments, default, __fancyvrb,
+  }
+  \CDR_tag_get:cN { tags } \l_CDR_tags_tl
+  \clist_if_empty:NT \l_CDR_tags_clist {
+    \tl_set_eq:NN \l_CDR_tags_clist \g_CDR_tags_clist
+    \clist_if_empty:NT \l_CDR_tags_clist {
+      \PackageWarning
+        { coder }
+        { No~(default)~tags~provided. }
+    }
+  }
+  \lua_now:n {
+    CDR:hilight_block_prepare('l_CDR_tags_clist')
+  }
+  \clist_if_empty:NTF \l_CDR_tags_clist {
+    \bool_set:Nn \l_CDR_pygments_bool {
+      \CDR_if_tag_truthy_p:c { pygments }
+    }
+    \typeout{ VOID~TAG~PYG: \bool_if:NTF \l_CDR_pygments_bool TF}
+  } {
+    \bool_if:NF \l_CDR_pygments_bool {
+      \clist_map_inline:Nn \l_CDR_tags_clist {
+        \CDR_if_tag_truthy:ccT { ##1 } { pygments } {
+          \clist_map_break:n {
+            \bool_set_true:N \l_CDR_pygments_bool
+          }
+        }
       }
     }
+    \typeout{ NON~VOID~TAG~PYG: \bool_if:NTF \l_CDR_pygments_bool TF}
+  }
+  \CDR_tag_inherit:cf { __local } {
+    \l_CDR_tags_clist,
+    __block, default.block, __pygments.block, __fancyvrb.block,
+     __pygments, default, __fancyvrb,
   }
   \bool_if:NTF \l_CDR_pygments_bool {
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
@@ -94,11 +110,12 @@
 %    \end{MacroCode}
 % Get the list of tags and setup \CDRLua{} for recording or hilighting.
 %    \begin{MacroCode}  
-    \lua_now:n {
-      CDR:hilight_block_prepare('l_CDR_tags_clist')
+    \CDR_tag_inherit:cf { __local } {
+      \l_CDR_tags_clist,
+      __block, default.block, __pygments.block, __fancyvrb.block, __fancyvrb.number,
+       __pygments, default, __fancyvrb,
     }
     \def\FV@KeyValues{}
-    \lua_now:n { CDR:hilight_code_prepare() }
     \CDR_tag_get:cN {lang} \l_CDR_tl
     \lua_now:n { CDR:hilight_set_var('lang') }
     \CDR_tag_get:cN {cache} \l_CDR_tl
@@ -113,21 +130,114 @@
   } {
     \exp_args:NNV
     \def \FV@KeyValues \l_CDR_keyval_tl
+    \CDR_tag_inherit:cf { __local } {
+      \l_CDR_tags_clist,
+      __block, default.block, __pygments.block, __fancyvrb.block,
+       __pygments, default, __fancyvrb, __fancyvrb.all,
+    }
   }
+  \CDR_if_tag_truthy:cTF {no~export} {
+    \bool_if:NTF \l_CDR_pygments_bool {
+      \typeout{NO~EXPORT+PYGMENTS}
+      \clist_map_inline:nn { i, ii, iii, iv } {
+        \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
+          \tl_set:Nn \l_CDR_tl { ####1 }
+          \lua_now:n { CDR:record_line('l_CDR_tl') }
+        }
+      }
+    } {
+      \typeout{NO~EXPORT+PYGMENTS}
+    }
+  } {
+    \bool_if:NTF \l_CDR_pygments_bool {
+      \typeout{EXPORT+PYGMENTS}
+      \clist_map_inline:nn { i, ii, iii, iv } {
+        \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
+          \tl_set:Nn \l_CDR_tl { ####1 }
+          \lua_now:n { CDR:record_line('l_CDR_tl') }
+        }
+      }
+    } {
+      \typeout{EXPORT+NO~PYGMENTS}
+      \clist_map_inline:nn { i, ii, iii, iv } {
+        \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
+          \tl_set:Nn \l_CDR_tl { ####1 }
+          \lua_now:n { CDR:record_line('l_CDR_tl') }
+          \use:c { CDR@ListProcessLine@ ##1 } { ####1 }
+        }
+      }
+    }
+  }
+  \CDR_tag_get:cN { \l_CDR_engine_tl~engine~options } \l_CDR_options_tl
+  \tl_if_empty:NTF \l_CDR_options_tl {
+%    \end{MacroCode}
+% No |\begin| works here. Why?
+% This may be related to the required |\relax| below.
+%    \begin{MacroCode}
+    \use:c { \CDR_block_engine:V \l_CDR_engine_tl }
+  } {
+    \exp_args:NnNV
+    \use:c { \CDR_block_engine:V \l_CDR_engine_tl }
+      [ \l_CDR_options_tl ]
+  }
+  \relax
+  \cs_set_eq:NN \CDR@FormattingPrep \FV@FormattingPrep
+  \cs_set:Npn \FV@FormattingPrep {
+    \CDR@FormattingPrep
+    \CDR_tag_get:c { format }
+  }
+  \bool_if:NT \l_CDR_pygments_bool {
+    \fvset { frame=none }
+  }
+  \typeout{CACHE: \CDR_tag_get:c { cache } }
   \FV@VerbatimBegin
   \FV@Scan
 }
 \def\FVE@CDRBlock {
   \FV@VerbatimEnd
   \bool_if:NT \l_CDR_pygments_bool {
-    \lua_now:n { CDR:hilight_code() }
+    \cs_set:Npn \CDR@StyleUseTag {
+      \CDR@StyleUse { \CDR_tag_get:c { style } }
+      \cs_set:Npn \CDR@StyleUseTag \prg_do_nothing:
+    }
+    \CDR@StyleIfExist { \CDR_tag_get:c { style } } { \typeout{ TRUE: \CDR_tag_get:c { style } } } { \typeout { FALSE: \CDR_tag_get:c { style } } }
+    \CDR_tag_get:cN {lang} \l_CDR_tl
+    \lua_now:n { CDR:hilight_set_var('lang') }
+    \CDR_tag_get:cN {cache} \l_CDR_tl
+    \lua_now:n { CDR:hilight_set_var('cache') }
+    \CDR_tag_get:cN {debug} \l_CDR_tl
+    \lua_now:n { CDR:hilight_set_var('debug') }
+    \CDR_tag_get:cN {style} \l_CDR_tl
+    \lua_now:n { CDR:hilight_set_var('style') }
+    \CDR@StyleIfExist { \l_CDR_tl } {
+      \lua_now:n { CDR:hilight_set('ignore_style', 'true') }
+    } { }
+    \CDR_code_format:
+    \FV@UseKeyValues
+    \frenchspacing
+    %  \FV@SetupFont Break
+    \FV@DefineWhiteSpace
+    \FancyVerbDefineActive
+    \FancyVerbFormatCom
+    \CDR_tag_get:c { format }
+    \lua_now:n { CDR:hilight_block() }
   }
+  \use:c { end \CDR_block_engine:V \l_CDR_engine_tl }
   \group_end:
   \@esphack
 }
 \ExplSyntaxOff
 \makeatother
 \DefineVerbatimEnvironment{CDRBlock}{CDRBlock}{}
+\begin{luacode}
+local jobname = tex.jobname
+dir_p = './'..jobname..'.pygd/'
+local json  = require('lualibs-util-jsn')
+
+
+\end{luacode}
+%
+%
 ESSAI
 \begin{Verbatim}
 []
@@ -144,10 +254,25 @@ ESSAI
   lang=lua,
   numbers=left,
   frame=lines,
+  format=\color{green},
 ]
 local f = function(arg)
   return arg ** arg
 end
+\end{CDRBlock}
+Next should be void
+\CDRSet{cache=false}
+\begin{CDRBlock} [
+  tags=,
+  fontfamily=menlo,
+  fontsize=\large,
+  pygments=true,
+  lang=python,
+  numbers=left,
+  frame=lines,
+]
+def foo(arg):
+  return arg ** arg
 \end{CDRBlock}
 
 \egroup

@@ -78,22 +78,9 @@ end
 local function print_file_content(name)
   local p = token.get_macro(name)
   local fh = assert(io.open(p, 'r'))
-  s = fh:read('a')
+  local s = fh:read('a')
   fh:close()
   tex.print(s)
-end
-local function load_exec(chunk)
-  local func, err = load(chunk)
-  if func then
-    local ok, err = pcall(func)
-    if not ok then
-      print("coder-util.lua Execution error:", err)
-      print('chunk:', chunk)
-    end
-  else
-    print("coder-util.lua Compilation error:", err)
-    print('chunk:', chunk)
-  end
 end
 local eq_pattern = P({ Cp() * P('=')^1 * Cp() + P(1) * V(1) })
 local function safe_equals(s)
@@ -108,6 +95,21 @@ local function safe_equals(s)
     if i > max then
       max = i
     end
+  end
+end
+local function load_exec(self, chunk)
+  local env = setmetatable({ self = self, tex = tex }, _ENV)
+  local func, err = load(chunk, 'coder-tool', 't', env)
+  if func then
+    local ok
+    ok, err = pcall(func)
+    if not ok then
+      print("coder-util.lua Execution error:", err)
+      print('chunk:', chunk)
+    end
+  else
+    print("coder-util.lua Compilation error:", err)
+    print('chunk:', chunk)
   end
 end
 local parse_pattern
@@ -125,7 +127,7 @@ local function load_exec_output(self, s)
   while true do
     tag, cmd, i = parse_pattern:match(s, i)
     if tag == '!' then
-      self.load_exec(cmd)
+      self:load_exec(cmd)
     elseif tag == '*' then
       local eqs = safe_equals(cmd)
       cmd = '['..eqs..'['..cmd..']'..eqs..']'
@@ -139,33 +141,26 @@ local function load_exec_output(self, s)
     end
   end
 end
-local function options_reset(self)
-  self['.options'] = {}
-end
-local function option_add(self, key, value_name)
-  local p = self['.options']
-  p[key] = token.get_macro(assert(value_name))
-end
 local function hilight_code_prepare(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
-    code = '',
-    md5  = '',
-    cache = true,
-    debug = false,
+    source  = '',
+    md5     = '',
+    cache   = true,
+    debug   = false,
     pygopts = {
       __cls__ = 'PygOpts',
-      lang = 'tex',
-      style = 'default',
+      lang    = 'tex',
+      style   = 'default',
     },
     texopts = {
       __cls__ = 'TeXOpts',
-      tags         = '',
-      inline       = true,
-      ignore_style = false,
-      ignore_code  = false,
-      pyg_sty_p    = '',
-      pyg_tex_p    = ''
+      tags    = '',
+      inline  = true,
+      ignore_style  = false,
+      ignore_source = false,
+      pyg_sty_p     = '',
+      pyg_tex_p     = ''
     }
   }
 end
@@ -193,8 +188,8 @@ local function hilight_code(self)
   local pygopts = args.pygopts
   args.md5 = md5.sumhexa( ('%s:%s:%s'
     ):format(
-      args.code,
-      texopts and 'code' or 'block',
+      args.source,
+      texopts.inline and 'code' or 'block',
       pygopts.style
     )
   )
@@ -202,9 +197,115 @@ local function hilight_code(self)
   texopts.pyg_sty_p = pyg_sty_p
   local pyg_tex_p = dir_p..args.md5..'.pyg.tex'
   texopts.pyg_tex_p = pyg_tex_p
-  local use_tool = false
-  if not texopts.ignore_style then
-    if args.cache then
+  local last = ''
+  local use_tool = args.cache == 'false'
+  if not use_tool then
+    local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
+    if mode == 'file' or mode == 'link' then
+      last = [[\CDR@StyleUseTag\input{]]..pyg_tex_p..'}%'
+      texopts.ignore_source = true
+    else
+      use_tool = true
+    end
+    if not texopts.ignore_style then
+      mode,_,__ = lfs.attributes(pyg_sty_p,'mode')
+      if mode == 'file' or mode == 'link' then
+        tex.print([[\input{]]..pyg_sty_p..[[}\CDR@StyleUseTag]])
+        texopts.ignore_style = true
+      else
+        use_tool = true
+      end
+    end
+  end
+  if use_tool then
+    local json_p = self.json_p
+    local f = assert(io.open(json_p, 'w'))
+    local s = json.tostring(args, true)
+    local ok, err = f:write(s)
+    f:close()
+    if ok == nil then
+      print('File error('..json_p..'): '..err)
+    end
+    local cmd = ('%s %s %q'):format(
+      self.PYTHON_PATH,
+      self.CDR_PY_PATH,
+      json_p
+    )
+    local o = io.popen(cmd):read('a')
+    self:load_exec_output(o)
+  else
+    print('NO PYTHON')
+  end
+  if #last > 0 then
+    tex.print(last)
+  end
+  self:cache_record(pyg_sty_p, pyg_tex_p)
+end
+local function hilight_block_prepare(self, tags_clist_var)
+  local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
+  local t = {}
+  for tag in string.gmatch(tags_clist, '([^,]+)') do
+    t[#t+1]=tag
+  end
+  self['.tags clist']  = tags_clist
+  self['.block tags']  = t
+  self['.lines'] = {}
+  self['.arguments'] = {
+    __cls__ = 'Arguments',
+    tags    = tags_clist,
+    source  = '',
+    cache   = false,
+    debug   = false,
+    pygopts = {
+      __cls__ = 'PygOpts',
+      lang = 'tex',
+      style = 'default',
+    },
+    texopts = {
+      __cls__ = 'TeXOpts',
+      inline        = false,
+      ignore_style  = false,
+      ignore_source = false,
+      pyg_sty_p = '',
+      pyg_tex_p = ''
+    }
+  }
+end
+
+local function record_line(self, line_variable_name)
+  local line = assert(token.get_macro(assert(line_variable_name)))
+  local ll = assert(self['.lines'])
+  ll[#ll+1] = line
+  local lt = self['lines by tag'] or {}
+  self['lines by tag'] = lt
+  for _,tag in ipairs(self['.block tags']) do
+    ll = lt[tag] or {}
+    lt[tag] = ll
+    ll[#ll+1] = line
+  end
+end
+local function hilight_block(self)
+  local args = self['.arguments']
+  local texopts = args.texopts
+  local pygopts = args.pygopts
+  local ll = self['.lines']
+  local source = table.concat(ll, '\n')
+  args.source = source
+  args.md5 = md5.sumhexa( ('%s:%s:%s'
+    ):format(
+      source,
+      texopts.inline and 'code' or 'block',
+      pygopts.style
+    )
+  )
+  local pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
+  texopts.pyg_sty_p = pyg_sty_p
+  local pyg_tex_p = dir_p..args.md5..'.pyg.tex'
+  texopts.pyg_tex_p = pyg_tex_p
+  local last = ''
+  local use_tool = args.cache == 'false'
+  if not use_tool then
+    if not texopts.ignore_style then
       local mode,_,__ = lfs.attributes(pyg_sty_p,'mode')
       if mode == 'file' or mode == 'link' then
         tex.print([[\input{]]..pyg_sty_p..'}%')
@@ -213,12 +314,10 @@ local function hilight_code(self)
         use_tool = true
       end
     end
-  end
-  local last = ''
-  if args.cache then
     local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
     if mode == 'file' or mode == 'link' then
       last = [[\input{]]..pyg_tex_p..'}%'
+      texopts.ignore_source = true
     else
       use_tool = true
     end
@@ -246,47 +345,7 @@ local function hilight_code(self)
   end
   self:cache_record(pyg_sty_p, pyg_tex_p)
 end
-local function hilight_block_prepare(self, tags_clist)
-  local t = {}
-  for tag in string.gmatch(tags_clist, '([^,]+)') do
-    t[#t+1]=tag
-  end
-  self['block tags']  = tags_clist
-  self['.lines'] = {}
-  self['.arguments'] = {
-    __cls__ = 'Arguments',
-    code = '',
-    cache = false,
-    debug = false,
-    pygopts = {
-      __cls__ = 'PygOpts',
-      lang = 'tex',
-      style = 'default',
-    },
-    texopts = {
-      __cls__ = 'TeXOpts',
-      inline       = false,
-      ignore_style = false,
-      ignore_code  = false,
-      sty_p = '',
-      tex_p = ''
-    }
-  }
-end
-
-local function process_line(self, line_variable_name)
-  local line = assert(token.get_macro(assert(line_variable_name)))
-  local ll = self['.lines']
-  ll[#ll+1] = line
-  local lt = self['lines by tag'] or {}
-  self['lines by tag'] = lt
-  for tag in self['block tags']:gmatch('([^,]+)') do
-    ll = lt[tag] or {}
-    lt[tag] = ll
-    ll[#ll+1] = line
-  end
-end
-local function hilight_block(self, block_name)
+local function hilight_advance(self, count)
 end
 local function export_file(self, file_name)
   self['.name'] = assert(token.get_macro(assert(file_name)))
@@ -360,18 +419,17 @@ return {
   make_directory     = make_directory,
   load_exec          = load_exec,
   load_exec_output   = load_exec_output,
-  record_line        = function(self,line) end,
+  record_line        = record_line,
   hilight_code_prepare = hilight_code_prepare,
   hilight_set          = hilight_set,
   hilight_set_var      = hilight_set_var,
   hilight_code         = hilight_code,
   hilight_block_prepare = hilight_block_prepare,
   hilight_block         = hilight_block,
+  hilight_advance       = hilight_advance,
   cache_clean_all    = cache_clean_all,
   cache_record       = cache_record,
   cache_clean_unused = cache_clean_unused,
-  options_reset      = options_reset,
-  option_add         = option_add,
   ['.style_set']     = {},
   ['.colored_set']   = {},
   ['.options']       = {},

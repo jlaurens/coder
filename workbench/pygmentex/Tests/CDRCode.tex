@@ -61,7 +61,8 @@ YYY
 
 \ExplSyntaxOn
 \group_begin:
-
+\makeatletter
+\makeatother
 \CDRCode!<ABC DEF>!\\
 1\\
 \CDRCode[fontfamily=menlo]!<fontfamily=menlo>!\\
@@ -191,12 +192,17 @@ PATH==\directlua{tex.print(CDR.PYTHON_PATH)}\\
 %  }
 %}
 %\makeatother
+\makeatletter
+\makeatother
 
 \CDRSet{pygments=false}
 ABCD=\CDRCode|ABCD|\\
 \CDRSet{pygments=true}
 ABCD=\CDRCode|ABCD\textbf{AB}|\\
 ABCD=\CDRCode[fontfamily=menlo]|ABCD\textbf{AB}|\\
+ABCD=\CDRCode[formatcom=\color{red}]|ABCD\textbf{AB}|\\
+ABCD=\CDRCode[format=\color{blue}]|ABCD\textbf{AB}|\\
+ABCD=\CDRCode[format=\color{blue},formatcom=\color{red}]|ABCD\textbf{AB}|\\
 
 \group_end:
 \ExplSyntaxOff
@@ -212,6 +218,7 @@ ABCD=\CDRCode[cache=true,debug=true]|ABCD\textbf{AB}| et la suite\\
 style autumn  ABCD=\CDRCode[tag=X]|ABCD\textbf{AB}| et la suite\\
 style default ABCD=\CDRCode[tag=Y]|ABCD\textbf{AB}| et la suite\\
 style default ABCD=\CDRCode[engine=efbox, efbox engine options={hidealllines,backgroundcolor=red}, engine options={backgroundcolor=yellow}]|ABCD\textbf{AB}| et la suite\\
+style default ABCD=\CDRCode[format=\color{blue}]|ABCD\textbf{AB}| et la suite\\
 \ExplSyntaxOn
 \group_end:
 \ExplSyntaxOff

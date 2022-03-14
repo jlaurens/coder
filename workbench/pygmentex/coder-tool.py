@@ -28,13 +28,11 @@ import os
 import argparse
 import re
 from pathlib import Path
-import hashlib
 import json
 from pygments import highlight as hilight
 from pygments.formatters.latex import LatexEmbeddedLexer, LatexFormatter
 from pygments.lexers import get_lexer_by_name
 from pygments.util import ClassNotFound
-from pygments.util import guess_decode
 class BaseOpts(object):
   @staticmethod
   def ensure_bool(x):
@@ -55,7 +53,7 @@ class TeXOpts(BaseOpts):
   tags = ''
   inline = True
   ignore_style = False
-  ignore_code  = False
+  ignore_source  = False
   pyg_sty_p    = None
   pyg_tex_p    = None
   sty_template=r'''% !TeX root=...
@@ -65,7 +63,7 @@ class TeXOpts(BaseOpts):
 \makeatother'''
   code_template =r'''% !TeX root=...
 \makeatletter
-\CDR@StyleUse{<placeholder:style_name>}%
+\CDR@StyleUseTag%
 \CDR@CodeEngineApply{<placeholder:hilighted>}%
 \makeatother'''
 
@@ -74,10 +72,18 @@ class TeXOpts(BaseOpts):
   second_line_template='<placeholder:number><placeholder:line>'
   white_line_template='<placeholder:number><placeholder:line>'
   black_line_template='<placeholder:number><placeholder:line>'
-  block_template='<placeholder:count><placeholder:hilighted>'
+  block_template=r'''% !TeX root=...
+\makeatletter
+\CDR@StyleUseTag
+<placeholder:hilighted>%
+\makeatother'''
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
     self.inline = self.ensure_bool(self.inline)
+    self.ignore_style  = self.ensure_bool(self.ignore_style)
+    self.ignore_source = self.ensure_bool(self.ignore_source)
+    self.pyg_sty_p = Path(self.pyg_sty_p or '')
+    self.pyg_tex_p = Path(self.pyg_tex_p or '')
 class PygOpts(BaseOpts):
   style = 'default'
   nobackground = False
@@ -121,7 +127,7 @@ class FVOpts(BaseOpts):
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
     self.gobble  = abs(int(self.gobble))
-    self.tabsize  = abs(int(self.tabsize))
+    self.tabsize = abs(int(self.tabsize))
     if self.firstnumber != 'auto':
       self.firstnumber = abs(int(self.firstnumber))
     self.stepnumber = abs(int(self.stepnumber))
@@ -129,21 +135,19 @@ class FVOpts(BaseOpts):
     self.resetmargins  = self.ensure_bool(self.resetmargins)
     self.samepage  = self.ensure_bool(self.samepage)
 class Arguments(BaseOpts):
-  cache = False
-  debug = False
-  code  = ""
-  style = "default"
-  json  = ""
+  cache  = False
+  debug  = False
+  source = ""
+  style  = "default"
+  json   = ""
   directory = "."
   texopts = TeXOpts()
   pygopts = PygOpts()
   fv_opts = FVOpts()
-  directory = ""
 class Controller:
   @staticmethod
   def object_hook(d):
     __cls__ = d.get('__cls__', 'Arguments')
-    print('HOOK __cls__', __cls__, d.get('code', 'FAILED'))
     if __cls__ == 'PygOpts':
       return PygOpts(d)
     elif __cls__ == 'FVOpts':
@@ -180,29 +184,6 @@ class Controller:
         p = Path(p).resolve()
     self._json_p = p
     return p
-  _pygd_p = None
-  @property
-  def pygd_p(self):
-    p = self._pygd_p
-    if p:
-      return p
-    p = self.arguments.directory
-    if p:
-      p = Path(p)
-    else:
-      p = self.json_p
-      if p:
-        p = p.parent
-      else:
-        p = Path('SHARED')
-    if p:
-      p = p.resolve().with_suffix(".pygd")
-      p.mkdir(exist_ok=True)
-    self._pygd_p = p
-    return p
-  @property
-  def pyg_sty_p(self):
-    return (self.pygd_p / self.pygopts.style).with_suffix(".pyg.sty")
   @property
   def parser(self):
     parser = argparse.ArgumentParser(
@@ -282,14 +263,12 @@ file name with extension, contains processing information
       lexer.tabsize = tabsize
     lexer.encoding = ''
 
-  def get_pyg_tex_p(self, digest):
-    return (self.pygd_p / digest).with_suffix(".pyg.tex")
   def create_style(self):
     arguments = self.arguments
     texopts = arguments.texopts
     if texopts.ignore_style:
       return
-    pyg_sty_p = Path(texopts.pyg_sty_p)
+    pyg_sty_p = texopts.pyg_sty_p
     if arguments.cache and pyg_sty_p.exists():
       if arguments.debug:
         self.lua_debug(f'Style already available: {os.path.relpath(pyg_sty_p)}')
@@ -327,11 +306,11 @@ file name with extension, contains processing information
     self.lua_command_now(
       rf'tex.print({self.lua_text_escape(cmd)})'
     )
-  def pygmentize(self, code):
-    code = hilight(code, self.lexer, self.formatter)
+  def pygmentize(self, source):
+    source = hilight(source, self.lexer, self.formatter)
     m = re.match(
       r'\\begin{CDR@Pyg@Verbatim}.*?\n(.*?)\n\\end{CDR@Pyg@Verbatim}\s*\Z',
-      code,
+      source,
       flags=re.S
     )
     assert(m)
@@ -339,18 +318,20 @@ file name with extension, contains processing information
     texopts = self.texopts
     if texopts.inline:
       return texopts.code_template.replace(
-        '<placeholder:hilighted>',hilighted
-      ).replace(
-        '<placeholder:style_name>',self.pygopts.style
-      )
+        '<placeholder:hilighted>', hilighted
+      ), 0
     fv_opts = self.fv_opts
     lines = hilighted.split('\n')
-    number = firstnumber = fv_opts.firstnumber
+    try:
+      firstnumber = abs(int(fv_opts.firstnumber))
+    except ValueError:
+      firstnumber = 1
+    number = firstnumber
     stepnumber = fv_opts.stepnumber
-    no = ''
     numbering = fv_opts.numbers != 'none'
     ans_code = []
-    def more(template):
+    def more(template, line):
+      nonlocal number
       ans_code.append(template.replace(
           '<placeholder:number>', f'{number}',
         ).replace(
@@ -358,13 +339,10 @@ file name with extension, contains processing information
       ))
       number += 1
     if len(lines) == 1:
-      line = lines.pop(0)
-      more(texopts.single_line_template)
+      more(texopts.single_line_template, lines.pop(0))
     elif len(lines):
-      line = lines.pop(0)
-      more(texopts.first_line_template)
-      line = lines.pop(0)
-      more(texopts.second_line_template)
+      more(texopts.first_line_template, lines.pop(0))
+      more(texopts.second_line_template, lines.pop(0))
       if stepnumber < 2:
         def template():
           return texopts.black_line_template
@@ -378,14 +356,12 @@ file name with extension, contains processing information
             stepnumber == 0 else texopts.white_line_template
 
       for line in lines:
-        more(template())
+        more(template(), line)
 
-      hilighted = '\n'.join(ans_code)
-      return texopts.block_template.replace(
-        '<placeholder:count>', f'{number-firstnumber}'
-      ).replace(
-        '<placeholder:hilighted>', hilighted
-      )
+    hilighted = '\n'.join(ans_code)
+    return texopts.block_template.replace(
+      '<placeholder:hilighted>', hilighted
+    ), number-firstnumber
 #%
 #%    ans_code.append(fr'''%
 #%\begin{{CDR@Block/engine/{pygopts.style}}}
@@ -398,21 +374,19 @@ file name with extension, contains processing information
   def create_pygmented(self):
     arguments = self.arguments
     texopts = arguments.texopts
-    if texopts.ignore_code:
+    if texopts.ignore_source:
       return True
-    code = arguments.code
-    if not code:
+    source = arguments.source
+    if not source:
       return False
-    pyg_tex_p = Path(texopts.pyg_tex_p)
-    code = self.pygmentize(code)
+    pyg_tex_p = texopts.pyg_tex_p
+    hilighted, count = self.pygmentize(source)
     with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
-      f.write(code)
+      f.write(hilighted)
     cmd = rf'\input{{./{os.path.relpath(pyg_tex_p)}}}%'
     self.lua_command_now(
-      rf'tex.print({self.lua_text_escape(cmd)})'
+      rf'self:hilight_advance({count});tex.print({self.lua_text_escape(cmd)})'
     )
-    print("PREMATURE EXIT")
-    exit(1)
 if __name__ == '__main__':
   try:
     ctrl = Controller()
