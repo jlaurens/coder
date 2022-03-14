@@ -18,11 +18,12 @@
 local lfs   = _ENV.lfs
 local tex   = _ENV.tex
 local token = _ENV.token
+local md5   = _ENV.md5
+local kpse  = _ENV.kpse
 local rep   = string.rep
 local lpeg  = require("lpeg")
 local P, Cg, Cp, V = lpeg.P, lpeg.Cg, lpeg.Cp, lpeg.V
-require("lualibs.lua")
-local json   = _ENV.utilities.json
+local json  = require('lualibs-util-jsn')
 local CDR_PY_PATH = kpse.find_file('coder-tool.py')
 local PYTHON_PATH = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
 local function set_python_path(self, path_var)
@@ -149,7 +150,8 @@ local function hilight_code_prepare(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
     code = '',
-    cache = false,
+    md5  = '',
+    cache = true,
     debug = false,
     pygopts = {
       __cls__ = 'PygOpts',
@@ -158,7 +160,12 @@ local function hilight_code_prepare(self)
     },
     texopts = {
       __cls__ = 'TeXOpts',
-      already_style = false
+      tags         = '',
+      inline       = true,
+      ignore_style = false,
+      ignore_code  = false,
+      pyg_sty_p    = '',
+      pyg_tex_p    = ''
     }
   }
 end
@@ -182,20 +189,62 @@ end
 
 local function hilight_code(self)
   local args = self['.arguments']
-  local json_p = self.json_p
-  local f = assert(io.open(json_p, 'w'))
-  local ok, err = f:write(json.tostring(args, true))
-  f:close()
-  if ok == nil then
-    print('File error('..json_p..'): '..err)
-  end
-  local cmd = ('%s %s %q'):format(
-    self.PYTHON_PATH,
-    self.CDR_PY_PATH,
-    json_p
+  local texopts = args.texopts
+  local pygopts = args.pygopts
+  args.md5 = md5.sumhexa( ('%s:%s:%s'
+    ):format(
+      args.code,
+      texopts and 'code' or 'block',
+      pygopts.style
+    )
   )
-  local o = io.popen(cmd):read('a')
-  self:load_exec_output(o)
+  local pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
+  texopts.pyg_sty_p = pyg_sty_p
+  local pyg_tex_p = dir_p..args.md5..'.pyg.tex'
+  texopts.pyg_tex_p = pyg_tex_p
+  local use_tool = false
+  if not texopts.ignore_style then
+    if args.cache then
+      local mode,_,__ = lfs.attributes(pyg_sty_p,'mode')
+      if mode == 'file' or mode == 'link' then
+        tex.print([[\input{]]..pyg_sty_p..'}%')
+        texopts.ignore_style = true
+      else
+        use_tool = true
+      end
+    end
+  end
+  local last = ''
+  if args.cache then
+    local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
+    if mode == 'file' or mode == 'link' then
+      last = [[\input{]]..pyg_tex_p..'}%'
+    else
+      use_tool = true
+    end
+  end
+  if use_tool then
+    local json_p = self.json_p
+    local f = assert(io.open(json_p, 'w'))
+    local ok, err = f:write(json.tostring(args, true))
+    f:close()
+    if ok == nil then
+      print('File error('..json_p..'): '..err)
+    end
+    local cmd = ('%s %s %q'):format(
+      self.PYTHON_PATH,
+      self.CDR_PY_PATH,
+      json_p
+    )
+    local o = io.popen(cmd):read('a')
+    self:load_exec_output(o)
+  else
+    print('NO PYTHON')
+  end
+  if #last > 0 then
+    tex.print(last)
+  end
+  self:cache_record(pyg_sty_p, pyg_tex_p)
 end
 local function hilight_block_prepare(self, tags_clist)
   local t = {}
@@ -204,7 +253,27 @@ local function hilight_block_prepare(self, tags_clist)
   end
   self['block tags']  = tags_clist
   self['.lines'] = {}
+  self['.arguments'] = {
+    __cls__ = 'Arguments',
+    code = '',
+    cache = false,
+    debug = false,
+    pygopts = {
+      __cls__ = 'PygOpts',
+      lang = 'tex',
+      style = 'default',
+    },
+    texopts = {
+      __cls__ = 'TeXOpts',
+      inline       = false,
+      ignore_style = false,
+      ignore_code  = false,
+      sty_p = '',
+      tex_p = ''
+    }
+  }
 end
+
 local function process_line(self, line_variable_name)
   local line = assert(token.get_macro(assert(line_variable_name)))
   local ll = self['.lines']
@@ -263,19 +332,20 @@ local function cache_clean_all(self)
     os.remove(dir_p .. k)
   end
 end
-local function cache_record(self, style, colored)
-  self['.style_set'][style] = true
-  self['.colored_set'][colored] = true
+local function cache_record(self, pyg_sty_p, pyg_tex_p)
+  self['.style_set']  [pyg_sty_p] = true
+  self['.colored_set'][pyg_tex_p] = true
 end
 local function cache_clean_unused(self)
   local to_remove = {}
   for f in lfs.dir(dir_p) do
+    f = dir_p .. f
     if not self['.style_set'][f] and not self['.colored_set'][f] then
       to_remove[f] = true
     end
   end
-  for k,_ in pairs(to_remove) do
-    os.remove(dir_p .. k)
+  for f,_ in pairs(to_remove) do
+    os.remove(f)
   end
 end
 local _DESCRIPTION = [[Global coder utilities on the lua side]]

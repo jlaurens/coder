@@ -54,7 +54,10 @@ class BaseOpts(object):
 class TeXOpts(BaseOpts):
   tags = ''
   inline = True
-  already_style = False
+  ignore_style = False
+  ignore_code  = False
+  pyg_sty_p    = None
+  pyg_tex_p    = None
   sty_template=r'''% !TeX root=...
 \makeatletter
 \CDR@StyleDefine{<placeholder:style_name>}{%
@@ -282,15 +285,19 @@ file name with extension, contains processing information
   def get_pyg_tex_p(self, digest):
     return (self.pygd_p / digest).with_suffix(".pyg.tex")
   def create_style(self):
-    pyg_sty_p = self.pyg_sty_p
-    if self.arguments.cache and pyg_sty_p.exists():
-      if self.arguments.debug:
+    arguments = self.arguments
+    texopts = arguments.texopts
+    if texopts.ignore_style:
+      return
+    pyg_sty_p = Path(texopts.pyg_sty_p)
+    if arguments.cache and pyg_sty_p.exists():
+      if arguments.debug:
         self.lua_debug(f'Style already available: {os.path.relpath(pyg_sty_p)}')
       return
     texopts = self.texopts
     style = self.pygopts.style
-    if texopts.already_style:
-      if self.arguments.debug:
+    if texopts.ignore_style:
+      if arguments.debug:
         self.lua_debug(f'Syle already available: {style}')
       return
     formatter = self.formatter
@@ -390,34 +397,20 @@ file name with extension, contains processing information
 #%    return texopts.block_template.replace('<placeholder:hilighted>',hilighted)
   def create_pygmented(self):
     arguments = self.arguments
+    texopts = arguments.texopts
+    if texopts.ignore_code:
+      return True
     code = arguments.code
     if not code:
       return False
-    inline = self.texopts.inline
-    h = hashlib.md5(f'{str(code)}:{inline}'.encode('utf-8'))
-    pyg_tex_p = self.get_pyg_tex_p(h.hexdigest())
-    cmd = rf'\input{{./{os.path.relpath(pyg_tex_p)}}}%'
-    if self.arguments.cache and pyg_tex_p.exists():
-      print("Already available:", pyg_tex_p)
-      self.lua_command_now(
-        rf'tex.print({self.lua_text_escape(cmd)})'
-      )
-      return True
+    pyg_tex_p = Path(texopts.pyg_tex_p)
     code = self.pygmentize(code)
     with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
       f.write(code)
+    cmd = rf'\input{{./{os.path.relpath(pyg_tex_p)}}}%'
     self.lua_command_now(
       rf'tex.print({self.lua_text_escape(cmd)})'
     )
-# \CDR_remove:n {{colored:}}%
-# \input {{ \tl_to_str:n {{}} }}%
-# \CDR:n {{colored:}}%
-    pyg_sty_p = self.pyg_sty_p
-    if pyg_sty_p.parent.stem != 'SHARED':
-      self.lua_command_now( f'''CDR:cache_record(
-  {self.lua_text_escape(pyg_sty_p.name)},
-  {self.lua_text_escape(pyg_tex_p.name)}
-)''' )
     print("PREMATURE EXIT")
     exit(1)
 if __name__ == '__main__':

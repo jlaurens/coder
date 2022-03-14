@@ -286,3 +286,5 @@ workbench/inlinecode.sty
 workbench/inlinecode.sty
 workbench/README.md
 workbench/README.txt
+
+**/*.pygd

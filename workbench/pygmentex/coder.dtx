@@ -347,7 +347,7 @@ and the derived files           \jobname.ins,
 % \begin{enumerate}
 % \item \CDRSty, on the \LaTeX{} side,
 % \item \CDRLua, to store data and call \CDRPy,
-% \item \CDRPy, to color code with the help of |pygment|.
+% \item \CDRPy, to color code with the help of \pkg{pygments}.
 % \end{enumerate}
 % \CDRSty{} mainly declares the \cs{CDRCode} command and the |CDRBlock| environment.
 % The former allows to insert code chunks as running text whereas the latter allows
@@ -629,7 +629,7 @@ and the derived files           \jobname.ins,
 % \begin{description}
 % \itemtt[\CDRCheckRed tags] |clist| of tag names, used for line numbering.
 % \itemtt[\CDRCheckRed inline] |true| when inline code is concerned, false otherwise.
-% \itemtt[\CDRCheckRed already_style] |true| when the style has already been defined, false otherwise,
+% \itemtt[\CDRCheckRed ignore_style] |true| when the style has already been defined, false otherwise,
 % \itemtt[\CDRCheckRed sty_template] \LaTeX{} source text where |<placeholder:style_defs>| must be replaced by the style definitions provided by \pkg{pygments}.
 % It may include the style name.
 %
@@ -678,11 +678,12 @@ and the derived files           \jobname.ins,
 local lfs   = _ENV.lfs
 local tex   = _ENV.tex
 local token = _ENV.token
+local md5   = _ENV.md5
+local kpse  = _ENV.kpse
 local rep   = string.rep
 local lpeg  = require("lpeg")
 local P, Cg, Cp, V = lpeg.P, lpeg.Cg, lpeg.Cp, lpeg.V
-require("lualibs.lua")
-local json   = _ENV.utilities.json
+local json  = require('lualibs-util-jsn')
 %    \end{MacroCode}
 % \section{General purpose material}
 % \begin{variable}{CDR_PY_PATH}
@@ -947,7 +948,8 @@ local function hilight_code_prepare(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
     code = '',
-    cache = false,
+    md5  = '',
+    cache = true,
     debug = false,
     pygopts = {
       __cls__ = 'PygOpts',
@@ -956,7 +958,12 @@ local function hilight_code_prepare(self)
     },
     texopts = {
       __cls__ = 'TeXOpts',
-      already_style = false
+      tags         = '',
+      inline       = true,
+      ignore_style = false,
+      ignore_code  = false,
+      pyg_sty_p    = '',
+      pyg_tex_p    = ''
     }
   }
 end
@@ -980,20 +987,62 @@ end
 
 local function hilight_code(self)
   local args = self['.arguments']
-  local json_p = self.json_p
-  local f = assert(io.open(json_p, 'w'))
-  local ok, err = f:write(json.tostring(args, true))
-  f:close()
-  if ok == nil then
-    print('File error('..json_p..'): '..err)
-  end
-  local cmd = ('%s %s %q'):format(
-    self.PYTHON_PATH,
-    self.CDR_PY_PATH,
-    json_p
+  local texopts = args.texopts
+  local pygopts = args.pygopts
+  args.md5 = md5.sumhexa( ('%s:%s:%s'
+    ):format(
+      args.code,
+      texopts and 'code' or 'block',
+      pygopts.style
+    )
   )
-  local o = io.popen(cmd):read('a')
-  self:load_exec_output(o)
+  local pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
+  texopts.pyg_sty_p = pyg_sty_p
+  local pyg_tex_p = dir_p..args.md5..'.pyg.tex'
+  texopts.pyg_tex_p = pyg_tex_p
+  local use_tool = false
+  if not texopts.ignore_style then
+    if args.cache then
+      local mode,_,__ = lfs.attributes(pyg_sty_p,'mode')
+      if mode == 'file' or mode == 'link' then
+        tex.print([[\input{]]..pyg_sty_p..'}%')
+        texopts.ignore_style = true
+      else
+        use_tool = true
+      end  
+    end
+  end
+  local last = ''
+  if args.cache then
+    local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
+    if mode == 'file' or mode == 'link' then
+      last = [[\input{]]..pyg_tex_p..'}%'
+    else
+      use_tool = true
+    end  
+  end
+  if use_tool then
+    local json_p = self.json_p
+    local f = assert(io.open(json_p, 'w'))
+    local ok, err = f:write(json.tostring(args, true))
+    f:close()
+    if ok == nil then
+      print('File error('..json_p..'): '..err)
+    end
+    local cmd = ('%s %s %q'):format(
+      self.PYTHON_PATH,
+      self.CDR_PY_PATH,
+      json_p
+    )
+    local o = io.popen(cmd):read('a')
+    self:load_exec_output(o)
+  else
+    print('NO PYTHON')
+  end
+  if #last > 0 then
+    tex.print(last)
+  end
+  self:cache_record(pyg_sty_p, pyg_tex_p)
 end
 %    \end{MacroCode}
 %
@@ -1013,7 +1062,27 @@ local function hilight_block_prepare(self, tags_clist)
   end
   self['block tags']  = tags_clist
   self['.lines'] = {}
+  self['.arguments'] = {
+    __cls__ = 'Arguments',
+    code = '',
+    cache = false,
+    debug = false,
+    pygopts = {
+      __cls__ = 'PygOpts',
+      lang = 'tex',
+      style = 'default',
+    },
+    texopts = {
+      __cls__ = 'TeXOpts',
+      inline       = false,
+      ignore_style = false,
+      ignore_code  = false,
+      sty_p = '',
+      tex_p = ''
+    }
+  }
 end
+
 %    \end{MacroCode}
 %
 % \begin{function}{process_line}
@@ -1153,19 +1222,20 @@ local function cache_clean_all(self)
     os.remove(dir_p .. k)
   end
 end
-local function cache_record(self, style, colored)
-  self['.style_set'][style] = true
-  self['.colored_set'][colored] = true
+local function cache_record(self, pyg_sty_p, pyg_tex_p)
+  self['.style_set']  [pyg_sty_p] = true
+  self['.colored_set'][pyg_tex_p] = true
 end
 local function cache_clean_unused(self)
   local to_remove = {}
   for f in lfs.dir(dir_p) do
+    f = dir_p .. f
     if not self['.style_set'][f] and not self['.colored_set'][f] then
       to_remove[f] = true
     end 
   end
-  for k,_ in pairs(to_remove) do
-    os.remove(dir_p .. k)
+  for f,_ in pairs(to_remove) do
+    os.remove(f)
   end
 end
 %    \end{MacroCode}
@@ -1342,7 +1412,10 @@ class BaseOpts(object):
 class TeXOpts(BaseOpts):
   tags = ''
   inline = True
-  already_style = False
+  ignore_style = False
+  ignore_code  = False
+  pyg_sty_p    = None
+  pyg_tex_p    = None
 %    \end{MacroCode}
 % The templates are provided by \CDRSty{}.
 % The style template wraps the style definitions provided by \pkg{pygments}.
@@ -1687,15 +1760,19 @@ file name with extension, contains processing information
 % \end{function}
 %    \begin{MacroCode}[ok]
   def create_style(self):
-    pyg_sty_p = self.pyg_sty_p
-    if self.arguments.cache and pyg_sty_p.exists():
-      if self.arguments.debug:
+    arguments = self.arguments
+    texopts = arguments.texopts
+    if texopts.ignore_style:
+      return
+    pyg_sty_p = Path(texopts.pyg_sty_p)
+    if arguments.cache and pyg_sty_p.exists():
+      if arguments.debug:
         self.lua_debug(f'Style already available: {os.path.relpath(pyg_sty_p)}')
       return
     texopts = self.texopts
     style = self.pygopts.style
-    if texopts.already_style:
-      if self.arguments.debug:
+    if texopts.ignore_style:
+      if arguments.debug:
         self.lua_debug(f'Syle already available: {style}')
       return
     formatter = self.formatter
@@ -1816,34 +1893,20 @@ file name with extension, contains processing information
 %    \begin{MacroCode}[ok]
   def create_pygmented(self):
     arguments = self.arguments
+    texopts = arguments.texopts
+    if texopts.ignore_code:
+      return True
     code = arguments.code
     if not code:
       return False
-    inline = self.texopts.inline
-    h = hashlib.md5(f'{str(code)}:{inline}'.encode('utf-8'))
-    pyg_tex_p = self.get_pyg_tex_p(h.hexdigest())
-    cmd = rf'\input{{./{os.path.relpath(pyg_tex_p)}}}%'
-    if self.arguments.cache and pyg_tex_p.exists():
-      print("Already available:", pyg_tex_p)
-      self.lua_command_now(
-        rf'tex.print({self.lua_text_escape(cmd)})'
-      )
-      return True
+    pyg_tex_p = Path(texopts.pyg_tex_p)
     code = self.pygmentize(code)
     with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
       f.write(code)
+    cmd = rf'\input{{./{os.path.relpath(pyg_tex_p)}}}%'
     self.lua_command_now(
       rf'tex.print({self.lua_text_escape(cmd)})'
     )
-# \CDR_remove:n {{colored:}}%
-# \input {{ \tl_to_str:n {{}} }}%
-# \CDR:n {{colored:}}%
-    pyg_sty_p = self.pyg_sty_p
-    if pyg_sty_p.parent.stem != 'SHARED':
-      self.lua_command_now( f'''CDR:cache_record(
-  {self.lua_text_escape(pyg_sty_p.name)},
-  {self.lua_text_escape(pyg_tex_p.name)}
-)''' )
     print("PREMATURE EXIT")
     exit(1)
 %    \end{MacroCode}
@@ -2085,7 +2148,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[ok]
 \cs_new:Npn \CDR_tag_get_path:cc #1 #2 {
-  \c_CDR_tag_get @ #1 / #2 :
+  \c_CDR_tag_get @ #1 / #2
 }
 %    \end{MacroCode}
 %
@@ -2559,6 +2622,7 @@ if __name__ == '__main__':
   \exp_args:Nx
   \keys_set:nn { \c_CDR_tag / \exp_not:n { #1 } }
 }
+\cs_generate_variant:Nn \CDR_tag_keys_set:nn { nV }
 %    \end{MacroCode}
 % \end{function}
 %
@@ -2587,6 +2651,31 @@ if __name__ == '__main__':
   \keys_set_known:nnnN { #1 } { #2 } { #1 }
 }
 \cs_generate_variant:Nn \CDR_keys_set_known:nnN { x, VV }
+%    \end{MacroCode}
+%
+% \begin{function}{\CDR_keys_inherit:nnn}
+% \begin{syntax}
+% \cs{CDR_keys_inherit:nnn} \Arg{tag root} \Arg{tag name} \Arg{parents comma list}
+% \end{syntax}
+% The \metatt{tag name} and parents are given relative to \metatt{tag root}.
+% Set the inheritance.
+% \end{function}
+%    \begin{MacroCode}[ok]
+\cs_new:Npn \CDR_keys_inherit__:nnn #1 #2 #3 {
+  \keys_define:nn { #1 } { #2 .inherit:n = { #3 } }
+}
+\cs_new:Npn \CDR_keys_inherit:nnn #1 #2 #3 {
+  \tl_if_empty:nTF { #1 } {
+    \CDR_keys_inherit__:nnn { } { #2 } { #3 }
+  } {
+    \clist_set:Nn \l_CDR_clist { #3 }
+    \exp_args:Nnnx
+    \CDR_keys_inherit__:nnn { #1 } { #2 } {
+      #1 / \clist_use:Nn \l_CDR_clist { ,#1/ }
+    }    
+  }
+}
+\cs_generate_variant:Nn \CDR_keys_inherit:nnn { VnV, Vnn }
 %    \end{MacroCode}
 %
 % \begin{function}{\CDR_tag_keys_set_known:nnN}
@@ -2719,7 +2808,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{function}
 %
-% \subsubsection{\texttt{__pygment }
+% \subsubsection{\texttt{__pygments }
 % \pkg{l3keys} module}
 %
 %    \begin{MacroCode}[ok]
@@ -2942,6 +3031,7 @@ if __name__ == '__main__':
     \exp_args:NV
     \CDR_tag_set:n \l_CDR_tags_clist
   },
+  tags .value_required:n = true,
 %    \end{MacroCode}
 %    \begin{MacroCode}[ok]
   show~tags .code:n = \CDR_tag_boolean_set:x { #1 },
@@ -3114,33 +3204,14 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \subsubsection{\texttt{__fancyvrb.block }
-% \pkg{l3keys} module}
-% Block specific options.
+% \subsubsection{\texttt{__fancyvrb.block} \pkg{l3keys} module}
+%
+% Block specific options, except numbering.
 %    \begin{MacroCode}[ok]
 \regex_const:Nn \c_CDR_integer_regex { ^(+|-)?\d+$ } \use_none:n { $ }
 \CDR_tag_keys_define:nn { __fancyvrb.block } {
 %    \end{MacroCode}
 % \begin{description}
-% \itemtt[\CDRCheckRed commentchar=\meta{character}]^^A
-% lines starting with this character are ignored.
-% Initially empty.
-%    \begin{MacroCode}[ok]
-  commentchar .code:n = \CDR_tag_set:,
-  commentchar .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed gobble=\meta{integer}]^^A
-% number of characters to suppress
-% at the beginning of each line (from 0 to 9),
-% mainly useful when environments are indented.
-% Only |block| mode.
-%    \begin{MacroCode}[ok]
-  gobble .choices:nn = {
-    0,1,2,3,4,5,6,7,8,9
-  } {
-    \CDR_tag_choices_set:
-  },
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed frame=none$\vert$leftline$\vert$topline$\vert$bottomline$\vert$lines$\vert$single]^^A
 % type of frame around the verbatim environment.
 % With \texttt{leftline} and \texttt{single} modes, a space of a length given
@@ -3177,6 +3248,104 @@ if __name__ == '__main__':
   labelposition .choices:nn =
     { none, topline, bottomline, all }
     { \CDR_tag_choices_set: },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed baselinestretch=auto$\vert$\meta{dimension}]^^A
+% value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
+% Initially \texttt{auto}: its current value just before the verbatim command.
+%    \begin{MacroCode}[ok]
+  baselinestretch .code:n = \CDR_tag_set:, 
+  baselinestretch .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckProhibited commandchars=\meta{three characters}]^^A
+% characters which define the character which starts a macro and marks the
+% beginning and end of a group; thus lets us introduce escape sequences in
+% verbatim code. Of course, it is better to choose special characters which
+% are not used in the verbatim text.
+% Private to \pkg{coder}, unavailable to users.
+% \itemtt[\CDRCheckRed xleftmargin=\meta{dimension}]^^A
+% indentation to add at the start of each line.
+% Initially |0pt|: no left margin.
+%    \begin{MacroCode}[ok]
+  xleftmargin .code:n = \CDR_tag_set:, 
+  xleftmargin .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed xrightmargin=\meta{dimension}]^^A
+% right margin to add after each line.
+% Initially |0pt|: no right margin.
+%    \begin{MacroCode}[ok]
+  xrightmargin .code:n = \CDR_tag_set:, 
+  xrightmargin .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed resetmargins{[=true$\vert$false]}]^^A
+% reset the left margin, which is useful if we are inside other indented environments.
+% Initially |true|.
+%    \begin{MacroCode}[ok]
+  resetmargins .code:n = \CDR_tag_boolean_set:x { #1 }, 
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed hfuzz=\meta{dimension}]^^A
+% value to give to the \TeX{} |\hfuzz| dimension for text to format.
+% This can be used to avoid seeing some unimportant overfull box messages.
+% Initially 2pt.
+%    \begin{MacroCode}[ok]
+  hfuzz .code:n = \CDR_tag_set:, 
+  hfuzz .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed samepage{[=true$\vert$false]}]^^A
+% in very special circumstances, we may want to make sure that a verbatim environment
+% is not broken, even if it does not fit on the current page.
+% To avoid a page break, we can set the samepage parameter to |true|.
+% Initially |false|.
+%    \begin{MacroCode}[ok]
+  samepage .code:n = \CDR_tag_boolean_set:x { #1 },
+%    \end{MacroCode}
+% \itemtt[\CDRCheckGreen __initialize]^^A
+% Initialization.
+%    \begin{MacroCode}[ok]
+  __initialize .meta:n = {
+    frame = none,
+    label = ,
+    labelposition = none,% auto?
+    baselinestretch = auto,
+    resetmargins = true,
+    xleftmargin = 0pt,
+    xrightmargin = 0pt,
+    hfuzz = 2pt,
+    samepage = false,
+  },
+  __initialize .value_forbidden:n = true,
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[ok]
+}
+\AtBeginDocument{
+  \CDR_tag_keys_set:nn { __fancyvrb.block } { __initialize }
+}
+%    \end{MacroCode}
+%
+% \subsubsection{\texttt{__fancyvrb.number} \pkg{l3keys} module}
+% Block line numbering.
+%    \begin{MacroCode}[ok]
+\CDR_tag_keys_define:nn { __fancyvrb.number } {
+%    \end{MacroCode}
+% \begin{description}
+% \itemtt[\CDRCheckRed commentchar=\meta{character}]^^A
+% lines starting with this character are ignored.
+% Initially empty.
+%    \begin{MacroCode}[ok]
+  commentchar .code:n = \CDR_tag_set:,
+  commentchar .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed gobble=\meta{integer}]^^A
+% number of characters to suppress
+% at the beginning of each line (from 0 to 9),
+% mainly useful when environments are indented.
+% Only |block| mode.
+%    \begin{MacroCode}[ok]
+  gobble .choices:nn = {
+    0,1,2,3,4,5,6,7,8,9
+  } {
+    \CDR_tag_choices_set:
+  },
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed numbers=none$\vert$left$\vert$right]^^A
 % numbering of the verbatim lines.
@@ -3244,64 +3413,12 @@ if __name__ == '__main__':
   lastline .code:n = \CDR_tag_set:,
   lastline .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed baselinestretch=auto$\vert$\meta{dimension}]^^A
-% value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
-% Initially \texttt{auto}: its current value just before the verbatim command.
-%    \begin{MacroCode}[ok]
-  baselinestretch .code:n = \CDR_tag_set:, 
-  baselinestretch .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckProhibited commandchars=\meta{three characters}]^^A
-% characters which define the character which starts a macro and marks the
-% beginning and end of a group; thus lets us introduce escape sequences in
-% verbatim code. Of course, it is better to choose special characters which
-% are not used in the verbatim text.
-% Private to \pkg{coder}, unavailable to users.
-% \itemtt[\CDRCheckRed xleftmargin=\meta{dimension}]^^A
-% indentation to add at the start of each line.
-% Initially |0pt|: no left margin.
-%    \begin{MacroCode}[ok]
-  xleftmargin .code:n = \CDR_tag_set:, 
-  xleftmargin .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed xrightmargin=\meta{dimension}]^^A
-% right margin to add after each line.
-% Initially |0pt|: no right margin.
-%    \begin{MacroCode}[ok]
-  xrightmargin .code:n = \CDR_tag_set:, 
-  xrightmargin .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed resetmargins{[=true$\vert$false]}]^^A
-% reset the left margin, which is useful if we are inside other indented environments.
-% Initially |true|.
-%    \begin{MacroCode}[ok]
-  resetmargins .code:n = \CDR_tag_boolean_set:x { #1 }, 
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed hfuzz=\meta{dimension}]^^A
-% value to give to the \TeX{} |\hfuzz| dimension for text to format.
-% This can be used to avoid seeing some unimportant overfull box messages.
-% Initially 2pt.
-%    \begin{MacroCode}[ok]
-  hfuzz .code:n = \CDR_tag_set:, 
-  hfuzz .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed samepage{[=true$\vert$false]}]^^A
-% in very special circumstances, we may want to make sure that a verbatim environment
-% is not broken, even if it does not fit on the current page.
-% To avoid a page break, we can set the samepage parameter to |true|.
-% Initially |false|.
-%    \begin{MacroCode}[ok]
-  samepage .code:n = \CDR_tag_boolean_set:x { #1 },
-%    \end{MacroCode}
 % \itemtt[\CDRCheckGreen __initialize]^^A
 % Initialization.
 %    \begin{MacroCode}[ok]
   __initialize .meta:n = {
     commentchar = ,
     gobble = 0,
-    frame = none,
-    label = ,
-    labelposition = none,% auto?
     numbers = left,
     numbersep = \hspace{1ex},
     firstnumber = auto,
@@ -3309,12 +3426,6 @@ if __name__ == '__main__':
     numberblanklines = true,
     firstline = ,
     lastline = ,
-    baselinestretch = auto,
-    resetmargins = true,
-    xleftmargin = 0pt,
-    xrightmargin = 0pt,
-    hfuzz = 2pt,
-    samepage = false,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -3322,7 +3433,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[ok]
 }
 \AtBeginDocument{
-  \CDR_tag_keys_set:nn { __fancyvrb.block } { __initialize }
+  \CDR_tag_keys_set:nn { __fancyvrb.number } { __initialize }
 }
 %    \end{MacroCode}
 %
@@ -3486,14 +3597,6 @@ if __name__ == '__main__':
 %
 % \subsection{Storage}
 %
-% \begin{variable}{\c_CDR_tag_get, \c_CDR_slash}
-% Root identifier for tag properties, used throughout the pakage.
-% \vspace{1\baselineskip}
-%    \begin{MacroCode}[ok]
-\str_const:Nn \c_CDR_export_get { CDR@export@get }
-%    \end{MacroCode}
-% \end{variable}
-%
 % \begin{function}[EXP]{\CDR_export_get_path:cc}
 % \begin{syntax}
 % \cs{CDR_tag_export_path:cc} \Arg{file name} \Arg{relative key path}
@@ -3503,7 +3606,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[ok]
 \cs_new:Npn \CDR_export_get_path:cc #1 #2 {
-  \c_CDR_export_get @ #1 / #2 :
+  CDR @ export @ get @ #1 / #2
 }
 %    \end{MacroCode}
 %
@@ -3582,6 +3685,8 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
+% \subsection{Storage}
+%
 % \begin{variable}{\g_CDR_export_prop}
 % Global storage for \texttt{\meta{file name}=\meta{file export info}}
 %    \begin{MacroCode}[ok]
@@ -3594,11 +3699,13 @@ if __name__ == '__main__':
 \tl_new:N \l_CDR_file_tl
 %    \end{MacroCode}
 % \end{variable}
-% \begin{variable}{\l_CDR_tags_clist}
+%
+% \begin{variable}{\l_CDR_tags_clist, \g_CDR_tags_clist}
 % Used by \texttt{CDR@Export} \pkg{l3keys} module to temporarily store tags
 % during the export declaration.
 %    \begin{MacroCode}[ok]
 \clist_new:N \l_CDR_tags_clist
+\clist_new:N \g_CDR_tags_clist
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -3684,13 +3791,13 @@ if __name__ == '__main__':
     postamble=,
     raw=false,
   },
-  __initialize .default:n = \l_CDR_prop,
+  __initialize .default:n = \l_CDR_export_prop,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckGreen __initialize_prop]^^A
 % Goody: properly initialize the local property storage.
 %    \begin{MacroCode}[ok]
   __initialize_prop .code:n = \prop_clear:N #1,
-  __initialize_prop .default:n = \l_CDR_prop,
+  __initialize_prop .value_required:n = true,
 %    \end{MacroCode}
 % \end{description}
 %    \begin{MacroCode}[ok]
@@ -3712,10 +3819,21 @@ if __name__ == '__main__':
       \CDR_export_set:Vcn \l_CDR_file_tl { ##1 } { ##2 }
     }
 %    \end{MacroCode}
-% If a |lang| is given, forwards the declaration
-% to all the tagged chunks.
+% The list of tags must not be empty, raise an error otherwise.
+% Records the list in |\g_CDR_tags_clist|, it will be the default list
+% of forthcoming code blocks.
 %    \begin{MacroCode}[ok]
-    \prop_get:NnNT \l_CDR_prop { tags } \l_CDR_tags_clist {
+    \tl_if_empty:NTF \l_CDR_tags_clist {
+      \PackageWarning
+        { coder }
+        { Missing~key~`tags' }
+    } {
+      \clist_set_eq:NN \g_CDR_tags_clist \l_CDR_tags_clist
+      \CDR_export_set:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
+%    \end{MacroCode}
+% If a |lang| is given, forwards the declaration
+% to all the code chunks tagged within |\l_CDR_tags_clist|.
+%    \begin{MacroCode}[ok]
       \exp_args:NV
       \CDR_export_get:ccNT \l_CDR_file_tl { lang } \l_CDR_tl {
         \clist_map_inline:Nn \l_CDR_tags_clist {
@@ -4067,7 +4185,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
-% \subsection{\texttt{\c_CDR_tag / __code} \pkg{l3keys} module}
+% \subsection{\texttt{__code} \pkg{l3keys} module}
 % This is the module used to parse the user interface of the \cs{CDRCode} command.
 %    \begin{MacroCode}[ok]
 \CDR_tag_keys_define:nn { __code } {
@@ -4101,43 +4219,6 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %
 % \subsection{Implementation}
-%
-% \begin{function}{\CDR_code_fvset:}
-% \begin{syntax}
-% \cs{CDR_code_fvset:}
-% \end{syntax}
-% Private method.
-% \end{function}
-%    \begin{MacroCode}[ok]
-\cs_new:Npn \CDR_code_fvset_braced:nn #1 #2 {
-  \fvset { #1 = { #2 } }
-}
-\cs_set:Npn \CDR_code_fvset: {
-  \tl_clear:N \l_CDR_options_tl
-  \clist_map_inline:nn {
-    formatcom,
-    fontfamily,
-    fontsize,
-    fontshape,
-    showspaces,
-    showtabs,
-    obeytabs,
-    tabsize,
-%    defineactive,
-%    reflabel,
-  } {
-    \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { ##1 } }
-    \tl_if_in:NnTF \l_CDR_tl { , } {
-      \exp_args:NnV
-      \CDR_code_fvset_braced:nn { ##1 } \l_CDR_tl
-    } {
-      \tl_put_left:Nn \l_CDR_tl { ##1 = }
-      \exp_args:NV
-      \fvset \l_CDR_tl
-    }
-  }
-}
-%    \end{MacroCode}
 %
 % \begin{function}{\CDR_code_format:}
 % \begin{syntax}
@@ -4185,27 +4266,27 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[ok]
 \cs_new:Npn \CDR_code:n #1 {
-  \CDR_tag_inherit:cx { __local } {
-    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-    __code, default.code, default, __pygments, __fancyvrb,
-  }
   \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
+    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+      __fancyvrb,
+    }
+    \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
         \UndefineShortVerb { #1 }
         \lua_now:n { CDR:hilight_code_prepare() }
-        \CDR@StyleIfExist { \l_CDR_tl } {
-          \lua_now:n { CDR:hilight_set('already_style', 'true') }
-        } { }
+        \CDR_tag_get:cN {lang} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('lang') }
         \CDR_tag_get:cN {cache} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('cache') }
         \CDR_tag_get:cN {debug} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('debug') }
         \CDR_tag_get:cN {style} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('style') }
-        \CDR_tag_get:cN {lang} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('lang') }
+        \CDR@StyleIfExist { \l_CDR_tl } {
+          \lua_now:n { CDR:hilight_set('ignore_style', 'true') }
+        } { }
         \lua_now:n { CDR:hilight_set_var('code', 'FV@SV@CDR@Code') }
         \CDR_code_format:
         \lua_now:n { CDR:hilight_code() }
@@ -4213,11 +4294,11 @@ if __name__ == '__main__':
       }
     ] { CDR@Code } #1
   } {
+    \exp_args:NV \fvset \l_CDR_keyval_tl
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
         \UndefineShortVerb { #1 }
-        \CDR_code_fvset:
         \CDR@CodeEngineApply { \UseVerb { CDR@Code } }
         \group_end:
       }
@@ -4233,12 +4314,21 @@ if __name__ == '__main__':
     \prg_return_false:
   }  
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __code, __pygments, default.code, default, __fancyvrb, __fancyvrb.all
+    __code, default.code, __pygments, default,
   }
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
   \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
-  \exp_args:NnV
-  \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
+  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
+  \exp_args:NV
+  \fvset \l_CDR_keyval_tl
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __fancyvrb,
+  }
+  \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl  
+  \CDR_tag_inherit:cx { __local } {
+    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
+    __code, default.code, __pygments, default, __fancyvrb,
+  }
   \CDR_code:n
 }
 %    \end{MacroCode}
@@ -4307,7 +4397,6 @@ if __name__ == '__main__':
 % initialize
 %    \begin{MacroCode}[ok]
   __initialize .meta:n = {
-    tags = ,
     ignore = false,
     test = false,
     engine~options = ,
@@ -4340,21 +4429,6 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %
 %    \begin{MacroCode}
-\cs_new:Npn \CDR_keys_inherit__:nnn #1 #2 #3 {
-  \keys_define:nn { #1 } { #2 .inherit:n = { #3 } }
-}
-\cs_new:Npn \CDR_keys_inherit:nnn #1 #2 #3 {
-  \tl_if_empty:nTF { #1 } {
-    \CDR_keys_inherit__:nnn { } { #2 } { #3 }
-  } {
-    \clist_set:Nn \l_CDR_clist { #3 }
-    \exp_args:Nnnx
-    \CDR_keys_inherit__:nnn { #1 } { #2 } {
-      #1 / \clist_use:Nn \l_CDR_clist { ,#1/ }
-    }    
-  }
-}
-\cs_generate_variant:Nn \CDR_keys_inherit:nnn { VnV, Vnn }
 \def\FVB@CDRBlock #1 {
   \@bsphack
   \group_begin:
@@ -4391,9 +4465,7 @@ if __name__ == '__main__':
     }
   }
   \bool_if:NF \l_CDR_bool {
-    \CDR_keys_inherit:Vnx \c_CDR_tag { __local } {
-      \c_CDR_tag / __fancyvrb.all
-    }
+    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } { __fancyvrb.all }
     \CDR_tag_keys_set_known:nVN { __local } \l_CDR_tl  \l_CDR_tl    
   }
   \CDR_check_unknown:N \l_CDR_tl
@@ -4463,7 +4535,7 @@ ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
 %   \end{syntax}
 % Execute \meta{true code} when code should be recorded, \meta{false code} otherwise.
 % The code should be recorded for the |CDRBlock| environment
-% when there is a non empty list of tags and pygment is used.
+% when there is a non empty list of tags and \pkg{pygments} is used.
 % \emph{Implementation details}: we assume that if |\l_CDR_tags_clist| is not empty
 % then we are in a |CDRBlock| environment.
 %    \begin{MacroCode}[ok]
@@ -4830,8 +4902,8 @@ ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
 %  \cs_set_eq:NN \_CDR_minted_on: \prg_do_nothing:
 %}
 %    \end{MacroCode}
-% Utilities to setup |pygment| post processing.
-% The |pygment| post processor marks some code with \cs{CDREmph}.
+% Utilities to setup \pkg{pygments} post processing.
+% The \pkg{pygments} post processor marks some code with \cs{CDREmph}.
 %    \begin{MacroCode}
 \ProvideDocumentCommand{\CDREmph}{m}{\textcolor{red}{#1}}
 %    \end{MacroCode}

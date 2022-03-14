@@ -36,7 +36,9 @@
 }
 \ExplSyntaxOff
 
-\ExplSyntaxOff
+\newfontfamily\CDRVerbatimFont{TeX Gyre Cursor}[NFSSFamily=CDRVerbatimFont]
+\newfontfamily\CDRMenloFont{Menlo}[NFSSFamily=menlo]
+
 
 \begin{document}
 
@@ -52,19 +54,22 @@ Path=\l_CDR_tl\\
 \ExplSyntaxOff
 
 \section{Testing the tag mechanism}
-\input{Tests/tag_mechanism}
+%\input{Tests/tag_mechanism}
 
 \section{\cs{CDR_tag_choices_set:}}
-\input{Tests/CDR_tag_choices_set}
+%\input{Tests/CDR_tag_choices_set}
 
 \section{\cs{CDR_tag_boolean_set:}}
-\input{Tests/CDR_tag_boolean_set}
+%\input{Tests/CDR_tag_boolean_set}
 
 \section{\cs{CDRSet}}
-\input{Tests/CDRSet}
+%\input{Tests/CDRSet}
 
 \section{\cs{CDRCode}}
 \input{Tests/CDRCode}
+
+\section{\texttt{CDRBlock}}
+\input{Tests/CDRBlock}
 
 \section{\cs{CDRExport}}
 %\input{Tests/CDRExport}

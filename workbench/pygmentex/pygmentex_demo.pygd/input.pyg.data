@@ -1,9 +1,0 @@
-{
- "code" : "pai(A,X), pai(X,B)",
- "jobname" : "pygmentex_demo",
- "pygment_options" : {
-  "colback" : "black",
-  "lang" : "prolog",
-  "sty" : "vim"
- }
-}

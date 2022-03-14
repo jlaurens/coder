@@ -2,9 +2,6 @@
 % !TeX root=../coder_test.tex
 \noindent
 
-\newfontfamily\CDRVerbatimFont{TeX Gyre Cursor}[NFSSFamily=CDRVerbatimFont]
-\newfontfamily\CDRMenloFont{Menlo}[NFSSFamily=menlo]
-
 \ExplSyntaxOn
 \cs_new:Npn \CDR_process_line_code_append: { CDR_processline_code_append: }
 \ExplSyntaxOff
@@ -29,7 +26,7 @@ ABCDE
 
 \group_end:
 \ExplSyntaxOff
-
+\bgroup
 \begin{Verbatim}[
 %  fontshape=b,
   fontfamily=CDRVerbatimFont,%tt,%helvetica, courier
@@ -58,6 +55,7 @@ fontsize=\Large,
 \UseVerb{ABC}%
 YYY
 \CDRSet{pygments=false}
+\egroup
 
 \subsection{Coder}
 

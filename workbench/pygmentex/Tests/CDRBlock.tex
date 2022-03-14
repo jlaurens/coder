@@ -1,0 +1,154 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+\noindent
+
+\bgroup
+\ExplSyntaxOn
+\makeatletter
+\bool_new:N \l_CDR_pygments_bool
+\bool_set_false:N \l_CDR_pygments_bool
+%\cs_set:Npn \FVBX@CDRBlock #1 {
+%  \@bsphack
+%  \group_begin:
+%
+%
+%
+%  
+%ERROR   \bool_if:nF { \clist_if_empty_p:n } {}
+%  \clist_if_empty:NF \l_CDR_tags_clist {
+%    \cs_map_inline:nn { i, ii, iii, iv } {
+%      \cs_set:cpn { FV@ListProcessLine@ ####1 } ##1 {
+%        \CDR_process_line:n { ##1 }
+%        \use:c { CDR@ListProcessLine@ ####1 } { ##1 }
+%      }
+%    }
+%  }
+%  \CDR_tag_get:cNF { engine } \l_CDR_engine_tl {
+%    \tl_set:Nn \l_CDR_engine_tl { default }
+%  }
+%  \CDR_tag_get:xNF { \l_CDR_engine_tl~engine~options } \l_CDR_tl {
+%    \tl_clear:N \l_CDR_tl
+%  }
+%  \exp_args:NnV
+%  \begin { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_tl
+%  \FV@VerbatimBegin
+%  \FV@Scan
+%}
+%\def \FVB@CDRBlock #1 {
+%  \@bsphack
+%  \bgroup
+%  \FV@VerbatimBegin
+%  \FV@Scan
+%}
+%
+\def\FVB@MyVerbatim{\FV@VerbatimBegin\FV@Scan}
+\def\FVE@MyVerbatim{\FV@VerbatimEnd}
+\DefineVerbatimEnvironment{MyVerbatim}{MyVerbatim}{}
+\def\FVB@CDRBlock {
+  \@bsphack
+  \group_begin:
+  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
+    \prg_return_true:
+  }  
+  \CDR_tag_keys_set:nn { __block } { __initialize }
+%    \end{MacroCode}
+% By default, this code chunk will have the same list of tags
+% as the last code block or last |\CDRExport| stored in |\g_CDR_tags_clist|. 
+%    \begin{MacroCode}
+  \clist_set_eq:NN \l_CDR_tags_clist \g_CDR_tags_clist
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __block, __pygments.block, default.block,
+    __pygments, default,
+  }
+  \exp_args:NnV
+  \CDR_tag_keys_set_known:nnN { __local } \FV@KeyValues \l_CDR_keyval_tl
+  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
+  \exp_args:NnV
+  \CDR_tag_keys_set_known:nnN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
+  \clist_if_empty:NT \l_CDR_tags_clist {
+    \PackageWarning
+      { coder }
+      { No~(default)~tags~provided. }
+  }
+%    \end{MacroCode}
+% |\l_CDR_pygments_bool| is |true| iff one of the tags needs \pkg{pygments}.
+%    \begin{MacroCode}
+  \clist_map_inline:Nn \l_CDR_tags_clist {
+    \CDR_if_truthy:eT { \CDR_tag_get:cc { ##1 } { pygments } } {
+      \clist_map_break:n {
+        \bool_set_true:N \l_CDR_pygments_bool
+      }
+    }
+  }
+  \bool_if:NTF \l_CDR_pygments_bool {
+    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+      __fancyvrb.number
+    }
+    \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
+    \exp_args:NV \fvset \l_CDR_keyval_tl
+    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+      __fancyvrb, __fancyvrb.block
+    }
+    \exp_args:NnV
+    \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
+%    \end{MacroCode}
+% Get the list of tags and setup \CDRLua{} for recording or hilighting.
+%    \begin{MacroCode}  
+    \lua_now:n {
+      CDR:hilight_block_prepare('l_CDR_tags_clist')
+    }
+    \def\FV@KeyValues{}
+    \lua_now:n { CDR:hilight_code_prepare() }
+    \CDR_tag_get:cN {lang} \l_CDR_tl
+    \lua_now:n { CDR:hilight_set_var('lang') }
+    \CDR_tag_get:cN {cache} \l_CDR_tl
+    \lua_now:n { CDR:hilight_set_var('cache') }
+    \CDR_tag_get:cN {debug} \l_CDR_tl
+    \lua_now:n { CDR:hilight_set_var('debug') }
+    \CDR_tag_get:cN {style} \l_CDR_tl
+    \lua_now:n { CDR:hilight_set_var('style') }
+    \CDR@StyleIfExist { \l_CDR_tl } {
+      \lua_now:n { CDR:hilight_set('ignore_style', 'true') }
+    } { }
+  } {
+    \exp_args:NNV
+    \def \FV@KeyValues \l_CDR_keyval_tl
+  }
+  \FV@VerbatimBegin
+  \FV@Scan
+}
+\def\FVE@CDRBlock {
+  \FV@VerbatimEnd
+  \bool_if:NT \l_CDR_pygments_bool {
+    \lua_now:n { CDR:hilight_code() }
+  }
+  \group_end:
+  \@esphack
+}
+\ExplSyntaxOff
+\makeatother
+\DefineVerbatimEnvironment{CDRBlock}{CDRBlock}{}
+ESSAI
+\begin{Verbatim}
+[]
+ESSAI
+\end{Verbatim}
+\begin{MyVerbatim}[fontsize=\Large]
+ESSAI
+\end{MyVerbatim}
+\begin{CDRBlock} [
+  tags=,
+  fontfamily=menlo,
+  fontsize=\Large,
+  pygments=false,
+  lang=lua,
+  numbers=left,
+  frame=lines,
+]
+local f = function(arg)
+  return arg ** arg
+end
+\end{CDRBlock}
+
+\egroup
+\CDRSet{pygments=false}

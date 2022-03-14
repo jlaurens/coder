@@ -109,7 +109,7 @@
 \tl_new:N \l_CDR_info_tl
 \seq_new:N \g_CDR_tag_path_seq
 \cs_new:Npn \CDR_tag_get_path:cc #1 #2 {
-  \c_CDR_tag_get @ #1 / #2 :
+  \c_CDR_tag_get @ #1 / #2
 }
 \cs_new_protected:Npn \CDR_tag_set:ccn #1 #2 #3 {
   \seq_put_left:Nx \g_CDR_tag_path_seq { #2 }
@@ -304,10 +304,26 @@
   \exp_args:Nx
   \keys_set:nn { \c_CDR_tag / \exp_not:n { #1 } }
 }
+\cs_generate_variant:Nn \CDR_tag_keys_set:nn { nV }
 \cs_new:Npn \CDR_keys_set_known:nnN #1 #2 {
   \keys_set_known:nnnN { #1 } { #2 } { #1 }
 }
 \cs_generate_variant:Nn \CDR_keys_set_known:nnN { x, VV }
+\cs_new:Npn \CDR_keys_inherit__:nnn #1 #2 #3 {
+  \keys_define:nn { #1 } { #2 .inherit:n = { #3 } }
+}
+\cs_new:Npn \CDR_keys_inherit:nnn #1 #2 #3 {
+  \tl_if_empty:nTF { #1 } {
+    \CDR_keys_inherit__:nnn { } { #2 } { #3 }
+  } {
+    \clist_set:Nn \l_CDR_clist { #3 }
+    \exp_args:Nnnx
+    \CDR_keys_inherit__:nnn { #1 } { #2 } {
+      #1 / \clist_use:Nn \l_CDR_clist { ,#1/ }
+    }
+  }
+}
+\cs_generate_variant:Nn \CDR_keys_inherit:nnn { VnV, Vnn }
 \cs_generate_variant:Nn \keys_set_known:nnnN { VVV, nVx }
 \cs_new:Npn \CDR_tag_keys_set_known:nnN #1 {
   \CDR_keys_set_known:xnN { \c_CDR_tag / \exp_not:n { #1 } }
@@ -459,6 +475,7 @@
     \exp_args:NV
     \CDR_tag_set:n \l_CDR_tags_clist
   },
+  tags .value_required:n = true,
   show~tags .code:n = \CDR_tag_boolean_set:x { #1 },
   only~top .code:n = \CDR_tag_boolean_set:x { #1 },
   use~margin .code:n = \CDR_tag_boolean_set:x { #1 },
@@ -523,13 +540,6 @@
 }
 \regex_const:Nn \c_CDR_integer_regex { ^(+|-)?\d+$ } \use_none:n { $ }
 \CDR_tag_keys_define:nn { __fancyvrb.block } {
-  commentchar .code:n = \CDR_tag_set:,
-  commentchar .value_required:n = true,
-  gobble .choices:nn = {
-    0,1,2,3,4,5,6,7,8,9
-  } {
-    \CDR_tag_choices_set:
-  },
   frame .choices:nn =
     { none, leftline, topline, bottomline, lines, single }
     { \CDR_tag_choices_set: },
@@ -538,6 +548,40 @@
   labelposition .choices:nn =
     { none, topline, bottomline, all }
     { \CDR_tag_choices_set: },
+  baselinestretch .code:n = \CDR_tag_set:,
+  baselinestretch .value_required:n = true,
+  xleftmargin .code:n = \CDR_tag_set:,
+  xleftmargin .value_required:n = true,
+  xrightmargin .code:n = \CDR_tag_set:,
+  xrightmargin .value_required:n = true,
+  resetmargins .code:n = \CDR_tag_boolean_set:x { #1 },
+  hfuzz .code:n = \CDR_tag_set:,
+  hfuzz .value_required:n = true,
+  samepage .code:n = \CDR_tag_boolean_set:x { #1 },
+  __initialize .meta:n = {
+    frame = none,
+    label = ,
+    labelposition = none,% auto?
+    baselinestretch = auto,
+    resetmargins = true,
+    xleftmargin = 0pt,
+    xrightmargin = 0pt,
+    hfuzz = 2pt,
+    samepage = false,
+  },
+  __initialize .value_forbidden:n = true,
+}
+\AtBeginDocument{
+  \CDR_tag_keys_set:nn { __fancyvrb.block } { __initialize }
+}
+\CDR_tag_keys_define:nn { __fancyvrb.number } {
+  commentchar .code:n = \CDR_tag_set:,
+  commentchar .value_required:n = true,
+  gobble .choices:nn = {
+    0,1,2,3,4,5,6,7,8,9
+  } {
+    \CDR_tag_choices_set:
+  },
   numbers .choices:nn =
     { none, left, right }
     { \CDR_tag_choices_set: },
@@ -565,22 +609,9 @@
   firstline .value_required:n = true,
   lastline .code:n = \CDR_tag_set:,
   lastline .value_required:n = true,
-  baselinestretch .code:n = \CDR_tag_set:,
-  baselinestretch .value_required:n = true,
-  xleftmargin .code:n = \CDR_tag_set:,
-  xleftmargin .value_required:n = true,
-  xrightmargin .code:n = \CDR_tag_set:,
-  xrightmargin .value_required:n = true,
-  resetmargins .code:n = \CDR_tag_boolean_set:x { #1 },
-  hfuzz .code:n = \CDR_tag_set:,
-  hfuzz .value_required:n = true,
-  samepage .code:n = \CDR_tag_boolean_set:x { #1 },
   __initialize .meta:n = {
     commentchar = ,
     gobble = 0,
-    frame = none,
-    label = ,
-    labelposition = none,% auto?
     numbers = left,
     numbersep = \hspace{1ex},
     firstnumber = auto,
@@ -588,17 +619,11 @@
     numberblanklines = true,
     firstline = ,
     lastline = ,
-    baselinestretch = auto,
-    resetmargins = true,
-    xleftmargin = 0pt,
-    xrightmargin = 0pt,
-    hfuzz = 2pt,
-    samepage = false,
   },
   __initialize .value_forbidden:n = true,
 }
 \AtBeginDocument{
-  \CDR_tag_keys_set:nn { __fancyvrb.block } { __initialize }
+  \CDR_tag_keys_set:nn { __fancyvrb.number } { __initialize }
 }
 \CDR_tag_keys_define:nn { __fancyvrb.all } {
   commandchars .code:n = \CDR_tag_set:,
@@ -662,9 +687,8 @@
   \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_keyval_tl \l_CDR_keyval_tl
   \CDR_check_unknown:N \l_CDR_keyval_tl
 }
-\str_const:Nn \c_CDR_export_get { CDR@export@get }
 \cs_new:Npn \CDR_export_get_path:cc #1 #2 {
-  \c_CDR_export_get @ #1 / #2 :
+  CDR @ export @ get @ #1 / #2
 }
 \cs_new_protected:Npn \CDR_export_set:ccn #1 #2 #3 {
   \cs_set:cpn { \CDR_export_get_path:cc { #1 } { #2 } } { \exp_not:n { #3 } }
@@ -700,6 +724,7 @@
 \prop_new:N \g_CDR_export_prop
 \tl_new:N \l_CDR_file_tl
 \clist_new:N \l_CDR_tags_clist
+\clist_new:N \g_CDR_tags_clist
 \prop_new:N \l_CDR_export_prop
 \keys_define:nn { CDR@Export } {
   file .tl_set:N = \l_CDR_file_tl,
@@ -737,9 +762,9 @@
     postamble=,
     raw=false,
   },
-  __initialize .default:n = \l_CDR_prop,
+  __initialize .default:n = \l_CDR_export_prop,
   __initialize_prop .code:n = \prop_clear:N #1,
-  __initialize_prop .default:n = \l_CDR_prop,
+  __initialize_prop .value_required:n = true,
 }
 \NewDocumentCommand \CDRExport { m } {
   \keys_set:nn { CDR@Export } { __initialize }
@@ -753,7 +778,13 @@
     \prop_map_inline:Nn \l_CDR_prop {
       \CDR_export_set:Vcn \l_CDR_file_tl { ##1 } { ##2 }
     }
-    \prop_get:NnNT \l_CDR_prop { tags } \l_CDR_tags_clist {
+    \tl_if_empty:NTF \l_CDR_tags_clist {
+      \PackageWarning
+        { coder }
+        { Missing~key~`tags' }
+    } {
+      \clist_set_eq:NN \g_CDR_tags_clist \l_CDR_tags_clist
+      \CDR_export_set:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
       \exp_args:NV
       \CDR_export_get:ccNT \l_CDR_file_tl { lang } \l_CDR_tl {
         \clist_map_inline:Nn \l_CDR_tags_clist {
@@ -940,32 +971,6 @@
   },
   __initialize .value_forbidden:n = true,
 }
-\cs_new:Npn \CDR_code_fvset_braced:nn #1 #2 {
-  \fvset { #1 = { #2 } }
-}
-\cs_set:Npn \CDR_code_fvset: {
-  \tl_clear:N \l_CDR_options_tl
-  \clist_map_inline:nn {
-    formatcom,
-    fontfamily,
-    fontsize,
-    fontshape,
-    showspaces,
-    showtabs,
-    obeytabs,
-    tabsize,
-  } {
-    \tl_set:Nx \l_CDR_tl { \CDR_tag_get:c { ##1 } }
-    \tl_if_in:NnTF \l_CDR_tl { , } {
-      \exp_args:NnV
-      \CDR_code_fvset_braced:nn { ##1 } \l_CDR_tl
-    } {
-      \tl_put_left:Nn \l_CDR_tl { ##1 = }
-      \exp_args:NV
-      \fvset \l_CDR_tl
-    }
-  }
-}
 \cs_new:Npn \CDR_brace_if_contains_comma:n #1 {
   \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
 }
@@ -995,27 +1000,27 @@
   \selectfont
 }
 \cs_new:Npn \CDR_code:n #1 {
-  \CDR_tag_inherit:cx { __local } {
-    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-    __code, default.code, default, __pygments, __fancyvrb,
-  }
   \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
+    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+      __fancyvrb,
+    }
+    \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
         \UndefineShortVerb { #1 }
         \lua_now:n { CDR:hilight_code_prepare() }
-        \CDR@StyleIfExist { \l_CDR_tl } {
-          \lua_now:n { CDR:hilight_set('already_style', 'true') }
-        } { }
+        \CDR_tag_get:cN {lang} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('lang') }
         \CDR_tag_get:cN {cache} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('cache') }
         \CDR_tag_get:cN {debug} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('debug') }
         \CDR_tag_get:cN {style} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('style') }
-        \CDR_tag_get:cN {lang} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('lang') }
+        \CDR@StyleIfExist { \l_CDR_tl } {
+          \lua_now:n { CDR:hilight_set('ignore_style', 'true') }
+        } { }
         \lua_now:n { CDR:hilight_set_var('code', 'FV@SV@CDR@Code') }
         \CDR_code_format:
         \lua_now:n { CDR:hilight_code() }
@@ -1023,11 +1028,11 @@
       }
     ] { CDR@Code } #1
   } {
+    \exp_args:NV \fvset \l_CDR_keyval_tl
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
         \UndefineShortVerb { #1 }
-        \CDR_code_fvset:
         \CDR@CodeEngineApply { \UseVerb { CDR@Code } }
         \group_end:
       }
@@ -1040,12 +1045,21 @@
     \prg_return_false:
   }
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __code, __pygments, default.code, default, __fancyvrb, __fancyvrb.all
+    __code, default.code, __pygments, default,
   }
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
   \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
-  \exp_args:NnV
-  \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
+  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
+  \exp_args:NV
+  \fvset \l_CDR_keyval_tl
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __fancyvrb,
+  }
+  \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl
+  \CDR_tag_inherit:cx { __local } {
+    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
+    __code, default.code, __pygments, default, __fancyvrb,
+  }
   \CDR_code:n
 }
 \cs_new:Npn \CDR_to_lua: {
@@ -1066,7 +1080,6 @@
   engine~options .code:n = \CDR_tag_set:,
   engine~options .value_required:n = true,
   __initialize .meta:n = {
-    tags = ,
     ignore = false,
     test = false,
     engine~options = ,
@@ -1080,21 +1093,6 @@
   \str_set:Nn \l_CDR_str { #1 }
   \lua_now:n {CDR:process_line('l_CDR_str')}
 }
-\cs_new:Npn \CDR_keys_inherit__:nnn #1 #2 #3 {
-  \keys_define:nn { #1 } { #2 .inherit:n = { #3 } }
-}
-\cs_new:Npn \CDR_keys_inherit:nnn #1 #2 #3 {
-  \tl_if_empty:nTF { #1 } {
-    \CDR_keys_inherit__:nnn { } { #2 } { #3 }
-  } {
-    \clist_set:Nn \l_CDR_clist { #3 }
-    \exp_args:Nnnx
-    \CDR_keys_inherit__:nnn { #1 } { #2 } {
-      #1 / \clist_use:Nn \l_CDR_clist { ,#1/ }
-    }
-  }
-}
-\cs_generate_variant:Nn \CDR_keys_inherit:nnn { VnV, Vnn }
 \def\FVB@CDRBlock #1 {
   \@bsphack
   \group_begin:
@@ -1125,9 +1123,7 @@
     }
   }
   \bool_if:NF \l_CDR_bool {
-    \CDR_keys_inherit:Vnx \c_CDR_tag { __local } {
-      \c_CDR_tag / __fancyvrb.all
-    }
+    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } { __fancyvrb.all }
     \CDR_tag_keys_set_known:nVN { __local } \l_CDR_tl  \l_CDR_tl
   }
   \CDR_check_unknown:N \l_CDR_tl
