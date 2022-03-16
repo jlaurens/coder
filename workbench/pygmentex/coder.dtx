@@ -362,7 +362,7 @@ and the derived files           \jobname.ins,
 % \begin{enumerate}
 % \item from \CDRSty{}, \LaTeX{} parses a code snippet as |\CDRCode| argument
 % of |CDRBlock| environment body, somehow stores it,
-% and calls either |CDR:hilight_code| or |CDR:hilight_block|,
+% and calls either |CDR:hilight_source|,
 % \item \CDRLua{} reads the content of some command, and stores it in a |json| file,
 % together with informations to process this code snippet properly,
 % \item \CDRPy{} is asked by \CDRLua{} to read the |json| file and eventually uses \pkg{pygments} to translate
@@ -630,18 +630,9 @@ and the derived files           \jobname.ins,
 % \begin{description}
 % \itemtt[\CDRCheckRed tags] |clist| of tag names, used for line numbering.
 % \itemtt[\CDRCheckRed inline] |true| when inline code is concerned, false otherwise.
-% \itemtt[\CDRCheckRed ignore_style] |true| when the style has already been defined, false otherwise,
 % \itemtt[\CDRCheckRed sty_template] \LaTeX{} source text where |<placeholder:style_defs>| must be replaced by the style definitions provided by \pkg{pygments}.
 % It may include the style name.
 %
-% \itemtt[\CDRCheckRed code_template]%
-%   \LaTeX{} source text where |<placeholder:hilighted>| should be replaced
-%   by the hilighted code provided by \pkg{pygments}.
-% \itemtt[\CDRCheckRed block_template]
-%   \LaTeX{} source text where |<placeholder:count>| should be replaced
-%   by the count of numbered lines (not all lines may be numbered)
-%   and |<placeholder:hilighted>| should be replaced by the hilighted code
-%   provided by \pkg{pygments}.
 % \end{description}
 % All the line templates below are \LaTeX{} source text
 %   where |<placeholder:number>| should be replaced by a line number
@@ -724,6 +715,23 @@ local function set_python_path(self, path_var)
 end
 %    \end{MacroCode}
 %
+% \begin{function}{is_truthy}
+% \begin{syntax}
+% if CDR.is_truthy(\meta{string}) then
+%   \meta{true code}
+% else
+%   \meta{false code}
+% end
+% \end{syntax}
+% Execute \metatt{false code} if \metatt{string} is the string ``false'',
+% \metatt{true code} otherwise.
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function is_truthy(s)
+  return s ~= 'false'
+end
+%    \end{MacroCode}
+%
 % \begin{function}{escape}
 % \begin{syntax}
 % <variable> = CDR.escape(<string>)
@@ -741,6 +749,7 @@ local function escape(s)
   return s
 end
 %    \end{MacroCode}
+%
 % \begin{function}{make_directory}
 % \begin{syntax}
 % \meta{variable} = CDR.make_directory(\meta{string path})
@@ -912,40 +921,17 @@ end
 % This is one of the channels from \CDRSty{} to \CDRLua{}.
 %
 % \section{Hiligting}
-% \subsection{Code}
-% \begin{function}{hilight_code}
+%
+% \subsection{Common}
+% \begin{function}{hilight_set}
 % \begin{syntax}
-% CDR:hilight_code(\meta{code var})
+% CDR:hilight_set(...)
 % \end{syntax}
-% Hilight the code in \pkg{str} variable named \metatt{code var name}.
+% Hilight the currently entered block.
 % Build a configuration table with all data necessary for the processing,
 % save it as a |JSON| file and launch \CDRPy{} with the proper arguments.
 % \end{function}
 %    \begin{MacroCode}
-local function hilight_code_prepare(self)
-  self['.arguments'] = {
-    __cls__ = 'Arguments',
-    source  = '',
-    md5     = '',
-    cache   = true,
-    debug   = false,
-    pygopts = {
-      __cls__ = 'PygOpts',
-      lang    = 'tex',
-      style   = 'default',
-    },
-    texopts = {
-      __cls__ = 'TeXOpts',
-      tags    = '',
-      inline  = true,
-      ignore_style  = false,
-      ignore_source = false,
-      pyg_sty_p     = '',
-      pyg_tex_p     = ''
-    }
-  }
-end
-
 local function hilight_set(self, key, value)
   local args = self['.arguments']
   local t = args
@@ -962,66 +948,168 @@ end
 local function hilight_set_var(self, key, var)
   self:hilight_set(key, assert(token.get_macro(var or 'l_CDR_tl')))
 end
-
-local function hilight_code(self)
+%    \end{MacroCode}
+%
+% \begin{function}{hilight_source}
+% \begin{syntax}
+% CDR:hilight_source(\meta{src}, \meta{sty})
+% \end{syntax}
+% Hilight the currently entered block if \metatt{src} is |true|,
+% build the style definitions if \metatt{sty} is |true|.
+% Build a configuration table with all data necessary for the processing,
+% save it as a |JSON| file and launch \CDRPy{} with the proper arguments.
+% \end{function}
+%    \begin{MacroCode}
+local function hilight_source(self, sty, src)
+  tex.write('THIS IS A TEST')
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
-  args.md5 = md5.sumhexa( ('%s:%s:%s'
-    ):format(
-      args.source,
-      texopts.inline and 'code' or 'block',
-      pygopts.style
-    )
-  )
-  local pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
-  texopts.pyg_sty_p = pyg_sty_p
-  local pyg_tex_p = dir_p..args.md5..'.pyg.tex'
-  texopts.pyg_tex_p = pyg_tex_p
-  local last = ''
-  local use_tool = args.cache == 'false'
-  if not use_tool then
-    local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
-    if mode == 'file' or mode == 'link' then
-      last = [[\CDR@StyleUseTag\input{]]..pyg_tex_p..'}%'
-      texopts.ignore_source = true
+  local inline = texopts.is_inline
+  local use_cache = self.is_truthy(args.cache)
+  local use_py = false
+  local cmd = self.PYTHON_PATH..' '..self.CDR_PY_PATH
+  local debug = args.debug
+  local pyg_sty_p
+  if sty then
+    pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
+    texopts.pyg_sty_p = pyg_sty_p
+    local mode,_,__ = lfs.attributes(pyg_sty_p, 'mode')
+    if not mode or not use_cache then
+      use_py = true
+      if debug then
+        print('PYTHON STYLE:')
+      end
+      cmd = cmd..(' --create_style')
+    end
+    self:cache_record(pyg_sty_p)
+  end
+  local pyg_tex_p
+  if src then
+    local source
+    if inline then
+      source = args.source
     else
-      use_tool = true
-    end  
-    if not texopts.ignore_style then
-      mode,_,__ = lfs.attributes(pyg_sty_p,'mode')
-      if mode == 'file' or mode == 'link' then
-        tex.print([[\input{]]..pyg_sty_p..[[}\CDR@StyleUseTag]])
-        texopts.ignore_style = true
-      else
-        use_tool = true
-      end  
+      local ll = self['.lines']
+      source = table.concat(ll, '\n')
+    end
+    local base = dir_p..md5.sumhexa( ('%s:%s:%s'
+      ):format(
+        source,
+        inline and 'code' or 'block',
+        pygopts.style
+      )
+    )
+    pyg_tex_p = base..'.pyg.tex'
+    local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
+    if not mode or not use_cache then
+      use_py = true
+      if debug then
+        print('PYTHON SOURCE:', inline)
+      end
+      if not inline then
+        local tex_p = base..'.tex'
+        local f = assert(io.open(tex_p, 'w'))
+        local ok, err = f:write(source)
+        f:close()
+        if not ok then
+          print('File error('..tex_p..'): '..err)
+        end
+        if debug then
+          print('OUTPUT: '..tex_p)
+        end
+      end
+      cmd = cmd..(' --base=%q'):format(base)
     end
   end
-  if use_tool then
+  if use_py then
     local json_p = self.json_p
     local f = assert(io.open(json_p, 'w'))
-    local s = json.tostring(args, true)
-    local ok, err = f:write(s)
+    local ok, err = f:write(json.tostring(args, true))
     f:close()
-    if ok == nil then
+    if not ok then
       print('File error('..json_p..'): '..err)
     end
-    local cmd = ('%s %s %q'):format(
-      self.PYTHON_PATH,
-      self.CDR_PY_PATH,
-      json_p
-    )
+    cmd = cmd..('  %q'):format(json_p)
+    if debug then
+      print('CDR>'..cmd)
+    end
     local o = io.popen(cmd):read('a')
-    self:load_exec_output(o)
+    if debug then
+      print('PYTHON', o)
+    end
+  end  
+  self:cache_record(
+    sty and pyg_sty_p or nil,
+    src and pyg_tex_p or nil
+  )
+  cmd = [=[''
+  if sty then
+    cmd = [[\CDR@StyleInput{]]..pyg_sty_p..[[}]]
+  end
+  if src then
+    cmd = cmd..[[\CDR@SourceInput{]]..pyg_tex_p..[[}]]
+  end
+  if #cmd > 0 then
+    cmd = [[\makeatletter]]..cmd..[[\makeatother]]
+    tex.print(cmd)
+  end
+  ]=]
+  if sty then
+    cmd = [[{]]..pyg_sty_p..[[}]]
   else
-    print('NO PYTHON')
+    cmd = '{}'
   end
-  if #last > 0 then
-    tex.print(last)
+  if src then
+    cmd = cmd..[[{]]..pyg_tex_p..[[}]]
+  else
+    cmd = cmd..'{}'
   end
-  self:cache_record(pyg_sty_p, pyg_tex_p)
+  if #cmd > 4 then
+    cmd = [[\makeatletter\CDR@Callback]]..cmd..[[\makeatother]]
+    tex.print(cmd)
+  end
+  if debug then
+    print('CDR<'..cmd)
+  end
 end
+%    \end{MacroCode}
+%
+% \subsection{Code}
+% \begin{function}{hilight_code_prepare}
+% \begin{syntax}
+% CDR:hilight_code_prepare()
+% \end{syntax}
+% Hilight the code in \pkg{str} variable named \metatt{code var name}.
+% Build a configuration table with all data necessary for the processing,
+% save it as a |JSON| file and launch \CDRPy{} with the proper arguments.
+% \end{function}
+%    \begin{MacroCode}
+local function hilight_code_prepare(self)
+  self['.arguments'] = {
+    __cls__ = 'Arguments',
+    source  = '',
+    cache   = true,
+    debug   = false,
+    pygopts = {
+      __cls__ = 'PygOpts',
+      lang    = 'tex',
+      style   = 'default',
+    },
+    texopts = {
+      __cls__ = 'TeXOpts',
+      tags    = '',
+      is_inline = true,
+      pyg_sty_p = '',
+    },
+    fvopts = {
+      __cls__ = 'FVOpts',
+      showspaces = false,
+    }
+  }
+  self.hilight_json_written = false
+end
+
 %    \end{MacroCode}
 %
 % \subsection{Block}
@@ -1045,10 +1133,9 @@ local function hilight_block_prepare(self, tags_clist_var)
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
-    tags    = tags_clist,
-    source  = '',
     cache   = false,
     debug   = false,
+    source  = nil,
     pygopts = {
       __cls__ = 'PygOpts',
       lang = 'tex',
@@ -1056,13 +1143,16 @@ local function hilight_block_prepare(self, tags_clist_var)
     },
     texopts = {
       __cls__ = 'TeXOpts',
-      inline        = false,
-      ignore_style  = false,
-      ignore_source = false,
+      tags    = tags_clist,
+      is_inline = false,
       pyg_sty_p = '',
-      pyg_tex_p = ''
+    },
+    fvopts = {
+      __cls__ = 'FVOpts',
+      showspaces = false,
     }
   }
+  self.hilight_json_written = false
 end
 
 %    \end{MacroCode}
@@ -1085,78 +1175,6 @@ local function record_line(self, line_variable_name)
     lt[tag] = ll
     ll[#ll+1] = line
   end
-end
-%    \end{MacroCode}
-%
-% \begin{function}{hilight_block}
-% \begin{syntax}
-% CDR:hilight_block()
-% \end{syntax}
-% Hilight the currently entered block.
-% Build a configuration table with all data necessary for the processing,
-% save it as a |JSON| file and launch \CDRPy{} with the proper arguments.
-% \end{function}
-%    \begin{MacroCode}
-local function hilight_block(self)
-  local args = self['.arguments']
-  local texopts = args.texopts
-  local pygopts = args.pygopts
-  local ll = self['.lines']
-  local source = table.concat(ll, '\n')
-  args.source = source
-  args.md5 = md5.sumhexa( ('%s:%s:%s'
-    ):format(
-      source,
-      texopts.inline and 'code' or 'block',
-      pygopts.style
-    )
-  )
-  local pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
-  texopts.pyg_sty_p = pyg_sty_p
-  local pyg_tex_p = dir_p..args.md5..'.pyg.tex'
-  texopts.pyg_tex_p = pyg_tex_p
-  local last = ''
-  local use_tool = args.cache == 'false'
-  if not use_tool then
-    if not texopts.ignore_style then
-      local mode,_,__ = lfs.attributes(pyg_sty_p,'mode')
-      if mode == 'file' or mode == 'link' then
-        tex.print([[\input{]]..pyg_sty_p..'}%')
-        texopts.ignore_style = true
-      else
-        use_tool = true
-      end  
-    end
-    local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
-    if mode == 'file' or mode == 'link' then
-      last = [[\input{]]..pyg_tex_p..'}%'
-      texopts.ignore_source = true
-    else
-      use_tool = true
-    end  
-  end
-  if use_tool then
-    local json_p = self.json_p
-    local f = assert(io.open(json_p, 'w'))
-    local ok, err = f:write(json.tostring(args, true))
-    f:close()
-    if ok == nil then
-      print('File error('..json_p..'): '..err)
-    end
-    local cmd = ('%s %s %q'):format(
-      self.PYTHON_PATH,
-      self.CDR_PY_PATH,
-      json_p
-    )
-    local o = io.popen(cmd):read('a')
-    self:load_exec_output(o)
-  else
-    print('NO PYTHON')
-  end
-  if #last > 0 then
-    tex.print(last)
-  end
-  self:cache_record(pyg_sty_p, pyg_tex_p)
 end
 %    \end{MacroCode}
 %
@@ -1275,8 +1293,12 @@ local function cache_clean_all(self)
   end
 end
 local function cache_record(self, pyg_sty_p, pyg_tex_p)
-  self['.style_set']  [pyg_sty_p] = true
-  self['.colored_set'][pyg_tex_p] = true
+  if pyg_sty_p then
+    self['.style_set']  [pyg_sty_p] = true
+  end
+  if pyg_tex_p then
+    self['.colored_set'][pyg_tex_p] = true
+  end
 end
 local function cache_clean_unused(self)
   local to_remove = {}
@@ -1321,51 +1343,57 @@ return {
   PYTHON_PATH        = PYTHON_PATH,
   set_python_path    = set_python_path,
 %    \end{MacroCode}
-% \item[escape]
+% \itemtt[is_truthy]
+%    \begin{MacroCode}
+  is_truthy          = is_truthy,
+%    \end{MacroCode}
+% \itemtt[escape]
 %    \begin{MacroCode}
   escape             = escape,
 %    \end{MacroCode}
-% \item[make_directory]
+% \itemtt[make_directory]
 %    \begin{MacroCode}
   make_directory     = make_directory,
 %    \end{MacroCode}
-% \item[load_exec]
+% \itemtt[load_exec]
 %    \begin{MacroCode}
   load_exec          = load_exec,
 %    \end{MacroCode}
 %    \begin{MacroCode}
   load_exec_output   = load_exec_output,
 %    \end{MacroCode}
-% \item[record_line]
+% \itemtt[record_line]
 %    \begin{MacroCode}
   record_line        = record_line,
 %    \end{MacroCode}
-% \item[hilight_code]
+% \itemtt[hilight common]
+%    \begin{MacroCode}
+  hilight_set        = hilight_set,
+  hilight_set_var    = hilight_set_var,
+  hilight_source     = hilight_source,
+  hilight_advance    = hilight_advance,
+%    \end{MacroCode}
+% \itemtt[hilight code]
 %    \begin{MacroCode}
   hilight_code_prepare = hilight_code_prepare,
-  hilight_set          = hilight_set,
-  hilight_set_var      = hilight_set_var,
-  hilight_code         = hilight_code,
 %    \end{MacroCode}
-% \item[hilight_block_prepare, hilight_block]
+% \itemtt[hilight_block_prepare]
 %    \begin{MacroCode}
   hilight_block_prepare = hilight_block_prepare,
-  hilight_block         = hilight_block,
-  hilight_advance       = hilight_advance,
 %    \end{MacroCode}
-% \item[cache_clean_all]
+% \itemtt[cache_clean_all]
 %    \begin{MacroCode}
   cache_clean_all    = cache_clean_all,
 %    \end{MacroCode}
-% \item[cache_record]
+% \itemtt[cache_record]
 %    \begin{MacroCode}
   cache_record       = cache_record,
 %    \end{MacroCode}
-% \item[cache_clean_unused]
+% \itemtt[cache_clean_unused]
 %    \begin{MacroCode}
   cache_clean_unused = cache_clean_unused,
 %    \end{MacroCode}
-% \item[Internals]
+% \itemtt[Internals]
 %    \begin{MacroCode}
   ['.style_set']     = {},
   ['.colored_set']   = {},
@@ -1373,7 +1401,7 @@ return {
   ['.export']        = {},
   ['.name']          = nil,
 %    \end{MacroCode}
-% \item[\texttt{already}] false at the beginning,
+% \itemtt[already] false at the beginning,
 % true after the first call of \CDRPy{}
 %    \begin{MacroCode}
   already            = false,
@@ -1455,12 +1483,9 @@ class BaseOpts(object):
 %
 %    \begin{MacroCode}
 class TeXOpts(BaseOpts):
-  tags = ''
-  inline = True
-  ignore_style = False
-  ignore_source  = False
-  pyg_sty_p    = None
-  pyg_tex_p    = None
+  tags      = ''
+  is_inline  = True
+  pyg_sty_p = None
 %    \end{MacroCode}
 % The templates are provided by \CDRSty{}.
 % The style template wraps the style definitions provided by \pkg{pygments}.
@@ -1468,32 +1493,18 @@ class TeXOpts(BaseOpts):
 %    \begin{MacroCode}
   sty_template=r'''% !TeX root=...
 \makeatletter
-\CDR@StyleDefine{<placeholder:style_name>}{%
+\CDR@StyleDefine{<placeholder:style_name>} {%
   <placeholder:style_defs>}%
 \makeatother'''
-  code_template =r'''% !TeX root=...
-\makeatletter
-\CDR@StyleUseTag%
-\CDR@CodeEngineApply{<placeholder:hilighted>}%
-\makeatother'''
-
-  single_line_template='<placeholder:number><placeholder:line>'
-  first_line_template='<placeholder:number><placeholder:line>'
-  second_line_template='<placeholder:number><placeholder:line>'
-  white_line_template='<placeholder:number><placeholder:line>'
-  black_line_template='<placeholder:number><placeholder:line>'
-  block_template=r'''% !TeX root=...
-\makeatletter
-\CDR@StyleUseTag
-<placeholder:hilighted>%
-\makeatother'''
+  single_line_template =r'''\CDR@Line{Single{<placeholder:number>}{<placeholder:line>}'''
+  first_line_template  =r'''\CDR@Line{First}{<placeholder:number>}{<placeholder:line>}'''
+  second_line_template =r'''\CDR@Line{Second}{<placeholder:number>}{<placeholder:line>}'''
+  white_line_template  =r'''\CDR@Line{White}{<placeholder:number>}{<placeholder:line>}'''
+  black_line_template  =r'''\CDR@Line{Black}{<placeholder:number>}{<placeholder:line>}'''
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
-    self.inline = self.ensure_bool(self.inline)
-    self.ignore_style  = self.ensure_bool(self.ignore_style)
-    self.ignore_source = self.ensure_bool(self.ignore_source)
+    self.inline_p  = self.ensure_bool(self.is_inline)
     self.pyg_sty_p = Path(self.pyg_sty_p or '')
-    self.pyg_tex_p = Path(self.pyg_tex_p or '')
 %    \end{MacroCode}
 %
 % \subsection{\texttt{PygOpts}class}
@@ -1535,7 +1546,7 @@ class FVOpts(BaseOpts):
   label = ''
   labelposition = 'none'
   numbers = 'left'
-  numbersep = r'\hspace{1ex}'
+  numbersep = '1ex'
   firstnumber = 'auto'
   stepnumber = 1
   numberblanklines = True
@@ -1682,10 +1693,22 @@ the syntax hilighting of the input file as given by pygments.
       help="display informations useful for debugging"
     )
     parser.add_argument(
+      "--create_style",
+      action='store_true',
+      default=None,
+      help="create the style definitions"
+    )
+    parser.add_argument(
+      "--base",
+      action='store',
+      default=None,
+      help="the path of the file to be colored, with no extension"
+    )
+    parser.add_argument(
       "json",
       metavar="<json data file>",
       help="""
-file name with extension, contains processing information
+file name with extension, contains processing information.
 """
     )
     return parser
@@ -1710,10 +1733,10 @@ file name with extension, contains processing information
       )
     args = self.arguments
     args.json = ns.json
-    texopts = self.texopts = args.texopts
+    self.texopts = args.texopts
     pygopts = self.pygopts = args.pygopts
     fv_opts = self.fv_opts = args.fv_opts
-    formatter = self.formatter = LatexFormatter(
+    self.formatter = LatexFormatter(
       style = pygopts.style,
       nobackground = pygopts.nobackground,
       commandprefix = pygopts.commandprefix,
@@ -1745,7 +1768,20 @@ file name with extension, contains processing information
     if tabsize:
       lexer.tabsize = tabsize
     lexer.encoding = ''
-       
+    args.base = ns.base
+    args.create_style = ns.create_style
+    if ns.debug:
+      args.debug = True
+    # IN PROGRESS: support for extra keywords
+    # EXTRA_KEYWORDS = set(('foo', 'bar', 'foobar', 'barfoo', 'spam', 'eggs'))
+    # def over(self, text):
+    #   for index, token, value in lexer.__class__.get_tokens_unprocessed(self, text):
+    #     if token is Name and value in EXTRA_KEYWORDS:
+    #       yield index, Keyword.Pseudo, value
+    #   else:
+    #       yield index, token, value
+    # lexer.get_tokens_unprocessed = over.__get__(lexer)
+
 %    \end{MacroCode}
 %
 % \subsubsection{\texttt{create\texorpdfstring{_}{-}style}}
@@ -1758,21 +1794,15 @@ file name with extension, contains processing information
 % \end{function}
 %    \begin{MacroCode}[OK]
   def create_style(self):
-    arguments = self.arguments
-    texopts = arguments.texopts
-    if texopts.ignore_style:
+    args = self.arguments
+    if not args.create_style:
       return
+    texopts = args.texopts
     pyg_sty_p = texopts.pyg_sty_p
-    if arguments.cache and pyg_sty_p.exists():
-      if arguments.debug:
-        self.lua_debug(f'Style already available: {os.path.relpath(pyg_sty_p)}')
+    if args.cache and pyg_sty_p.exists():
       return
     texopts = self.texopts
     style = self.pygopts.style
-    if texopts.ignore_style:
-      if arguments.debug:
-        self.lua_debug(f'Syle already available: {style}')
-      return
     formatter = self.formatter
     style_defs = formatter.get_style_defs() \
       .replace(r'\makeatletter', '') \
@@ -1796,10 +1826,8 @@ file name with extension, contains processing information
     )
     with pyg_sty_p.open(mode='w',encoding='utf-8') as f:  
       f.write(sty)
-    cmd = rf'\input{{./{os.path.relpath(pyg_sty_p)}}}%'
-    self.lua_command_now(
-      rf'tex.print({self.lua_text_escape(cmd)})'
-    )
+    if args.debug:
+      print('STYLE', os.path.relpath(pyg_sty_p))
 %    \end{MacroCode}
 %
 % \subsubsection{\texttt{pygmentize}}
@@ -1820,12 +1848,11 @@ file name with extension, contains processing information
     assert(m)
     hilighted = m.group(1)
     texopts = self.texopts
-    if texopts.inline:
-      return texopts.code_template.replace(
-        '<placeholder:hilighted>', hilighted
-      ), 0
+    if texopts.is_inline:
+      return hilighted, 0
     fv_opts = self.fv_opts
     lines = hilighted.split('\n')
+    ans_code = []
     try:
       firstnumber = abs(int(fv_opts.firstnumber))
     except ValueError:
@@ -1833,7 +1860,6 @@ file name with extension, contains processing information
     number = firstnumber
     stepnumber = fv_opts.stepnumber
     numbering = fv_opts.numbers != 'none'
-    ans_code = []
     def more(template, line):
       nonlocal number
       ans_code.append(template.replace(
@@ -1863,18 +1889,7 @@ file name with extension, contains processing information
         more(template(), line)
 
     hilighted = '\n'.join(ans_code)
-    return texopts.block_template.replace(
-      '<placeholder:hilighted>', hilighted
-    ), number-firstnumber
-%%%
-%%%    ans_code.append(fr'''%
-%%%\begin{{CDR@Block/engine/{pygopts.style}}}
-%%%\CDRBlock@linenos@used:n {{{','.join(numbers)}}}%
-%%%{m.group(1)}{'\n'.join(lines)}{m.group(3)}%
-%%%\end{{CDR@Block/engine/{pygopts.style}}}
-%%%''' )
-%%%      ans_code = "".join(ans_code)
-%%%    return texopts.block_template.replace('<placeholder:hilighted>',hilighted)
+    return hilighted, number-firstnumber
 %    \end{MacroCode}
 %
 % \subsubsection{\texttt{create_pygmented}}
@@ -1887,21 +1902,23 @@ file name with extension, contains processing information
 % \end{function}
 %    \begin{MacroCode}[OK]
   def create_pygmented(self):
-    arguments = self.arguments
-    texopts = arguments.texopts
-    if texopts.ignore_source:
-      return True
-    source = arguments.source
-    if not source:
+    args = self.arguments
+    base = args.base
+    if not base:
       return False
-    pyg_tex_p = texopts.pyg_tex_p
+    source = args.source
+    if not source:
+      tex_p = Path(base).with_suffix('.tex')
+      with open(tex_p, 'r') as f:
+        source = f.read()
+    pyg_tex_p = Path(base).with_suffix('.pyg.tex')
     hilighted, count = self.pygmentize(source)
     with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
+      if count:
+        f.write(rf'''\CDR@Total{{{count}}}''')
       f.write(hilighted)
-    cmd = rf'\input{{./{os.path.relpath(pyg_tex_p)}}}%'
-    self.lua_command_now(
-      rf'self:hilight_advance({count});tex.print({self.lua_text_escape(cmd)})'
-    )
+    if args.debug:
+      print('HILIGHTED', os.path.relpath(pyg_tex_p))
 %    \end{MacroCode}
 %
 % \subsection{Main entry}
@@ -2307,7 +2324,7 @@ if __name__ == '__main__':
 \prg_new_conditional:Nnn \CDR_if_tag_truthy:cc { p, T,  F, TF } {
   \exp_args:Ne
   \str_compare:nNnTF {
-    \str_lowercase:n { \CDR_tag_get:cc { #1 } { #2 } }
+    \exp_args:Ne \str_lowercase:n { \CDR_tag_get:cc { #1 } { #2 } }
   } = { false } {
     \prg_return_false:
   } {
@@ -2317,7 +2334,7 @@ if __name__ == '__main__':
 \prg_new_conditional:Nnn \CDR_if_tag_truthy:c { p, T,  F, TF } {
   \exp_args:Ne
   \str_compare:nNnTF {
-    \str_lowercase:n { \CDR_tag_get:c { #1 } }
+    \exp_args:Ne \str_lowercase:n { \CDR_tag_get:c { #1 } }
   } = { false } {
     \prg_return_false:
   } {
@@ -3299,6 +3316,35 @@ if __name__ == '__main__':
     { none, leftline, topline, bottomline, lines, single }
     { \CDR_tag_choices_set: },
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed framerule=\meta{dimension}]^^A
+% width of the rule of the frame if any.
+% Initially 0.4pt.
+%    \begin{MacroCode}[OK]
+  framerule .code:n = \CDR_tag_set:,
+  framerule .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed framesep=\meta{dimension}]^^A
+% width of the gap between the frame (if any) and the text.
+% Initially |\fboxsep|.
+%    \begin{MacroCode}[OK]
+  framesep .code:n = \CDR_tag_set:,
+  framesep .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed rulecolor=\meta{color command}]^^A
+% color of the frame rule, expressed in the standard \LaTeX{} way.
+% Initially black.
+%    \begin{MacroCode}[OK]
+  rulecolor .code:n = \CDR_tag_set:,
+  rulecolor .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed rulecolor=\meta{color command}]^^A
+% color used to fill the space between the frame and the text
+% (its thickness is given by |framesep|).
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  fillcolor .code:n = \CDR_tag_set:,
+  fillcolor .value_required:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed label={\{[\meta{top string}]^^A
 %\meta{string}\}}]
 % label(s) to print on top, bottom or both, frame lines.
@@ -3497,7 +3543,7 @@ if __name__ == '__main__':
     commentchar = ,
     gobble = 0,
     numbers = left,
-    numbersep = \hspace{1ex},
+    numbersep = 1ex,
     firstnumber = auto,
     stepnumber = 1,
     numberblanklines = true,
@@ -4109,13 +4155,9 @@ if __name__ == '__main__':
       {See~\CDRCodeEngineNew~in~the~coder~manual}
     \tl_set:Nn \l_CDR_engine_tl { default }
   }
-  \tl_set:Nf \l_CDR_options_tl {
-    \CDR_tag_get:c { engine~options }
-  }
+  \CDR_tag_get:cN { engine~options } \l_CDR_options_tl
   \tl_if_empty:NTF \l_CDR_options_tl {
-    \tl_set:Nf \l_CDR_options_tl {
-      \CDR_tag_get:c { \l_CDR_engine_tl\space engine~options }
-    }
+    \CDR_tag_get:cN { \l_CDR_engine_tl\space engine~options } \l_CDR_options_tl
   } {
     \tl_put_left:Nx \l_CDR_options_tl {
       \CDR_tag_get:c { \l_CDR_engine_tl\space engine~options } ,
@@ -4351,7 +4393,7 @@ if __name__ == '__main__':
   \CDR_if_tag_truthy:cTF {pygments} {
     \cs_set:Npn \CDR@StyleUseTag {
       \CDR@StyleUse { \CDR_tag_get:c { style } }
-      \cs_set:Npn \CDR@StyleUseTag \prg_do_nothing:
+      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
     }
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
       __fancyvrb,
@@ -4360,7 +4402,7 @@ if __name__ == '__main__':
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
-        \UndefineShortVerb { #1 }
+        \exp_args:Nx \UndefineShortVerb { #1 }
         \lua_now:n { CDR:hilight_code_prepare() }
         \CDR_tag_get:cN {lang} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('lang') }
@@ -4370,19 +4412,23 @@ if __name__ == '__main__':
         \lua_now:n { CDR:hilight_set_var('debug') }
         \CDR_tag_get:cN {style} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('style') }
-        \CDR@StyleIfExist { \l_CDR_tl } {
-          \lua_now:n { CDR:hilight_set('ignore_style', 'true') }
-        } { }
         \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
         \CDR_code_format:
-        \FV@UseKeyValues
+        %\FV@UseKeyValues
         \frenchspacing
         %  \FV@SetupFont Break
         \FV@DefineWhiteSpace
         \FancyVerbDefineActive
         \FancyVerbFormatCom
         \CDR_tag_get:c { format }
-        \lua_now:n { CDR:hilight_code() }
+        \CDR@CodeEngineApply {
+          \CDR@StyleIfExist { \l_CDR_tl } {
+            \CDR@StyleUseTag
+            \lua_now:n { CDR:hilight_source(false, true) }        
+          } {
+            \lua_now:n { CDR:hilight_source(true, true) }
+          }
+        }
         \group_end:
       }
     ] { CDR@Source } #1
@@ -4397,7 +4443,11 @@ if __name__ == '__main__':
           \CDR@FormattingPrep
           \CDR_tag_get:c { format }
         }
-        \CDR@CodeEngineApply { \UseVerb { CDR@Code } }
+        \CDR@CodeEngineApply { \mbox {
+          \FV@UseKeyValues
+          \FV@FormattingPrep
+          \FV@SV@CDR@Code
+        } }
         \group_end:
       }
     ] { CDR@Code } #1
@@ -4584,9 +4634,9 @@ if __name__ == '__main__':
     \lua_now:n { CDR:hilight_set_var('debug') }
     \CDR_tag_get:cN {style} \l_CDR_tl
     \lua_now:n { CDR:hilight_set_var('style') }
-    \CDR@StyleIfExist { \l_CDR_tl } {
-      \lua_now:n { CDR:hilight_set('ignore_style', 'true') }
-    } { }
+    \CDR@StyleIfExist { \l_CDR_tl } { } { 
+    ???
+    }
   } {
     \exp_args:NNV
     \def \FV@KeyValues \l_CDR_keyval_tl
@@ -4646,7 +4696,7 @@ if __name__ == '__main__':
 \def\FVE@CDRBlock{
   \FV@VerbatimEnd
   \bool_if:NT \l_CDR_pygments_bool {
-    \lua_now:n { CDR:hilight_code() }
+    \lua_now:n { CDR:hilight_source(true, true) }
   }
   \use:c { end \CDR_block_engine:V \l_CDR_engine_tl }
   \group_end:

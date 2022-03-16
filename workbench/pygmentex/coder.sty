@@ -180,7 +180,7 @@
 \prg_new_conditional:Nnn \CDR_if_tag_truthy:cc { p, T,  F, TF } {
   \exp_args:Ne
   \str_compare:nNnTF {
-    \str_lowercase:n { \CDR_tag_get:cc { #1 } { #2 } }
+    \exp_args:Ne \str_lowercase:n { \CDR_tag_get:cc { #1 } { #2 } }
   } = { false } {
     \prg_return_false:
   } {
@@ -190,7 +190,7 @@
 \prg_new_conditional:Nnn \CDR_if_tag_truthy:c { p, T,  F, TF } {
   \exp_args:Ne
   \str_compare:nNnTF {
-    \str_lowercase:n { \CDR_tag_get:c { #1 } }
+    \exp_args:Ne \str_lowercase:n { \CDR_tag_get:c { #1 } }
   } = { false } {
     \prg_return_false:
   } {
@@ -598,6 +598,14 @@
   frame .choices:nn =
     { none, leftline, topline, bottomline, lines, single }
     { \CDR_tag_choices_set: },
+  framerule .code:n = \CDR_tag_set:,
+  framerule .value_required:n = true,
+  framesep .code:n = \CDR_tag_set:,
+  framesep .value_required:n = true,
+  rulecolor .code:n = \CDR_tag_set:,
+  rulecolor .value_required:n = true,
+  fillcolor .code:n = \CDR_tag_set:,
+  fillcolor .value_required:n = true,
   label .code:n = \CDR_tag_set:,
   label .value_required:n = true,
   labelposition .choices:nn =
@@ -668,7 +676,7 @@
     commentchar = ,
     gobble = 0,
     numbers = left,
-    numbersep = \hspace{1ex},
+    numbersep = 1ex,
     firstnumber = auto,
     stepnumber = 1,
     numberblanklines = true,
@@ -939,13 +947,9 @@
       {See~\CDRCodeEngineNew~in~the~coder~manual}
     \tl_set:Nn \l_CDR_engine_tl { default }
   }
-  \tl_set:Nf \l_CDR_options_tl {
-    \CDR_tag_get:c { engine~options }
-  }
+  \CDR_tag_get:cN { engine~options } \l_CDR_options_tl
   \tl_if_empty:NTF \l_CDR_options_tl {
-    \tl_set:Nf \l_CDR_options_tl {
-      \CDR_tag_get:c { \l_CDR_engine_tl\space engine~options }
-    }
+    \CDR_tag_get:cN { \l_CDR_engine_tl\space engine~options } \l_CDR_options_tl
   } {
     \tl_put_left:Nx \l_CDR_options_tl {
       \CDR_tag_get:c { \l_CDR_engine_tl\space engine~options } ,
@@ -1060,7 +1064,7 @@
   \CDR_if_tag_truthy:cTF {pygments} {
     \cs_set:Npn \CDR@StyleUseTag {
       \CDR@StyleUse { \CDR_tag_get:c { style } }
-      \cs_set:Npn \CDR@StyleUseTag \prg_do_nothing:
+      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
     }
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
       __fancyvrb,
@@ -1069,7 +1073,7 @@
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
-        \UndefineShortVerb { #1 }
+        \exp_args:Nx \UndefineShortVerb { #1 }
         \lua_now:n { CDR:hilight_code_prepare() }
         \CDR_tag_get:cN {lang} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('lang') }
@@ -1079,19 +1083,23 @@
         \lua_now:n { CDR:hilight_set_var('debug') }
         \CDR_tag_get:cN {style} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('style') }
-        \CDR@StyleIfExist { \l_CDR_tl } {
-          \lua_now:n { CDR:hilight_set('ignore_style', 'true') }
-        } { }
         \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
         \CDR_code_format:
-        \FV@UseKeyValues
+        %\FV@UseKeyValues
         \frenchspacing
         %  \FV@SetupFont Break
         \FV@DefineWhiteSpace
         \FancyVerbDefineActive
         \FancyVerbFormatCom
         \CDR_tag_get:c { format }
-        \lua_now:n { CDR:hilight_code() }
+        \CDR@CodeEngineApply {
+          \CDR@StyleIfExist { \l_CDR_tl } {
+            \CDR@StyleUseTag
+            \lua_now:n { CDR:hilight_source(false, true) }
+          } {
+            \lua_now:n { CDR:hilight_source(true, true) }
+          }
+        }
         \group_end:
       }
     ] { CDR@Source } #1
@@ -1106,7 +1114,11 @@
           \CDR@FormattingPrep
           \CDR_tag_get:c { format }
         }
-        \CDR@CodeEngineApply { \UseVerb { CDR@Code } }
+        \CDR@CodeEngineApply { \mbox {
+          \FV@UseKeyValues
+          \FV@FormattingPrep
+          \FV@SV@CDR@Code
+        } }
         \group_end:
       }
     ] { CDR@Code } #1
@@ -1217,9 +1229,9 @@
     \lua_now:n { CDR:hilight_set_var('debug') }
     \CDR_tag_get:cN {style} \l_CDR_tl
     \lua_now:n { CDR:hilight_set_var('style') }
-    \CDR@StyleIfExist { \l_CDR_tl } {
-      \lua_now:n { CDR:hilight_set('ignore_style', 'true') }
-    } { }
+    \CDR@StyleIfExist { \l_CDR_tl } { } {
+    ???
+    }
   } {
     \exp_args:NNV
     \def \FV@KeyValues \l_CDR_keyval_tl
@@ -1275,7 +1287,7 @@
 \def\FVE@CDRBlock{
   \FV@VerbatimEnd
   \bool_if:NT \l_CDR_pygments_bool {
-    \lua_now:n { CDR:hilight_code() }
+    \lua_now:n { CDR:hilight_source(true, true) }
   }
   \use:c { end \CDR_block_engine:V \l_CDR_engine_tl }
   \group_end:

@@ -36,6 +36,9 @@ local function set_python_path(self, path_var)
   end
   self.PYTHON_PATH = path
 end
+local function is_truthy(s)
+  return s ~= 'false'
+end
 local function escape(s)
   s = s:gsub(' ','\\ ')
   s = s:gsub('\\','\\\\')
@@ -141,30 +144,6 @@ local function load_exec_output(self, s)
     end
   end
 end
-local function hilight_code_prepare(self)
-  self['.arguments'] = {
-    __cls__ = 'Arguments',
-    source  = '',
-    md5     = '',
-    cache   = true,
-    debug   = false,
-    pygopts = {
-      __cls__ = 'PygOpts',
-      lang    = 'tex',
-      style   = 'default',
-    },
-    texopts = {
-      __cls__ = 'TeXOpts',
-      tags    = '',
-      inline  = true,
-      ignore_style  = false,
-      ignore_source = false,
-      pyg_sty_p     = '',
-      pyg_tex_p     = ''
-    }
-  }
-end
-
 local function hilight_set(self, key, value)
   local args = self['.arguments']
   local t = args
@@ -181,66 +160,140 @@ end
 local function hilight_set_var(self, key, var)
   self:hilight_set(key, assert(token.get_macro(var or 'l_CDR_tl')))
 end
-
-local function hilight_code(self)
+local function hilight_source(self, sty, src)
+  tex.write('THIS IS A TEST')
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
-  args.md5 = md5.sumhexa( ('%s:%s:%s'
-    ):format(
-      args.source,
-      texopts.inline and 'code' or 'block',
-      pygopts.style
-    )
-  )
-  local pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
-  texopts.pyg_sty_p = pyg_sty_p
-  local pyg_tex_p = dir_p..args.md5..'.pyg.tex'
-  texopts.pyg_tex_p = pyg_tex_p
-  local last = ''
-  local use_tool = args.cache == 'false'
-  if not use_tool then
-    local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
-    if mode == 'file' or mode == 'link' then
-      last = [[\CDR@StyleUseTag\input{]]..pyg_tex_p..'}%'
-      texopts.ignore_source = true
-    else
-      use_tool = true
-    end
-    if not texopts.ignore_style then
-      mode,_,__ = lfs.attributes(pyg_sty_p,'mode')
-      if mode == 'file' or mode == 'link' then
-        tex.print([[\input{]]..pyg_sty_p..[[}\CDR@StyleUseTag]])
-        texopts.ignore_style = true
-      else
-        use_tool = true
+  local inline = texopts.is_inline
+  local use_cache = self.is_truthy(args.cache)
+  local use_py = false
+  local cmd = self.PYTHON_PATH..' '..self.CDR_PY_PATH
+  local debug = args.debug
+  local pyg_sty_p
+  if sty then
+    pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
+    texopts.pyg_sty_p = pyg_sty_p
+    local mode,_,__ = lfs.attributes(pyg_sty_p, 'mode')
+    if not mode or not use_cache then
+      use_py = true
+      if debug then
+        print('PYTHON STYLE:')
       end
+      cmd = cmd..(' --create_style')
+    end
+    self:cache_record(pyg_sty_p)
+  end
+  local pyg_tex_p
+  if src then
+    local source
+    if inline then
+      source = args.source
+    else
+      local ll = self['.lines']
+      source = table.concat(ll, '\n')
+    end
+    local base = dir_p..md5.sumhexa( ('%s:%s:%s'
+      ):format(
+        source,
+        inline and 'code' or 'block',
+        pygopts.style
+      )
+    )
+    pyg_tex_p = base..'.pyg.tex'
+    local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
+    if not mode or not use_cache then
+      use_py = true
+      if debug then
+        print('PYTHON SOURCE:', inline)
+      end
+      if not inline then
+        local tex_p = base..'.tex'
+        local f = assert(io.open(tex_p, 'w'))
+        local ok, err = f:write(source)
+        f:close()
+        if not ok then
+          print('File error('..tex_p..'): '..err)
+        end
+        if debug then
+          print('OUTPUT: '..tex_p)
+        end
+      end
+      cmd = cmd..(' --base=%q'):format(base)
     end
   end
-  if use_tool then
+  if use_py then
     local json_p = self.json_p
     local f = assert(io.open(json_p, 'w'))
-    local s = json.tostring(args, true)
-    local ok, err = f:write(s)
+    local ok, err = f:write(json.tostring(args, true))
     f:close()
-    if ok == nil then
+    if not ok then
       print('File error('..json_p..'): '..err)
     end
-    local cmd = ('%s %s %q'):format(
-      self.PYTHON_PATH,
-      self.CDR_PY_PATH,
-      json_p
-    )
+    cmd = cmd..('  %q'):format(json_p)
+    if debug then
+      print('CDR>'..cmd)
+    end
     local o = io.popen(cmd):read('a')
-    self:load_exec_output(o)
+    if debug then
+      print('PYTHON', o)
+    end
+  end
+  self:cache_record(
+    sty and pyg_sty_p or nil,
+    src and pyg_tex_p or nil
+  )
+  cmd = [=[''
+  if sty then
+    cmd = [[\CDR@StyleInput{]]..pyg_sty_p..[[}]]
+  end
+  if src then
+    cmd = cmd..[[\CDR@SourceInput{]]..pyg_tex_p..[[}]]
+  end
+  if #cmd > 0 then
+    cmd = [[\makeatletter]]..cmd..[[\makeatother]]
+    tex.print(cmd)
+  end
+  ]=]
+  if sty then
+    cmd = [[{]]..pyg_sty_p..[[}]]
   else
-    print('NO PYTHON')
+    cmd = '{}'
   end
-  if #last > 0 then
-    tex.print(last)
+  if src then
+    cmd = cmd..[[{]]..pyg_tex_p..[[}]]
+  else
+    cmd = cmd..'{}'
   end
-  self:cache_record(pyg_sty_p, pyg_tex_p)
+  if #cmd > 4 then
+    cmd = [[\makeatletter\CDR@Callback]]..cmd..[[\makeatother]]
+    tex.print(cmd)
+  end
+  if debug then
+    print('CDR<'..cmd)
+  end
 end
+local function hilight_code_prepare(self)
+  self['.arguments'] = {
+    __cls__ = 'Arguments',
+    source  = '',
+    cache   = true,
+    debug   = false,
+    pygopts = {
+      __cls__ = 'PygOpts',
+      lang    = 'tex',
+      style   = 'default',
+    },
+    texopts = {
+      __cls__ = 'TeXOpts',
+      tags    = '',
+      is_inline = true,
+      pyg_sty_p = '',
+    }
+  }
+  self.hilight_json_written = false
+end
+
 local function hilight_block_prepare(self, tags_clist_var)
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
   local t = {}
@@ -252,10 +305,9 @@ local function hilight_block_prepare(self, tags_clist_var)
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
-    tags    = tags_clist,
-    source  = '',
     cache   = false,
     debug   = false,
+    source  = nil,
     pygopts = {
       __cls__ = 'PygOpts',
       lang = 'tex',
@@ -263,13 +315,12 @@ local function hilight_block_prepare(self, tags_clist_var)
     },
     texopts = {
       __cls__ = 'TeXOpts',
-      inline        = false,
-      ignore_style  = false,
-      ignore_source = false,
+      tags    = tags_clist,
+      is_inline = false,
       pyg_sty_p = '',
-      pyg_tex_p = ''
     }
   }
+  self.hilight_json_written = false
 end
 
 local function record_line(self, line_variable_name)
@@ -283,67 +334,6 @@ local function record_line(self, line_variable_name)
     lt[tag] = ll
     ll[#ll+1] = line
   end
-end
-local function hilight_block(self)
-  local args = self['.arguments']
-  local texopts = args.texopts
-  local pygopts = args.pygopts
-  local ll = self['.lines']
-  local source = table.concat(ll, '\n')
-  args.source = source
-  args.md5 = md5.sumhexa( ('%s:%s:%s'
-    ):format(
-      source,
-      texopts.inline and 'code' or 'block',
-      pygopts.style
-    )
-  )
-  local pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
-  texopts.pyg_sty_p = pyg_sty_p
-  local pyg_tex_p = dir_p..args.md5..'.pyg.tex'
-  texopts.pyg_tex_p = pyg_tex_p
-  local last = ''
-  local use_tool = args.cache == 'false'
-  if not use_tool then
-    if not texopts.ignore_style then
-      local mode,_,__ = lfs.attributes(pyg_sty_p,'mode')
-      if mode == 'file' or mode == 'link' then
-        tex.print([[\input{]]..pyg_sty_p..'}%')
-        texopts.ignore_style = true
-      else
-        use_tool = true
-      end
-    end
-    local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
-    if mode == 'file' or mode == 'link' then
-      last = [[\input{]]..pyg_tex_p..'}%'
-      texopts.ignore_source = true
-    else
-      use_tool = true
-    end
-  end
-  if use_tool then
-    local json_p = self.json_p
-    local f = assert(io.open(json_p, 'w'))
-    local ok, err = f:write(json.tostring(args, true))
-    f:close()
-    if ok == nil then
-      print('File error('..json_p..'): '..err)
-    end
-    local cmd = ('%s %s %q'):format(
-      self.PYTHON_PATH,
-      self.CDR_PY_PATH,
-      json_p
-    )
-    local o = io.popen(cmd):read('a')
-    self:load_exec_output(o)
-  else
-    print('NO PYTHON')
-  end
-  if #last > 0 then
-    tex.print(last)
-  end
-  self:cache_record(pyg_sty_p, pyg_tex_p)
 end
 local function hilight_advance(self, count)
 end
@@ -392,8 +382,12 @@ local function cache_clean_all(self)
   end
 end
 local function cache_record(self, pyg_sty_p, pyg_tex_p)
-  self['.style_set']  [pyg_sty_p] = true
-  self['.colored_set'][pyg_tex_p] = true
+  if pyg_sty_p then
+    self['.style_set']  [pyg_sty_p] = true
+  end
+  if pyg_tex_p then
+    self['.colored_set'][pyg_tex_p] = true
+  end
 end
 local function cache_clean_unused(self)
   local to_remove = {}
@@ -415,18 +409,18 @@ return {
   CDR_PY_PATH        = CDR_PY_PATH,
   PYTHON_PATH        = PYTHON_PATH,
   set_python_path    = set_python_path,
+  is_truthy          = is_truthy,
   escape             = escape,
   make_directory     = make_directory,
   load_exec          = load_exec,
   load_exec_output   = load_exec_output,
   record_line        = record_line,
+  hilight_set        = hilight_set,
+  hilight_set_var    = hilight_set_var,
+  hilight_source     = hilight_source,
+  hilight_advance    = hilight_advance,
   hilight_code_prepare = hilight_code_prepare,
-  hilight_set          = hilight_set,
-  hilight_set_var      = hilight_set_var,
-  hilight_code         = hilight_code,
   hilight_block_prepare = hilight_block_prepare,
-  hilight_block         = hilight_block,
-  hilight_advance       = hilight_advance,
   cache_clean_all    = cache_clean_all,
   cache_record       = cache_record,
   cache_clean_unused = cache_clean_unused,

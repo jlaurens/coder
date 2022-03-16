@@ -24,6 +24,23 @@
 ABCDE
 \UseVerb{Verb}
 
+\CDRVerbA|ABCD|
+
+\UseVerb{Verb}
+\makeatletter
+\NewDocumentCommand\Profco{O{}m}{
+  \DefineShortVerb{#2}
+  \SaveVerb[#1,aftersave={
+    \UndefineShortVerb{#2}
+    \mbox{\FV@UseKeyValues\FV@FormattingPrep\FV@SV@Verb}
+    }
+  ]{Verb}#2
+}
+\makeatother
+\Profco|BCDG|
+
+\UseVerb{Verb}
+
 \group_end:
 \ExplSyntaxOff
 \bgroup
@@ -44,7 +61,7 @@ See the verbatim on page~\pageref{verb0}
 \\
 \DefineShortVerb{\?}%
 YYY%
-\SaveVerb{ABC}?XXX?%
+\SaveVerb{ABC}?A B C?%
 \UndefineShortVerb{\?}
 \fvset{
 fontfamily=menlo,
@@ -52,17 +69,152 @@ fontshape=it,
 fontseries=auto,
 fontsize=\Large,
 }%
-\UseVerb{ABC}%
+\UseVerb[showspaces]{ABC}%
 YYY
 \CDRSet{pygments=false}
+\DefineShortVerb{\|}%
+\SaveVerb{ABCE}|YY YY|%
+\UndefineShortVerb{\|}
+\UseVerb{ABCE}%
+
 \egroup
 
 \subsection{Coder}
 
 \ExplSyntaxOn
 \group_begin:
+
 \makeatletter
+
+\cs_new:Npn \CDR@Callback #1 #2 {
+  \typeout{CDR@Callback:#1/#2/}
+  \tl_if_empty:nF { #1 } {
+    \input{#1}
+    \CDR@StyleUseTag
+  }
+  \tl_if_empty:nF { #2 } {
+    \input{#2}
+  }
+}
+
+\cs_new:Npn \CDR@StyleInput #1 {
+  \typeout{CDR@StyleInput:#1/}
+  \input{#1}
+  \CDR@StyleUseTag
+}
+
+\tl_new:N \l_CDR_style_tl
+\cs_set:Npn \CDR_code:n #1 {
+  \CDR_if_tag_truthy:cTF {pygments} {
+    \cs_set:Npn \CDR@StyleUseTag {
+      \CDR@StyleUse { \CDR_tag_get:c { style } }
+      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
+    }
+    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+      __fancyvrb,
+    }
+    \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl
+    \DefineShortVerb { #1 }
+    \SaveVerb [
+      aftersave = {
+        \exp_args:Nx \UndefineShortVerb { #1 }
+        \lua_now:n { CDR:hilight_code_prepare() }
+        \CDR_tag_get:cN {lang} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('lang') }
+        \CDR_tag_get:cN {cache} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('cache') }
+        \CDR_tag_get:cN {debug} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('debug') }
+        \CDR_tag_get:cN {style} \l_CDR_style_tl
+        \lua_now:n { CDR:hilight_set_var('style', 'l_CDR_style_tl') }
+        \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
+        \FV@UseKeyValues
+        \frenchspacing
+        %  \FV@SetupFont Break
+        \FV@DefineWhiteSpace
+        \FancyVerbDefineActive
+        \FancyVerbFormatCom
+        \CDR_code_format:
+        \CDR_tag_get:c { format }
+\typeout{DEBUG...................1.\CDR_tag_get:c { style }.\l_CDR_style_tl}
+        \CDR@CodeEngineApply {
+          \CDR@StyleIfExist { \l_CDR_style_tl } {
+            \CDR@StyleUseTag
+            \lua_now:n { CDR:hilight_source(false, true) }        
+\typeout{DEBUG...................2A}
+          } {
+            \lua_now:n { CDR:hilight_source(true, true) }
+\typeout{DEBUG...................2B}
+          }
+        }
+\typeout{DEBUG...................3}
+        \group_end:
+      }
+    ] { CDR@Source } #1
+  } {
+    \DefineShortVerb { #1 }
+    \SaveVerb [
+      aftersave = {
+        \UndefineShortVerb { #1 }
+        \cs_set_eq:NN \CDR@FormattingPrep \FV@FormattingPrep
+        \cs_set:Npn \FV@FormattingPrep {
+          \CDR@FormattingPrep
+          \CDR_tag_get:c { format }
+        }
+        \CDR@CodeEngineApply { A \mbox { a
+          \exp_args:NNV
+          \def \FV@KeyValues \l_CDR_keyval_tl
+          \FV@UseKeyValues
+          \FV@FormattingPrep
+          \@nameuse{FV@SV@CDR@Code}
+        z } Z }
+        \group_end:
+      }
+    ] { CDR@Code } #1
+  }
+}
+%    \end{MacroCode}
+%
+%    \begin{MacroCode}[OK]
+\RenewDocumentCommand \CDRCode { O{} } {
+  \group_begin:
+  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
+    \prg_return_false:
+  }  
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __code, default.code, __pygments, default,
+  }
+  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
+  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
+  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
+  \exp_args:NNV
+  \def \FV@KeyValues \l_CDR_keyval_tl
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __fancyvrb,
+  }
+  \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl  
+  \CDR_tag_inherit:cf { __local } {
+    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
+    __code, default.code, __pygments, default, __fancyvrb,
+  }
+  \fvset{showspaces}
+  \CDR_code:n
+}
 \makeatother
+
+
+\CDRSet{cache=false,debug=true}
+\CDRSet{pygments=false}
+A\\
+\CDRCode|<fontsize=\Large>|\\
+B\\
+\CDRCode[fontsize=\Large]|<fontsize=\Large>|\\
+\CDRSet{pygments=true}
+A\\
+\CDRCode|<fontsize=\Large>|\\
+B\\
+\CDRCode[fontsize=\Large]|<fontsize=\Large>|\\
+
 \CDRCode!<ABC DEF>!\\
 1\\
 \CDRCode[fontfamily=menlo]!<fontfamily=menlo>!\\
@@ -196,29 +348,29 @@ PATH==\directlua{tex.print(CDR.PYTHON_PATH)}\\
 \makeatother
 
 \CDRSet{pygments=false}
-ABCD=\CDRCode|ABCD|\\
+AB CD=\CDRCode|AB CD|\\
 \CDRSet{pygments=true}
-ABCD=\CDRCode|ABCD\textbf{AB}|\\
-ABCD=\CDRCode[fontfamily=menlo]|ABCD\textbf{AB}|\\
-ABCD=\CDRCode[formatcom=\color{red}]|ABCD\textbf{AB}|\\
-ABCD=\CDRCode[format=\color{blue}]|ABCD\textbf{AB}|\\
-ABCD=\CDRCode[format=\color{blue},formatcom=\color{red}]|ABCD\textbf{AB}|\\
+AB CD=\CDRCode|AB CD\textbf{AB}|\\
+AB CD=\CDRCode[fontfamily=menlo]|AB CD\textbf{AB}|\\
+AB CD=\CDRCode[formatcom=\color{red}]|AB CD\textbf{AB}|\\
+AB CD=\CDRCode[format=\color{blue}]|AB CD\textbf{AB}|\\
+AB CD=\CDRCode[format=\color{blue},formatcom=\color{red}]|AB CD\textbf{AB}|\\
 
 \group_end:
 \ExplSyntaxOff
-\CDRSet{pygments=true}
-ABCD=\CDRCode|ABCD\textbf{AB}| et la suite\\
-ABCD=\CDRCode[style=autumn]|ABCD\textbf{AB}| et la suite\\
-ABCD=\CDRCode[cache=true]|ABCD\textbf{AB}| et la suite\\
-ABCD=\CDRCode[cache=true,debug=true]|ABCD\textbf{AB}| et la suite\\
+\CDRSet{pygments=true,cache=false}
+AB CD=\CDRCode|AB CD\textbf{AB}| et la suite\\
+AB CD=\CDRCode[style=autumn]|AB CD\textbf{AB}| et la suite\\
+AB CD=\CDRCode[cache=true]|AB CD\textbf{AB}| et la suite\\
+AB CD=\CDRCode[cache=true,debug=true]|AB CD\textbf{AB}| et la suite\\
 \ExplSyntaxOn
 \group_begin:
 \ExplSyntaxOff
 \CDRSet{tag/X/style=autumn}
-style autumn  ABCD=\CDRCode[tag=X]|ABCD\textbf{AB}| et la suite\\
-style default ABCD=\CDRCode[tag=Y]|ABCD\textbf{AB}| et la suite\\
-style default ABCD=\CDRCode[engine=efbox, efbox engine options={hidealllines,backgroundcolor=red}, engine options={backgroundcolor=yellow}]|ABCD\textbf{AB}| et la suite\\
-style default ABCD=\CDRCode[format=\color{blue}]|ABCD\textbf{AB}| et la suite\\
+style autumn  AB CD=\CDRCode[tag=X]|AB CD\textbf{AB}| et la suite\\
+style default AB CD=\CDRCode[tag=Y]|AB CD\textbf{AB}| et la suite\\
+style default AB CD=\CDRCode[engine=efbox, efbox engine options={hidealllines,backgroundcolor=red}, engine options={backgroundcolor=yellow}]|AB CD\textbf{AB}| et la suite\\
+style default AB CD=\CDRCode[format=\color{blue}]|AB CD\textbf{AB}| et la suite\\
 \ExplSyntaxOn
 \group_end:
 \ExplSyntaxOff
