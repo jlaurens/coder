@@ -151,7 +151,7 @@ and the derived files           \jobname.ins,
 \RequirePackage{ifthen}
 %\RequirePackage[font=small,format=plain,labelfont=bf,up,textfont=it,up]{caption}
 %\RequirePackage{caption}
-\RequirePackage[framemethod=tikz]{mdframed}
+%\RequirePackage[framemethod=tikz]{mdframed}
 
 %\DeclareCaptionType[within=chapter]{pygcode}[Listagem][Lista de listagens]
 %\DeclareCaptionType{pygcode}[Listagem][Lista de listagens]
@@ -182,9 +182,7 @@ and the derived files           \jobname.ins,
 } {
   \msg_fatal:nnn { coder } { :n } { Please~update~LaTeX.~Emergency~stop }
 }
-\ExplSyntaxOff
-\directlua{CDR = require("coder-util")}
-\ExplSyntaxOn
+\lua_now:n { CDR = require("coder-util") }
 %</sty>
 %<*driver>
 \ExplSyntaxOff
@@ -254,10 +252,7 @@ and the derived files           \jobname.ins,
   numbersep=1ex,
   fontsize=\small,
 }
-\makeatother
 
-
-\makeatletter
 \newcommand{\CDRPygVerbatim} {CDR@Pyg@Verbatim}
 \makeatother
 \NewDocumentCommand \itemtt { o }{^^A
@@ -639,19 +634,20 @@ and the derived files           \jobname.ins,
 %   and |<placeholder:line>| should be replaced by the hilighted line code
 %   provided by \pkg{pygments}.
 %   They should not include a trailing newline char.
+%   The \meta{type} is used to describe the line more precisely.
 % \begin{description}
-% \itemtt[\CDRCheckRed single_line_template]   
+% \itemtt[\CDRCheckRed Single]   
 %   It may contain tag related information and number as well.
 %   When the block consists of only one line.
-% \itemtt[\CDRCheckRed first_line_template]
+% \itemtt[\CDRCheckRed First]
 %   When the block consists of more than one line.
 %   If the tag information is required or new, display only the tag.
 %   Display the number if required, otherwise.
-% \itemtt[\CDRCheckRed second_line_template]
+% \itemtt[\CDRCheckRed Second]
 %   If the first line did not, display the line number, but only when required.
-% \itemtt[\CDRCheckRed black_line_template]
+% \itemtt[\CDRCheckRed Black]
 %   for numbered lines,
-% \itemtt[\CDRCheckRed white_line_template]
+% \itemtt[\CDRCheckRed White]
 %   for unnumbered lines,
 % \end{description}
 %
@@ -958,6 +954,8 @@ end
 % build the style definitions if \metatt{sty} is |true|.
 % Build a configuration table with all data necessary for the processing,
 % save it as a |JSON| file and launch \CDRPy{} with the proper arguments.
+% Set the |\l_CDR_pyg_sty_tl| and |\l_CDR_pyg_tex_tl| macros on return,
+% depending on \metatt{src} and \metatt{sty}.
 % \end{function}
 %    \begin{MacroCode}
 local function hilight_source(self, sty, src)
@@ -972,6 +970,7 @@ local function hilight_source(self, sty, src)
   local pyg_sty_p
   if sty then
     pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
+    token.set_macro('l_CDR_pyg_sty_tl', pyg_sty_p)
     texopts.pyg_sty_p = pyg_sty_p
     local mode,_,__ = lfs.attributes(pyg_sty_p, 'mode')
     if not mode or not use_cache then
@@ -1001,6 +1000,7 @@ local function hilight_source(self, sty, src)
     )
     local base = dir_p..hash
     pyg_tex_p = base..'.pyg.tex'
+    token.set_macro('l_CDR_pyg_tex_tl', pyg_tex_p)
     local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
     if not mode or not use_cache then
       use_py = true
@@ -1035,6 +1035,7 @@ local function hilight_source(self, sty, src)
       print('CDR>'..cmd)
     end
     local o = io.popen(cmd):read('a')
+    self:load_exec_output(o)
     if debug then
       print('PYTHON', o)
     end
@@ -1043,49 +1044,35 @@ local function hilight_source(self, sty, src)
     sty and pyg_sty_p or nil,
     src and pyg_tex_p or nil
   )
-  cmd = [=[''
-  if sty then
-    cmd = [[\CDR@StyleInput{]]..pyg_sty_p..[[}]]
-  end
-  if src then
-    cmd = cmd..[[\CDR@SourceInput{]]..pyg_tex_p..[[}]]
-  end
-  if #cmd > 0 then
-    cmd = [[\makeatletter]]..cmd..[[\makeatother]]
-    tex.print(cmd)
-  end
-  ]=]
-  if sty then
-    cmd = [[{]]..pyg_sty_p..[[}]]
-  else
-    cmd = '{}'
-  end
-  if src then
-    cmd = cmd..[[{]]..pyg_tex_p..[[}]]
-  else
-    cmd = cmd..'{}'
-  end
-  if #cmd > 4 then
-    cmd = [[\makeatletter\CDR@Callback]]..cmd..[[\makeatother]]
-    tex.print(cmd)
-  end
-  if debug then
-    print('CDR<'..cmd)
-  end
 end
 %    \end{MacroCode}
 %
 % \subsection{Code}
-% \begin{function}{hilight_code_prepare}
+% \begin{function}{hilight_code_setup}
 % \begin{syntax}
-% CDR:hilight_code_prepare()
+% CDR:hilight_code_setup()
 % \end{syntax}
 % Hilight the code in \pkg{str} variable named \metatt{code var name}.
 % Build a configuration table with all data necessary for the processing,
 % save it as a |JSON| file and launch \CDRPy{} with the proper arguments.
 % \end{function}
 %    \begin{MacroCode}
-local function hilight_code_prepare(self)
+local function hilight_complete(self, count)
+  token.set_macro('l_CDR_count_tl', count)
+end
+%    \end{MacroCode}
+%
+% \subsection{Code}
+% \begin{function}{hilight_code_setup}
+% \begin{syntax}
+% CDR:hilight_code_setup()
+% \end{syntax}
+% Hilight the code in \pkg{str} variable named \metatt{code var name}.
+% Build a configuration table with all data necessary for the processing,
+% save it as a |JSON| file and launch \CDRPy{} with the proper arguments.
+% \end{function}
+%    \begin{MacroCode}
+local function hilight_code_setup(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
     source  = '',
@@ -1113,15 +1100,15 @@ end
 %
 % \subsection{Block}
 %
-% \begin{function}{hilight_block_prepare}
+% \begin{function}{hilight_block_setup}
 % \begin{syntax}
-% CDR:hilight_block_prepare(\meta{tags clist var})
+% CDR:hilight_block_setup(\meta{tags clist var})
 % \end{syntax}
 % Records the contents of the \metatt{tags clist var} \LaTeX{} variable
 % to prepare block hilighting.
 % \end{function}
 %    \begin{MacroCode}
-local function hilight_block_prepare(self, tags_clist_var)
+local function hilight_block_setup(self, tags_clist_var)
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
   local t = {}
   for tag in string.gmatch(tags_clist, '([^,]+)') do
@@ -1370,14 +1357,15 @@ return {
   hilight_set_var    = hilight_set_var,
   hilight_source     = hilight_source,
   hilight_advance    = hilight_advance,
+  hilight_complete        = hilight_complete,
 %    \end{MacroCode}
 % \itemtt[hilight code]
 %    \begin{MacroCode}
-  hilight_code_prepare = hilight_code_prepare,
+  hilight_code_setup = hilight_code_setup,
 %    \end{MacroCode}
-% \itemtt[hilight_block_prepare]
+% \itemtt[hilight_block_setup]
 %    \begin{MacroCode}
-  hilight_block_prepare = hilight_block_prepare,
+  hilight_block_setup = hilight_block_setup,
 %    \end{MacroCode}
 % \itemtt[cache_clean_all]
 %    \begin{MacroCode}
@@ -1494,11 +1482,7 @@ class TeXOpts(BaseOpts):
 \CDR@StyleDefine{<placeholder:style_name>} {%
   <placeholder:style_defs>}%
 \makeatother'''
-  single_line_template =r'''\CDR@Line{Single{<placeholder:number>}{<placeholder:line>}'''
-  first_line_template  =r'''\CDR@Line{First}{<placeholder:number>}{<placeholder:line>}'''
-  second_line_template =r'''\CDR@Line{Second}{<placeholder:number>}{<placeholder:line>}'''
-  white_line_template  =r'''\CDR@Line{White}{<placeholder:number>}{<placeholder:line>}'''
-  black_line_template  =r'''\CDR@Line{Black}{<placeholder:number>}{<placeholder:line>}'''
+  line_template =r'''\CDR@Line{<placeholder:type>}{<placeholder:number>}{<placeholder:line>}'''
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
     self.inline_p  = self.ensure_bool(self.is_inline)
@@ -1858,30 +1842,32 @@ file name with extension, contains processing information.
     number = firstnumber
     stepnumber = fv_opts.stepnumber
     numbering = fv_opts.numbers != 'none'
-    def more(template, line):
+    def more(type, line):
       nonlocal number
-      ans_code.append(template.replace(
+      ans_code.append(texopts.line_template.replace(
+          '<placeholder:type>', f'{type}',
+        ).replace(
           '<placeholder:number>', f'{number}',
         ).replace(
           '<placeholder:line>', line,
       ))
       number += 1
     if len(lines) == 1:
-      more(texopts.single_line_template, lines.pop(0))
+      more('Single', lines.pop(0))
     elif len(lines):
-      more(texopts.first_line_template, lines.pop(0))
-      more(texopts.second_line_template, lines.pop(0))
+      more('First', lines.pop(0))
+      more('Second', lines.pop(0))
       if stepnumber < 2:
         def template():
-          return texopts.black_line_template
+          return 'Black'
       elif stepnumber % 5 == 0:
         def template():
-          return texopts.black_line_template if number %\
-            stepnumber == 0 else texopts.white_line_template
+          return 'Black' if number %\
+            stepnumber == 0 else 'White'
       else:
         def template():
-          return texopts.black_line_template if (number - firstnumber) %\
-            stepnumber == 0 else texopts.white_line_template
+          return 'Black' if (number - firstnumber) %\
+            stepnumber == 0 else 'White'
          
       for line in lines:
         more(template(), line)
@@ -1912,11 +1898,10 @@ file name with extension, contains processing information.
     pyg_tex_p = Path(base).with_suffix('.pyg.tex')
     hilighted, count = self.pygmentize(source)
     with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
-      if count:
-        f.write(rf'''\CDR@Total{{{count}}}''')
       f.write(hilighted)
     if args.debug:
       print('HILIGHTED', os.path.relpath(pyg_tex_p))
+    self.lua_command_now(f'self:hilight_complete({count})')
 %    \end{MacroCode}
 %
 % \subsection{Main entry}
@@ -2027,16 +2012,16 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 % \subsection{Files}
-% \begin{variable}{\l_CDR_in}
+% \begin{variable}{\l_CDR_ior}
 % Input file identifier
 %    \begin{MacroCode}[OK]
-\ior_new:N \l_CDR_in
+\ior_new:N \l_CDR_ior
 %    \end{MacroCode}
 % \end{variable}
-% \begin{variable}{\l_CDR_out}
+% \begin{variable}{\l_CDR_iow}
 % Output file identifier
 %    \begin{MacroCode}[OK]
-\iow_new:N \l_CDR_out
+\iow_new:N \l_CDR_iow
 %    \end{MacroCode}
 % \end{variable}
 % \subsection{Global variables}
@@ -4400,25 +4385,6 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDR@Callback}
-% \begin{syntax}
-% \cs{CDR@Callback} \Arg{pyg sty path} \Arg{pyg tex path}
-% \end{syntax}
-% Private utility to load a style or a pygmented source.
-% \end{function}
-%    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR@Callback #1 #2 {
-  \typeout{CDR@Callback:#1/#2/}
-  \tl_if_empty:nF { #1 } {
-    \input{#1}
-    \CDR@StyleUseTag
-  }
-  \tl_if_empty:nF { #2 } {
-    \input{#2}
-  }
-}
-%    \end{MacroCode}
-%
 % \begin{function}{\CDR_code:n}
 % \begin{syntax}
 % \cs{CDR_code:n} \meta{delimiter}
@@ -4440,7 +4406,7 @@ if __name__ == '__main__':
     \SaveVerb [
       aftersave = {
         \exp_args:Nx \UndefineShortVerb { #1 }
-        \lua_now:n { CDR:hilight_code_prepare() }
+        \lua_now:n { CDR:hilight_code_setup() }
         \CDR_tag_get:cN {lang} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('lang') }
         \CDR_tag_get:cN {cache} \l_CDR_tl
@@ -4461,13 +4427,16 @@ if __name__ == '__main__':
         \CDR_tag_get:c { format }
         \CDR@DefineSp
         \CDR@CodeEngineApply {
-          \makeatletter
           \CDR@StyleIfExist { \l_CDR_tl } {
             \CDR@StyleUseTag
             \lua_now:n { CDR:hilight_source(false, true) }        
           } {
             \lua_now:n { CDR:hilight_source(true, true) }
+            \input { \l_CDR_pyg_sty_tl }
+            \CDR@StyleUseTag
           }
+          \makeatletter
+          \input { \l_CDR_pyg_tex_tl }
           \makeatother
         }
         \group_end:
@@ -4520,7 +4489,6 @@ if __name__ == '__main__':
   }
   \CDR_code:n
 }
-\tl_new:N \l_CDR_style_tl
 \cs_set:Npn \CDR_code:n #1 {
   \CDR_if_tag_truthy:cTF {pygments} {
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
@@ -4531,19 +4499,18 @@ if __name__ == '__main__':
     \SaveVerb [
       aftersave = {
         \exp_args:Nx \UndefineShortVerb { #1 }
-        \lua_now:n { CDR:hilight_code_prepare() }
+        \lua_now:n { CDR:hilight_code_setup() }
         \CDR_tag_get:cN {lang} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('lang') }
         \CDR_tag_get:cN {cache} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('cache') }
         \CDR_tag_get:cN {debug} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('debug') }
-        \CDR_tag_get:cN {style} \l_CDR_style_tl
-        \lua_now:n { CDR:hilight_set_var('style', 'l_CDR_style_tl') }
+        \CDR_tag_get:cN {style} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('style') }
         \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
         \exp_args:NNV
         \def \FV@KeyValues \l_CDR_keyval_tl
-        \typeout{DEBUG::::::: \l_CDR_keyval_tl}
         \FV@UseKeyValues
         \frenchspacing
         %  \FV@SetupFont Break
@@ -4553,20 +4520,19 @@ if __name__ == '__main__':
         \CDR@DefineSp
         \CDR_code_format:
         \CDR_tag_get:c { format }
-\typeout{DEBUG...................1.\CDR_tag_get:c { style }.\l_CDR_style_tl.\CDR_tag_get:c { showspaces } }
         \CDR@CodeEngineApply {
-          \makeatletter
-          \CDR@StyleIfExist { \l_CDR_style_tl } {
+          \CDR@StyleIfExist { \CDR_tag_get:c {style} } {
             \CDR@StyleUseTag
             \lua_now:n { CDR:hilight_source(false, true) }        
-\typeout{DEBUG...................2A}
           } {
             \lua_now:n { CDR:hilight_source(true, true) }
-\typeout{DEBUG...................2B}
+            \input { \l_CDR_pyg_sty_tl }
+            \CDR@StyleUseTag
           }
+          \makeatletter
+          \input { \l_CDR_pyg_tex_tl }
           \makeatother
         }
-\typeout{DEBUG...................3}
         \group_end:
       }
     ] { CDR@Source } #1
@@ -4713,33 +4679,63 @@ if __name__ == '__main__':
   }  
   \CDR_tag_keys_set:nn { __block } { __initialize }
 %    \end{MacroCode}
-% By default, this code chunk will have the same list of tags
-% as the last code block or last |\CDRExport| stored in |\g_CDR_tags_clist|. 
+% Reading the options: we absorb the options available in |\FV@KeyValues|,
+% first for % \pkg{l3keys} modules, then for |\fvset|.
 %    \begin{MacroCode}
-  \clist_set_eq:NN \l_CDR_tags_clist \g_CDR_tags_clist
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __block, __pygments.block, default.block,
     __pygments, default,
   }
-  \exp_args:NnV
-  \CDR_tag_keys_set_known:nnN { __local } \FV@KeyValues \l_CDR_keyval_tl
+  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_keyval_tl
   \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
-  \exp_args:NnV
-  \CDR_tag_keys_set_known:nnN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
-  \clist_if_empty:NT \l_CDR_tags_clist {
-    \PackageWarning
-      { coder }
-      { No~(default)~tags~provided }
+  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
+%    \end{MacroCode}
+% By default, this code chunk will have the same list of tags
+% as the last code block or last |\CDRExport| stored in |\g_CDR_tags_clist|.
+% This can be overwritten with the |tags=...| user interface.
+% At least one tag must be provided.
+%    \begin{MacroCode}
+  \CDR_tag_inherit:cn { __local } { default.block }
+  \CDR_tag_get:cN { tags } \l_CDR_tags_clist
+  \clist_if_empty:NTF \l_CDR_tags_clist {
+    \tl_set_eq:NN \l_CDR_tags_clist \g_CDR_tags_clist
+    \clist_if_empty:NT \l_CDR_tags_clist {
+      \PackageWarning
+        { coder }
+        { No~(default)~tags~provided. }
+    }
+  } {
+    \clist_gset_eq:NN \g_CDR_tags_clist \l_CDR_tags_clist
+  }
+  \lua_now:n {
+    CDR:hilight_block_setup('l_CDR_tags_clist')
   }
 %    \end{MacroCode}
-% |\l_CDR_pygments_bool| is |true| iff one of the tags needs \pkg{pygments}.
+% |\l_CDR_pygments_bool| is |true| iff one of the tags needs \pkg{pygments} or there is no tag and |pygments=true| was given.
 %    \begin{MacroCode}
-  \clist_map_inline:Nn \l_CDR_tags_clist {
-    \CDR_if_truthy:ccT { ##1 } { pygments } {
-      \clist_map_break:n {
-        \bool_set_true:N \l_CDR_pygments_bool
+  \bool_set_false:N \l_CDR_pygments_bool
+  \clist_if_empty:NTF \l_CDR_tags_clist {
+    \bool_set:Nn \l_CDR_pygments_bool {
+      \CDR_if_tag_truthy_p:c { pygments }
+    }
+  } {
+    \bool_if:NF \l_CDR_pygments_bool {
+      \clist_map_inline:Nn \l_CDR_tags_clist {
+        \CDR_if_tag_truthy:ccT { ##1 } { pygments } {
+          \clist_map_break:n {
+            \bool_set_true:N \l_CDR_pygments_bool
+          }
+        }
       }
     }
+  }
+%    \end{MacroCode}
+% Now we setup the full inheritance tree.
+%    \begin{MacroCode}
+  \CDR_tag_inherit:cf { __local } {
+    \l_CDR_tags_clist,
+    __block, default.block, __pygments.block, __fancyvrb.block, __fancyvrb.number,
+     __pygments, default, __fancyvrb,
   }
   \bool_if:NTF \l_CDR_pygments_bool {
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
@@ -4752,18 +4748,11 @@ if __name__ == '__main__':
     }
     \exp_args:NnV
     \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
+    \exp_args:NNV
+    \def \FV@KeyValues \l_CDR_keyval_tl
 %    \end{MacroCode}
 % Get the list of tags and setup \CDRLua{} for recording or hilighting.
 %    \begin{MacroCode}  
-    \CDR_tag_inherit:cf { __local } {
-      \l_CDR_tags_clist,
-      __block, default.block, __pygments.block, __fancyvrb.block,
-       __pygments, default, __fancyvrb,
-    }
-    \lua_now:n {
-      CDR:hilight_block_prepare('l_CDR_tags_clist')
-    }
-    \def\FV@KeyValues{}
     \CDR_tag_get:cN {lang} \l_CDR_tl
     \lua_now:n { CDR:hilight_set_var('lang') }
     \CDR_tag_get:cN {cache} \l_CDR_tl
@@ -4772,70 +4761,72 @@ if __name__ == '__main__':
     \lua_now:n { CDR:hilight_set_var('debug') }
     \CDR_tag_get:cN {style} \l_CDR_tl
     \lua_now:n { CDR:hilight_set_var('style') }
-    \CDR@StyleIfExist { \l_CDR_tl } { } { 
-    ???
+    \CDR@StyleIfExist { \l_CDR_tl } { } {
+      \lua_now:n { CDR:hilight_source(true, false) }
+      \input { \l_CR_pyg_sty_tl }
+    }
+    \CDR@StyleUseTag
+    \CDR_if_tag_truthy:cTF {no~export} {
+      \clist_map_inline:nn { i, ii, iii, iv } {
+        \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
+          \tl_set:Nn \l_CDR_tl { ####1 }
+          \lua_now:n { CDR:record_line('l_CDR_tl') }
+        }
+      }
+    } {
+      \clist_map_inline:nn { i, ii, iii, iv } {
+        \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
+          \tl_set:Nn \l_CDR_tl { ####1 }
+          \lua_now:n { CDR:record_line('l_CDR_tl') }
+        }
+      }
+    }
+    \CDR_tag_get:cN { engine } \l_CDR_engine_tl
+    \CDR_if_code_engine:VF \l_CDR_engine_tl {
+      \PackageError
+        { coder }
+        { \l_CDR_engine_tl\space block~engine~unknown,~replaced~by~'default' }
+        {See~\CDRBlockEngineNew~in~the~coder~manual}
+      \tl_set:Nn \l_CDR_engine_tl { default }
+    }
+    \CDR_tag_get:cN { \l_CDR_engine_tl~engine~options } \l_CDR_options_tl
+    \exp_args:NnV
+    \use:c { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_options_tl
+
+    \def\FV@ProcessLine ##1 {
+      \tl_set:Nn \l_CDR_tl { ##1 }
+      \lua_now:n { CDR:record_line('l_CDR_tl') }
     }
   } {
     \exp_args:NNV
     \def \FV@KeyValues \l_CDR_keyval_tl
-    \CDR_tag_inherit:cf { __local } {
-      \l_CDR_tags_clist,
-      __block, default.block, __pygments.block, __fancyvrb.block,
-       __pygments, default, __fancyvrb, __fancyvrb.all,
-    }
-  }
-  \exp_args:Nnx
-  \CDR_if_tag_truthy:cTF {no~export} {
-    \bool_if:NT \l_CDR_pygments_bool {
-      \cs_map_inline:nn { i, ii, iii, iv } {
-        \cs_set:cpn { FV@ListProcessLine@ ####1 } ##1 {
-          \CDR_hilight_record:n { ##1 }
+    \CDR_if_tag_truthy:cF {no~export} {
+      \clist_map_inline:nn { i, ii, iii, iv } {
+        \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
+          \tl_set:Nn \l_CDR_tl { ####1 }
+          \lua_now:n { CDR:record_line('l_CDR_tl') }
+          \use:c { CDR@ListProcessLine@ ##1 } { ####1 }
         }
       }
     }
-  } {
-    \bool_if:NTF \l_CDR_pygments_bool {
-      \cs_map_inline:nn { i, ii, iii, iv } {
-        \cs_set:cpn { FV@ListProcessLine@ ####1 } ##1 {
-          \CDR_hilight_record:n { ##1 }
-          \CDR_export_record:n { ##1 }
-        }
-      }
-    } {
-      \cs_map_inline:nn { i, ii, iii, iv } {
-        \cs_set:cpn { FV@ListProcessLine@ ####1 } ##1 {
-          \CDR_export_record:n { ##1 }
-          \use:c { CDR@ListProcessLine@ ####1 } { ##1 }
-        }
-      }
-    }
+    \exp_args:NnV
+    \use:c { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_options_tl
+    \FV@VerbatimBegin
   }
-  \CDR_tag_get:cN { \l_CDR_engine_tl~engine~options } \l_CDR_options_tl
-  \tl_if_empty:NTF \l_CDR_options_tl {
-%    \end{MacroCode}
-% No |\begin| works here. Why?
-% This may be related to the required |\relax| below.
-%    \begin{MacroCode}
-    \use:c { \CDR_block_engine:V \l_CDR_engine_tl }
-  } {
-    \exp_args:NnNV
-    \use:c { \CDR_block_engine:V \l_CDR_engine_tl }
-      [ \l_CDR_options_tl ]
-  }
-  \relax
-  \cs_set_eq:NN \CDR@FormattingPrep \FV@FormattingPrep
-  \cs_set:Npn \FV@FormattingPrep {
-    \CDR@FormattingPrep
-    \CDR_tag_get:c { format }
-  }
-  \FV@VerbatimBegin
   \FV@Scan
 }
 \def\FVE@CDRBlock{
-  \FV@VerbatimEnd
   \bool_if:NT \l_CDR_pygments_bool {
-    \lua_now:n { CDR:hilight_source(true, true) }
+    \CDR_tag_get:c { format }
+    \fvset{ commandchars=\\\{\} }
+    \CDR@DefineSp
+    \FV@VerbatimBegin
+    \lua_now:n { CDR:hilight_source(false, true) }
+    \makeatletter
+    \input{ \l_CDR_pyg_tex_tl }
+    \makeatother
   }
+  \FV@VerbatimEnd
   \use:c { end \CDR_block_engine:V \l_CDR_engine_tl }
   \group_end:
   \@esphack
@@ -4845,286 +4836,6 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % 
 %
-% \section{The \texttt{\CDRPygVerbatim} environment}
-% This is the environment wrapping the \pkg{pygments} generated code when in block mode.
-% It is the sole content of the various |*.pyg.tex| files.
-%    \begin{MacroCode}
-\def\FVB@CDR@Pyg@Verbatim #1 {
-  \group_begin:
-  \FV@VerbatimBegin
-  \FV@Scan
-}
-\def\FVE@CDR@Pyg@Verbatim{
-  \FV@VerbatimEnd
-  \group_end:
-}
-\DefineVerbatimEnvironment{CDR@Pyg@Verbatim}{CDR@Pyg@Verbatim}{}
-
-%    \end{MacroCode}
-% 
-%
-% \section{More}
-% \begin{function} [EXP, TF] {\CDR_if_record:}
-%   \begin{syntax}
-%     \cs{CDR_if_record:TF} \Arg{true code} \Arg{false code}
-%   \end{syntax}
-% Execute \meta{true code} when code should be recorded, \meta{false code} otherwise.
-% The code should be recorded for the |CDRBlock| environment
-% when there is a non empty list of tags and \pkg{pygments} is used.
-% \emph{Implementation details}: we assume that if |\l_CDR_tags_clist| is not empty
-% then we are in a |CDRBlock| environment.
-%    \begin{MacroCode}[OK]
-\prg_new_conditional:Nnn \CDR_if_record: { T, F, TF } {
-  \clist_if_empty:NTF \l_CDR_tags_clist {
-    \prg_return_false:
-  } {
-    \CDR_if_use_pygments:TF {
-      \prg_return_true:
-    } {
-      \prg_return_false:
-    }
-  }
-}
-%    \end{MacroCode}
-% \end{function}
-%    \begin{MacroCode}
-\cs_new:Npn \CDR_process_recordNO: {
-  \tl_put_right:Nx \l_CDR_recorded_tl { \the\verbatim@line \iow_newline: }
-  \group_begin:
-  \tl_set:Nx \l_tmpa_tl { \the\verbatim@line }
-  \lua_now:e {CDR.records.append([===[\l_tmpa_tl]===])}
-  \group_end:
-}
-%    \end{MacroCode}
-% \begin{environment}{CDR}
-% \begin{syntax}
-% \cs{begin}\Arg{CDR} ... \cs{end}\Arg{CDR}
-% \end{syntax}
-% Private environment.
-% \end{environment}
-%    \begin{MacroCode}
-\newenvironment{CDR}{
-  \def \verbatim@processline {
-    \group_begin:
-    \CDR_process_line_code_append:
-    \group_end:
-  }
-%  \CDR_if_show_code:T {
-%    \CDR_if_use_minted:TF {
-%      \Needspace* { 2\baselineskip }
-%    } {
-%      \frenchspacing\@vobeyspaces
-%    }
-%  }
-} {
-  \CDR:nNTF { lang } \l_tmpa_tl {
-    \tl_if_empty:NT \l_tmpa_tl {
-      \clist_map_inline:Nn \l_CDR_clist {
-        \CDR:nnNT { ##1 } { lang } \l_tmpa_tl {
-          \tl_if_empty:NF \l_tmpa_tl {
-            \clist_map_break:
-          }
-        }
-      }
-      \tl_if_empty:NT \l_tmpa_tl {
-        \tl_set:Nn \l_tmpa_tl { tex }
-      }
-    }
-  } {
-    \tl_set:Nn \l_tmpa_tl { tex }
-  }
-% NO WAY
-  \clist_map_inline:Nn \l_CDR_clist {
-    \CDR_gput:nnV { ##1 } { lang } \l_tmpa_tl
-  }
-}
-%    \end{MacroCode}
-% \begin{environment}{CDR.M}
-% \begin{syntax}
-% \cs{begin}\Arg{CDR.M} ... \cs{end}\Arg{CDR.N}
-% \end{syntax}
-% Private environment when \texttt{minted}.
-% \end{environment}
-%    \begin{MacroCode}
-\newenvironment{CDR_M}{
-  \setkeys { FV } { firstnumber=last, }
-  \clist_if_empty:NTF \l_CDR_clist {
-    \exp_args:Nnx \setkeys { FV } {
-      firstnumber=\CDR_int_use:n { },
-  } } {
-    \clist_map_inline:Nn \l_CDR_clist {
-      \exp_args:Nnx \setkeys { FV } {
-        firstnumber=\CDR_int_use:n { ##1 },
-      }
-      \clist_map_break:
-  } }
-  \iow_open:Nn \minted@code { \jobname.pyg }
-  \tl_set:Nn \l_CDR_line_tl {
-    \tl_set:Nx \l_tmpa_tl { \the\verbatim@line }
-    \exp_args:NNV \iow_now:Nn \minted@code \l_tmpa_tl
-  }
-} {
-  \CDR_if_show_code:T {
-    \CDR_if_use_minted:TF {
-      \iow_close:N \minted@code
-      \vspace* { \dimexpr -\topsep-\parskip }
-      \tl_if_empty:NF \l_CDR_info_tl {
-        \tl_use:N \l_CDR_info_tl
-        \vspace* { \dimexpr -\topsep-\parskip-\baselineskip }        
-        \par\noindent
-      }
-      \exp_args:NV \minted@pygmentize \l_tmpa_tl
-      \DeleteFile { \jobname.pyg }
-      \vspace* { \dimexpr -\topsep -\partopsep }
-    } {
-      \@esphack
-    }
-  }
-}
-%    \end{MacroCode}
-% \begin{environment}{CDR.P}
-% \begin{syntax}
-% \cs{begin}\Arg{CDR.P} ... \cs{end}\Arg{CDR.P}
-% \end{syntax}
-% Private pseudo environment.
-% This is just a practical way of declaring balanced actions.
-% \end{environment}
-%    \begin{MacroCode}
-\newenvironment{CDR_P}{
-  \if_mode_vertical:
-    \noindent
-  \else
-    \vspace*{ \topsep }
-    \par\noindent
-  \fi
-  \CDR_gset_chunks:
-  \tl_if_empty:NTF \g_CDR_chunks_tl {
-    \CDR_if:nTF {show_lineno} {
-      \CDR_if_use_margin:TF {
-%    \end{MacroCode}
-% No chunk name, line numbers in the margin
-%    \begin{MacroCode}
-        \tl_set:Nn \l_CDR_info_tl {
-          \hbox_overlap_left:n {
-            \CDR:n { format/code }
-            {
-              \CDR:n { format/name }
-              \CDR:n { format/lineno }
-              \clist_if_empty:NTF \l_CDR_clist {
-                \CDR_int_use:n { }
-              } {
-                \clist_map_inline:Nn \l_CDR_clist {
-                  \CDR_int_use:n { ##1 }
-                  \clist_map_break:
-                }
-              }
-            }
-            \hspace*{1ex}
-          }
-        }
-      } {
-%    \end{MacroCode}
-% No chunk name, line numbers not in the margin
-%    \begin{MacroCode}
-        \tl_set:Nn \l_CDR_info_tl {
-          {
-            \CDR:n { format/code }
-            {
-              \CDR:n { format/name }
-              \CDR:n { format/lineno }
-              \hspace*{3ex}
-              \hbox_overlap_left:n {
-                \clist_if_empty:NTF \l_CDR_clist {
-                  \CDR_int_use:n { }
-                } {
-                  \clist_map_inline:Nn \l_CDR_clist {
-                    \CDR_int_use:n { ##1 }
-                    \clist_map_break:
-                  }
-                }
-              }
-              \hspace*{1ex}
-            }
-          }
-        }        
-      }
-    } {
-%    \end{MacroCode}
-% No chunk name, no line numbers
-%    \begin{MacroCode}
-      \tl_clear:N \l_CDR_info_tl
-    }    
-  } {
-    \CDR_if:nTF {show_lineno} {
-%    \end{MacroCode}
-% Chunk names, line numbers, in the margin
-%    \begin{MacroCode}
-      \tl_set:Nn \l_CDR_info_tl {
-        \hbox_overlap_left:n {
-          \CDR:n { format/code }
-          {
-            \CDR:n { format/name }
-            \g_CDR_chunks_tl :
-            \hspace*{1ex}
-            \CDR:n { format/lineno }
-            \clist_map_inline:Nn \l_CDR_clist {
-              \CDR_int_use:n { ####1 }
-              \clist_map_break:
-            }
-          }
-          \hspace*{1ex}
-        }
-        \tl_set:Nn \l_CDR_info_tl {
-          \hbox_overlap_left:n {
-            \CDR:n { format/code }
-            {
-              \CDR:n { format/name }
-              \CDR:n { format/lineno }
-              \clist_map_inline:Nn \l_CDR_clist {
-                \CDR_int_use:n { ####1 }
-                \clist_map_break:
-              }
-            }
-            \hspace*{1ex}
-          }
-        }
-      }
-    } {
-%    \end{MacroCode}
-% Chunk names, no line numbers, in the margin
-%    \begin{MacroCode}
-      \tl_set:Nn \l_CDR_info_tl {
-        \hbox_overlap_left:n {
-          \CDR:n { format/code }
-          {
-            \CDR:n { format/name }
-            \g_CDR_chunks_tl :
-          }
-          \hspace*{1ex}
-        }
-        \tl_clear:N \l_CDR_info_tl
-      }
-    }
-  }
-  \CDR_if_use_minted:F {
-    \tl_set:Nn \l_CDR_line_tl {
-      \noindent
-      \hbox_to_wd:nn { \textwidth } {
-        \tl_use:N \l_CDR_info_tl
-        \CDR:n { format/code }
-        \the\verbatim@line        
-        \hfill
-      }
-      \par
-    }
-    \@bsphack
-  }
-} {
-  \vspace*{ \topsep }
-  \par
-  \@esphack
-}
-%    \end{MacroCode}
 %
 % \section{Management}
 % \begin{variable}{\g_CDR_in_impl_bool}
@@ -5158,90 +4869,6 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
-% \section{\texttt{minted} and \texttt{pygments}}
-% \begin{variable}{\g_CDR_minted_on_bool}
-% Whether minted is available, initially set to \texttt{false}.
-%    \begin{MacroCode}
-\bool_new:N \g_CDR_minted_on_bool
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\g_CDR_use_minted_bool}
-% Whether minted is used, initially set to \texttt{false}.
-%    \begin{MacroCode}
-\bool_new:N \g_CDR_use_minted_bool
-%    \end{MacroCode}
-% \end{variable}
-%
-% \begin{function}[TF]
-%   {\CDR_if_use_minted:}
-%   \begin{syntax}
-%     \cs{CDR_if_use_minted:TF} \Arg{true code} \Arg{false code}
-%   \end{syntax}
-%   Execute \meta{true code} when using |minted|, \meta{false code} otherwise.
-%    \begin{MacroCode}
-\prg_new_conditional:Nnn \CDR_if_use_minted: { T, F, TF } {
-  \bool_if:NTF \g_CDR_use_minted_bool
-    { \prg_return_true:  }
-    { \prg_return_false: }
-}
-%    \end{MacroCode}
-% \end{function}
-%
-% \begin{function}{\_CDR_minted_on:}
-% \begin{syntax}
-% \cs{_CDR_minted_on:}
-% \end{syntax}
-% Private function. During the preamble, loads \pkg{minted},
-% sets \cs{g_CDR_minted_on_bool} to \texttt{true} and prepares \texttt{pygments} processing.
-% \end{function}
-%    \begin{MacroCode}
-\cs_set:Npn \_CDR_minted_on: {
-  \bool_gset_true:N \g_CDR_minted_on_bool
-  \RequirePackage{minted}
-  \setkeys{ minted@opt@g } { linenos=false }
-  \minted@def@opt{post~processor}
-  \minted@def@opt{post~processor~args}
-  \pretocmd\minted@inputpyg{
-    \CDR@postprocesspyg {\minted@outputdir\minted@infile}
-  }{}{\fail}  
-%    \end{MacroCode}
-% In the execution context of \cs{minted@inputpyg},
-% \begin{description}
-% \item[\texttt{\#1}] is the name of the python script, e.g., ``\texttt{process.py}''
-% \item[\texttt{\#2}] is the input ``.pygtex'' file ``\cs{minted@outputdir}\cs{minted@infile}''
-% \item[\texttt{\#3}] are more args passed to the python script, possibly empty
-% \end{description}
-%    \begin{MacroCode}
-  \newcommand{\CDR@postprocesspyg}[1]{%
-    \group_begin:
-    \tl_set:Nx \l_tmpa_tl {\CDR:n { post_processor } }
-    \tl_if_empty:NF \l_tmpa_tl {
-%    \end{MacroCode}
-% Execute \texttt{`python3 <script.py> <file.pygtex> <more_args>`}
-%    \begin{MacroCode}
-      \tl_set:Nx \l_tmpb_tl {\CDR:n { post_processor_args } }
-      \exp_args:Nx
-      \sys_shell_now:n {
-        python3\space
-        \l_tmpa_tl\space
-        ##1\space
-        \l_tmpb_tl
-      }  
-    }
-    \group_end:
-  }
-}
-%    \end{MacroCode}
-%    \begin{MacroCode}
-%\AddToHook { begindocument / end } {
-%  \cs_set_eq:NN \_CDR_minted_on: \prg_do_nothing:
-%}
-%    \end{MacroCode}
-% Utilities to setup \pkg{pygments} post processing.
-% The \pkg{pygments} post processor marks some code with \cs{CDREmph}.
-%    \begin{MacroCode}
-\ProvideDocumentCommand{\CDREmph}{m}{\textcolor{red}{#1}}
-%    \end{MacroCode}
 %
 % \begin{function}{\CDRPreamble}
 % \begin{syntax}
@@ -5313,9 +4940,9 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \section{Finale}
 %    \begin{MacroCode}
-\AddToHook { cmd/FancyVerbFormatLine/before } {
-  \CDR_line_number:
-}
+%\AddToHook { cmd/FancyVerbFormatLine/before } {
+%  \CDR_line_number:
+%}
 \AddToHook { shipout/before } {
   \tl_gclear:N \g_CDR_chunks_tl
 }
@@ -5361,220 +4988,6 @@ if __name__ == '__main__':
 
 \seq_new:N \l_CDR_records_seq
 
-\long\def\unexpanded@write#1#2{\write#1{\unexpanded{#2}}}
-
-\def\CDRAppend{\FV@Environment{}{CDRAppend}}
-
-\def\FVB@CDRAppend#1{%
-  \@bsphack
-  \begingroup
-    \seq_clear:N \l_CDR_records_seq
-    \FV@UseKeyValues
-    \FV@DefineWhiteSpace
-    \def\FV@Space{\space}%
-    \FV@DefineTabOut
-    \def\FV@ProcessLine{%##1
-      \seq_put_right:Nn \l_CDR_records_seq { ##1 }%
-      \immediate\unexpanded@write#1%{##1}
-    }%
-    \let\FV@FontScanPrep\relax
-    \let\@noligs\relax
-    \FV@Scan
-}
-\def\FVE@CDRAppend{
-  \seq_use:Nn \l_CDR_records_seq /
-  \endgroup
-  \@esphack
-}
-\DefineVerbatimEnvironment{CDRAppend}{CDRAppend}{}
-
-\DeclareDocumentEnvironment { Inline } { m } {
-  \clist_clear:N \l_CDR_clist
-  \keys_set:nn { CDR_code } { #1 }
-  \clist_map_inline:Nn \l_CDR_clist {
-    \CDR_int_if_exist:nF { ##1 } {
-      \CDR_int_new:nn { ##1 } { 1 }
-      \seq_new:c { g/CDR/chunks/##1 }
-    }
-  }
-  \CDR_if:nT {reset} {
-    \CDR_clist_map_inline:Nnn \l_CDR_clist {
-      \CDR_int_gset:nn { } 1
-    } {
-      \CDR_int_gset:nn { ##1 } 1
-    }
-  }
-  \tl_clear:N \l_CDR_code_name_tl
-  \clist_map_inline:Nn \l_CDR_clist {
-    \prop_concat:ccc
-      {g/CDR/Code/}
-      {g/CDR/Code/##1/}
-      {g/CDR/Code/}
-    \tl_set:Nn \l_CDR_code_name_tl { ##1 }
-    \clist_map_break:
-  }
-  \int_gset:Nn \g_CDR_int
-    { \CDR_int_use:n { \l_CDR_code_name_tl } }
-  \tl_clear:N \l_CDR_info_tl
-  \tl_clear:N \l_CDR_name_tl
-  \tl_clear:N \l_CDR_recorded_tl
-  \tl_clear:N \l_CDR_chunks_tl
-  \cs_set:Npn \verbatim@processline {
-    \CDR_process_record:
-  }
-  \CDR_if_show_code:TF {
-    \exp_args:NNx
-    \skip_set:Nn \parskip { \CDR:n { parskip } }
-    \clist_if_empty:NTF \l_CDR_clist {
-      \tl_gclear:N \g_CDR_chunks_tl
-    } {
-      \clist_set_eq:NN \l_tmpa_clist \l_CDR_clist
-      \clist_sort:Nn \l_tmpa_clist {
-        \str_compare:nNnTF { ##1 } > { ##2 } {
-          \sort_return_swapped:
-        } {
-          \sort_return_same:
-        }
-      }
-      \tl_set:Nx \l_tmpa_tl { \clist_use:Nn \l_tmpa_clist , }
-      \CDR_if:nT {show_name} {
-        \CDR_if:nT {use_margin} {
-          \CDR_if:nT {only_top} {
-            \tl_if_eq:NNT \l_tmpa_tl \g_CDR_chunks_tl {
-              \tl_gset_eq:NN \g_CDR_chunks_tl \l_tmpa_tl
-              \tl_clear:N \l_tmpa_tl
-            }
-          }
-          \tl_if_empty:NF \l_tmpa_tl {
-            \tl_set:Nx \l_CDR_chunks_tl {
-              \clist_use:Nn \l_CDR_clist ,
-            }
-            \tl_set:Nn \l_CDR_name_tl {
-              {
-                \CDR:n { format/name }
-                \l_CDR_chunks_tl :
-                \hspace*{1ex}
-              }
-            }
-          }
-        }
-        \tl_if_empty:NF \l_tmpa_tl {
-          \tl_gset_eq:NN \g_CDR_chunks_tl \l_tmpa_tl          
-        }
-      }
-    }
-    \if_mode_vertical:
-    \else:
-    \par
-    \fi:
-    \vspace{ \CDR:n { sep } }
-    \noindent
-    \frenchspacing
-    \@vobeyspaces
-    \normalfont\ttfamily
-    \CDR:n { format/code }
-    \hyphenchar\font\m@ne
-    \@noligs
-    \CDR_if_record:F {
-      \cs_set_eq:NN \CDR_process_record: \prg_do_nothing:
-    }
-    \CDR_if_use_minted:F {
-      \CDR_if:nT {show_lineno} {
-        \CDR_if:nTF {use_margin} {
-          \tl_set:Nn \l_CDR_info_tl {
-            \hbox_overlap_left:n {
-              {
-                \l_CDR_name_tl
-                \CDR:n { format/name }
-                \CDR:n { format/lineno }
-                \int_use:N \g_CDR_int
-                \int_gincr:N \g_CDR_int
-              }
-              \hspace*{1ex}
-            }
-          }
-        } {
-          \tl_set:Nn \l_CDR_info_tl {
-            {
-              \CDR:n { format/name }
-              \CDR:n { format/lineno }
-              \hspace*{3ex}
-              \hbox_overlap_left:n {
-                \int_use:N \g_CDR_int
-                \int_gincr:N \g_CDR_int
-              }
-            }
-            \hspace*{1ex}
-          }
-        }
-      }
-      \cs_set:Npn \verbatim@processline {
-        \CDR_process_record:
-        \hspace*{\dimexpr \linewidth-\columnwidth}%
-        \hbox_to_wd:nn { \columnwidth } {
-          \l_CDR_info_tl
-          \the\verbatim@line
-          \color{lightgray}\dotfill
-        }
-        \tl_clear:N \l_CDR_name_tl
-        \par\noindent
-      }
-    }
-  } {
-    \@bsphack
-  }
-  \group_begin:
-  \g_CDR_hook_tl
-  \let \do \@makeother
-  \dospecials \catcode `\^^M \active
-  \verbatim@start
-} {
-  \int_gsub:Nn \g_CDR_int {
-    \CDR_int_use:n { \l_CDR_code_name_tl }
-  }
-  \int_compare:nNnT { \g_CDR_int } > { 0 } {
-    \CDR_clist_map_inline:Nnn \l_CDR_clist {
-      \CDR_int_gadd:nn { } { \g_CDR_int }
-    } {
-      \CDR_int_gadd:nn { ##1 } { \g_CDR_int }
-    }
-    \int_gincr:N \g_CDR_code_int
-    \tl_set:Nx \l_tmpb_tl { \int_use:N \g_CDR_code_int }
-    \clist_map_inline:Nn \l_CDR_clist {
-      \seq_gput_right:cV { g/CDR/chunks/##1 } \l_tmpb_tl
-    }
-    \prop_gput:NVV \g_CDR_code_prop \l_tmpb_tl \l_CDR_recorded_tl
-  }
-  \group_end:
-  \CDR_if_show_code:T {
-  }
-  \CDR_if_show_code:TF {
-    \CDR_if_use_minted:TF {
-      \tl_if_empty:NF \l_CDR_recorded_tl {
-        \exp_args:Nnx \setkeys { FV } {
-          firstnumber=\CDR_int_use:n { \l_CDR_code_name_tl },
-        }
-        \iow_open:Nn \minted@code { \jobname.pyg }
-        \exp_args:NNV \iow_now:Nn \minted@code \l_CDR_recorded_tl
-        \iow_close:N \minted@code
-        \vspace* { \dimexpr -\topsep-\parskip }
-        \tl_if_empty:NF \l_CDR_info_tl {
-          \tl_use:N \l_CDR_info_tl
-          \skip_vertical:n { \dimexpr -\topsep-\parskip-\baselineskip }        
-          \par\noindent
-        }
-        \exp_args:Nnx \minted@pygmentize { \jobname.pyg } { \CDR:n { lang } }
-        %\DeleteFile { \jobname.pyg }
-        \skip_vertical:n { -\topsep-\partopsep }        
-      }
-    } {
-      \exp_args:Nx \skip_vertical:n { \CDR:n { sep } }
-      \noindent
-    }
-  } {
-    \@esphack
-  }  
-}
 % =========================================================
 % Main options
 % =========================================================
@@ -5596,35 +5009,8 @@ if __name__ == '__main__':
 % =========================================================
 
 
-\newcommand\inputpygmented[2][]{%
-  \begingroup
-    \CDR@process@options{#1}%
-    \immediate\write\CDR@outfile{<@@CDR@input@\the\CDR@counter}%
-    \immediate\write\CDR@outfile{\exp_args:NV\detokenize\CDR@global@options,\detokenize{#1}}%
-    \immediate\write\CDR@outfile{#2}%
-    \immediate\write\CDR@outfile{>@@CDR@input@\the\CDR@counter}%
-    %
-    \csname CDR@snippet@\the\CDR@counter\endcsname
-    \global\advance\CDR@counter by 1\relax
-  \endgroup
-}
-
 \cs_generate_variant:Nn \exp_last_unbraced:NnNo { NxNo }
 
-\newcommand\CDR@snippet@run[1]{%
-  \group_begin:
-  \typeout{DEBUG~PY~STYLE:< \CDR:n { style } > }
-  \use_c:n { PYstyle }
-  \CDR_when:nT { style } {
-    \use_c:n { PYstyle \CDR:n { style } }
-  }
-  \cs_if_exist:cTF {PY} {PYOK} {PYKO}
-  \CDR:n {font}
-  \CDR@process@more@options{ \CDR:n {engine} }%
-  \exp_last_unbraced:NxNo
-  \use:c { \CDR:n {engine} } [ \CDRRemainingOptions ]{#1}%
-  \group_end:
-}
 
 % ERROR: JL undefined \CDR@alllinenos
 
@@ -5636,108 +5022,69 @@ if __name__ == '__main__':
 \newdimen\CDR@leftmargin
 \newdimen\CDR@linenosep
 
-\def\CDR@lineno@do#1{%
-  \CDR@linenosep 0pt%
-  \use:c { CDR@ \CDR:n {block_engine} @margin }
-  \exp_args:NNx
-  \advance \CDR@linenosep { \CDR:n {linenosep} }
-  \hbox_overlap_left:n {%
-    \FormatLineNumber{#1}%
-    \hspace*{\CDR@linenosep}%
-  }%
-}
-
-\newcommand\CDR@tcbox@more@options{%
-  nobeforeafter,%
-  tcbox~raise~base,%
-  left=0mm,%
-  right=0mm,%
-  top=0mm,%
-  bottom=0mm,%
-  boxsep=2pt,%
-  arc=1pt,%
-  boxrule=0pt,%
-  \CDR_options_if_in:nT {colback} {
-    colback=\CDR:n {colback}
-  }
-}
-
-\newcommand\CDR@mdframed@more@options{%
-  leftmargin=\CDR@leftmargin,%
-  frametitlerule=true,%
-  \CDR_if_in:nT {colback} {
-    backgroundcolor=\CDR:n {colback}
-  }
-}
-
-\newcommand\CDR@tcolorbox@more@options{%
-  grow~to~left~by=-\CDR@leftmargin,%
-  \CDR_if_in:nNT {colback} {
-    colback=\CDR:n {colback}
-  }
-}
-
-\newcommand\CDR@boite@more@options{%
-  leftmargin=\CDR@leftmargin,%
-  \ifcsname CDR@opt@colback\endcsname
-    colback=\CDR@opt@colback,%
-  \fi
-}
-
-\newcommand\CDR@mdframed@margin{%
-  \advance \CDR@linenosep \mdflength{outerlinewidth}%
-  \advance \CDR@linenosep \mdflength{middlelinewidth}%
-  \advance \CDR@linenosep \mdflength{innerlinewidth}%
-  \advance \CDR@linenosep \mdflength{innerleftmargin}%
-}
-
-\newcommand\CDR@tcolorbox@margin{%
-  \advance \CDR@linenosep \kvtcb@left@rule
-  \advance \CDR@linenosep \kvtcb@leftupper
-  \advance \CDR@linenosep \kvtcb@boxsep
-}
-
-\newcommand\CDR@boite@margin{%
-  \advance \CDR@linenosep \boite@leftrule
-  \advance \CDR@linenosep \boite@boxsep
-}
-
-\def\CDR@global@options{}
-
-\newcommand\setpygmented[1]{%
-  \def\CDR@global@options{/CDR.cd,#1}%
-}
+%
+%\newcommand\CDR@tcbox@more@options{%
+%  nobeforeafter,%
+%  tcbox~raise~base,%
+%  left=0mm,%
+%  right=0mm,%
+%  top=0mm,%
+%  bottom=0mm,%
+%  boxsep=2pt,%
+%  arc=1pt,%
+%  boxrule=0pt,%
+%  \CDR_options_if_in:nT {colback} {
+%    colback=\CDR:n {colback}
+%  }
+%}
+%
+%\newcommand\CDR@mdframed@more@options{%
+%  leftmargin=\CDR@leftmargin,%
+%  frametitlerule=true,%
+%  \CDR_if_in:nT {colback} {
+%    backgroundcolor=\CDR:n {colback}
+%  }
+%}
+%
+%\newcommand\CDR@tcolorbox@more@options{%
+%  grow~to~left~by=-\CDR@leftmargin,%
+%  \CDR_if_in:nNT {colback} {
+%    colback=\CDR:n {colback}
+%  }
+%}
+%
+%\newcommand\CDR@boite@more@options{%
+%  leftmargin=\CDR@leftmargin,%
+%  \ifcsname CDR@opt@colback\endcsname
+%    colback=\CDR@opt@colback,%
+%  \fi
+%}
+%
+%\newcommand\CDR@mdframed@margin{%
+%  \advance \CDR@linenosep \mdflength{outerlinewidth}%
+%  \advance \CDR@linenosep \mdflength{middlelinewidth}%
+%  \advance \CDR@linenosep \mdflength{innerlinewidth}%
+%  \advance \CDR@linenosep \mdflength{innerleftmargin}%
+%}
+%
+%\newcommand\CDR@tcolorbox@margin{%
+%  \advance \CDR@linenosep \kvtcb@left@rule
+%  \advance \CDR@linenosep \kvtcb@leftupper
+%  \advance \CDR@linenosep \kvtcb@boxsep
+%}
+%
+%\newcommand\CDR@boite@margin{%
+%  \advance \CDR@linenosep \boite@leftrule
+%  \advance \CDR@linenosep \boite@boxsep
+%}
+%
+%\def\CDR@global@options{}
+%
+%\newcommand\setpygmented[1]{%
+%  \def\CDR@global@options{/CDR.cd,#1}%
+%}
 
 %    \end{MacroCode}
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
-%
 %
 %
 %

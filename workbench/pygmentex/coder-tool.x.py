@@ -58,11 +58,7 @@ class TeXOpts(BaseOpts):
 \CDR@StyleDefine{<placeholder:style_name>} {%
   <placeholder:style_defs>}%
 \makeatother'''
-  single_line_template =r'''\CDR@Line{Single{<placeholder:number>}{<placeholder:line>}'''
-  first_line_template  =r'''\CDR@Line{First}{<placeholder:number>}{<placeholder:line>}'''
-  second_line_template =r'''\CDR@Line{Second}{<placeholder:number>}{<placeholder:line>}'''
-  white_line_template  =r'''\CDR@Line{White}{<placeholder:number>}{<placeholder:line>}'''
-  black_line_template  =r'''\CDR@Line{Black}{<placeholder:number>}{<placeholder:line>}'''
+  line_template =r'''\CDR@Line{<placeholder:type>}{<placeholder:number>}{<placeholder:line>}'''
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
     self.inline_p  = self.ensure_bool(self.is_inline)
@@ -328,30 +324,32 @@ file name with extension, contains processing information.
     number = firstnumber
     stepnumber = fv_opts.stepnumber
     numbering = fv_opts.numbers != 'none'
-    def more(template, line):
+    def more(type, line):
       nonlocal number
-      ans_code.append(template.replace(
+      ans_code.append(texopts.line_template.replace(
+          '<placeholder:type>', f'{type}',
+        ).replace(
           '<placeholder:number>', f'{number}',
         ).replace(
           '<placeholder:line>', line,
       ))
       number += 1
     if len(lines) == 1:
-      more(texopts.single_line_template, lines.pop(0))
+      more('Single', lines.pop(0))
     elif len(lines):
-      more(texopts.first_line_template, lines.pop(0))
-      more(texopts.second_line_template, lines.pop(0))
+      more('First', lines.pop(0))
+      more('Second', lines.pop(0))
       if stepnumber < 2:
         def template():
-          return texopts.black_line_template
+          return 'Black'
       elif stepnumber % 5 == 0:
         def template():
-          return texopts.black_line_template if number %\
-            stepnumber == 0 else texopts.white_line_template
+          return 'Black' if number %\
+            stepnumber == 0 else 'White'
       else:
         def template():
-          return texopts.black_line_template if (number - firstnumber) %\
-            stepnumber == 0 else texopts.white_line_template
+          return 'Black' if (number - firstnumber) %\
+            stepnumber == 0 else 'White'
 
       for line in lines:
         more(template(), line)
@@ -371,11 +369,10 @@ file name with extension, contains processing information.
     pyg_tex_p = Path(base).with_suffix('.pyg.tex')
     hilighted, count = self.pygmentize(source)
     with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
-      if count:
-        f.write(rf'''\CDR@Total{{{count}}}''')
       f.write(hilighted)
     if args.debug:
       print('HILIGHTED', os.path.relpath(pyg_tex_p))
+    self.lua_command_now(f'self:hilight_complete({count})')
 if __name__ == '__main__':
   try:
     ctrl = Controller()

@@ -61,13 +61,9 @@ ESSAI
 
 \def\CDR@Total#1{\typeout{TOTAL:\space#1}}
 
-\cs_set:Npn \CDR@StyleUseTag {
-  \CDR@StyleUse { \CDR_tag_get:c { style } }
-  \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
-}
-
 
 \cs_new:Npn \CDR@Line #1 #2 #3 {
+  \typeout{CDR@Line:\the\leftmargin/#1/#2}
   \hbox to \hsize {
     \kern \leftmargin
     \use:c { CDR@Number#1 } { #2 }
@@ -141,7 +137,7 @@ ESSAI
     \clist_gset_eq:NN \g_CDR_tags_clist \l_CDR_tags_clist
   }
   \lua_now:n {
-    CDR:hilight_block_prepare('l_CDR_tags_clist')
+    CDR:hilight_block_setup('l_CDR_tags_clist')
   }
 %    \end{MacroCode}
 % |\l_CDR_pygments_bool| is |true| iff one of the tags needs \pkg{pygments} or there is no tag and |pygments=true| was given.
@@ -151,7 +147,6 @@ ESSAI
     \bool_set:Nn \l_CDR_pygments_bool {
       \CDR_if_tag_truthy_p:c { pygments }
     }
-    \typeout{ VOID~TAG~PYG: \bool_if:NTF \l_CDR_pygments_bool TF}
   } {
     \bool_if:NF \l_CDR_pygments_bool {
       \clist_map_inline:Nn \l_CDR_tags_clist {
@@ -162,12 +157,10 @@ ESSAI
         }
       }
     }
-    \typeout{ NON~VOID~TAG~PYG: \bool_if:NTF \l_CDR_pygments_bool TF}
   }
 %    \end{MacroCode}
 % Now we setup the full inheritance tree.
 %    \begin{MacroCode}
-  \typeout{STEPB}
   \CDR_tag_inherit:cf { __local } {
     \l_CDR_tags_clist,
     __block, default.block, __pygments.block, __fancyvrb.block, __fancyvrb.number,
@@ -197,15 +190,12 @@ ESSAI
     \lua_now:n { CDR:hilight_set_var('debug') }
     \CDR_tag_get:cN {style} \l_CDR_tl
     \lua_now:n { CDR:hilight_set_var('style') }
-    \CDR@StyleIfExist { \l_CDR_tl } {
-      \typeout { ALREADY~STYLE:~\l_CDR_tl}
-      \CDR@StyleUseTag
-    } {
-      \typeout { LOOKING~FOR:~\l_CDR_tl}
+    \CDR@StyleIfExist { \l_CDR_tl } { } {
       \lua_now:n { CDR:hilight_source(true, false) }
+      \input { \l_CR_pyg_sty_tl }
     }
+    \CDR@StyleUseTag
     \CDR_if_tag_truthy:cTF {no~export} {
-      \typeout{NO~EXPORT+PYGMENTS}
       \clist_map_inline:nn { i, ii, iii, iv } {
         \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
           \tl_set:Nn \l_CDR_tl { ####1 }
@@ -213,7 +203,6 @@ ESSAI
         }
       }
     } {
-      \typeout{EXPORT+PYGMENTS}
       \clist_map_inline:nn { i, ii, iii, iv } {
         \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
           \tl_set:Nn \l_CDR_tl { ####1 }
@@ -240,10 +229,7 @@ ESSAI
   } {
     \exp_args:NNV
     \def \FV@KeyValues \l_CDR_keyval_tl
-    \CDR_if_tag_truthy:cTF {no~export} {
-      \typeout{NO~EXPORT+NO~PYGMENTS}
-    } {
-      \typeout{EXPORT+NO~PYGMENTS}
+    \CDR_if_tag_truthy:cF {no~export} {
       \clist_map_inline:nn { i, ii, iii, iv } {
         \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
           \tl_set:Nn \l_CDR_tl { ####1 }
@@ -264,8 +250,9 @@ ESSAI
     \fvset{ commandchars=\\\{\} }
     \CDR@DefineSp
     \FV@VerbatimBegin
-    \makeatletter
     \lua_now:n { CDR:hilight_source(false, true) }
+    \makeatletter
+    \input{ \l_CDR_pyg_tex_tl }
     \makeatother
   }
   \FV@VerbatimEnd
@@ -276,18 +263,16 @@ ESSAI
 
 
 \ExplSyntaxOff
+
 \makeatother
 \begin{luacode}
-local jobname = tex.jobname
-dir_p = './'..jobname..'.pygd/'
-local json  = require('lualibs-util-jsn')
 
 function CDR:cache_clean_unused()
 end
 
 \end{luacode}
 %
-\begin{CDRBlock} [
+\begin{CDRBlock}[
   tags=,
   fontfamily=menlo,
   fontsize=\Large,
@@ -306,7 +291,7 @@ end
 \typeout{IN PROGRESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS}
 Next should not be void
 \CDRSet{cache=false}
-\begin{CDRBlock} [
+\begin{CDRBlock}[
   tags=,
   fontfamily=menlo,
   fontsize=\large,
@@ -322,7 +307,7 @@ def foo(arg):
 
 Next should not be void
 \CDRSet{cache=false}
-\begin{CDRBlock} [
+\begin{CDRBlock}[
   tags=,
   fontfamily=menlo,
   fontsize=\large,

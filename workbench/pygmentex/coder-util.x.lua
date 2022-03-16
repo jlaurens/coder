@@ -172,6 +172,7 @@ local function hilight_source(self, sty, src)
   local pyg_sty_p
   if sty then
     pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
+    token.set_macro('l_CDR_pyg_sty_tl', pyg_sty_p)
     texopts.pyg_sty_p = pyg_sty_p
     local mode,_,__ = lfs.attributes(pyg_sty_p, 'mode')
     if not mode or not use_cache then
@@ -192,14 +193,16 @@ local function hilight_source(self, sty, src)
       local ll = self['.lines']
       source = table.concat(ll, '\n')
     end
-    local base = dir_p..md5.sumhexa( ('%s:%s:%s'
+    local hash = md5.sumhexa( ('%s:%s:%s'
       ):format(
         source,
         inline and 'code' or 'block',
         pygopts.style
       )
     )
+    local base = dir_p..hash
     pyg_tex_p = base..'.pyg.tex'
+    token.set_macro('l_CDR_pyg_tex_tl', pyg_tex_p)
     local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
     if not mode or not use_cache then
       use_py = true
@@ -234,6 +237,7 @@ local function hilight_source(self, sty, src)
       print('CDR>'..cmd)
     end
     local o = io.popen(cmd):read('a')
+    self:load_exec_output(o)
     if debug then
       print('PYTHON', o)
     end
@@ -242,37 +246,11 @@ local function hilight_source(self, sty, src)
     sty and pyg_sty_p or nil,
     src and pyg_tex_p or nil
   )
-  cmd = [=[''
-  if sty then
-    cmd = [[\CDR@StyleInput{]]..pyg_sty_p..[[}]]
-  end
-  if src then
-    cmd = cmd..[[\CDR@SourceInput{]]..pyg_tex_p..[[}]]
-  end
-  if #cmd > 0 then
-    cmd = [[\makeatletter]]..cmd..[[\makeatother]]
-    tex.print(cmd)
-  end
-  ]=]
-  if sty then
-    cmd = [[{]]..pyg_sty_p..[[}]]
-  else
-    cmd = '{}'
-  end
-  if src then
-    cmd = cmd..[[{]]..pyg_tex_p..[[}]]
-  else
-    cmd = cmd..'{}'
-  end
-  if #cmd > 4 then
-    cmd = [[\makeatletter\CDR@Callback]]..cmd..[[\makeatother]]
-    tex.print(cmd)
-  end
-  if debug then
-    print('CDR<'..cmd)
-  end
 end
-local function hilight_code_prepare(self)
+local function hilight_complete(self, count)
+  token.set_macro('l_CDR_count_tl', count)
+end
+local function hilight_code_setup(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
     source  = '',
@@ -296,7 +274,7 @@ local function hilight_code_prepare(self)
   self.hilight_json_written = false
 end
 
-local function hilight_block_prepare(self, tags_clist_var)
+local function hilight_block_setup(self, tags_clist_var)
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
   local t = {}
   for tag in string.gmatch(tags_clist, '([^,]+)') do
@@ -424,8 +402,9 @@ return {
   hilight_set_var    = hilight_set_var,
   hilight_source     = hilight_source,
   hilight_advance    = hilight_advance,
-  hilight_code_prepare = hilight_code_prepare,
-  hilight_block_prepare = hilight_block_prepare,
+  hilight_complete        = hilight_complete,
+  hilight_code_setup = hilight_code_setup,
+  hilight_block_setup = hilight_block_setup,
   cache_clean_all    = cache_clean_all,
   cache_record       = cache_record,
   cache_clean_unused = cache_clean_unused,
