@@ -323,7 +323,7 @@ and the derived files           \jobname.ins,
 %
 % \section{Namespace and conventions}
 % \LaTeX{} identifiers related to \pkg{\jobname} start with |CDR|,
-% including both commands and evironments.
+% including both commands and evironment.
 % \pkg{expl3} identifiers also start with |CDR|, after and eventual leading |c_|, |l_| or |g_|.
 % \pkg{l3keys} module path's first component is either |CDR|
 % or starts with |CDR@|.
@@ -342,7 +342,7 @@ and the derived files           \jobname.ins,
 % \pkg{\jobname} is a triptych of three complementary components
 % \begin{enumerate}
 % \item \CDRSty, on the \LaTeX{} side,
-% \item \CDRLua, to store data and call \CDRPy,
+% \item \CDRLua, to manage some data and call \CDRPy,
 % \item \CDRPy, to color code with the help of \pkg{pygments}.
 % \end{enumerate}
 % \CDRSty{} mainly declares the \cs{CDRCode} command and the |CDRBlock| environment.
@@ -357,16 +357,18 @@ and the derived files           \jobname.ins,
 % \begin{enumerate}
 % \item from \CDRSty{}, \LaTeX{} parses a code snippet as |\CDRCode| argument
 % of |CDRBlock| environment body, somehow stores it,
-% and calls either |CDR:hilight_source|,
+% and calls |CDR:hilight_source|,
 % \item \CDRLua{} reads the content of some command, and stores it in a |json| file,
 % together with informations to process this code snippet properly,
 % \item \CDRPy{} is asked by \CDRLua{} to read the |json| file and eventually uses \pkg{pygments} to translate
 % the code snippet into dedicated \LaTeX{} coloring commands. These are stored in a |*.pyg.tex| file
 % named after the md5 digest of the original code chunck,
 % a |*.pyg.sty| \LaTeX{} style file is recorded as well.
-% On return, \CDRPy{} gives to \CDRLua{} some \LaTeX{} instructions to both input the |*.pyg.sty| and
-% the |*.pyg.tex| file, these are finally executed and the code is displayed with colors.
-% \CDRPy{} is also partially responsible of code line numbering.
+% On return, \CDRPy{} gives to \CDRLua{} some information,
+% to allow the input of both the |*.pyg.sty| and
+% the |*.pyg.tex| file, which are finally executed and the code is displayed with colors.
+% \CDRPy{} is also partially responsible of code line numbering
+% in conjunction with \CDRSty{}.
 % \end{enumerate}
 %
 % The package \CDRSty{} only exchanges with \CDRLua{} using |\directlua| and |tex.print|.
@@ -719,12 +721,12 @@ end
 %   \meta{false code}
 % end
 % \end{syntax}
-% Execute \metatt{false code} if \metatt{string} is the string ``false'',
-% \metatt{true code} otherwise.
+% Execute \metatt{true code} if \metatt{string} is the string ``true'',
+% \metatt{false code} otherwise.
 % \end{function}
 %    \begin{MacroCode}[OK]
 local function is_truthy(s)
-  return s ~= 'false'
+  return s == 'true'
 end
 %    \end{MacroCode}
 %
@@ -1951,18 +1953,18 @@ if __name__ == '__main__':
 % \begin{variable}{\c_CDR_tag,\c_CDR_Tags}
 % Paths of \pkg{L3keys} modules.\\
 % These are root path components used throughout the pakage.
+% The latter is a subpath of the former.
 %    \begin{MacroCode}[OK]
 \str_const:Nn \c_CDR_Tags { CDR@Tags }
 \str_const:Nx \c_CDR_tag { \c_CDR_Tags/tag }
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{variable}{\c_CDR_tag_get, \c_CDR_slash}
+% \begin{variable}{\c_CDR_tag_get}
 % Root identifier for tag properties, used throughout the pakage.
 % \vspace{1\baselineskip}
 %    \begin{MacroCode}[OK]
 \str_const:Nn \c_CDR_tag_get { CDR@tag@get }
-\str_const:Nx \c_CDR_slash { \tl_to_str:n {/} }
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -2114,9 +2116,123 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
+% \subsection{Counters}
+%
+% \begin{function}{\CDR_int_new:cn}
+% \begin{syntax}
+% \cs{CDR_int_new:cn} \Arg{tag name} \Arg{value}
+% \end{syntax}
+% Create an integer after \metatt{tag name} and
+% set it globally to \metatt{value}.
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_int_new:cn #1 #2 {
+  \int_new:c { g_CDR@int.#1 }
+  \int_gset:cn { g_CDR@int.#1 } { #2 }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{variable}{\g_CDR@int.default, \g_CDR@int.<tag name>}
+% Generic and named line number counter.
+%    \begin{MacroCode}[OK]
+\CDR_int_new:cn { default } { 1 }
+%    \end{MacroCode}
+% \end{variable}
+%
+% \begin{function}[EXP,pTF]
+%   {\CDR_int_if_exist:c}
+%   \begin{syntax}
+%     \cs{CDR_int_if_exist:cTF} \Arg{tag name} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+%   Execute \metatt{true code} when
+% an integer named after \metatt{tag name} exists,
+% \metatt{false code} otherwise.
+%    \begin{MacroCode}[OK]
+\prg_new_conditional:Nnn \CDR_int_if_exist:c { p, T, F, TF } {
+  \int_if_exist:cTF { g_CDR@int.#1 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+%
+% \begin{function}[EXP,pTF]
+%   {\CDR_int_compare:cNn}
+%   \begin{syntax}
+%     \cs{CDR_int_compare:cNnTF} \Arg{tag name} \meta{operator} \Arg{intexpr_2} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+%   Forwards to |\int_compare...| with |\CDR_int_use:c { #1 }|.
+%    \begin{MacroCode}[OK]
+\prg_new_conditional:Nnn \CDR_int_compare:cNn { p, T, F, TF } {
+  \int_compare:nNnTF { \CDR_int_use:c { #1 } } #2 { #3 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+% \end{function}
+%
+% \begin{function}{\CDR_int_set:cn,\CDR_int_gset:cn}
+% \begin{syntax}
+% \cs{CDR_int_set:cn} \Arg{tag name} \Arg{value}
+% \end{syntax}
+% Set the integer named after \metatt{tag name} to the \metatt{value}. \cs{CDR_int_gset:cn} makes a global change.
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_int_set:cn #1 #2 {
+  \int_set:cn { g_CDR@int.#1 } { #2 }
+}
+\cs_new:Npn \CDR_int_gset:cn #1 #2 {
+  \int_gset:cn { g_CDR@int.#1 } { #2 }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}{\CDR_int_add:cn,\CDR_int_gadd:cn}
+% \begin{syntax}
+% \cs{CDR_int_add:cn} \Arg{tag name} \Arg{value}
+% \end{syntax}
+% Add the \metatt{value} to the integer named after \metatt{tag name}.
+% \cs{CDR_int_gadd:cn} makes a global change.
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_int_add:cn #1 #2 {
+  \int_add:cn { g_CDR@int.#1 } { #2 }
+}
+\cs_new:Npn \CDR_int_gadd:cn #1 #2 {
+  \int_gadd:cn { g_CDR@int.#1 } { #2 }
+}
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}{\CDR_int_sub:cn,\CDR_int_gsub:cn}
+% \begin{syntax}
+% \cs{CDR_int_sub:cn} \Arg{tag name} \Arg{value}
+% \end{syntax}
+% Substract the \metatt{value} from the integer named after \metatt{tag name}. \cs{CDR_int_gsub:n} makes a global change.
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_int_sub:cn #1 #2 {
+  \int_sub:cn { g_CDR@int.#1 } { #2 }
+}
+\cs_new:Npn \CDR_int_gsub:cn #1 #2 {
+  \int_gsub:cn { g_CDR@int.#1 } { #2 }
+}
+%    \end{MacroCode}
+% \end{function}
+%
+% \begin{function}[EXP]{\CDR_int_use:c}
+% \begin{syntax}
+% \cs{CDR_int_use:n} \Arg{tag name}
+% \end{syntax}
+% Use the integer named after \metatt{tag name}.
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_int_use:c #1 {
+  \int_use:c { g_CDR@int.#1 }
+}
+%    \end{MacroCode}
+% \end{function}
+%
 % \section{Tag properties}
 % The tag properties concern the code chunks.
-% They are set from different path, such that
+% They are set from different paths, such that
 % |\l_keys_path_str| must
 % be properly parsed for that purpose.
 % Commands in this section and the next ones contain |CDR_tag|.
@@ -2124,13 +2240,6 @@ if __name__ == '__main__':
 % The \metatt{tag names} starting with a double underscore are reserved by the package.
 %
 % \subsection{Helpers}
-% \begin{variable}{\g_CDR_tag_path_seq}
-% Global variable to store relative key path.
-% Used for automatic management to know what has been defined explicitly.
-%    \begin{MacroCode}[OK]
-\seq_new:N \g_CDR_tag_path_seq
-%    \end{MacroCode}
-% \end{variable}
 %
 % \begin{function}[EXP]{\CDR_tag_get_path:cc, \CDR_tag_get_path:c}
 % \begin{syntax}
@@ -2159,14 +2268,11 @@ if __name__ == '__main__':
 % |\CDR_tag_get:cc {|\metatt{tag name}|}| \linebreak[3]|{|\metatt{relative key path}|}|.
 % Only \metatt{tag name} and \metatt{relative key path}
 % containing no |@| character are supported.
-% Record the relative key path (the part after the tag name)
-% of the current full key path in |g_CDR_tag_path_seq|.
 % All the affectations are made at the current \TeX{} group level.
 % \emph{Nota Bene:} |\cs_generate_variant:Nn| is buggy when there is a `c' argument.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new_protected:Npn \CDR_tag_set:ccn #1 #2 #3 {
-  \seq_put_left:Nx \g_CDR_tag_path_seq { #2 }
   \cs_set:cpn { \CDR_tag_get_path:cc { #1 } { #2 } } { \exp_not:n { #3 } }
 }
 \cs_new_protected:Npn \CDR_tag_set:ccV #1 #2 #3 {
@@ -2194,12 +2300,12 @@ if __name__ == '__main__':
 % both are guessed from |\l_keys_path_str|.
 % More precisely, |\l_keys_path_str| is expected to read something like
 % \cs{c_CDR_tag}|/|\metatt{tag name}|/|\metatt{relative key path},
-% an exception is raised on the contrary.
-% This is meant to be call from |\keys_define:nn| argument.
+% an error is raised on the contrary.
+% This is meant to be called from |\keys_define:nn| argument.
 % Implementation detail: the last argument is parsed by the last command.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_tag_set:n {
+\cs_new_protected:Npn \CDR_tag_set:n {
   \exp_args:NnV
   \regex_extract_once:NnNTF \c_CDR_tag_regex
       \l_keys_path_str \l_CDR_seq {
@@ -2223,7 +2329,7 @@ if __name__ == '__main__':
 % This is meant to be call from |\keys_define:nn| argument.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_tag_set: {
+\cs_new_protected:Npn \CDR_tag_set: {
   \exp_args:NV
   \CDR_tag_set:n \l_keys_value_tl
 }
@@ -2285,19 +2391,19 @@ if __name__ == '__main__':
 % Before, ensure that the |\l_keys_path_str| is set properly.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_tag_choices_set: {
+\cs_new_protected:Npn \CDR_tag_choices_set: {
   \CDR_tag_choices:
   \exp_args:NV
   \CDR_tag_set:n \l_keys_choice_tl
 }
 %    \end{MacroCode}
 %
-% \begin{function}[EXP,TF]{ \CDR_if_tag_truthy:cc, \CDR_if_tag_truthy:cc }
+% \begin{function}[EXP,pTF]{ \CDR_if_tag_truthy:cc, \CDR_if_tag_truthy:c }
 % \begin{syntax}
-% \cs{CDR_if_truthy:ccTF} \Arg{tag name} \Arg{relative key path} \Arg{true code} \Arg{false code}
-% \cs{CDR_if_truthy:cTF} \Arg{relative key path} \Arg{true code} \Arg{false code}
+% \cs{CDR_if_tag_truthy:ccTF} \Arg{tag name} \Arg{relative key path} \Arg{true code} \Arg{false code}
+% \cs{CDR_if_tag_truthy:cTF} \Arg{relative key path} \Arg{true code} \Arg{false code}
 % \end{syntax}
-% Execute \metatt{true code} when te property for \metatt{tag name}
+% Execute \metatt{true code} when the property for \metatt{tag name}
 % and \metatt{relative key path} is a truthy value,
 % \metatt{false code} otherwise.
 % A truthy value is a text which is not ``false'' in a case insensitive comparison.
@@ -2308,25 +2414,25 @@ if __name__ == '__main__':
   \exp_args:Ne
   \str_compare:nNnTF {
     \exp_args:Ne \str_lowercase:n { \CDR_tag_get:cc { #1 } { #2 } }
-  } = { false } {
-    \prg_return_false:
-  } {
+  } = { true } {
     \prg_return_true:
+  } {
+    \prg_return_false:
   }
 }
 \prg_new_conditional:Nnn \CDR_if_tag_truthy:c { p, T,  F, TF } {
   \exp_args:Ne
   \str_compare:nNnTF {
     \exp_args:Ne \str_lowercase:n { \CDR_tag_get:c { #1 } }
-  } = { false } {
-    \prg_return_false:
-  } {
+  } = { true } {
     \prg_return_true:
+  } {
+    \prg_return_false:
   }
 }
 %    \end{MacroCode}
 %
-% \begin{function}[TF]{ \CDR_if_truthy:n, \CDR_if_truthy:e }
+% \begin{function}[EXP,pTF]{ \CDR_if_truthy:n }
 % \begin{syntax}
 % \cs{CDR_if_truthy:nTF} \Arg{token list} \Arg{true code} \Arg{false code}
 % \end{syntax}
@@ -2337,14 +2443,13 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDR_if_truthy:n { p, T,  F, TF } {
-  \exp_args:Nf
-  \str_compare:nNnTF { \str_lowercase:n { #1 } } = { false } {
-    \prg_return_false:
-  } {
+  \exp_args:Ne
+  \str_compare:nNnTF { \exp_args:Ne \str_lowercase:n { #1 } } = { true } {
     \prg_return_true:
+  } {
+    \prg_return_false:
   }
 }
-\prg_generate_conditional_variant:Nnn \CDR_if_truthy:n { e } { p, T, F, TF }
 %    \end{MacroCode}
 %
 % \begin{function}{\CDR_tag_boolean_set:n}
@@ -2891,7 +2996,7 @@ if __name__ == '__main__':
 % \itemtt[\CDRCheckRed commandprefix=\meta{text}]^^A
 % The \LaTeX{} commands used to produce colored output are constructed
 %        using this prefix and some letters.
-% Initially |PY|.
+% Initially |Py|.
 %    \begin{MacroCode}[OK]
   commandprefix .code:n = \CDR_tag_set:,
   commandprefix .value_required:n = true,
@@ -3086,15 +3191,15 @@ if __name__ == '__main__':
 % \itemtt[\CDRCheckRed show tags{[=true$\vert$false]}]^^A
 % to enable/disable the display
 % of the code chunks tags.
-% Initially |true|.
+% Initially |true|. Set it to false when there happens to be only one tag.
 % \itemtt[\CDRCheckRed tags=\meta{tag name comma list}]^^A
 % to export and display.
 %    \begin{MacroCode}
   tags .code:n = {
-    \clist_set:Nn \l_CDR_tags_clist { #1 }
-    \clist_remove_duplicates:N \l_CDR_tags_clist
+    \clist_set:Nn \l_CDR_clist { #1 }
+    \clist_remove_duplicates:N \l_CDR_clist
     \exp_args:NV
-    \CDR_tag_set:n \l_CDR_tags_clist
+    \CDR_tag_set:n \l_CDR_clist
   },
   tags .value_required:n = true,
 %    \end{MacroCode}
@@ -3805,12 +3910,14 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{variable}{\l_CDR_tags_clist, \g_CDR_tags_clist}
-% Used by \texttt{CDR@Export} \pkg{l3keys} module to temporarily store tags
-% during the export declaration.
+% \begin{variable}{\g_CDR_tags_clist, \g_CDR_all_tags_clist}
+% Store the current list of tags used by |\CDRCode| and the
+% |CDRBlock| environment, or declared by |\CDRExport|.
+% All the tags are recorded, if there is an only one, it is not shown
+% in block code chunks.
 %    \begin{MacroCode}[OK]
-\clist_new:N \l_CDR_tags_clist
 \clist_new:N \g_CDR_tags_clist
+\clist_new:N \g_CDR_all_tags_clist
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -3840,9 +3947,9 @@ if __name__ == '__main__':
 % Initially empty.
 %    \begin{MacroCode}[OK]
   tags .code:n = {
-    \clist_set:Nn \l_CDR_tags_clist { #1 }
-    \clist_remove_duplicates:N \l_CDR_tags_clist
-    \prop_put:NVV \l_CDR_prop \l_keys_key_str \l_CDR_tags_clist
+    \clist_set:Nn \l_CDR_clist { #1 }
+    \clist_remove_duplicates:N \l_CDR_clist
+    \prop_put:NVV \l_CDR_export_prop \l_keys_key_str \l_CDR_clist
   },
   tags .value_required:n = true,
 %    \end{MacroCode}
@@ -3851,7 +3958,7 @@ if __name__ == '__main__':
 % Initially |tex|.
 %    \begin{MacroCode}[OK]
   lang .code:n = {
-    \prop_put:NVn \l_CDR_prop \l_keys_key_str { #1 }
+    \prop_put:NVn \l_CDR_export_prop \l_keys_key_str { #1 }
   },
   lang .value_required:n = true,
 %    \end{MacroCode}
@@ -3860,7 +3967,7 @@ if __name__ == '__main__':
 % Initially empty.
 %    \begin{MacroCode}[OK]
   preamble .code:n = {
-    \prop_put:NVn \l_CDR_prop \l_keys_key_str { #1 }
+    \prop_put:NVn \l_CDR_export_prop \l_keys_key_str { #1 }
   },
   preamble .value_required:n = true,
 %    \end{MacroCode}
@@ -3869,7 +3976,7 @@ if __name__ == '__main__':
 % Initially empty.
 %    \begin{MacroCode}[OK]
   postamble .code:n = {
-    \prop_put:NVn \l_CDR_prop \l_keys_key_str { #1 }
+    \prop_put:NVn \l_CDR_export_prop \l_keys_key_str { #1 }
   },
   postamble .value_required:n = true,
 %    \end{MacroCode}
@@ -3878,7 +3985,7 @@ if __name__ == '__main__':
 % Initially |false|.
 %    \begin{MacroCode}[OK]
   raw .choices:nn = { false, true, {} } {
-    \prop_put:NVx \l_CDR_prop \l_keys_key_str {
+    \prop_put:NVx \l_CDR_export_prop \l_keys_key_str {
       \int_compare:nNnTF
         \l_keys_choice_int = 1 { false } { true }
     }
@@ -3920,7 +4027,7 @@ if __name__ == '__main__':
       { Missing~key~`file' }
   } {
     \CDR_export_set:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
-    \prop_map_inline:Nn \l_CDR_prop {
+    \prop_map_inline:Nn \l_CDR_export_prop {
       \CDR_export_set:Vcn \l_CDR_file_tl { ##1 } { ##2 }
     }
 %    \end{MacroCode}
@@ -3928,23 +4035,31 @@ if __name__ == '__main__':
 % Records the list in |\g_CDR_tags_clist|, it will be the default list
 % of forthcoming code blocks.
 %    \begin{MacroCode}[OK]
-    \tl_if_empty:NTF \l_CDR_tags_clist {
+    \prop_get:NnNTF \l_CDR_export_prop { tags } \l_CDR_clist {
+      \tl_if_empty:NTF \l_CDR_clist {
+        \PackageWarning
+          { coder }
+          { Missing~key~`tags' }
+      } {
+        \clist_set_eq:NN \g_CDR_tags_clist \l_CDR_clist
+        \clist_put_left:NV \g_CDR_all_tags_clist \l_CDR_clist
+        \clist_remove_duplicates:N \g_CDR_all_tags_clist
+        \CDR_export_set:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
+%    \end{MacroCode}
+% If a |lang| is given, forwards the declaration
+% to all the code chunks tagged within |\g_CDR_tags_clist|.
+%    \begin{MacroCode}[OK]
+        \exp_args:NV
+        \CDR_export_get:ccNT \l_CDR_file_tl { lang } \l_CDR_tl {
+          \clist_map_inline:Nn \g_CDR_tags_clist {
+            \CDR_tag_set:ccV { ##1 } { lang } \l_CDR_tl
+          }
+        }
+      }
+    } {
       \PackageWarning
         { coder }
         { Missing~key~`tags' }
-    } {
-      \clist_set_eq:NN \g_CDR_tags_clist \l_CDR_tags_clist
-      \CDR_export_set:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
-%    \end{MacroCode}
-% If a |lang| is given, forwards the declaration
-% to all the code chunks tagged within |\l_CDR_tags_clist|.
-%    \begin{MacroCode}[OK]
-      \exp_args:NV
-      \CDR_export_get:ccNT \l_CDR_file_tl { lang } \l_CDR_tl {
-        \clist_map_inline:Nn \l_CDR_tags_clist {
-          \CDR_tag_set:ccV { ##1 } { lang } \l_CDR_tl
-        }
-      }
     }
   }
 }
@@ -4650,12 +4765,6 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \subsection{Context}
-% Inside the |CDRBlock| environments,
-% some local variables are available:
-% \begin{description}
-% \item [\CDRCheckRed \cs{l_CDR_tags_clist}]
-% \end{description}
 % \subsection{Implementation}
 % We start by saving some \pkg{fancyvrb} macros that we further want to extend.
 % The unique mandatory argument of these macros will eventually be recorded
@@ -4671,7 +4780,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %
 %    \begin{MacroCode}
-\def\FVB@CDRBlock #1 {
+\def\FVB@CDRBlock {
   \@bsphack
   \group_begin:
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
@@ -4696,31 +4805,30 @@ if __name__ == '__main__':
 % At least one tag must be provided.
 %    \begin{MacroCode}
   \CDR_tag_inherit:cn { __local } { default.block }
-  \CDR_tag_get:cN { tags } \l_CDR_tags_clist
-  \clist_if_empty:NTF \l_CDR_tags_clist {
-    \tl_set_eq:NN \l_CDR_tags_clist \g_CDR_tags_clist
-    \clist_if_empty:NT \l_CDR_tags_clist {
+  \CDR_tag_get:cN { tags } \l_CDR_clist
+  \clist_if_empty:NTF \l_CDR_clist {
+    \clist_if_empty:NT \g_CDR_tags_clist {
       \PackageWarning
         { coder }
         { No~(default)~tags~provided. }
     }
   } {
-    \clist_gset_eq:NN \g_CDR_tags_clist \l_CDR_tags_clist
+    \clist_gset_eq:NN \g_CDR_tags_clist \l_CDR_clist
   }
   \lua_now:n {
-    CDR:hilight_block_setup('l_CDR_tags_clist')
+    CDR:hilight_block_setup('g_CDR_tags_clist')
   }
 %    \end{MacroCode}
 % |\l_CDR_pygments_bool| is |true| iff one of the tags needs \pkg{pygments} or there is no tag and |pygments=true| was given.
 %    \begin{MacroCode}
   \bool_set_false:N \l_CDR_pygments_bool
-  \clist_if_empty:NTF \l_CDR_tags_clist {
+  \clist_if_empty:NTF \g_CDR_tags_clist {
     \bool_set:Nn \l_CDR_pygments_bool {
       \CDR_if_tag_truthy_p:c { pygments }
     }
   } {
     \bool_if:NF \l_CDR_pygments_bool {
-      \clist_map_inline:Nn \l_CDR_tags_clist {
+      \clist_map_inline:Nn \g_CDR_tags_clist {
         \CDR_if_tag_truthy:ccT { ##1 } { pygments } {
           \clist_map_break:n {
             \bool_set_true:N \l_CDR_pygments_bool
@@ -4733,7 +4841,7 @@ if __name__ == '__main__':
 % Now we setup the full inheritance tree.
 %    \begin{MacroCode}
   \CDR_tag_inherit:cf { __local } {
-    \l_CDR_tags_clist,
+    \g_CDR_tags_clist,
     __block, default.block, __pygments.block, __fancyvrb.block, __fancyvrb.number,
      __pygments, default, __fancyvrb,
   }
@@ -4763,7 +4871,7 @@ if __name__ == '__main__':
     \lua_now:n { CDR:hilight_set_var('style') }
     \CDR@StyleIfExist { \l_CDR_tl } { } {
       \lua_now:n { CDR:hilight_source(true, false) }
-      \input { \l_CR_pyg_sty_tl }
+      \input { \l_CDR_pyg_sty_tl }
     }
     \CDR@StyleUseTag
     \CDR_if_tag_truthy:cTF {no~export} {
@@ -4815,7 +4923,7 @@ if __name__ == '__main__':
   }
   \FV@Scan
 }
-\def\FVE@CDRBlock{
+\def\FVE@CDRBlock {
   \bool_if:NT \l_CDR_pygments_bool {
     \CDR_tag_get:c { format }
     \fvset{ commandchars=\\\{\} }
@@ -5089,104 +5197,6 @@ if __name__ == '__main__':
 %
 %
 %
-% \section{Counters}
-% \begin{function}{\CDR_int_new:nn}
-% \begin{syntax}
-% \cs{CDR_int_new:n} \Arg{name} \Arg{value}
-% \end{syntax}
-% Create an integer after \meta{name} and
-% set it globally to \meta{value}.
-% \meta{name} is a code name.
-%    \begin{MacroCode}
-\cs_new:Npn \CDR_int_new:nn #1 #2 {
-  \int_new:c {g/CDR/int/#1}
-  \int_gset:cn {g/CDR/int/#1} { #2 }
-}
-%    \end{MacroCode}
-% \end{function}
-% \begin{function}{\CDR_int_set:nn,\CDR_int_gset:nn}
-% \begin{syntax}
-% \cs{CDR_int_set:n} \Arg{name} \Arg{value}
-% \end{syntax}
-% Set the integer named after \meta{name} to the \meta{value}. \cs{CDR_int_gset:n} makes a global change.
-% \meta{name} is a code name.
-%    \begin{MacroCode}
-\cs_new:Npn \CDR_int_set:nn #1 #2 {
-  \int_set:cn {g/CDR/int/#1} { #2 }
-}
-\cs_new:Npn \CDR_int_gset:nn #1 #2 {
-  \int_gset:cn {g/CDR/int/#1} { #2 }
-}
-%    \end{MacroCode}
-% \end{function}
-% \begin{function}{\CDR_int_add:nn,\CDR_int_gadd:nn}
-% \begin{syntax}
-% \cs{CDR_int_add:n} \Arg{name} \Arg{value}
-% \end{syntax}
-% Add the \meta{value} to the integer named after \meta{name}. \cs{CDR_int_gadd:n} makes a global change.
-% \meta{name} is a code name.
-%    \begin{MacroCode}
-\cs_new:Npn \CDR_int_add:nn #1 #2 {
-  \int_add:cn {g/CDR/int/#1} { #2 }
-}
-\cs_new:Npn \CDR_int_gadd:nn #1 #2 {
-  \int_gadd:cn {g/CDR/int/#1} { #2 }
-}
-%    \end{MacroCode}
-% \end{function}
-% \begin{function}{\CDR_int_sub:nn,\CDR_int_gsub:nn}
-% \begin{syntax}
-% \cs{CDR_int_sub:n} \Arg{name} \Arg{value}
-% \end{syntax}
-% Substract the \meta{value} from the integer named after \meta{name}. \cs{CDR_int_gsub:n} makes a global change.
-% \meta{name} is a code name.
-%    \begin{MacroCode}
-\cs_new:Npn \CDR_int_sub:nn #1 #2 {
-  \int_sub:cn {g/CDR/int/#1} { #2 }
-}
-\cs_new:Npn \CDR_int_gsub:nn #1 #2 {
-  \int_gsub:cn {g/CDR/int/#1} { #2 }
-}
-%    \end{MacroCode}
-% \end{function}
-% \begin{function}[TF]
-%   {\CDR_int_if_exist:n}
-%   \begin{syntax}
-%     \cs{CDR_int_if_exist:nTF} \Arg{name} \Arg{true code} \Arg{false code}
-%   \end{syntax}
-%   Execute \meta{true code} when
-% an integer named after \meta{name} exist,
-% \meta{false code} otherwise.
-%    \begin{MacroCode}
-\prg_new_conditional:Nnn \CDR_int_if_exist:n { T, F, TF } {
-  \int_if_exist:cTF {g/CDR/int/#1} {
-    \prg_return_true:
-  } {
-    \prg_return_false:
-  }
-}
-%    \end{MacroCode}
-% \end{function}
-% \begin{variable}{\g/CDR/int/}
-% \begin{variable}{\g/CDR/int/<name>}
-% Generic and named line number counter.
-% \cs{l_CDR_code_name_t} is used as \meta{name}.
-%    \begin{MacroCode}
-\CDR_int_new:nn {} { 1 }
-%    \end{MacroCode}
-% \end{variable}
-% \end{variable}
-% \begin{function}[EXP]{\CDR_int_use:n}
-% \begin{syntax}
-% \cs{CDR_int_use:n} \Arg{name}
-% \end{syntax}
-% \meta{name} is a code name.
-%    \begin{MacroCode}
-\cs_new:Npn \CDR_int_use:n #1 {
-  \int_use:c {g/CDR/int/#1}
-}
-%    \end{MacroCode}
-% \end{function}
 %
 %
 %    \begin{MacroCode}

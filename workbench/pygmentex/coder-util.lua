@@ -37,7 +37,7 @@ local function set_python_path(self, path_var)
   self.PYTHON_PATH = path
 end
 local function is_truthy(s)
-  return s ~= 'false'
+  return s == 'true'
 end
 local function escape(s)
   s = s:gsub(' ','\\ ')

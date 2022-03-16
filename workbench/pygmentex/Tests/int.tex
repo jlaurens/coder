@@ -1,0 +1,83 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+Tests of \texttt{int}
+\noindent
+
+\ExplSyntaxOn
+\group_begin:
+
+\cs_set:Npn \CDRTestUnitA #1 #2 #3 {
+  \exp_args:Nx
+  \tl_if_eq:nnTF {
+    \CDR_int_if_exist:cTF { #1 } TF
+  } T {
+    #2
+  } {
+    #3
+  }\\
+  \exp_args:Nx
+  \tl_if_eq:nnTF {
+    \bool_if:nTF { \CDR_int_if_exist_p:c { default } } TF
+  } T {
+    #2
+  } {
+    #3
+  }\\
+}
+
+\cs_set:Npn \CDRTestUnitB #1 #2 #3 #4 {
+  \int_compare:nNnTF {
+    \CDR_int_use:c { #1 }
+  } = {
+    #2
+  } {
+    #3
+  } {
+    #4
+  }\\
+  \CDR_int_compare:cNnTF {
+    #1
+  } = {
+    #2
+  } {
+    #3
+  } {
+    #4
+  }\\
+}
+
+\group_begin:
+
+\CDRTestUnitA { default } { SUCCESS } { FAILURE }
+\CDRTestUnitB { default } { 1 } { SUCCESS } { FAILURE }
+
+\CDR_int_set:cn { default } { 421 }
+\CDRTestUnitB { default } { 421 } { SUCCESS } { FAILURE }
+
+\CDR_int_add:cn { default } { -310 }
+\CDRTestUnitB { default } { 111 } { SUCCESS } { FAILURE }
+
+\CDR_int_sub:cn { default } { -222 }
+\CDRTestUnitB { default } { 333 } { SUCCESS } { FAILURE }
+
+
+\CDR_int_new:cn { Whatever } { 421 }
+
+\CDRTestUnitA { Whatever } { SUCCESS } { FAILURE }
+\CDRTestUnitB { Whatever } { 421 } { SUCCESS } { FAILURE }
+
+\CDR_int_gadd:cn { Whatever } { -310 }
+\CDRTestUnitB { Whatever } { 111 } { SUCCESS } { FAILURE }
+
+\CDR_int_gsub:cn { Whatever } { -222 }
+\CDRTestUnitB { Whatever } { 333 } { SUCCESS } { FAILURE }
+
+\group_end:
+
+\CDRTestUnitB { default } { 1 } { SUCCESS } { FAILURE }
+\CDRTestUnitB { Whatever } { 333 } { SUCCESS } { FAILURE }
+
+\group_end:
+
+\ExplSyntaxOff
+
