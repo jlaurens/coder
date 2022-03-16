@@ -86,17 +86,6 @@ YYY
 
 \makeatletter
 
-\cs_new:Npn \CDR@Callback #1 #2 {
-  \typeout{CDR@Callback:#1/#2/}
-  \tl_if_empty:nF { #1 } {
-    \input{#1}
-    \CDR@StyleUseTag
-  }
-  \tl_if_empty:nF { #2 } {
-    \input{#2}
-  }
-}
-
 \cs_new:Npn \CDR@StyleInput #1 {
   \typeout{CDR@StyleInput:#1/}
   \input{#1}
@@ -134,6 +123,7 @@ YYY
         \FV@DefineWhiteSpace
         \FancyVerbDefineActive
         \FancyVerbFormatCom
+        \CDR@DefineSp
         \CDR_code_format:
         \CDR_tag_get:c { format }
 \typeout{DEBUG...................1.\CDR_tag_get:c { style }.\l_CDR_style_tl}
@@ -201,7 +191,7 @@ YYY
   \CDR_code:n
 }
 \makeatother
-
+\ExplSyntaxOff
 
 \CDRSet{cache=false,debug=true}
 \CDRSet{pygments=false}
@@ -223,6 +213,7 @@ B\\
 3\\
 \CDRCode[fontsize=\Large]|<fontsize=\Large>|\\
 4\\
+\ExplSyntaxOn
 \group_begin:
 \cs_set:Npn \PackageError #1 #2 #3 {
 \tl_to_str:n{\PackageError} #1\\

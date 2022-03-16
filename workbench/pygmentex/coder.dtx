@@ -961,7 +961,6 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function hilight_source(self, sty, src)
-  tex.write('THIS IS A TEST')
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
@@ -1102,9 +1101,8 @@ local function hilight_code_prepare(self)
       is_inline = true,
       pyg_sty_p = '',
     },
-    fvopts = {
+    fv_opts = {
       __cls__ = 'FVOpts',
-      showspaces = false,
     }
   }
   self.hilight_json_written = false
@@ -1147,9 +1145,8 @@ local function hilight_block_prepare(self, tags_clist_var)
       is_inline = false,
       pyg_sty_p = '',
     },
-    fvopts = {
+    fv_opts = {
       __cls__ = 'FVOpts',
-      showspaces = false,
     }
   }
   self.hilight_json_written = false
@@ -1849,7 +1846,7 @@ file name with extension, contains processing information.
     hilighted = m.group(1)
     texopts = self.texopts
     if texopts.is_inline:
-      return hilighted, 0
+      return hilighted.replace(' ', r'\CDR@Sp '), 0
     fv_opts = self.fv_opts
     lines = hilighted.split('\n')
     ans_code = []
@@ -4294,6 +4291,23 @@ if __name__ == '__main__':
 % \section{\cs{CDRCode} function}
 %
 % \subsection{API}
+% \begin{function}{\CDR@Sp}
+% \begin{syntax}
+% \cs{CDR@Sp}
+% \end{syntax}
+% Private method to eventually make the space character visible using
+% |\FancyVerbSpace| base on |showspaces| value.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR@DefineSp {
+  \CDR_if_tag_truthy:cTF { showspaces } {
+    \cs_set:Npn \CDR@Sp {{\FancyVerbSpace}}
+  } {
+    \cs_set_eq:NN \CDR@Sp \space
+  }
+}
+%    \end{MacroCode}
+%
 % \begin{function}{\CDRCode}
 % \begin{syntax}
 % \cs{CDRCode}\Arg{key[=value]}\meta{delimiter}\meta{code}\meta{same delimiter}
@@ -4382,6 +4396,25 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
+% \begin{function}{\CDR@Callback}
+% \begin{syntax}
+% \cs{CDR@Callback} \Arg{pyg sty path} \Arg{pyg tex path}
+% \end{syntax}
+% Private utility to load a style or a pygmented source.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR@Callback #1 #2 {
+  \typeout{CDR@Callback:#1/#2/}
+  \tl_if_empty:nF { #1 } {
+    \input{#1}
+    \CDR@StyleUseTag
+  }
+  \tl_if_empty:nF { #2 } {
+    \input{#2}
+  }
+}
+%    \end{MacroCode}
+%
 % \begin{function}{\CDR_code:n}
 % \begin{syntax}
 % \cs{CDR_code:n} \meta{delimiter}
@@ -4421,6 +4454,7 @@ if __name__ == '__main__':
         \FancyVerbDefineActive
         \FancyVerbFormatCom
         \CDR_tag_get:c { format }
+        \CDR@DefineSp
         \CDR@CodeEngineApply {
           \CDR@StyleIfExist { \l_CDR_tl } {
             \CDR@StyleUseTag

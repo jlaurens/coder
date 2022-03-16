@@ -1020,6 +1020,13 @@
 \CDRBlockEngineNew {} {
 } {
 }
+\cs_new:Npn \CDR@DefineSp {
+  \CDR_if_tag_truthy:cTF { showspaces } {
+    \cs_set:Npn \CDR@Sp {{\FancyVerbSpace}}
+  } {
+    \cs_set_eq:NN \CDR@Sp \space
+  }
+}
 \tl_new:N \l_CDR_tag_tl
 \CDR_tag_keys_define:nn { __code } {
   tag .tl_set:N = \l_CDR_tag_tl,
@@ -1060,6 +1067,16 @@
   }
   \selectfont
 }
+\cs_new:Npn \CDR@Callback #1 #2 {
+  \typeout{CDR@Callback:#1/#2/}
+  \tl_if_empty:nF { #1 } {
+    \input{#1}
+    \CDR@StyleUseTag
+  }
+  \tl_if_empty:nF { #2 } {
+    \input{#2}
+  }
+}
 \cs_new:Npn \CDR_code:n #1 {
   \CDR_if_tag_truthy:cTF {pygments} {
     \cs_set:Npn \CDR@StyleUseTag {
@@ -1092,6 +1109,7 @@
         \FancyVerbDefineActive
         \FancyVerbFormatCom
         \CDR_tag_get:c { format }
+        \CDR@DefineSp
         \CDR@CodeEngineApply {
           \CDR@StyleIfExist { \l_CDR_tl } {
             \CDR@StyleUseTag

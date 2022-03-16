@@ -161,7 +161,6 @@ local function hilight_set_var(self, key, var)
   self:hilight_set(key, assert(token.get_macro(var or 'l_CDR_tl')))
 end
 local function hilight_source(self, sty, src)
-  tex.write('THIS IS A TEST')
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
@@ -289,6 +288,9 @@ local function hilight_code_prepare(self)
       tags    = '',
       is_inline = true,
       pyg_sty_p = '',
+    },
+    fv_opts = {
+      __cls__ = 'FVOpts',
     }
   }
   self.hilight_json_written = false
@@ -318,6 +320,9 @@ local function hilight_block_prepare(self, tags_clist_var)
       tags    = tags_clist,
       is_inline = false,
       pyg_sty_p = '',
+    },
+    fv_opts = {
+      __cls__ = 'FVOpts',
     }
   }
   self.hilight_json_written = false

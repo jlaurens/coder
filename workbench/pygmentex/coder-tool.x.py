@@ -317,7 +317,7 @@ file name with extension, contains processing information.
     hilighted = m.group(1)
     texopts = self.texopts
     if texopts.is_inline:
-      return hilighted, 0
+      return hilighted.replace(' ', r'\CDR@Sp '), 0
     fv_opts = self.fv_opts
     lines = hilighted.split('\n')
     ans_code = []

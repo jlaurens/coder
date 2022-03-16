@@ -177,7 +177,7 @@ local function hilight_source(self, sty, src)
     if not mode or not use_cache then
       use_py = true
       if debug then
-        print('PYTHON CREATE STYLE:', pygopts.style)
+        print('PYTHON STYLE:')
       end
       cmd = cmd..(' --create_style')
     end
@@ -288,6 +288,9 @@ local function hilight_code_prepare(self)
       tags    = '',
       is_inline = true,
       pyg_sty_p = '',
+    },
+    fv_opts = {
+      __cls__ = 'FVOpts',
     }
   }
   self.hilight_json_written = false
@@ -317,6 +320,9 @@ local function hilight_block_prepare(self, tags_clist_var)
       tags    = tags_clist,
       is_inline = false,
       pyg_sty_p = '',
+    },
+    fv_opts = {
+      __cls__ = 'FVOpts',
     }
   }
   self.hilight_json_written = false

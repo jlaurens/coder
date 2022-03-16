@@ -262,6 +262,7 @@ ESSAI
   \bool_if:NT \l_CDR_pygments_bool {
     \CDR_tag_get:c { format }
     \fvset{ commandchars=\\\{\} }
+    \CDR@DefineSp
     \FV@VerbatimBegin
     \makeatletter
     \lua_now:n { CDR:hilight_source(false, true) }
@@ -296,6 +297,7 @@ end
   frame=lines,
   format=\color{green},
   debug=true,
+  showspaces
 ]
 local f = function(arg)
   return arg ** arg
@@ -334,6 +336,7 @@ Next should not be void
   framesep=3mm,
   rulecolor=\color{red},
   fillcolor=\color{yellow},
+  showspaces
 ]
 function foo(arg)
   return arg ** arg
