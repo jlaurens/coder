@@ -79,118 +79,38 @@ YYY
 
 \egroup
 
+\subsection{Mimic}
+
+\bgroup
+\makeatletter
+\ExplSyntaxOn
+\def\CDRCode{\FV@Command{}{CDRCode}}
+\begingroup
+\catcode`\^^M=\active
+\gdef\FVC@CDRCode#1{
+  \begingroup
+    \FV@UseKeyValues
+    \FV@FormattingPrep
+    \FV@CatCodes
+    \outer\def^^M{}
+    \catcode`#1=12
+    \cs_set:Npn \CDR: {\def\FancyVerbGetVerb####1####2}
+    \exp_last_unbraced:NV\CDR:\string#1{\typeout{DEBUG=====##2}\mbox{##2}\endgroup}
+    \FancyVerbGetVerb\FV@EOL
+}
+\endgroup
+\ExplSyntaxOff
+\makeatother
+
+\CDRCode*|A B C D|
+\CDRCode|A B C D|
+
+\egroup
+
 \subsection{Coder}
 
 \ExplSyntaxOn
 \group_begin:
-
-\makeatletter
-
-\cs_new:Npn \CDR@StyleInput #1 {
-  \typeout{CDR@StyleInput:#1/}
-  \input{#1}
-  \CDR@StyleUseTag
-}
-
-\tl_new:N \l_CDR_style_tl
-\cs_set:Npn \CDR_code:n #1 {
-  \CDR_if_tag_truthy:cTF {pygments} {
-    \cs_set:Npn \CDR@StyleUseTag {
-      \CDR@StyleUse { \CDR_tag_get:c { style } }
-      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
-    }
-    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-      __fancyvrb,
-    }
-    \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl
-    \DefineShortVerb { #1 }
-    \SaveVerb [
-      aftersave = {
-        \exp_args:Nx \UndefineShortVerb { #1 }
-        \lua_now:n { CDR:hilight_code_prepare() }
-        \CDR_tag_get:cN {lang} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('lang') }
-        \CDR_tag_get:cN {cache} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('cache') }
-        \CDR_tag_get:cN {debug} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('debug') }
-        \CDR_tag_get:cN {style} \l_CDR_style_tl
-        \lua_now:n { CDR:hilight_set_var('style', 'l_CDR_style_tl') }
-        \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
-        \FV@UseKeyValues
-        \frenchspacing
-        %  \FV@SetupFont Break
-        \FV@DefineWhiteSpace
-        \FancyVerbDefineActive
-        \FancyVerbFormatCom
-        \CDR@DefineSp
-        \CDR_code_format:
-        \CDR_tag_get:c { format }
-\typeout{DEBUG...................1.\CDR_tag_get:c { style }.\l_CDR_style_tl}
-        \CDR@CodeEngineApply {
-          \CDR@StyleIfExist { \l_CDR_style_tl } {
-            \CDR@StyleUseTag
-            \lua_now:n { CDR:hilight_source(false, true) }        
-\typeout{DEBUG...................2A}
-          } {
-            \lua_now:n { CDR:hilight_source(true, true) }
-\typeout{DEBUG...................2B}
-          }
-        }
-\typeout{DEBUG...................3}
-        \group_end:
-      }
-    ] { CDR@Source } #1
-  } {
-    \DefineShortVerb { #1 }
-    \SaveVerb [
-      aftersave = {
-        \UndefineShortVerb { #1 }
-        \cs_set_eq:NN \CDR@FormattingPrep \FV@FormattingPrep
-        \cs_set:Npn \FV@FormattingPrep {
-          \CDR@FormattingPrep
-          \CDR_tag_get:c { format }
-        }
-        \CDR@CodeEngineApply { A \mbox { a
-          \exp_args:NNV
-          \def \FV@KeyValues \l_CDR_keyval_tl
-          \FV@UseKeyValues
-          \FV@FormattingPrep
-          \@nameuse{FV@SV@CDR@Code}
-        z } Z }
-        \group_end:
-      }
-    ] { CDR@Code } #1
-  }
-}
-%    \end{MacroCode}
-%
-%    \begin{MacroCode}[OK]
-\RenewDocumentCommand \CDRCode { O{} } {
-  \group_begin:
-  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
-    \prg_return_false:
-  }  
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __code, default.code, __pygments, default,
-  }
-  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
-  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
-  \exp_args:NNV
-  \def \FV@KeyValues \l_CDR_keyval_tl
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __fancyvrb,
-  }
-  \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl  
-  \CDR_tag_inherit:cf { __local } {
-    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-    __code, default.code, __pygments, default, __fancyvrb,
-  }
-  \fvset{showspaces}
-  \CDR_code:n
-}
-\makeatother
 \ExplSyntaxOff
 
 \CDRSet{cache=false,debug=true}
@@ -210,6 +130,11 @@ B\\
 \CDRCode[fontfamily=menlo]!<fontfamily=menlo>!\\
 2\\
 \CDRCode[showspaces=true]!<showspaces = true>!\\
+\Verb[showspaces=true]!<showspaces = true>!\\
+%\ExplSyntaxOn
+%\group_end:
+%\ExplSyntaxOff
+%\endinput
 3\\
 \CDRCode[fontsize=\Large]|<fontsize=\Large>|\\
 4\\
@@ -261,22 +186,6 @@ PATH==\directlua{tex.print(CDR.PYTHON_PATH)}\\
 \CDRSet{python path=}
 PATH==\directlua{tex.print(CDR.PYTHON_PATH)}\\
 
-%  texopts.white_line_template = [[<placeholder:line>]]
-%  texopts.black_line_template = [[
-%    \CDR@Number{<placeholder:number>}<placeholder:line>]]
-%  texopts.single_line_template = [[\CDR@Number{<placeholder:number>}<placeholder:line>]]
-%  texopts.first_line_template = [[<placeholder:line>]]
-%  texopts.second_line_template = [[<placeholder:line>]]
-%  config['texopts'] = texopts
-%  local fv_opts = {
-%    ['__cls__'] = 'FVOpts'
-%  }
-%  config['fv_opts'] = fv_opts
-%  local pyg_opts = {
-%    ['__cls__'] = 'PygOpts'
-%  }
-%  config['pyg_opts'] = pyg_opts
-
 \ExplSyntaxOn
 
 \CDR_has_pygments:TF {
@@ -290,53 +199,6 @@ PATH==\directlua{tex.print(CDR.PYTHON_PATH)}\\
 \group_begin:
 \CDRSet{pygments=true}
 
-%\makeatletter
-%
-%\cs_gset:Npn \CDR_warning: {
-%  \PackageWarning
-%    { coder }
-%    { pygments~support~IN~PROGRESS }
-%  \cs_gset_eq:NN \CDR_warning: \prg_do_nothing:
-%}
-%\cs_set:Npn \CDR_code:n #1 {
-%  \CDR_tag_inherit:cx { __local } {
-%    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-%    __code, default.code, default, __pygments, __fancyvrb,
-%  }
-%  \clist_clear:N \l_CDR_options_clist
-%  \CDR_feed_options_clist:N \l_CDR_options_clist
-%  \CDR_if_truthy:eTF { \CDR_tag_get:c {pygments} } {
-%    \CDR_warning:
-%    \DefineShortVerb { #1 }    
-%    \SaveVerb [
-%      aftersave = {
-%        \UndefineShortVerb { #1 }
-%        \lua_now:n { CDR:hilight_prepare() }
-%        \CDR_tag_get:cN {style} \l_CDR_tl
-%        \lua_now:n { CDR:hilight_set('style') }
-%        \CDR_tag_get:cN {lang} \l_CDR_tl
-%        \lua_now:n { CDR:hilight_set('lang') }
-%        \lua_now:n { CDR:hilight_set('code', 'FV@SV@CDR@Code') }
-%        \CDR_code_format:
-%        \lua_now:n { CDR:hilight_code() }
-%        \group_end:
-%      }
-%    ] { CDR@Code } #1
-%  } {
-%    \DefineShortVerb { #1 }
-%    \SaveVerb [
-%      aftersave = {
-%        \UndefineShortVerb { #1 }
-%        \CDR_code_fvset:
-%        \CDR@CodeEngineApply { FANCYVRB:\UseVerb { CDR@Code } }
-%        \group_end:
-%      }
-%    ] { CDR@Code } #1
-%  }
-%}
-%\makeatother
-\makeatletter
-\makeatother
 
 \CDRSet{pygments=false}
 AB CD=\CDRCode|AB CD|\\
@@ -346,12 +208,14 @@ AB CD=\CDRCode[fontfamily=menlo]|AB CD\textbf{AB}|\\
 AB CD=\CDRCode[formatcom=\color{red}]|AB CD\textbf{AB}|\\
 AB CD=\CDRCode[format=\color{blue}]|AB CD\textbf{AB}|\\
 AB CD=\CDRCode[format=\color{blue},formatcom=\color{red}]|AB CD\textbf{AB}|\\
-
 \group_end:
 \ExplSyntaxOff
 \CDRSet{pygments=true,cache=false}
 AB CD=\CDRCode|AB CD\textbf{AB}| et la suite\\
+AB CD=\CDRCode[style=default]|AB CD\textbf{AB}| et la suite\\
 AB CD=\CDRCode[style=autumn]|AB CD\textbf{AB}| et la suite\\
+\endinput
+
 AB CD=\CDRCode[cache=true]|AB CD\textbf{AB}| et la suite\\
 AB CD=\CDRCode[cache=true,debug=true]|AB CD\textbf{AB}| et la suite\\
 \ExplSyntaxOn

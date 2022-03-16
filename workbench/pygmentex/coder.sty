@@ -882,6 +882,9 @@
 \cs_set:Npn \CDR@StyleUse #1 {
   \tl_use:c { g_CDR@Style/#1 }
 }
+\cs_set:Npn \CDR@StyleUseTag {
+  \CDR@StyleUse { \CDR_tag_get:c { style } }
+}
 \prg_new_conditional:Nnn \CDR@StyleIfExist:c { TF } {
   \tl_if_exist:cTF { g_CDR@Style/#1 } {
     \prg_return_true:
@@ -1101,22 +1104,25 @@
         \CDR_tag_get:cN {style} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('style') }
         \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
-        \CDR_code_format:
-        %\FV@UseKeyValues
+        \FV@UseKeyValues
         \frenchspacing
         %  \FV@SetupFont Break
         \FV@DefineWhiteSpace
         \FancyVerbDefineActive
         \FancyVerbFormatCom
+        \CDR_code_format:
+        \CDR@DefineSp
         \CDR_tag_get:c { format }
         \CDR@DefineSp
         \CDR@CodeEngineApply {
+          \makeatletter
           \CDR@StyleIfExist { \l_CDR_tl } {
             \CDR@StyleUseTag
             \lua_now:n { CDR:hilight_source(false, true) }
           } {
             \lua_now:n { CDR:hilight_source(true, true) }
           }
+          \makeatother
         }
         \group_end:
       }
@@ -1153,8 +1159,8 @@
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
   \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
-  \exp_args:NV
-  \fvset \l_CDR_keyval_tl
+  \exp_args:NNV
+  \def \FV@KeyValues \l_CDR_keyval_tl
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb,
   }
@@ -1163,6 +1169,100 @@
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, default.code, __pygments, default, __fancyvrb,
   }
+  \CDR_code:n
+}
+\tl_new:N \l_CDR_style_tl
+\cs_set:Npn \CDR_code:n #1 {
+  \CDR_if_tag_truthy:cTF {pygments} {
+    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+      __fancyvrb,
+    }
+    \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl
+    \DefineShortVerb { #1 }
+    \SaveVerb [
+      aftersave = {
+        \exp_args:Nx \UndefineShortVerb { #1 }
+        \lua_now:n { CDR:hilight_code_prepare() }
+        \CDR_tag_get:cN {lang} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('lang') }
+        \CDR_tag_get:cN {cache} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('cache') }
+        \CDR_tag_get:cN {debug} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('debug') }
+        \CDR_tag_get:cN {style} \l_CDR_style_tl
+        \lua_now:n { CDR:hilight_set_var('style', 'l_CDR_style_tl') }
+        \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
+        \exp_args:NNV
+        \def \FV@KeyValues \l_CDR_keyval_tl
+        \typeout{DEBUG::::::: \l_CDR_keyval_tl}
+        \FV@UseKeyValues
+        \frenchspacing
+        %  \FV@SetupFont Break
+        \FV@DefineWhiteSpace
+        \FancyVerbDefineActive
+        \FancyVerbFormatCom
+        \CDR@DefineSp
+        \CDR_code_format:
+        \CDR_tag_get:c { format }
+\typeout{DEBUG...................1.\CDR_tag_get:c { style }.\l_CDR_style_tl.\CDR_tag_get:c { showspaces } }
+        \CDR@CodeEngineApply {
+          \makeatletter
+          \CDR@StyleIfExist { \l_CDR_style_tl } {
+            \CDR@StyleUseTag
+            \lua_now:n { CDR:hilight_source(false, true) }
+\typeout{DEBUG...................2A}
+          } {
+            \lua_now:n { CDR:hilight_source(true, true) }
+\typeout{DEBUG...................2B}
+          }
+          \makeatother
+        }
+\typeout{DEBUG...................3}
+        \group_end:
+      }
+    ] { CDR@Source } #1
+  } {
+    \DefineShortVerb { #1 }
+    \SaveVerb [
+      aftersave = {
+        \UndefineShortVerb { #1 }
+        \cs_set_eq:NN \CDR@FormattingPrep \FV@FormattingPrep
+        \cs_set:Npn \FV@FormattingPrep {
+          \CDR@FormattingPrep
+          \CDR_tag_get:c { format }
+        }
+        \CDR@CodeEngineApply { A \mbox { a
+          \exp_args:NNV
+          \def \FV@KeyValues \l_CDR_keyval_tl
+          \FV@UseKeyValues
+          \FV@FormattingPrep
+          \@nameuse{FV@SV@CDR@Code}
+        z } Z }
+        \group_end:
+      }
+    ] { CDR@Code } #1
+  }
+}
+\RenewDocumentCommand \CDRCode { O{} } {
+  \group_begin:
+  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
+    \prg_return_false:
+  }
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __code, default.code, __pygments, default,
+  }
+  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
+  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
+  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __fancyvrb,
+  }
+  \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl
+  \CDR_tag_inherit:cf { __local } {
+    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
+    __code, default.code, __pygments, default, __fancyvrb,
+  }
+  \fvset{showspaces}
   \CDR_code:n
 }
 \prop_new:N \l_CDR_block_prop

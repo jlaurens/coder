@@ -192,13 +192,16 @@ local function hilight_source(self, sty, src)
       local ll = self['.lines']
       source = table.concat(ll, '\n')
     end
-    local base = dir_p..md5.sumhexa( ('%s:%s:%s'
-      ):format(
+    local hash = md5.sumhexa( ('%s:%s:%s'):format(
         source,
         inline and 'code' or 'block',
         pygopts.style
       )
     )
+    local base = dir_p..hash
+    if pygopts.style == 'autumn' then
+      print('AUTUMN:', source, inline and 'code' or 'block', hash)
+    end
     pyg_tex_p = base..'.pyg.tex'
     local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
     if not mode or not use_cache then
