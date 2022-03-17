@@ -98,6 +98,7 @@
 \clist_new:N \l_CDR_kv_clist
 \tl_new:N \l_CDR_options_tl
 \tl_new:N \l_CDR_recorded_tl
+\tl_new:N \l_CDR_count_tl
 \int_new:N \g_CDR_int
 \tl_new:N \l_CDR_line_tl
 \tl_new:N \l_CDR_lineno_tl
@@ -474,14 +475,14 @@
 \cs_new:Npn \CDR_tag_provide_from_clist:nn #1 #2 {
   \CDR_tag_provide_from_clist:n { #1 }
 }
-\cs_new:Npn \CDR_tag_provide_from_keyval:n {
+\cs_new:Npn \CDR_tag_provide_from_kv:n {
   \keyval_parse:nnn {
     \CDR_tag_provide_from_clist:n
   } {
     \CDR_tag_provide_from_clist:nn
   }
 }
-\cs_generate_variant:Nn \CDR_tag_provide_from_keyval:n { V }
+\cs_generate_variant:Nn \CDR_tag_provide_from_kv:n { V }
 \sys_get_shell:nnN {which~pygmentize} {} \l_CDR_tl
 \prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } { }
 \tl_if_in:NnTF \l_CDR_tl { pygmentize } {
@@ -791,7 +792,7 @@
     \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
   }
   \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
-  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
   \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
 }
@@ -1204,7 +1205,7 @@
     __code, default.code, __pygments, default,
   }
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
-  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
   \exp_args:NNV
   \def \FV@KeyValues \l_CDR_kv_clist
@@ -1296,7 +1297,7 @@
     __code, default.code, __pygments, default,
   }
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
-  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb,
@@ -1346,7 +1347,7 @@
     __pygments, default,
   }
   \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
-  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
   \CDR_tag_inherit:cn { __local } { default.block }
   \CDR_tag_get:cN { tags } \l_CDR_clist

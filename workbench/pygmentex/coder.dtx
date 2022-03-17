@@ -2084,6 +2084,12 @@ if __name__ == '__main__':
 \tl_new:N \l_CDR_recorded_tl
 %    \end{MacroCode}
 % \end{variable}
+% \begin{variable}{\l_CDR_count_tl}
+% Contains the number of lines processed by \pkg{pygments} as tokens.
+%    \begin{MacroCode}
+\tl_new:N \l_CDR_count_tl
+%    \end{MacroCode}
+% \end{variable}
 % \begin{variable}{\g_CDR_int}
 % Global integer to store linenos locally in time.
 %    \begin{MacroCode}
@@ -2536,7 +2542,7 @@ if __name__ == '__main__':
 % \item |\c_CDR_tag_get/__fancyvrb.all| when no using \pkg{pygments}
 % \end{enumerate}
 %
-% \begin{function}[TF,EXP]{\CDR_tag_if_exist_here:cc}
+% \begin{function}[pTF,EXP]{\CDR_tag_if_exist_here:cc}
 % \begin{syntax}
 % \cs{CDR_tag_if_exist_here:ccTF} \Arg{tag name} \meta{relative key path} \Arg{true code} \Arg{false code}
 % \end{syntax}
@@ -2546,7 +2552,7 @@ if __name__ == '__main__':
 % No inheritance.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\prg_new_conditional:Nnn \CDR_tag_if_exist_here:cc { T, F, TF } {
+\prg_new_conditional:Nnn \CDR_tag_if_exist_here:cc { p, T, F, TF } {
   \cs_if_exist:cTF { \CDR_tag_get_path:cc { #1 } { #2 } } {
     \prg_return_true:
   } {
@@ -2900,10 +2906,10 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{function}{\CDR_tag_provide_from_clist:n,\CDR_tag_provide_from_keyval:n}
+% \begin{function}{\CDR_tag_provide_from_clist:n,\CDR_tag_provide_from_kv:n}
 % \begin{syntax}
 % \cs{CDR_tag_provide_from_clist:n} \Arg{deep comma list}
-% \cs{CDR_tag_provide_from_keyval:n} \Arg{key-value list}
+% \cs{CDR_tag_provide_from_kv:n} \Arg{key-value list}
 % \end{syntax}
 % \metatt{deep comma list} has format
 % |tag/|\metatt{tag name comma list}.
@@ -2962,14 +2968,14 @@ if __name__ == '__main__':
 \cs_new:Npn \CDR_tag_provide_from_clist:nn #1 #2 {
   \CDR_tag_provide_from_clist:n { #1 }
 }
-\cs_new:Npn \CDR_tag_provide_from_keyval:n {
+\cs_new:Npn \CDR_tag_provide_from_kv:n {
   \keyval_parse:nnn {
     \CDR_tag_provide_from_clist:n
   } {
     \CDR_tag_provide_from_clist:nn
   }
 }
-\cs_generate_variant:Nn \CDR_tag_provide_from_keyval:n { V }
+\cs_generate_variant:Nn \CDR_tag_provide_from_kv:n { V }
 %    \end{MacroCode}
 %
 %
@@ -3826,7 +3832,7 @@ if __name__ == '__main__':
     \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
   }
   \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
-  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
   \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
 }
@@ -4627,7 +4633,7 @@ if __name__ == '__main__':
     __code, default.code, __pygments, default,
   }
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
-  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
   \exp_args:NNV
   \def \FV@KeyValues \l_CDR_kv_clist
@@ -4722,7 +4728,7 @@ if __name__ == '__main__':
     __code, default.code, __pygments, default,
   }
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
-  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb,
@@ -4833,7 +4839,7 @@ if __name__ == '__main__':
     __pygments, default,
   }
   \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
-  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
 %    \end{MacroCode}
 % By default, this code chunk will have the same list of tags
