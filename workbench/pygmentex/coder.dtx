@@ -2066,10 +2066,10 @@ if __name__ == '__main__':
 % \end{variable}
 %
 % \subsection{Local variables}
-% \begin{variable}{\l_CDR_keyval_tl}
+% \begin{variable}{\l_CDR_kv_clist}
 % keyval storage.
 %    \begin{MacroCode}
-\tl_new:N \l_CDR_keyval_tl
+\clist_new:N \l_CDR_kv_clist
 %    \end{MacroCode}
 % \end{variable}
 % \begin{variable}{\l_CDR_options_tl}
@@ -2135,6 +2135,7 @@ if __name__ == '__main__':
 % Generic and named line number counter.
 %    \begin{MacroCode}[OK]
 \CDR_int_new:cn { default } { 1 }
+\CDR_int_new:cn { @ } { 1 }
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -2188,6 +2189,24 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 % \end{function}
+%
+% \begin{function}{\CDR_int_set:cc,\CDR_int_gset:cc}
+% \begin{syntax}
+% \cs{CDR_int_set:cc} \Arg{tag name} \Arg{other tag name}
+% \end{syntax}
+% Set the integer named after \metatt{tag name} to the value of
+% the integer named after \metatt{other tag name}.
+% \cs{CDR_int_gset:cc} makes a global change.
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_int_set:cc #1 #2 {
+  \CDR_int_set:cn { #1 } { \CDR_int_use:c { #2 } }
+}
+\cs_new:Npn \CDR_int_gset:cc #1 #2 {
+  \CDR_int_gset:cn { #1 } { \CDR_int_use:c { #2 } }
+}
+%    \end{MacroCode}
+% \end{function}
+%
 % \begin{function}{\CDR_int_add:cn,\CDR_int_gadd:cn}
 % \begin{syntax}
 % \cs{CDR_int_add:cn} \Arg{tag name} \Arg{value}
@@ -2203,6 +2222,24 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 % \end{function}
+%
+% \begin{function}{\CDR_int_add:cc,\CDR_int_gadd:cc}
+% \begin{syntax}
+% \cs{CDR_int_add:cn} \Arg{tag name} \Arg{other tag name}
+% \end{syntax}
+% Add to the integer named after \metatt{tag name} the value of
+% the integer named after \metatt{other tag name}.
+% \cs{CDR_int_gadd:cc} makes a global change.
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_int_add:cc #1 #2 {
+  \CDR_int_add:cn { #1 } { \CDR_int_use:c { #2 } }
+}
+\cs_new:Npn \CDR_int_gadd:cc #1 #2 {
+  \CDR_int_gadd:cn { #1 } { \CDR_int_use:c { #2 } }
+}
+%    \end{MacroCode}
+% \end{function}
+%
 % \begin{function}{\CDR_int_sub:cn,\CDR_int_gsub:cn}
 % \begin{syntax}
 % \cs{CDR_int_sub:cn} \Arg{tag name} \Arg{value}
@@ -3780,18 +3817,18 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRSet { m } {
-  \CDR_keys_set_known:nnN { CDR@Set } { #1 } \l_CDR_keyval_tl
+  \CDR_keys_set_known:nnN { CDR@Set } { #1 } \l_CDR_kv_clist
   \clist_map_inline:nn {
     __pygments, __pygments.block,
     default.block, default.code, default,
     __fancyvrb, __fancyvrb.block, __fancyvrb.all
   } {
-    \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_keyval_tl \l_CDR_keyval_tl
+    \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
   }
-  \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_keyval_tl \l_CDR_keyval_tl
-  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
-  \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_keyval_tl \l_CDR_keyval_tl
-  \CDR_tag_keys_set:nV { default } \l_CDR_keyval_tl
+  \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
+  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
+  \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
 }
 %    \end{MacroCode}
 %
@@ -4516,7 +4553,7 @@ if __name__ == '__main__':
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
       __fancyvrb,
     }
-    \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl
+    \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
@@ -4558,7 +4595,7 @@ if __name__ == '__main__':
       }
     ] { CDR@Source } #1
   } {
-    \exp_args:NV \fvset \l_CDR_keyval_tl
+    \exp_args:NV \fvset \l_CDR_kv_clist
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
@@ -4589,15 +4626,15 @@ if __name__ == '__main__':
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __code, default.code, __pygments, default,
   }
-  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
-  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
+  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
+  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
   \exp_args:NNV
-  \def \FV@KeyValues \l_CDR_keyval_tl
+  \def \FV@KeyValues \l_CDR_kv_clist
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb,
   }
-  \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl  
+  \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist  
   \CDR_tag_inherit:cf { __local } {
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, default.code, __pygments, default, __fancyvrb,
@@ -4609,7 +4646,7 @@ if __name__ == '__main__':
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
       __fancyvrb,
     }
-    \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl
+    \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
@@ -4625,7 +4662,7 @@ if __name__ == '__main__':
         \lua_now:n { CDR:hilight_set_var('style') }
         \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
         \exp_args:NNV
-        \def \FV@KeyValues \l_CDR_keyval_tl
+        \def \FV@KeyValues \l_CDR_kv_clist
         \FV@UseKeyValues
         \frenchspacing
         %  \FV@SetupFont Break
@@ -4663,7 +4700,7 @@ if __name__ == '__main__':
         }
         \CDR@CodeEngineApply { A \mbox { a
           \exp_args:NNV
-          \def \FV@KeyValues \l_CDR_keyval_tl
+          \def \FV@KeyValues \l_CDR_kv_clist
           \FV@UseKeyValues
           \FV@FormattingPrep
           \@nameuse{FV@SV@CDR@Code}
@@ -4684,13 +4721,13 @@ if __name__ == '__main__':
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __code, default.code, __pygments, default,
   }
-  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_keyval_tl
-  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
+  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
+  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb,
   }
-  \CDR_tag_keys_set:nV { __local } \l_CDR_keyval_tl  
+  \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist  
   \CDR_tag_inherit:cf { __local } {
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, default.code, __pygments, default, __fancyvrb,
@@ -4795,9 +4832,9 @@ if __name__ == '__main__':
     __block, __pygments.block, default.block,
     __pygments, default,
   }
-  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_keyval_tl
-  \CDR_tag_provide_from_keyval:V \l_CDR_keyval_tl
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
+  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
+  \CDR_tag_provide_from_keyval:V \l_CDR_kv_clist
+  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
 %    \end{MacroCode}
 % By default, this code chunk will have the same list of tags
 % as the last code block or last |\CDRExport| stored in |\g_CDR_tags_clist|.
@@ -4849,15 +4886,15 @@ if __name__ == '__main__':
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
       __fancyvrb.number
     }
-    \CDR_tag_keys_set_known:nVN { __local } \l_CDR_keyval_tl \l_CDR_keyval_tl
-    \exp_args:NV \fvset \l_CDR_keyval_tl
+    \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
+    \exp_args:NV \fvset \l_CDR_kv_clist
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
       __fancyvrb, __fancyvrb.block
     }
     \exp_args:NnV
-    \CDR_tag_keys_set:nn { __local } \l_CDR_keyval_tl
+    \CDR_tag_keys_set:nn { __local } \l_CDR_kv_clist
     \exp_args:NNV
-    \def \FV@KeyValues \l_CDR_keyval_tl
+    \def \FV@KeyValues \l_CDR_kv_clist
 %    \end{MacroCode}
 % Get the list of tags and setup \CDRLua{} for recording or hilighting.
 %    \begin{MacroCode}  
@@ -4907,7 +4944,7 @@ if __name__ == '__main__':
     }
   } {
     \exp_args:NNV
-    \def \FV@KeyValues \l_CDR_keyval_tl
+    \def \FV@KeyValues \l_CDR_kv_clist
     \CDR_if_tag_truthy:cF {no~export} {
       \clist_map_inline:nn { i, ii, iii, iv } {
         \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
