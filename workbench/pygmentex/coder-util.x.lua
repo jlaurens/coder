@@ -247,9 +247,6 @@ local function hilight_source(self, sty, src)
     src and pyg_tex_p or nil
   )
 end
-local function hilight_complete(self, count)
-  token.set_macro('l_CDR_count_tl', count)
-end
 local function hilight_code_setup(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
@@ -402,7 +399,6 @@ return {
   hilight_set_var    = hilight_set_var,
   hilight_source     = hilight_source,
   hilight_advance    = hilight_advance,
-  hilight_complete        = hilight_complete,
   hilight_code_setup = hilight_code_setup,
   hilight_block_setup = hilight_block_setup,
   cache_clean_all    = cache_clean_all,

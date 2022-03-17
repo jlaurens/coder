@@ -334,28 +334,32 @@ file name with extension, contains processing information.
           '<placeholder:line>', line,
       ))
       number += 1
-    if len(lines) == 1:
-      more('Single', lines.pop(0))
-    elif len(lines):
+    if len(lines):
       more('First', lines.pop(0))
-      more('Second', lines.pop(0))
-      if stepnumber < 2:
-        def template():
-          return 'Black'
-      elif stepnumber % 5 == 0:
-        def template():
-          return 'Black' if number %\
-            stepnumber == 0 else 'White'
-      else:
-        def template():
-          return 'Black' if (number - firstnumber) %\
-            stepnumber == 0 else 'White'
+      if len(lines):
+        more('Second', lines.pop(0))
+        if stepnumber < 2:
+          def template():
+            return 'Black'
+        elif stepnumber % 5 == 0:
+          def template():
+            return 'Black' if number %\
+              stepnumber == 0 else 'White'
+        else:
+          def template():
+            return 'Black' if (number - firstnumber) %\
+              stepnumber == 0 else 'White'
 
       for line in lines:
         more(template(), line)
-
+    ans_code[0] = re.sub(
+      r'^(\\CDR@Line)',
+      f'\\1[count={number-firstnumber}]',
+      ans_code[0],
+      count=1
+    )
     hilighted = '\n'.join(ans_code)
-    return hilighted, number-firstnumber
+    return hilighted
   def create_pygmented(self):
     args = self.arguments
     base = args.base
@@ -367,12 +371,11 @@ file name with extension, contains processing information.
       with open(tex_p, 'r') as f:
         source = f.read()
     pyg_tex_p = Path(base).with_suffix('.pyg.tex')
-    hilighted, count = self.pygmentize(source)
+    hilighted = self.pygmentize(source)
     with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
       f.write(hilighted)
     if args.debug:
       print('HILIGHTED', os.path.relpath(pyg_tex_p))
-    self.lua_command_now(f'self:hilight_complete({count})')
 if __name__ == '__main__':
   try:
     ctrl = Controller()

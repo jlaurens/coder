@@ -2,6 +2,13 @@
 % !TeX root=../coder_test.tex
 \noindent
 
+\ExplSyntaxOn
+\CDR_int_new:cn { count } { 0 }
+\keys_define:nn { CDR@Line } {
+  count .code:n = \CDR_int_set:cn { count } { #1 }
+}
+\ExplSyntaxOff
+
 \bgroup
 
 %
@@ -40,10 +47,10 @@ ESSAI
 
 
 
-% \begin{variable}{\l_CDR_pygments_bool}
+% \begin{variable}{\l_CDR_pyg_bool}
 %    \begin{MacroCode}[OK]
-\bool_new:N \l_CDR_pygments_bool
-\bool_set_false:N \l_CDR_pygments_bool
+\bool_new:N \l_CDR_pyg_bool
+\bool_set_false:N \l_CDR_pyg_bool
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -62,7 +69,14 @@ ESSAI
 \def\CDR@Total#1{\typeout{TOTAL:\space#1}}
 
 
-\cs_new:Npn \CDR@Line #1 #2 #3 {
+\cs_new:Npn \CDR@Line {
+  \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnnn } { \CDR_line:nnn }
+}
+\cs_new:Npn \CDR_line:nnnn [ #1 ] {
+  \keys_set:nn { CDR@Line } { #1 }
+  \CDR_line:nnn
+}
+\cs_new:Npn \CDR_line:nnn #1 #2 #3 {
   \typeout{CDR@Line:\the\leftmargin/#1/#2/\l_CDR_count_tl}
   \hbox to \hsize {
     \kern \leftmargin
@@ -79,6 +93,9 @@ ESSAI
 \cs_new:Npn \CDR@NumberFormat {
   \CDR_tag_get:c { numbers~format }
 }
+\cs_new:Npn \CDR@TagsFormat {
+  \CDR_tag_get:c { tags~format }
+}
 \cs_new:Npn \CDR@NumberSep {
   \hspace{ \CDR_tag_get:c { numbersep } }
 }
@@ -89,8 +106,12 @@ ESSAI
     \CDR@NumberSep
   }
 }
-\cs_set_eq:NN \CDR@NumberSingle \CDR@NumberLeft
-\cs_set_eq:NN \CDR@NumberFirst \CDR@NumberLeft
+\cs_new:Npn \CDR@NumberFirst #1 {
+  \hbox_overlap_left:n {
+    { \CDR@NumberFormat \parbox{\leftmargin}{\CDR@TagsFormat\CDR_tag_get:c { tags } } #1 }
+    \CDR@NumberSep
+  }
+}
 \cs_set_eq:NN \CDR@NumberSecond \CDR@NumberLeft
 \cs_set_eq:NN \CDR@NumberBlack \CDR@NumberLeft
 \cs_set_eq:NN \CDR@NumberWhite \CDR@NumberLeft
@@ -198,6 +219,72 @@ end
 \cs_set_eq:NN \CDR@NumberWhite \CDR@NumberLeft
 
 %    \end{MacroCode}
+%
+% \begin{function}{\CDR_block_setup_tags:}
+% Utility to setup the tags and the tag inheritance tree.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_block_setup_tags: {
+  \CDR_tag_if_exist_here:ccT { __local } { tags } {
+    \CDR_tag_get:cN { tags } \l_CDR_clist
+    \clist_if_empty:NF \l_CDR_clist {
+      \clist_gset_eq:NN \g_CDR_tags_clist \l_CDR_clist
+    }
+  }
+  \clist_if_empty:NT \g_CDR_tags_clist {
+    \PackageWarning
+      { coder }
+      { No~(default)~tags~provided. }
+  }
+  \CDR_tag_inherit:cf { __local } {
+    \g_CDR_tags_clist,
+    __block, default.block, __pygments.block, __fancyvrb.block, __fancyvrb.number,
+     __pygments, default, __fancyvrb,
+  }
+  \bool_if:nTF { \CDR_if_tag_truthy_p:c { show~tags }
+      && ( ! \CDR_if_tag_truthy_p:c { only~top }
+        || ! \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
+      )
+  } {
+    \prg_set_conditional:Nnn \CDR_if_display_tags: { p, T, F, TF } {
+      \prg_return_true:
+    }
+  } {
+    \prg_set_conditional:Nnn \CDR_if_display_tags: { p, T, F, TF } {
+      \prg_return_false:
+    }
+  }
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\CDR_block_setup_pygments:}
+% Utility to setup the |\l_CDR_pyg_bool| variable.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_block_setup_pyg: {
+  \bool_set_false:N \l_CDR_pyg_bool
+  \CDR_tag_if_exist_here:ccTF { __local } { pygments } {
+    \bool_set:Nn \l_CDR_pyg_bool {
+      \CDR_if_tag_truthy_p:c { pygments }
+    }  
+  } {
+    \clist_if_empty:NTF \g_CDR_tags_clist {
+      \bool_set:Nn \l_CDR_pyg_bool {
+        \CDR_if_tag_truthy_p:c { pygments }
+      }
+    } {
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_if_tag_truthy:ccT { ##1 } { pygments } {
+          \clist_map_break:n {
+            \bool_set_true:N \l_CDR_pyg_bool
+          }
+        }
+      }
+    }
+  }
+}
+%    \end{MacroCode}
+%
 % \begin{function}{\FVB@CDRBlock}
 % \pkg{fancyvrb} helper to begin the environment.
 % \end{function}
@@ -226,78 +313,37 @@ end
 % This can be overwritten with the |tags=...| user interface.
 % At least one tag must be provided.
 %    \begin{MacroCode}
-  \CDR_tag_inherit:cn { __local } { default.block }
-  \CDR_tag_get:cN { tags } \l_CDR_clist
-  \clist_if_empty:NTF \l_CDR_clist {
-    \clist_if_empty:NT \g_CDR_tags_clist {
-      \PackageWarning
-        { coder }
-        { No~(default)~tags~provided. }
-    }
-  } {
-    \clist_gset_eq:NN \g_CDR_tags_clist \l_CDR_clist
-  }
+  \CDR_block_setup_tags:
   \lua_now:n {
     CDR:hilight_block_setup('g_CDR_tags_clist')
   }
 %    \end{MacroCode}
-% |\l_CDR_pygments_bool| is |true| iff one of the tags needs \pkg{pygments} or there is no tag and |pygments=true| was given.
+% |\l_CDR_pyg_bool| is |true| iff one of the tags needs \pkg{pygments} or there is no tag and |pygments=true| was given.
 %    \begin{MacroCode}
-  \bool_set_false:N \l_CDR_pygments_bool
-\typeout{PYGMENTS:FALSE}
-  \CDR_tag_if_exist_here:ccTF { __local } { pygments } {
-    \bool_set:Nn \l_CDR_pygments_bool {
-      \CDR_if_tag_truthy_p:c { pygments }
-    }  
-\typeout{PYGMENTS:\CDR_if_tag_truthy:cTF { pygments } TF}
-  } {
-    \clist_if_empty:NTF \g_CDR_tags_clist {
-      \bool_set:Nn \l_CDR_pygments_bool {
-        \CDR_if_tag_truthy_p:c { pygments }
-      }
-\typeout{PYGMENTS:\CDR_if_tag_truthy:cTF { pygments } TF}
-    } {
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_if_tag_truthy:ccT { ##1 } { pygments } {
-\typeout{PYGMENTS:##1}
-          \clist_map_break:n {
-            \bool_set_true:N \l_CDR_pygments_bool
-          }
-        }
-      }
-    }
-  }
-%    \end{MacroCode}
-% Now we setup the full inheritance tree.
-%    \begin{MacroCode}
-  \CDR_tag_inherit:cf { __local } {
-    \g_CDR_tags_clist,
-    __block, default.block, __pygments.block, __fancyvrb.block, __fancyvrb.number,
-     __pygments, default, __fancyvrb,
-  }
+  \CDR_block_setup_pyg:
 %    \end{MacroCode}
 % And we can setup the engine.
 %    \begin{MacroCode}
   \CDR_tag_get:cN { engine } \l_CDR_engine_tl
-  \CDR_if_code_engine:VF \l_CDR_engine_tl {
+  \CDR_if_code_ngn:VF \l_CDR_engine_tl {
     \PackageError
       { coder }
       { \l_CDR_engine_tl\space block~engine~unknown,~replaced~by~'default' }
       {See~\CDRBlockEngineNew~in~the~coder~manual}
     \tl_set:Nn \l_CDR_engine_tl { default }
   }
-  \CDR_tag_get:cN { \l_CDR_engine_tl~engine~options } \l_CDR_options_tl
+  \CDR_tag_get:cN { \l_CDR_engine_tl~engine~options } \l_CDR_opts_tl
   \CDR_tag_get:cN { engine~options } \l_CDR_tl
   \tl_if_empty:NF \l_CDR_tl {
-    \tl_put_right:Nn \l_CDR_options_tl {,}
-    \tl_put_right:NV \l_CDR_options_tl \l_CDR_tl
+    \tl_put_right:Nn \l_CDR_opts_tl {,}
+    \tl_put_right:NV \l_CDR_opts_tl \l_CDR_tl
   }
   \exp_args:NnV
-  \use:c { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_options_tl
+  \use:c { \CDR_block_ngn:V \l_CDR_engine_tl } \l_CDR_opts_tl
 %    \end{MacroCode}
 % Now we branch according whether \pkg{pygments} is used or not.
 %    \begin{MacroCode}
-  \bool_if:NTF \l_CDR_pygments_bool {
+  \bool_if:NTF \l_CDR_pyg_bool {
     \CDRBlock@Pyg
   } {
     \CDRBlock@FV
@@ -305,12 +351,12 @@ end
   \FV@Scan
 }
 \def\FVE@CDRBlock {
-  \bool_if:NTF \l_CDR_pygments_bool {
+  \bool_if:NTF \l_CDR_pyg_bool {
     \endCDRBlock@Pyg
   } {
     \endCDRBlock@FV
   }
-  \use:c { end \CDR_block_engine:V \l_CDR_engine_tl }
+  \use:c { end \CDR_block_ngn:V \l_CDR_engine_tl }
   \group_end:
   \@esphack
 }
@@ -372,7 +418,6 @@ end
   \CDR@DefineSp
   \FV@VerbatimBegin
   \lua_now:n { CDR:hilight_source(false, true) }
-  \typeout{DEBUG~COUNT:~\l_CDR_count_tl}
   \makeatletter
   \input{ \l_CDR_pyg_tex_tl }
   \makeatother
@@ -385,7 +430,7 @@ end
 % We record the key value options about numbering.
 %    \begin{MacroCode}
   \exp_args:NnV
-  \use:c { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_options_tl
+  \use:c { \CDR_block_ngn:V \l_CDR_engine_tl } \l_CDR_opts_tl
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb.number,
   }
@@ -454,6 +499,13 @@ end
   }
 }
 
+\prg_new_conditional:Nnn \CDR_clist_if_eq:NN { p, T, F, TF } {
+  \tl_if_eq:NNTF #1 #2 {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
 
 \ExplSyntaxOff
 \makeatother
@@ -579,10 +631,107 @@ B
 C
 \end{CDRBlock}
 
-\typeout{PYGMENTS???}
+\newpage
 
+\subsection{Display tags}
+
+\makeatletter
+\ExplSyntaxOn
+
+\cs_undefine:N \CDR@Line
+\cs_undefine:N \CDR_line:nnnn
+\cs_undefine:N \CDR_line:nnn
+\cs_undefine:N \CDR@NumberFormat
+\cs_undefine:N \CDR@TagsFormat
+\cs_undefine:N \CDR@NumberSep
+\cs_undefine:N \CDR@NumberLeft
+\cs_undefine:N \CDR@NumberFirst
+
+\cs_new:Npn \CDR@Line {
+  \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnnn } { \CDR_line:nnn }
+}
+\cs_new:Npn \CDR_line:nnnn [ #1 ] {
+  \keys_set:nn { CDR@Line } { #1 }
+  \CDR_line:nnn
+}
+\cs_new:Npn \CDR_line:nnn #1 #2 #3 {
+  \typeout{CDR@Line:\the\leftmargin/#1/#2/\l_CDR_count_tl}
+  \hbox to \hsize {
+    \kern \leftmargin
+    \use:c { CDR@Number#1 } { #2 }
+    \hbox to \linewidth {
+      \FV@LeftListFrame
+      #3
+      \hss
+      \FV@RightListFrame
+    }
+  }
+}
+
+\cs_new:Npn \CDR@NumberFormat {
+  \CDR_tag_get:c { numbers~format }
+}
+\cs_new:Npn \CDR@TagsFormat {
+  \CDR_tag_get:c { tags~format }
+}
+\cs_new:Npn \CDR@NumberSep {
+  \hspace{ \CDR_tag_get:c { numbersep } }
+}
+
+\cs_new:Npn \CDR@NumberLeft #1 {
+  \hbox_overlap_left:n {
+    { \CDR@NumberFormat #1 }
+    \CDR@NumberSep
+  }
+}
+\cs_new:Npn \CDR@NumberFirst #1 {
+  \hbox_overlap_left:n {
+    \renewcommand{\baselinestretch}{1}
+    { \CDR@NumberFormat
+      \CDR_if_display_tags:TF {
+        \smash{
+          \parbox[b]{\marginparwidth}{
+            \raggedleft
+            { \CDR@TagsFormat \g_CDR_tags_clist :}
+            \CDR_int_compare:cNnTF { count } = 1 { ~#1 }
+          }
+        }
+        \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
+      } {
+      ~#1
+      }
+    }
+    \CDR@NumberSep
+    \typeout{SHOW: \CDR_if_tag_truthy:cTF { show~tags } TF}
+    \typeout{TOP: \CDR_if_tag_truthy:cTF { only~top } TF}
+    \typeout{TAGS: \g_CDR_tags_clist}
+    \typeout{LAST: \g_CDR_last_tags_clist}
+    \typeout{SAME: \CDR_clist_if_eq:NNTF \g_CDR_tags_clist \g_CDR_last_tags_clist TF }
+  }
+}
+
+\cs_set_eq:NN \CDR@NumberSecond \CDR@NumberLeft
+\cs_set_eq:NN \CDR@NumberBlack \CDR@NumberLeft
+\cs_set_eq:NN \CDR@NumberWhite \CDR@NumberLeft
+\ExplSyntaxOff
+\makeatother
+
+\typeout{DEBUGGGGG1}
 \begin{CDRBlock}[
-  tags=,
+  tags={we are the champions,  whatever it isp},
+  fontfamily=menlo,
+  fontsize=\large,
+  pygments=true,
+  lang=lua,
+  numbers=left,
+  debug=true,
+  show tags
+]
+function foo(arg) return arg ** arg end -- tags expected
+\end{CDRBlock}
+\typeout{DEBUGGGGG2}
+\begin{CDRBlock}[
+%  tags={we are the champions,  whatever it isp},
   fontfamily=menlo,
   fontsize=\large,
   pygments=true,
@@ -598,7 +747,56 @@ C
   showspaces,
   baselinestretch=1.75
 ]
-function foo(arg)
+function foo(arg) -- no tags expected
+  return arg ** arg
+end
+\end{CDRBlock}
+\typeout{DEBUGGGGG3}
+\begin{CDRBlock}[
+%  tags={we are the champions,  whatever it isp},
+  fontfamily=menlo,
+  fontsize=\large,
+  pygments=true,
+  lang=lua,
+  numbers=left,
+  debug=true,
+  show tags,
+  only top=false
+]
+function foo(arg) return arg ** arg end -- tags expected
+\end{CDRBlock}
+\typeout{DEBUGGGGG4}
+\begin{CDRBlock}[
+  tags={whatever it isp,we are the champions},
+  fontfamily=menlo,
+  fontsize=\large,
+  pygments=true,
+  lang=lua,
+  numbers=left,
+  debug=true,
+  show tags,
+  only top
+]
+function foo(arg) return arg ** arg end -- tags expected
+\end{CDRBlock}
+\typeout{DEBUGGGGG5}
+\begin{CDRBlock}[
+%  tags={we are the champions,  whatever it isp},
+  fontfamily=menlo,
+  fontsize=\large,
+  pygments,
+  lang=lua,
+  numbers=left,
+  debug,
+  showspaces,
+  show tags=false,
+  only top=false,
+]
+function foo(arg) -- no tags expected
+  -- second line
+  -- third line
+  -- fourth line
+  -- fifth line
   return arg ** arg
 end
 \end{CDRBlock}

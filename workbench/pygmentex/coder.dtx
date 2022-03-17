@@ -638,9 +638,6 @@ and the derived files           \jobname.ins,
 %   They should not include a trailing newline char.
 %   The \meta{type} is used to describe the line more precisely.
 % \begin{description}
-% \itemtt[\CDRCheckRed Single]   
-%   It may contain tag related information and number as well.
-%   When the block consists of only one line.
 % \itemtt[\CDRCheckRed First]
 %   When the block consists of more than one line.
 %   If the tag information is required or new, display only the tag.
@@ -876,7 +873,7 @@ end
 % asynchronously once the control comes back to \TeX{}.
 % \item[\texttt{!LUA}:\metatt{!Lua instructions}] the \metatt{!Lua instructions} are executed
 % synchronously. When not properly designed, these instruction may cause a
-% forever loop on execution, for example, they must not use \texttt{CDR:if_code_engine}.
+% forever loop on execution, for example, they must not use \texttt{CDR:if_code_ngn}.
 % \item[\texttt{?LUA}:\metatt{?Lua instructions}] these \metatt{?Lua instructions} are executed
 % asynchronously once the control comes back to \TeX{} through a call to \cs{directlua},
 % which means that they will wait until any previous asynchronous \metatt{?TeX instructions}
@@ -1050,19 +1047,6 @@ end
 %    \end{MacroCode}
 %
 % \subsection{Code}
-% \begin{function}{hilight_code_setup}
-% \begin{syntax}
-% CDR:hilight_code_setup()
-% \end{syntax}
-% Hilight the code in \pkg{str} variable named \metatt{code var name}.
-% Build a configuration table with all data necessary for the processing,
-% save it as a |JSON| file and launch \CDRPy{} with the proper arguments.
-% \end{function}
-%    \begin{MacroCode}
-local function hilight_complete(self, count)
-  token.set_macro('l_CDR_count_tl', count)
-end
-%    \end{MacroCode}
 %
 % \subsection{Code}
 % \begin{function}{hilight_code_setup}
@@ -1359,7 +1343,6 @@ return {
   hilight_set_var    = hilight_set_var,
   hilight_source     = hilight_source,
   hilight_advance    = hilight_advance,
-  hilight_complete        = hilight_complete,
 %    \end{MacroCode}
 % \itemtt[hilight code]
 %    \begin{MacroCode}
@@ -1854,28 +1837,32 @@ file name with extension, contains processing information.
           '<placeholder:line>', line,
       ))
       number += 1
-    if len(lines) == 1:
-      more('Single', lines.pop(0))
-    elif len(lines):
+    if len(lines):
       more('First', lines.pop(0))
-      more('Second', lines.pop(0))
-      if stepnumber < 2:
-        def template():
-          return 'Black'
-      elif stepnumber % 5 == 0:
-        def template():
-          return 'Black' if number %\
-            stepnumber == 0 else 'White'
-      else:
-        def template():
-          return 'Black' if (number - firstnumber) %\
-            stepnumber == 0 else 'White'
+      if len(lines):
+        more('Second', lines.pop(0))
+        if stepnumber < 2:
+          def template():
+            return 'Black'
+        elif stepnumber % 5 == 0:
+          def template():
+            return 'Black' if number %\
+              stepnumber == 0 else 'White'
+        else:
+          def template():
+            return 'Black' if (number - firstnumber) %\
+              stepnumber == 0 else 'White'
          
       for line in lines:
         more(template(), line)
-
+    ans_code[0] = re.sub(
+      r'^(\\CDR@Line)',
+      f'\\1[count={number-firstnumber}]',
+      ans_code[0],
+      count=1
+    )
     hilighted = '\n'.join(ans_code)
-    return hilighted, number-firstnumber
+    return hilighted
 %    \end{MacroCode}
 %
 % \subsubsection{\texttt{create_pygmented}}
@@ -1898,12 +1885,11 @@ file name with extension, contains processing information.
       with open(tex_p, 'r') as f:
         source = f.read()
     pyg_tex_p = Path(base).with_suffix('.pyg.tex')
-    hilighted, count = self.pygmentize(source)
+    hilighted = self.pygmentize(source)
     with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
       f.write(hilighted)
     if args.debug:
       print('HILIGHTED', os.path.relpath(pyg_tex_p))
-    self.lua_command_now(f'self:hilight_complete({count})')
 %    \end{MacroCode}
 %
 % \subsection{Main entry}
@@ -2072,10 +2058,10 @@ if __name__ == '__main__':
 \clist_new:N \l_CDR_kv_clist
 %    \end{MacroCode}
 % \end{variable}
-% \begin{variable}{\l_CDR_options_tl}
+% \begin{variable}{\l_CDR_opts_tl}
 % options storage.
 %    \begin{MacroCode}
-\tl_new:N \l_CDR_options_tl
+\tl_new:N \l_CDR_opts_tl
 %    \end{MacroCode}
 % \end{variable}
 % \begin{variable}{\l_CDR_recorded_tl}
@@ -2560,7 +2546,7 @@ if __name__ == '__main__':
   }
 }
 %    \end{MacroCode}
-% \begin{function}[TF,EXP]{\CDR_tag_if_exist:cc, \CDR_tag_if_exist:c}
+% \begin{function}[pTF,EXP]{\CDR_tag_if_exist:cc, \CDR_tag_if_exist:c}
 % \begin{syntax}
 % \cs{CDR_tag_if_exist:ccTF} \Arg{tag name} \meta{relative key path} \Arg{true code} \Arg{false code}
 % \cs{CDR_tag_if_exist:cTF} \meta{relative key path} \Arg{true code} \Arg{false code}
@@ -2571,7 +2557,7 @@ if __name__ == '__main__':
 % In the second version, the \metatt{tag name} is not provided and set to |__local|.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\prg_new_conditional:Nnn \CDR_tag_if_exist:cc { T, F, TF } {
+\prg_new_conditional:Nnn \CDR_tag_if_exist:cc { p, T, F, TF } {
   \cs_if_exist:cTF { \CDR_tag_get_path:cc { #1 } { #2 } } {
     \prg_return_true:
   } {
@@ -2584,7 +2570,7 @@ if __name__ == '__main__':
     }
   }
 }
-\prg_new_conditional:Nnn \CDR_tag_if_exist:c { T, F, TF } {
+\prg_new_conditional:Nnn \CDR_tag_if_exist:c { p, T, F, TF } {
   \cs_if_exist:cTF { \CDR_tag_get_path:c { #1 } } {
     \prg_return_true:
   } {
@@ -3029,6 +3015,7 @@ if __name__ == '__main__':
 % |false| otherwise.
 %    \begin{MacroCode}[OK]
   pygments .code:n = \CDR_tag_boolean_set:x { #1 },
+  pygments .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed style=\meta{style name}]^^A
 %where \metatt{style name} is recognized by \texttt{pygments}, including a void string,
@@ -3137,12 +3124,14 @@ if __name__ == '__main__':
 % Initially true.
 %    \begin{MacroCode}[OK]
   cache .code:n = \CDR_tag_boolean_set:x { #1 },
+  cache .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed debug]^^A
 % Set to |true| if various debugging messages should be printed to the console .
 % Initially false.
 %    \begin{MacroCode}[OK]
   debug .code:n = \CDR_tag_boolean_set:x { #1 },
+  debug .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed post processor=\meta{command}]^^A
 % the command for \pkg{pygments} post processor.
@@ -3266,18 +3255,21 @@ if __name__ == '__main__':
 % whether tags should be displayed.
 %    \begin{MacroCode}[OK]
   show~tags .code:n = \CDR_tag_boolean_set:x { #1 },
+  show~tags .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed only top{[=true$\vert$false]}]^^A
 % to avoid chunk tags repetitions, if on the same page,
 % two consecutive code chunks have the same tag names, the second names are not displayed.
 %    \begin{MacroCode}[OK]
   only~top .code:n = \CDR_tag_boolean_set:x { #1 },
+  only~top .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed use margin{[=true$\vert$false]}]^^A
 % to use the magin to display line numbers
-% and tag names, or not,
+% and tag names, or not, UNUSED
 %    \begin{MacroCode}[OK]
   use~margin .code:n = \CDR_tag_boolean_set:x { #1 },
+  use~margin .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed blockskip]^^A
 % the separation with the surrounding text, above and below.
@@ -3368,18 +3360,21 @@ if __name__ == '__main__':
 % Initially |false|: spaces not shown.
 %    \begin{MacroCode}[OK]
   showspaces .code:n = \CDR_tag_boolean_set:x { #1 },
+  showspaces .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed showtabs=true$\vert$false]^^A
 % explicitly show tab characters.
 % Initially |false|: tab characters not shown.
 %    \begin{MacroCode}[OK]
   showtabs .code:n = \CDR_tag_boolean_set:x { #1 },
+  showtabs .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed obeytabs=true$\vert$false]^^A
 % position characters according to the tabs.
 % Initially false: tab characters are added to the current position.
 %    \begin{MacroCode}[OK]
   obeytabs .code:n = \CDR_tag_boolean_set:x { #1 },
+  obeytabs .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed tabsize=\meta{integer}]^^A
 % number of spaces given by a tab character,
@@ -3535,6 +3530,7 @@ if __name__ == '__main__':
 % Initially |true|.
 %    \begin{MacroCode}[OK]
   resetmargins .code:n = \CDR_tag_boolean_set:x { #1 }, 
+  resetmargins .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed hfuzz=\meta{dimension}]^^A
 % value to give to the \TeX{} |\hfuzz| dimension for text to format.
@@ -3551,6 +3547,7 @@ if __name__ == '__main__':
 % Initially |false|.
 %    \begin{MacroCode}[OK]
   samepage .code:n = \CDR_tag_boolean_set:x { #1 },
+  samepage .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckGreen __initialize]^^A
 % Initialization.
@@ -3652,6 +3649,7 @@ if __name__ == '__main__':
 % Initially |true|: all lines are numbered.
 %    \begin{MacroCode}[OK]
   numberblanklines .code:n = \CDR_tag_boolean_set:x { #1 },
+  numberblanklines .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed firstline=\meta{integer}]^^A
 % first line to print.
@@ -3953,14 +3951,19 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{variable}{\g_CDR_tags_clist, \g_CDR_all_tags_clist}
+% \begin{variable}{\g_CDR_tags_clist, \g_CDR_all_tags_clist, \g_CDR_last_tags_clist}
 % Store the current list of tags used by |\CDRCode| and the
 % |CDRBlock| environment, or declared by |\CDRExport|.
 % All the tags are recorded, if there is an only one, it is not shown
 % in block code chunks.
+% The |\g_CDR_last_tags_clist| variable contains the last list of tags that was displayed.
 %    \begin{MacroCode}[OK]
 \clist_new:N \g_CDR_tags_clist
 \clist_new:N \g_CDR_all_tags_clist
+\clist_new:N \g_CDR_last_tags_clist
+\AddToHook { shipout/before } {
+  \clist_gclear:N \g_CDR_last_tags_clist
+}
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -4188,28 +4191,28 @@ if __name__ == '__main__':
 %
 % \section{Creating display engines}
 % \subsection{Utilities}
-% \begin{function}[EXP]{\CDR_code_engine:c, \CDR_code_engine:V, \CDR_block_engine:c, \CDR_block_engine:V}
+% \begin{function}[EXP]{\CDR_code_ngn:c, \CDR_code_ngn:V, \CDR_block_ngn:c, \CDR_block_ngn:V}
 % \begin{syntax}
-% \cs{CDR_code_engine:c} \Arg{engine name}
-% \cs{CDR_block_engine:c} \Arg{engine name}
+% \cs{CDR_code_ngn:c} \Arg{engine name}
+% \cs{CDR_block_ngn:c} \Arg{engine name}
 % \end{syntax}
-% |\CDR_code_engine:c| builds a command sequence name
+% |\CDR_code_ngn:c| builds a command sequence name
 % based on \metatt{engine name}.
-% |\CDR_block_engine:c| builds an environment name
+% |\CDR_block_ngn:c| builds an environment name
 % based on \metatt{engine name}.
 %\end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_code_engine:c #1 {
+\cs_new:Npn \CDR_code_ngn:c #1 {
   CDR@colored/code/#1:nn
 }
-\cs_new:Npn \CDR_block_engine:c #1 {
+\cs_new:Npn \CDR_block_ngn:c #1 {
   CDR@colored/block/#1
 }
-\cs_new:Npn \CDR_code_engine:V {
-  \exp_args:NV \CDR_code_engine:c
+\cs_new:Npn \CDR_code_ngn:V {
+  \exp_args:NV \CDR_code_ngn:c
 }
-\cs_new:Npn \CDR_block_engine:V {
-  \exp_args:NV \CDR_block_engine:c
+\cs_new:Npn \CDR_block_ngn:V {
+  \exp_args:NV \CDR_block_ngn:c
 }
 %    \end{MacroCode}
 %
@@ -4250,7 +4253,7 @@ if __name__ == '__main__':
       { coder }
       { The~engine~cannot~be~void. }
   } {
-    \cs_new:cpn { \CDR_code_engine:c {#1} } ##1 ##2 {
+    \cs_new:cpn { \CDR_code_ngn:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
@@ -4267,8 +4270,8 @@ if __name__ == '__main__':
       { The~engine~cannot~be~void. }
       \use_none:n
   } {
-    \cs_if_exist:cTF { \CDR_code_engine:c { #1 } } {
-      \cs_set:cpn { \CDR_code_engine:c { #1 } } ##1 ##2 {
+    \cs_if_exist:cTF { \CDR_code_ngn:c { #1 } } {
+      \cs_set:cpn { \CDR_code_ngn:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
         #2
       }
@@ -4292,23 +4295,23 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR@CodeEngineApply #1 {
   \CDR_tag_get:cN { engine } \l_CDR_engine_tl
-  \CDR_if_code_engine:VF \l_CDR_engine_tl {
+  \CDR_if_code_ngn:VF \l_CDR_engine_tl {
     \PackageError
       { coder }
       { \l_CDR_engine_tl\space code~engine~unknown,~replaced~by~'default' }
       {See~\CDRCodeEngineNew~in~the~coder~manual}
     \tl_set:Nn \l_CDR_engine_tl { default }
   }
-  \CDR_tag_get:cN { engine~options } \l_CDR_options_tl
-  \tl_if_empty:NTF \l_CDR_options_tl {
-    \CDR_tag_get:cN { \l_CDR_engine_tl\space engine~options } \l_CDR_options_tl
+  \CDR_tag_get:cN { engine~options } \l_CDR_opts_tl
+  \tl_if_empty:NTF \l_CDR_opts_tl {
+    \CDR_tag_get:cN { \l_CDR_engine_tl\space engine~options } \l_CDR_opts_tl
   } {
-    \tl_put_left:Nx \l_CDR_options_tl {
+    \tl_put_left:Nx \l_CDR_opts_tl {
       \CDR_tag_get:c { \l_CDR_engine_tl\space engine~options } ,
     }
   }
   \exp_args:NnV
-  \use:c { \CDR_code_engine:V \l_CDR_engine_tl } \l_CDR_options_tl {
+  \use:c { \CDR_code_ngn:V \l_CDR_engine_tl } \l_CDR_opts_tl {
     \CDR_tag_get:c { format }
     #1
   }
@@ -4331,7 +4334,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRBlockEngineNew { mm } {
-  \NewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
+  \NewDocumentEnvironment { \CDR_block_ngn:c { #1 } } { m } {
     \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
     #2
   }
@@ -4345,7 +4348,7 @@ if __name__ == '__main__':
       { The~engine~cannot~be~void. }
       \use_none:n
   } {
-    \RenewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
+    \RenewDocumentEnvironment { \CDR_block_ngn:c { #1 } } { m } {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
@@ -4355,47 +4358,47 @@ if __name__ == '__main__':
 %
 % \subsection{Conditionals}
 %
-% \begin{function}[EXP,TF]{\CDR_if_code_engine:c}
+% \begin{function}[EXP,TF]{\CDR_if_code_ngn:c}
 % \begin{syntax}
-% \cs{CDR_if_code_engine:cTF} \Arg{engine name} \Arg{true code} \Arg{false code}
+% \cs{CDR_if_code_ngn:cTF} \Arg{engine name} \Arg{true code} \Arg{false code}
 % \end{syntax}
 % If there exists a code engine with the given \metatt{engine name},
 % execute \metatt{true code}.
 % Otherwise, execute \metatt{false code}.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\prg_new_conditional:Nnn \CDR_if_code_engine:c { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_code_engine:c { #1 } } {
+\prg_new_conditional:Nnn \CDR_if_code_ngn:c { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDR_code_ngn:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
-\prg_new_conditional:Nnn \CDR_if_code_engine:V { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_code_engine:V #1 } {
+\prg_new_conditional:Nnn \CDR_if_code_ngn:V { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDR_code_ngn:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
 %    \end{MacroCode}
-% \begin{function}[EXP,TF]{\CDR_if_block_engine:c}
+% \begin{function}[EXP,TF]{\CDR_if_block_ngn:c}
 % \begin{syntax}
-% \cs{CDR_if_block_engine:c} \Arg{engine name} \Arg{true code} \Arg{false code}
+% \cs{CDR_if_block_ngn:c} \Arg{engine name} \Arg{true code} \Arg{false code}
 % \end{syntax}
 % If there exists a block engine with the given \metatt{engine name},
 % execute \metatt{true code}, otherwise, execute \metatt{false code}.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\prg_new_conditional:Nnn \CDR_if_block_engine:c { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_block_engine:c { #1 } } {
+\prg_new_conditional:Nnn \CDR_if_block_ngn:c { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDR_block_ngn:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
-\prg_new_conditional:Nnn \CDR_if_block_engine:V { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_block_engine:V #1 } {
+\prg_new_conditional:Nnn \CDR_if_block_ngn:V { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDR_block_ngn:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -4862,19 +4865,19 @@ if __name__ == '__main__':
     CDR:hilight_block_setup('g_CDR_tags_clist')
   }
 %    \end{MacroCode}
-% |\l_CDR_pygments_bool| is |true| iff one of the tags needs \pkg{pygments} or there is no tag and |pygments=true| was given.
+% |\l_CDR_pyg_bool| is |true| iff one of the tags needs \pkg{pygments} or there is no tag and |pygments=true| was given.
 %    \begin{MacroCode}
-  \bool_set_false:N \l_CDR_pygments_bool
+  \bool_set_false:N \l_CDR_pyg_bool
   \clist_if_empty:NTF \g_CDR_tags_clist {
-    \bool_set:Nn \l_CDR_pygments_bool {
+    \bool_set:Nn \l_CDR_pyg_bool {
       \CDR_if_tag_truthy_p:c { pygments }
     }
   } {
-    \bool_if:NF \l_CDR_pygments_bool {
+    \bool_if:NF \l_CDR_pyg_bool {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \CDR_if_tag_truthy:ccT { ##1 } { pygments } {
           \clist_map_break:n {
-            \bool_set_true:N \l_CDR_pygments_bool
+            \bool_set_true:N \l_CDR_pyg_bool
           }
         }
       }
@@ -4888,7 +4891,7 @@ if __name__ == '__main__':
     __block, default.block, __pygments.block, __fancyvrb.block, __fancyvrb.number,
      __pygments, default, __fancyvrb,
   }
-  \bool_if:NTF \l_CDR_pygments_bool {
+  \bool_if:NTF \l_CDR_pyg_bool {
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
       __fancyvrb.number
     }
@@ -4933,16 +4936,16 @@ if __name__ == '__main__':
       }
     }
     \CDR_tag_get:cN { engine } \l_CDR_engine_tl
-    \CDR_if_code_engine:VF \l_CDR_engine_tl {
+    \CDR_if_code_ngn:VF \l_CDR_engine_tl {
       \PackageError
         { coder }
         { \l_CDR_engine_tl\space block~engine~unknown,~replaced~by~'default' }
         {See~\CDRBlockEngineNew~in~the~coder~manual}
       \tl_set:Nn \l_CDR_engine_tl { default }
     }
-    \CDR_tag_get:cN { \l_CDR_engine_tl~engine~options } \l_CDR_options_tl
+    \CDR_tag_get:cN { \l_CDR_engine_tl~engine~options } \l_CDR_opts_tl
     \exp_args:NnV
-    \use:c { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_options_tl
+    \use:c { \CDR_block_ngn:V \l_CDR_engine_tl } \l_CDR_opts_tl
 
     \def\FV@ProcessLine ##1 {
       \tl_set:Nn \l_CDR_tl { ##1 }
@@ -4961,13 +4964,13 @@ if __name__ == '__main__':
       }
     }
     \exp_args:NnV
-    \use:c { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_options_tl
+    \use:c { \CDR_block_ngn:V \l_CDR_engine_tl } \l_CDR_opts_tl
     \FV@VerbatimBegin
   }
   \FV@Scan
 }
 \def\FVE@CDRBlock {
-  \bool_if:NT \l_CDR_pygments_bool {
+  \bool_if:NT \l_CDR_pyg_bool {
     \CDR_tag_get:c { format }
     \fvset{ commandchars=\\\{\} }
     \CDR@DefineSp
@@ -4978,7 +4981,7 @@ if __name__ == '__main__':
     \makeatother
   }
   \FV@VerbatimEnd
-  \use:c { end \CDR_block_engine:V \l_CDR_engine_tl }
+  \use:c { end \CDR_block_ngn:V \l_CDR_engine_tl }
   \group_end:
   \@esphack
 }
@@ -5094,9 +5097,6 @@ if __name__ == '__main__':
 %\AddToHook { cmd/FancyVerbFormatLine/before } {
 %  \CDR_line_number:
 %}
-\AddToHook { shipout/before } {
-  \tl_gclear:N \g_CDR_chunks_tl
-}
 %    \end{MacroCode}
 %    \begin{MacroCode}
 % =========================================================
@@ -5184,7 +5184,7 @@ if __name__ == '__main__':
 %  boxsep=2pt,%
 %  arc=1pt,%
 %  boxrule=0pt,%
-%  \CDR_options_if_in:nT {colback} {
+%  \CDR_opts_if_in:nT {colback} {
 %    colback=\CDR:n {colback}
 %  }
 %}

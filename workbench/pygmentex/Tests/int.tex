@@ -107,6 +107,10 @@ Tests of \texttt{int}
 
 \makeatother
 
+\CDR_int_new:cn { My } { 0 }
+\CDR_int_set:cn { My } { 1 }
+\CDR_int_compare:cNnF { My } = 1 { FAILURE }
+\CDR_int_compare:cNnT { My } = 3 { FAILURE }
 \group_end:
 
 \ExplSyntaxOff
