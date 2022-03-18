@@ -984,17 +984,17 @@
   }
 }
 \cs_set_eq:NN \CDR@StyleIfExist \CDR@StyleIfExist:cTF
-\cs_new:Npn \CDR_code_ngn:c #1 {
+\cs_new:Npn \CDR_code_engine:c #1 {
   CDR@colored/code/#1:nn
 }
-\cs_new:Npn \CDR_block_ngn:c #1 {
+\cs_new:Npn \CDR_block_engine:c #1 {
   CDR@colored/block/#1
 }
-\cs_new:Npn \CDR_code_ngn:V {
-  \exp_args:NV \CDR_code_ngn:c
+\cs_new:Npn \CDR_code_engine:V {
+  \exp_args:NV \CDR_code_engine:c
 }
-\cs_new:Npn \CDR_block_ngn:V {
-  \exp_args:NV \CDR_block_ngn:c
+\cs_new:Npn \CDR_block_engine:V {
+  \exp_args:NV \CDR_block_engine:c
 }
 \tl_new:N \l_CDR_engine_tl
 \NewDocumentCommand \CDRCodeEngineNew { mm } {
@@ -1004,7 +1004,7 @@
       { coder }
       { The~engine~cannot~be~void. }
   } {
-    \cs_new:cpn { \CDR_code_ngn:c {#1} } ##1 ##2 {
+    \cs_new:cpn { \CDR_code_engine:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
@@ -1019,8 +1019,8 @@
       { The~engine~cannot~be~void. }
       \use_none:n
   } {
-    \cs_if_exist:cTF { \CDR_code_ngn:c { #1 } } {
-      \cs_set:cpn { \CDR_code_ngn:c { #1 } } ##1 ##2 {
+    \cs_if_exist:cTF { \CDR_code_engine:c { #1 } } {
+      \cs_set:cpn { \CDR_code_engine:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
         #2
       }
@@ -1034,7 +1034,7 @@
 }
 \cs_new:Npn \CDR@CodeEngineApply #1 {
   \CDR_tag_get:cN { engine } \l_CDR_engine_tl
-  \CDR_if_code_ngn:VF \l_CDR_engine_tl {
+  \CDR_if_code_engine:VF \l_CDR_engine_tl {
     \PackageError
       { coder }
       { \l_CDR_engine_tl\space code~engine~unknown,~replaced~by~'default' }
@@ -1050,13 +1050,13 @@
     }
   }
   \exp_args:NnV
-  \use:c { \CDR_code_ngn:V \l_CDR_engine_tl } \l_CDR_opts_tl {
+  \use:c { \CDR_code_engine:V \l_CDR_engine_tl } \l_CDR_opts_tl {
     \CDR_tag_get:c { format }
     #1
   }
 }
 \NewDocumentCommand \CDRBlockEngineNew { mm } {
-  \NewDocumentEnvironment { \CDR_block_ngn:c { #1 } } { m } {
+  \NewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
     \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
     #2
   }
@@ -1068,35 +1068,35 @@
       { The~engine~cannot~be~void. }
       \use_none:n
   } {
-    \RenewDocumentEnvironment { \CDR_block_ngn:c { #1 } } { m } {
+    \RenewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
   }
 }
-\prg_new_conditional:Nnn \CDR_if_code_ngn:c { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_code_ngn:c { #1 } } {
+\prg_new_conditional:Nnn \CDR_if_code_engine:c { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDR_code_engine:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
-\prg_new_conditional:Nnn \CDR_if_code_ngn:V { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_code_ngn:V #1 } {
+\prg_new_conditional:Nnn \CDR_if_code_engine:V { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDR_code_engine:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
-\prg_new_conditional:Nnn \CDR_if_block_ngn:c { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_block_ngn:c { #1 } } {
+\prg_new_conditional:Nnn \CDR_if_block_engine:c { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDR_block_engine:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
-\prg_new_conditional:Nnn \CDR_if_block_ngn:V { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_block_ngn:V #1 } {
+\prg_new_conditional:Nnn \CDR_if_block_engine:V { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDR_block_engine:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -1462,7 +1462,7 @@
       }
     }
     \CDR_tag_get:cN { engine } \l_CDR_engine_tl
-    \CDR_if_code_ngn:VF \l_CDR_engine_tl {
+    \CDR_if_code_engine:VF \l_CDR_engine_tl {
       \PackageError
         { coder }
         { \l_CDR_engine_tl\space block~engine~unknown,~replaced~by~'default' }
@@ -1471,7 +1471,7 @@
     }
     \CDR_tag_get:cN { \l_CDR_engine_tl~engine~options } \l_CDR_opts_tl
     \exp_args:NnV
-    \use:c { \CDR_block_ngn:V \l_CDR_engine_tl } \l_CDR_opts_tl
+    \use:c { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_opts_tl
 
     \def\FV@ProcessLine ##1 {
       \tl_set:Nn \l_CDR_tl { ##1 }
@@ -1490,7 +1490,7 @@
       }
     }
     \exp_args:NnV
-    \use:c { \CDR_block_ngn:V \l_CDR_engine_tl } \l_CDR_opts_tl
+    \use:c { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_opts_tl
     \FV@VerbatimBegin
   }
   \FV@Scan
@@ -1507,7 +1507,7 @@
     \makeatother
   }
   \FV@VerbatimEnd
-  \use:c { end \CDR_block_ngn:V \l_CDR_engine_tl }
+  \use:c { end \CDR_block_engine:V \l_CDR_engine_tl }
   \group_end:
   \@esphack
 }

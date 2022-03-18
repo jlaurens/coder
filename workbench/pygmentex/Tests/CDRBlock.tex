@@ -321,7 +321,7 @@ end
 % And we can setup the engine.
 %    \begin{MacroCode}
   \CDR_tag_get:cN { engine } \l_CDR_engine_tl
-  \CDR_if_code_ngn:VF \l_CDR_engine_tl {
+  \CDR_if_code_engine:VF \l_CDR_engine_tl {
     \PackageError
       { coder }
       { \l_CDR_engine_tl\space block~engine~unknown,~replaced~by~'default' }
@@ -335,7 +335,7 @@ end
     \tl_put_right:NV \l_CDR_opts_tl \l_CDR_tl
   }
   \exp_args:NnV
-  \use:c { \CDR_block_ngn:V \l_CDR_engine_tl } \l_CDR_opts_tl
+  \use:c { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_opts_tl
 %    \end{MacroCode}
 % Now we branch according whether \pkg{pygments} is used or not.
 %    \begin{MacroCode}
@@ -352,7 +352,7 @@ end
   } {
     \endCDRBlock@FV
   }
-  \use:c { end \CDR_block_ngn:V \l_CDR_engine_tl }
+  \use:c { end \CDR_block_engine:V \l_CDR_engine_tl }
   \group_end:
   \@esphack
 }
@@ -374,6 +374,13 @@ end
   \CDR_tag_keys_set:nn { __local } \l_CDR_kv_clist
   \exp_args:NNV
   \def \FV@KeyValues \l_CDR_kv_clist
+  \CDR_tag_if_eq:cnTF { numbers } { none } {
+    \tl_set:Nn \l_CDR_tl { { \typeout{DEBUG_TRUE.........}prg_return_true: } }
+  } {
+    \tl_set:Nn \l_CDR_tl { { \typeout{DEBUG_TRUE.........}prg_return_false: } }
+  }
+  \exp_args:NNnV
+  \prg_set_conditional:Nnn \CDR_if_numbering: { p, T, F, TF } \l_CDR_tl
 %    \end{MacroCode}
 % Get the list of tags and setup \CDRLua{} for recording or hilighting.
 %    \begin{MacroCode}
@@ -433,7 +440,7 @@ end
 % We record the key value options about numbering.
 %    \begin{MacroCode}
   \exp_args:NnV
-  \use:c { \CDR_block_ngn:V \l_CDR_engine_tl } \l_CDR_opts_tl
+  \use:c { \CDR_block_engine:V \l_CDR_engine_tl } \l_CDR_opts_tl
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb.number,
   }
@@ -442,6 +449,13 @@ end
     __fancyvrb.number,
     __block,
   }
+  \CDR_tag_if_eq:cnTF { numbers } { none } {
+    \tl_set:Nn \l_CDR_tl { \typeout{DEBUG_TRUE.........}{ prg_return_true: } }
+  } {
+    \tl_set:Nn \l_CDR_tl { \typeout{DEBUG_FALSE.........}{ prg_return_false: } }
+  }
+  \exp_args:NNnV
+  \prg_set_conditional:Nnn \CDR_if_numbering: { p, T, F, TF } \l_CDR_tl
   \CDR_tag_if_truthy:cF {no~export} {
     \clist_map_inline:nn { i, ii, iii, iv } {
       \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
@@ -456,7 +470,8 @@ end
 % If the |firstnumber| value is ``last'' then it is used to store the first number.
 %    \begin{MacroCode}
   \CDR_int_set:cn { __ } { 0 }
-  \CDR_tag_if_eq:cnF { numbers } { none } {
+  \CDR_if_numbering:T {
+  \typeout{FIRST}
     \CDR_tag_if_eq:cnT { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
@@ -473,7 +488,8 @@ end
   \FV@VerbatimBegin
 }{
   \FV@VerbatimEnd
-  \CDR_tag_if_eq:cnF { numbers } { none } {
+  \CDR_if_numbering:T {
+  \typeout{SECOND}
     \CDR_int_compare:cNnTF { __ } > 0 {
       \CDR_int_set:cn { __ } {
         \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
@@ -643,7 +659,7 @@ C
 %    \end{MacroCode}
 % \begin{function}{\CDR_line:nnn}
 % \begin{syntax}
-% \cs{CDR_line:nnn} \Arg{CDR@Line kv list} \Arg{ine number} \Arg{line commands}
+% \cs{CDR_line:nnn} \Arg{CDR@Line kv list} \Arg{line number} \Arg{line content}
 % \end{syntax}
 % This is the very first command called when typesetting.
 % Some setup are made for line numbering, in particular the |\CDR_int_if_visible:n...|
@@ -652,27 +668,23 @@ C
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_line:nnn [ #1 ] {
   \keys_set:nn { CDR@Line } { #1 }
-  \int_compare:nNnTF { \CDR_int:c { __step } } = 1 {
-    \tl_set:Nn \l_CDR_tl { {
-      \prg_return_true:
-    } }
-  } {
-    \tl_set:Nn \l_CDR_tl { = { ##1 } {
-        \prg_return_true:
+  \CDR_int_set:cn { __ } { 0 }
+  \CDR_if_numbering:T {
+    \CDR_tag_if_eq:cnTF { firstnumber } { last } {
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \clist_map_break:n {
+          \CDR_int_set:cc { __start } { ##1 }
+        }
+      }
+    } {
+      \CDR_tag_if_eq:cnTF { firstnumber } { auto } {
+        \CDR_int_set:cn { __start } { 1 }
       } {
-        \prg_return_false:
+        \CDR_int_set:cn { __start } { \CDR_tag_get:c { firstnumber } }
       }
     }
-    \int_compare:nNnTF { \CDR_int:c { __step } / 5 * 5 } = { \CDR_int:c { __step } } {
-      \tl_put_left:Nn \l_CDR_tl { {
-        ( ##1 - \CDR_int:c { __start } ) / \CDR_int:c { __step } / \CDR_int:c { __step }
-      } }  
-    } {
-      \tl_put_left:Nn \l_CDR_tl { {
-        ( ##1 ) / \CDR_int:c { __step } / \CDR_int:c { __step }
-      } }
-    }
-    \tl_put_left:Nn \l_CDR_tl { \int_compare:nNnTF }
+    \typeout{STEP: \CDR_tag_get:c { stepnumber } }
+    \CDR_int_set:cn { __step } { \CDR_tag_get:c { stepnumber } }
 %    \end{MacroCode}
 % \begin{function}[EXP,pTF]{\CDR_int_if_visible:n}
 % \begin{syntax}
@@ -685,24 +697,81 @@ C
 % family is set here.
 % \end{function}
 %    \begin{MacroCode}
+    \int_compare:nNnTF { \CDR_int:c { __step } } = 1 {
+      \tl_set:Nn \l_CDR_tl { {
+        \prg_return_true:
+      } }
+    } {
+      \tl_set:Nn \l_CDR_tl { = { ##1 } {
+          \prg_return_true:
+        } {
+          \prg_return_false:
+        }
+      }
+      \int_compare:nNnTF { \CDR_int:c { __step } / 5 * 5 } = { \CDR_int:c { __step } } {
+        \tl_put_left:Nn \l_CDR_tl { {
+          ( ##1 - \CDR_int:c { __start } ) / \CDR_int:c { __step } / \CDR_int:c { __step }
+        } }  
+      } {
+        \tl_put_left:Nn \l_CDR_tl { {
+          ( ##1 ) / \CDR_int:c { __step } / \CDR_int:c { __step }
+        } }
+      }
+      \tl_put_left:Nn \l_CDR_tl { \int_compare:nNnTF }
+    }
+    \exp_args:NNnV
+    \prg_set_conditional:Nnn \CDR_int_if_visible:n { p, T, F, TF } \l_CDR_tl
+%    \end{MacroCode}
+%    \begin{MacroCode}
   }
-  \exp_args:NNnV
-  \prg_set_conditional:Nnn \CDR_int_if_visible:n { p, T, F, TF } \l_CDR_tl
+%    \end{MacroCode}
+% \begin{function}[EXP,pTF]{\CDR_if_visible:n}
+% \begin{syntax}
+% \cs{CDR_int_if_visible:nTF} \Arg{line number} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Execute \metatt{true code} if the \metatt{linenumber} is visible, \metatt{false code} otherwise.
+% The \metatt{linenumber} visibility depends on the value relative to first number and the step.
+% This is relavant only when line numbering is enabled.
+% Some setup are made for line numbering, in particular the |\CDR_int_if_visible:n...|.
+% family is set here.
+% \end{function}
+%    \begin{MacroCode}
+  \prg_set_conditional:Nnn \CDR_if_middle_column: { p, T, F, TF } { prg_return_false: }
+  \prg_set_conditional:Nnn \CDR_if_right_column:  { p, T, F, TF } { prg_return_false: }
   \CDR_line:nn
 }
+%    \end{MacroCode}
+% \begin{function}{\CDR_line:nn}
+% \begin{syntax}
+% \cs{CDR_line:nn} \Arg{line number} \Arg{line content}
+% \end{syntax}
+% Execute \metatt{true code} if the \metatt{linenumber} is visible, \metatt{false code} otherwise.
+% The \metatt{linenumber} visibility depends on the value relative to first number and the step.
+% This is relavant only when line numbering is enabled.
+% Some setup are made for line numbering, in particular the |\CDR_int_if_visible:n...|.
+% family is set here.
+% \end{function}
+%    \begin{MacroCode}
 \cs_new:Npn \CDR_line:nn #1 #2 {
   \typeout{CDR@Line:\the\leftmargin/#1/}
   \hbox to \hsize {
     \kern \leftmargin
-    \CDR_info:n { #1 }
+    \CDR_info_left_out:n { #1 }
     \hbox to \linewidth {
       \FV@LeftListFrame
+      \CDR_info_left_in:n { #1 }
       #2
       \hss
+      \CDR_info_right_in:n { #1 }
       \FV@RightListFrame
     }
+    \CDR_info_right_out:n { #1 }
   }
 }
+\cs_new:Npn \CDR_info_left_out:n { \CDR_info_left:n }
+\cs_new:Npn \CDR_info_left_in:n { \use_none:n }
+\cs_new:Npn \CDR_info_right_in:n { \use_none:n }
+\cs_new:Npn \CDR_info_right_out:n { \use_none:n }
 
 \cs_new:Npn \CDR@NumberFormat {
   \CDR_tag_get:c { numbers~format }
@@ -714,74 +783,44 @@ C
   \hspace{ \CDR_tag_get:c { numbersep } }
 }
 
-\cs_new:Npn \CDR_info_body:n { \CDR_info_body_a:n }
+\cs_new:Npn \CDR_info_body_left:n { \CDR_info_body_a:n }
 %\cs_set:Npn \CDR_info_body:n { \use_none:n }
 
 \CDR_int_new:cn { __start } { 0 }
 \CDR_int_new:cn { __step } { 0 }
 %    \end{MacroCode}
-% \begin{function}{ \CDR_number_display:n }
+% \begin{function}{\CDR_info_body_core:n}
 % First line.
 % \end{function}
 %    \begin{MacroCode}
-\cs_set:Npn \CDR_number_display_a:n #1 {
-  \int_compare:nNnTF { (#1/\FV@StepNumber)*\FV@StepNumber} = {#1} {
-  } {
-  }
-  \@tempcnta=\FV@CodeLineNo
-  \@tempcntb=\FV@CodeLineNo
-  \divide\@tempcntb\FV@StepNumber
-  \multiply\@tempcntb\FV@StepNumber
-  \ifnum\@tempcnta=\@tempcntb\relax\else\fi
-}
 %    \end{MacroCode}
 % \begin{function}{\CDR_info_body_a:n}
 % First line.
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_info_body_a:n #1 {
-  \CDR_int_set:cn { __ } { 0 }
-  \CDR_tag_if_eq:cnF { numbers } { none } {
-    \CDR_tag_if_eq:cnTF { firstnumber } { last } {
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \clist_map_break:n {
-          \CDR_int_set:cc { __start } { ##1 }
-        }
-      }
-    } {
-      \CDR_tag_if_eq:cnTF { firstnumber } { auto } {
-        \CDR_int_set:cn { __start } { 1 }
-      } {
-        \exp_args:Nnf
-        \CDR_int_set:cn { __start } { \CDR_tag_get:c { firstnumber } }
-      }
-    }
-    \typeout{STEP: \CDR_tag_get:c { stepnumber } }
-    \exp_args:Nnx
-    \CDR_int_set:cn { __step } { \CDR_tag_get:c { stepnumber } }
-  }
   \CDR_tags_if_display:TF {
     \smash{
       \parbox[b]{\marginparwidth}{
         \raggedleft
         { \CDR@TagsFormat \g_CDR_tags_clist :}
-        \CDR_tag_if_eq:cnTF { numbers } { none } {
-          \cs_set:Npn \CDR_info_body:n { \use_none:n }
-        } {
+        \CDR_if_numbering:TF {
           \CDR_int_compare:cNnT { __last } = 1 {
             {}~#1
           }
           \cs_set:Npn \CDR_info_body:n { \CDR_info_body_ba:n }
+        } {
+          \cs_set:Npn \CDR_info_body:n { \use_none:n }
         }
       }
     }
     \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
   } {
-    \CDR_tag_if_eq:cnTF { numbers } { none } {
-      \cs_set:Npn \CDR_info_body:n { \use_none:n }
-    } {
+    \CDR_if_numbering:TF {
       #1
       \cs_set:Npn \CDR_info_body:n { \CDR_info_body_bb:n }
+    } {
+      \cs_set:Npn \CDR_info_body:n { \use_none:n }
     }
   }
 }
@@ -821,11 +860,11 @@ C
 
 }
 
-\cs_new:Npn \CDR_info:n #1 {
+\cs_new:Npn \CDR_info_left:n #1 {
   \hbox_overlap_left:n {
     \cs_set:Npn \baselinestretch { 1 }
     { \CDR@NumberFormat
-      \CDR_info_body:n { #1 }
+      \CDR_info_body_left:n { #1 }
     }
     \CDR@NumberSep
   }
