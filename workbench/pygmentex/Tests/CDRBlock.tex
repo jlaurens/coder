@@ -198,7 +198,7 @@ end
 
 \cs_set:Npn \CDR_info:n #1 {
   \hbox_overlap_left:n {
-    { \CDR@NumberFormat #1/\l_CDR_count_tl }
+    { \CDR@NumberFormat #1/\CDR_int_use:c { __last } }
     \CDR@NumberSep
   }
 }
@@ -452,7 +452,7 @@ end
     }
   }
 %    \end{MacroCode}
-% Prepare the counters. The |@| int starts with 0, which means that it is unused.
+% Prepare the counters. The |__| int starts with 0, which means that it is unused.
 % If the |firstnumber| value is ``last'' then it is used to store the first number.
 %    \begin{MacroCode}
   \CDR_int_set:cn { __ } { 0 }
@@ -640,34 +640,54 @@ C
 \cs_new:Npn \CDR@Line {
   \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnn } { \CDR_line:nn }
 }
-  \int_compare:nNnTF { \CDR_int_use:c { __step } / 5 * 5 } = { \CDR_int_use:c { __step } } {
-    \prg_new_conditional:Nnn \CDR_int_if_display:n { b, T, F, TF } {
-      \int_compare:nNnTF { ( #1 ) / \CDR_int_use:c { __step } / \CDR_int_use:c { __step } }
-    }
-  
-  } {
-  }
-\prg_new_conditional:Nnn \CDR_int_if_zero_mod_v:n { b, T, F, TF } {
-}
-  \clist_map_inline:nn { firstnumber, stepnumber } {
-    \CDR_tag_get:cN {##1} \l_CDR_tl
-    \lua_now:n { CDR:hilight_set_var('##1') }
-  }
-  \CDR_tag_get:cN {stepnumber} \l_CDR_tl
-  \lua_now:n { CDR:hilight_set_var('stepnumber') }
-
 %    \end{MacroCode}
 % \begin{function}{\CDR_line:nnn}
 % \begin{syntax}
 % \cs{CDR_line:nnn} \Arg{CDR@Line kv list} \Arg{ine number} \Arg{line commands}
 % \end{syntax}
 % This is the very first command called when typesetting.
-% Some setup are made for line numbering.
+% Some setup are made for line numbering, in particular the |\CDR_int_if_visible:n...|
+% family is set here.
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_line:nnn [ #1 ] {
   \keys_set:nn { CDR@Line } { #1 }
-  
+  \int_compare:nNnTF { \CDR_int:c { __step } } = 1 {
+    \tl_set:Nn \l_CDR_tl { {
+      \prg_return_true:
+    } }
+  } {
+    \tl_set:Nn \l_CDR_tl { = { ##1 } {
+        \prg_return_true:
+      } {
+        \prg_return_false:
+      }
+    }
+    \int_compare:nNnTF { \CDR_int:c { __step } / 5 * 5 } = { \CDR_int:c { __step } } {
+      \tl_put_left:Nn \l_CDR_tl { {
+        ( ##1 - \CDR_int:c { __start } ) / \CDR_int:c { __step } / \CDR_int:c { __step }
+      } }  
+    } {
+      \tl_put_left:Nn \l_CDR_tl { {
+        ( ##1 ) / \CDR_int:c { __step } / \CDR_int:c { __step }
+      } }
+    }
+    \tl_put_left:Nn \l_CDR_tl { \int_compare:nNnTF }
+%    \end{MacroCode}
+% \begin{function}[EXP,pTF]{\CDR_int_if_visible:n}
+% \begin{syntax}
+% \cs{CDR_int_if_visible:nTF} \Arg{line number} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Execute \metatt{true code} if the \metatt{linenumber} is visible, \metatt{false code} otherwise.
+% The \metatt{linenumber} visibility depends on the value relative to first number and the step.
+% This is relavant only when line numbering is enabled.
+% Some setup are made for line numbering, in particular the |\CDR_int_if_visible:n...|.
+% family is set here.
+% \end{function}
+%    \begin{MacroCode}
+  }
+  \exp_args:NNnV
+  \prg_set_conditional:Nnn \CDR_int_if_visible:n { p, T, F, TF } \l_CDR_tl
   \CDR_line:nn
 }
 \cs_new:Npn \CDR_line:nn #1 #2 {
@@ -704,7 +724,7 @@ C
 % First line.
 % \end{function}
 %    \begin{MacroCode}
-\cs_set:Npn \CDR_number_display_a:n {
+\cs_set:Npn \CDR_number_display_a:n #1 {
   \int_compare:nNnTF { (#1/\FV@StepNumber)*\FV@StepNumber} = {#1} {
   } {
   }
@@ -748,7 +768,7 @@ C
         \CDR_tag_if_eq:cnTF { numbers } { none } {
           \cs_set:Npn \CDR_info_body:n { \use_none:n }
         } {
-          \CDR_int_compare:cNnT { count } = 1 {
+          \CDR_int_compare:cNnT { __last } = 1 {
             {}~#1
           }
           \cs_set:Npn \CDR_info_body:n { \CDR_info_body_ba:n }

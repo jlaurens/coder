@@ -27,6 +27,15 @@ Tests of \texttt{int}
 
 \cs_set:Npn \CDRTestUnitB #1 #2 #3 #4 {
   \int_compare:nNnTF {
+    \CDR_int:c { #1 }
+  } = {
+    #2
+  } {
+    #3
+  } {
+    #4
+  }\\
+  \int_compare:nNnTF {
     \CDR_int_use:c { #1 }
   } = {
     #2

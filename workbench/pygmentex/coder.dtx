@@ -2099,6 +2099,30 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
+% \begin{function}[EXP]{\CDR_int:c}
+% \begin{syntax}
+% \cs{CDR_int:c} \Arg{tag name}
+% \end{syntax}
+% Use the integer named after \metatt{tag name}.
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_int:c #1 {
+  \use:c { g_CDR@int.#1 }
+}
+%    \end{MacroCode}
+% \end{function}
+%
+% \begin{function}[EXP]{\CDR_int_use:c}
+% \begin{syntax}
+% \cs{CDR_int_use:n} \Arg{tag name}
+% \end{syntax}
+% Use the value of the integer named after \metatt{tag name}.
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_int_use:c #1 {
+  \int_use:c { g_CDR@int.#1 }
+}
+%    \end{MacroCode}
+% \end{function}
+%
 % \begin{function}[EXP,pTF]
 %   {\CDR_int_if_exist:c}
 %   \begin{syntax}
@@ -2126,7 +2150,7 @@ if __name__ == '__main__':
 %   Forwards to |\int_compare...| with |\CDR_int_use:c { #1 }|.
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDR_int_compare:cNn { p, T, F, TF } {
-  \int_compare:nNnTF { \CDR_int_use:c { #1 } } #2 { #3 } {
+  \int_compare:nNnTF { \CDR_int:c { #1 } } #2 { #3 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -2159,10 +2183,10 @@ if __name__ == '__main__':
 % \cs{CDR_int_gset:cc} makes a global change.
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_int_set:cc #1 #2 {
-  \CDR_int_set:cn { #1 } { \CDR_int_use:c { #2 } }
+  \CDR_int_set:cn { #1 } { \CDR_int:c { #2 } }
 }
 \cs_new:Npn \CDR_int_gset:cc #1 #2 {
-  \CDR_int_gset:cn { #1 } { \CDR_int_use:c { #2 } }
+  \CDR_int_gset:cn { #1 } { \CDR_int:c { #2 } }
 }
 %    \end{MacroCode}
 % \end{function}
@@ -2192,10 +2216,10 @@ if __name__ == '__main__':
 % \cs{CDR_int_gadd:cc} makes a global change.
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_int_add:cc #1 #2 {
-  \CDR_int_add:cn { #1 } { \CDR_int_use:c { #2 } }
+  \CDR_int_add:cn { #1 } { \CDR_int:c { #2 } }
 }
 \cs_new:Npn \CDR_int_gadd:cc #1 #2 {
-  \CDR_int_gadd:cn { #1 } { \CDR_int_use:c { #2 } }
+  \CDR_int_gadd:cn { #1 } { \CDR_int:c { #2 } }
 }
 %    \end{MacroCode}
 % \end{function}
@@ -2211,30 +2235,6 @@ if __name__ == '__main__':
 }
 \cs_new:Npn \CDR_int_gsub:cn #1 #2 {
   \int_gsub:cn { g_CDR@int.#1 } { #2 }
-}
-%    \end{MacroCode}
-% \end{function}
-%
-% \begin{function}[EXP]{\CDR_int:c}
-% \begin{syntax}
-% \cs{CDR_int:c} \Arg{tag name}
-% \end{syntax}
-% Use the integer named after \metatt{tag name}.
-%    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_int:c #1 {
-  \use:c { g_CDR@int.#1 }
-}
-%    \end{MacroCode}
-% \end{function}
-%
-% \begin{function}[EXP]{\CDR_int_use:c}
-% \begin{syntax}
-% \cs{CDR_int_use:n} \Arg{tag name}
-% \end{syntax}
-% Use the value of the integer named after \metatt{tag name}.
-%    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_int_use:c #1 {
-  \int_use:c { g_CDR@int.#1 }
 }
 %    \end{MacroCode}
 % \end{function}

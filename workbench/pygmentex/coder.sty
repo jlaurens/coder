@@ -110,6 +110,12 @@
 }
 \CDR_int_new:cn { default } { 1 }
 \CDR_int_new:cn { __ } { 1 }
+\cs_new:Npn \CDR_int:c #1 {
+  \use:c { g_CDR@int.#1 }
+}
+\cs_new:Npn \CDR_int_use:c #1 {
+  \int_use:c { g_CDR@int.#1 }
+}
 \prg_new_conditional:Nnn \CDR_int_if_exist:c { p, T, F, TF } {
   \int_if_exist:cTF { g_CDR@int.#1 } {
     \prg_return_true:
@@ -118,7 +124,7 @@
   }
 }
 \prg_new_conditional:Nnn \CDR_int_compare:cNn { p, T, F, TF } {
-  \int_compare:nNnTF { \CDR_int_use:c { #1 } } #2 { #3 } {
+  \int_compare:nNnTF { \CDR_int:c { #1 } } #2 { #3 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -131,10 +137,10 @@
   \int_gset:cn { g_CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_set:cc #1 #2 {
-  \CDR_int_set:cn { #1 } { \CDR_int_use:c { #2 } }
+  \CDR_int_set:cn { #1 } { \CDR_int:c { #2 } }
 }
 \cs_new:Npn \CDR_int_gset:cc #1 #2 {
-  \CDR_int_gset:cn { #1 } { \CDR_int_use:c { #2 } }
+  \CDR_int_gset:cn { #1 } { \CDR_int:c { #2 } }
 }
 \cs_new:Npn \CDR_int_add:cn #1 #2 {
   \int_add:cn { g_CDR@int.#1 } { #2 }
@@ -143,19 +149,16 @@
   \int_gadd:cn { g_CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_add:cc #1 #2 {
-  \CDR_int_add:cn { #1 } { \CDR_int_use:c { #2 } }
+  \CDR_int_add:cn { #1 } { \CDR_int:c { #2 } }
 }
 \cs_new:Npn \CDR_int_gadd:cc #1 #2 {
-  \CDR_int_gadd:cn { #1 } { \CDR_int_use:c { #2 } }
+  \CDR_int_gadd:cn { #1 } { \CDR_int:c { #2 } }
 }
 \cs_new:Npn \CDR_int_sub:cn #1 #2 {
   \int_sub:cn { g_CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_gsub:cn #1 #2 {
   \int_gsub:cn { g_CDR@int.#1 } { #2 }
-}
-\cs_new:Npn \CDR_int_use:c #1 {
-  \int_use:c { g_CDR@int.#1 }
 }
 \cs_new:Npn \CDR_tag_get_path:cc #1 #2 {
   \c_CDR_tag_get @ #1 / #2
