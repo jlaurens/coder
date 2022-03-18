@@ -66,8 +66,6 @@ ESSAI
   }
 }
 
-\def\CDR@Total#1{\typeout{TOTAL:\space#1}}
-
 \cs_new:Npn \CDR@Line {
   \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnn } { \CDR_line:nn }
 }
@@ -351,25 +349,7 @@ end
   \bool_if:NTF \l_CDR_pyg_bool {
     \endCDRBlock@Pyg
   } {
-    %\endCDRBlock@FV
-  \FV@VerbatimEnd
-%  \CDR_if_numbering:T {
-%%  \typeout{SECOND}
-%%    \CDR_int_compare:cNnTF { __ } > 0 {
-%%      \CDR_int_set:cn { __ } {
-%%        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
-%%      }
-%%      \clist_map_inline:Nn \g_CDR_tags_clist {
-%%        \CDR_int_gadd:cc { ##1 } { __ }
-%%      }
-%%    } {
-%%      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
-%%      \clist_map_inline:Nn \g_CDR_tags_clist {
-%%        \CDR_int_gset:cc { ##1 } { __ }
-%%      }
-%%    }
-%  }
-
+    \endCDRBlock@FV
   }
   \use:c { end \CDR_block_engine:V \l_CDR_engine_tl }
   \group_end:
@@ -397,9 +377,9 @@ end
     \prg_set_conditional:Nnn \CDR_if_numbering: { p, T, F, TF } { ##1 }
   }
   \CDR_tag_if_eq:cnTF { numbers } { none } {
-    \CDR:n { \prg_return_true: }
-  } {
     \CDR:n { \prg_return_false: }
+  } {
+    \CDR:n { \prg_return_true: }
   }
 %    \end{MacroCode}
 % Get the list of tags and setup \CDRLua{} for recording or hilighting.
@@ -470,9 +450,9 @@ end
     __block,
   }
   \CDR_tag_if_eq:cnTF { numbers } { none } {
-    \tl_set:Nn \l_CDR_tl { \prg_return_true: }
-  } {
     \tl_set:Nn \l_CDR_tl { \prg_return_false: }
+  } {
+    \tl_set:Nn \l_CDR_tl { \prg_return_true: }
   }
   \exp_args:NNnV
   \prg_set_conditional:Nnn \CDR_if_numbering: { p, T, F, TF } \l_CDR_tl  
@@ -491,7 +471,6 @@ end
 %    \begin{MacroCode}
   \CDR_int_set:cn { __ } { 0 }
   \CDR_if_numbering:T {
-  \typeout{FIRST}
     \CDR_tag_if_eq:cnT { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
@@ -509,7 +488,6 @@ end
 } {
   \FV@VerbatimEnd
   \CDR_if_numbering:T {
-  \typeout{SECOND}
     \CDR_int_compare:cNnTF { __ } > 0 {
       \CDR_int_set:cn { __ } {
         \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
@@ -539,7 +517,6 @@ end
 
 \subsubsection{\textsf{fancyvrb} linear}
 
-\typeout{IN PROGREEEEEESSSSSSSS}
 \CDRSet{pygments=false}
 
 \begin{Verbatim} [
@@ -554,6 +531,10 @@ A
 ]
 A
 \end{CDRBlock}
+\ExplSyntaxOn
+\typeout{none = \CDR_int_use:c { none }}
+\ExplSyntaxOff
+
 \begin{CDRBlock} [
   tags=none,
   numbers=left,
@@ -563,6 +544,10 @@ A
 B
 C
 \end{CDRBlock}
+\ExplSyntaxOn
+\typeout{none = \CDR_int_use:c { none }}
+\ExplSyntaxOff
+
 \begin{CDRBlock} [
   tags=none,
   numbers=left,
@@ -572,6 +557,10 @@ A
 B
 C
 \end{CDRBlock}
+\ExplSyntaxOn
+\typeout{none = \CDR_int_use:c { none }}
+\ExplSyntaxOff
+
 \begin{CDRBlock} [
   tags=none,
   numbers=left,
@@ -581,6 +570,9 @@ A
 B
 C
 \end{CDRBlock}
+\ExplSyntaxOn
+\typeout{none = \CDR_int_use:c { none }}
+\ExplSyntaxOff
 
 \subsubsection{\textsf{fancyvrb} multi tags}
 
@@ -593,6 +585,7 @@ C
 ]
 A=*1,B=1,C=1
 \end{CDRBlock}
+
 \begin{CDRBlock} [
   tags={B,C},
   numbers=left,
@@ -703,7 +696,6 @@ C
         \CDR_int_set:cn { __start } { \CDR_tag_get:c { firstnumber } }
       }
     }
-    \typeout{STEP: \CDR_tag_get:c { stepnumber } }
     \CDR_int_set:cn { __step } { \CDR_tag_get:c { stepnumber } }
 %    \end{MacroCode}
 % \begin{function}[EXP,pTF]{\CDR_int_if_visible:n}
@@ -718,7 +710,7 @@ C
 % \end{function}
 %    \begin{MacroCode}
     \int_compare:nNnTF { \CDR_int:c { __step } } = 1 {
-      \tl_set:Nn \l_CDR_tl { prg_return_true: }
+      \tl_set:Nn \l_CDR_tl { \prg_return_true: }
     } {
       \tl_set:Nn \l_CDR_tl { = { ##1 } {
           \prg_return_true:
@@ -754,8 +746,8 @@ C
 % family is set here.
 % \end{function}
 %    \begin{MacroCode}
-  \prg_set_conditional:Nnn \CDR_if_middle_column: { p, T, F, TF } { prg_return_false: }
-  \prg_set_conditional:Nnn \CDR_if_right_column:  { p, T, F, TF } { prg_return_false: }
+  \prg_set_conditional:Nnn \CDR_if_middle_column: { p, T, F, TF } { \prg_return_false: }
+  \prg_set_conditional:Nnn \CDR_if_right_column:  { p, T, F, TF } { \prg_return_false: }
   \CDR_line:nn
 }
 %    \end{MacroCode}
@@ -891,7 +883,6 @@ C
 \ExplSyntaxOff
 \makeatother
 
-\typeout{DEBUGGGGG1}
 \begin{CDRBlock}[
   tags={we are the champions,  whatever it isp},
   fontfamily=menlo,
@@ -904,7 +895,6 @@ C
 ]
 function foo(arg) return arg ** arg end -- tags expected
 \end{CDRBlock}
-\typeout{DEBUGGGGG2}
 \begin{CDRBlock}[
 %  tags={we are the champions,  whatever it isp},
   fontfamily=menlo,
@@ -926,7 +916,6 @@ function foo(arg) -- no tags expected
   return arg ** arg
 end
 \end{CDRBlock}
-\typeout{DEBUGGGGG3}
 \begin{CDRBlock}[
 %  tags={we are the champions,  whatever it isp},
   fontfamily=menlo,
@@ -940,7 +929,6 @@ end
 ]
 function foo(arg) return arg ** arg end -- tags expected
 \end{CDRBlock}
-\typeout{DEBUGGGGG4}
 \begin{CDRBlock}[
   tags={whatever it isp,we are the champions},
   fontfamily=menlo,
@@ -954,7 +942,6 @@ function foo(arg) return arg ** arg end -- tags expected
 ]
 function foo(arg) return arg ** arg end -- tags expected
 \end{CDRBlock}
-\typeout{DEBUGGGGG5}
 \begin{CDRBlock}[
 %  tags={we are the champions,  whatever it isp},
   pygments,
