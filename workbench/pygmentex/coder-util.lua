@@ -151,7 +151,10 @@ local function hilight_set(self, key, value)
     t = args.pygopts
     if t[key] == nil then
       t = args.texopts
-      assert(t[key] ~= nil)
+      if t[key] == nil then
+        t = args.fv_opts
+        assert(t[key] ~= nil)
+      end
     end
   end
   t[key] = value
@@ -298,6 +301,8 @@ local function hilight_block_setup(self, tags_clist_var)
     },
     fv_opts = {
       __cls__ = 'FVOpts',
+      firstnumber = 1,
+      stepnumber  = 1,
     }
   }
   self.hilight_json_written = false

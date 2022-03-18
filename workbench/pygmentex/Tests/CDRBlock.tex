@@ -3,9 +3,9 @@
 \noindent
 
 \ExplSyntaxOn
-\CDR_int_new:cn { count } { 0 }
+\CDR_int_new:cn { __last } { 0 }
 \keys_define:nn { CDR@Line } {
-  count .code:n = \CDR_int_set:cn { count } { #1 }
+  last .code:n = \CDR_int_set:cn { __last } { #1 },
 }
 \ExplSyntaxOff
 
@@ -68,22 +68,21 @@ ESSAI
 
 \def\CDR@Total#1{\typeout{TOTAL:\space#1}}
 
-
 \cs_new:Npn \CDR@Line {
-  \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnnn } { \CDR_line:nnn }
+  \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnn } { \CDR_line:nn }
 }
-\cs_new:Npn \CDR_line:nnnn [ #1 ] {
+\cs_new:Npn \CDR_line:nnn [ #1 ] {
   \keys_set:nn { CDR@Line } { #1 }
-  \CDR_line:nnn
+  \CDR_line:nn
 }
-\cs_new:Npn \CDR_line:nnn #1 #2 #3 {
-  \typeout{CDR@Line:\the\leftmargin/#1/#2/\l_CDR_count_tl}
+\cs_new:Npn \CDR_line:nn #1 #2 {
+  \typeout{CDR@Line:\the\leftmargin/#1/}
   \hbox to \hsize {
     \kern \leftmargin
-    \use:c { CDR@Number#1 } { #2 }
+    \CDR_info:n { #1 }
     \hbox to \linewidth {
       \FV@LeftListFrame
-      #3
+      #2
       \hss
       \FV@RightListFrame
     }
@@ -100,21 +99,12 @@ ESSAI
   \hspace{ \CDR_tag_get:c { numbersep } }
 }
 
-\cs_new:Npn \CDR@NumberLeft #1 {
+\cs_new:Npn \CDR_info:n #1 {
   \hbox_overlap_left:n {
     { \CDR@NumberFormat #1 }
     \CDR@NumberSep
   }
 }
-\cs_new:Npn \CDR@NumberFirst #1 {
-  \hbox_overlap_left:n {
-    { \CDR@NumberFormat \parbox{\leftmargin}{\CDR@TagsFormat\CDR_tag_get:c { tags } } #1 }
-    \CDR@NumberSep
-  }
-}
-\cs_set_eq:NN \CDR@NumberSecond \CDR@NumberLeft
-\cs_set_eq:NN \CDR@NumberBlack \CDR@NumberLeft
-\cs_set_eq:NN \CDR@NumberWhite \CDR@NumberLeft
 
 %    \end{MacroCode}
 % \begin{function}{\FVB@CDRBlock}
@@ -206,17 +196,12 @@ end
   \hspace{ \CDR_tag_get:c { numbersep } }
 }
 
-\cs_set:Npn \CDR@NumberLeft #1 {
+\cs_set:Npn \CDR_info:n #1 {
   \hbox_overlap_left:n {
     { \CDR@NumberFormat #1/\l_CDR_count_tl }
     \CDR@NumberSep
   }
 }
-\cs_set_eq:NN \CDR@NumberSingle \CDR@NumberLeft
-\cs_set_eq:NN \CDR@NumberFirst \CDR@NumberLeft
-\cs_set_eq:NN \CDR@NumberSecond \CDR@NumberLeft
-\cs_set_eq:NN \CDR@NumberBlack \CDR@NumberLeft
-\cs_set_eq:NN \CDR@NumberWhite \CDR@NumberLeft
 
 %    \end{MacroCode}
 %
@@ -375,22 +360,23 @@ end
 
 
 \newenvironment{CDRBlock@Pyg}{
+%    \end{MacroCode}
+% Catch the keys related to numbering before they are forwarded to \pkg{fancyvrb}.
+%    \begin{MacroCode}
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb.number
   }
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-  \exp_args:NV \fvset \l_CDR_kv_clist
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb, __fancyvrb.block
   }
   \exp_args:NnV
   \CDR_tag_keys_set:nn { __local } \l_CDR_kv_clist
-
   \exp_args:NNV
   \def \FV@KeyValues \l_CDR_kv_clist
 %    \end{MacroCode}
 % Get the list of tags and setup \CDRLua{} for recording or hilighting.
-%    \begin{MacroCode}  
+%    \begin{MacroCode}
   \CDR_tag_get:cN {lang} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('lang') }
   \CDR_tag_get:cN {cache} \l_CDR_tl
@@ -404,6 +390,12 @@ end
     \input { \l_CDR_pyg_sty_tl }
   }
   \CDR@StyleUseTag
+  \clist_map_inline:nn { firstnumber, stepnumber } {
+    \CDR_tag_get:cN {##1} \l_CDR_tl
+    \lua_now:n { CDR:hilight_set_var('##1') }
+  }
+  \CDR_tag_get:cN {stepnumber} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('stepnumber') }
   \CDR_tag_if_truthy:cTF {no~export} {
     \clist_map_inline:nn { i, ii, iii, iv } {
       \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
@@ -463,12 +455,12 @@ end
 % Prepare the counters. The |@| int starts with 0, which means that it is unused.
 % If the |firstnumber| value is ``last'' then it is used to store the first number.
 %    \begin{MacroCode}
-  \CDR_int_set:cn { @ } { 0 }
+  \CDR_int_set:cn { __ } { 0 }
   \CDR_tag_if_eq:cnF { numbers } { none } {
     \CDR_tag_if_eq:cnT { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
-          \CDR_int_set:cc { @ } { ##1 }
+          \CDR_int_set:cc { __ } { ##1 }
           \clist_put_right:Nx \l_CDR_kv_clist {
             firstnumber = \CDR_int_use:c { ##1 }
           }
@@ -482,17 +474,17 @@ end
 }{
   \FV@VerbatimEnd
   \CDR_tag_if_eq:cnF { numbers } { none } {
-    \CDR_int_compare:cNnTF { @ } > 0 {
-      \CDR_int_set:cn { @ } {
-        \value{FancyVerbLine} - \CDR_int_use:c { @ } + 1
+    \CDR_int_compare:cNnTF { __ } > 0 {
+      \CDR_int_set:cn { __ } {
+        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
       }
       \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gadd:cc { ##1 } { @ }
+        \CDR_int_gadd:cc { ##1 } { __ }
       }
     } {
-      \CDR_int_set:cn { @ } { \value{FancyVerbLine} + 1 }
+      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
       \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gset:cc { ##1 } { @ }
+        \CDR_int_gset:cc { ##1 } { __ }
       }
     }
   }
@@ -638,29 +630,54 @@ C
 \ExplSyntaxOn
 
 \cs_undefine:N \CDR@Line
-\cs_undefine:N \CDR_line:nnnn
 \cs_undefine:N \CDR_line:nnn
+\cs_undefine:N \CDR_line:nn
 \cs_undefine:N \CDR@NumberFormat
 \cs_undefine:N \CDR@TagsFormat
 \cs_undefine:N \CDR@NumberSep
-\cs_undefine:N \CDR@NumberLeft
-\cs_undefine:N \CDR@NumberFirst
+\cs_undefine:N \CDR_info:n
 
 \cs_new:Npn \CDR@Line {
-  \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnnn } { \CDR_line:nnn }
+  \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnn } { \CDR_line:nn }
 }
-\cs_new:Npn \CDR_line:nnnn [ #1 ] {
+  \int_compare:nNnTF { \CDR_int_use:c { __step } / 5 * 5 } = { \CDR_int_use:c { __step } } {
+    \prg_new_conditional:Nnn \CDR_int_if_display:n { b, T, F, TF } {
+      \int_compare:nNnTF { ( #1 ) / \CDR_int_use:c { __step } / \CDR_int_use:c { __step } }
+    }
+  
+  } {
+  }
+\prg_new_conditional:Nnn \CDR_int_if_zero_mod_v:n { b, T, F, TF } {
+}
+  \clist_map_inline:nn { firstnumber, stepnumber } {
+    \CDR_tag_get:cN {##1} \l_CDR_tl
+    \lua_now:n { CDR:hilight_set_var('##1') }
+  }
+  \CDR_tag_get:cN {stepnumber} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('stepnumber') }
+
+%    \end{MacroCode}
+% \begin{function}{\CDR_line:nnn}
+% \begin{syntax}
+% \cs{CDR_line:nnn} \Arg{CDR@Line kv list} \Arg{ine number} \Arg{line commands}
+% \end{syntax}
+% This is the very first command called when typesetting.
+% Some setup are made for line numbering.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_line:nnn [ #1 ] {
   \keys_set:nn { CDR@Line } { #1 }
-  \CDR_line:nnn
+  
+  \CDR_line:nn
 }
-\cs_new:Npn \CDR_line:nnn #1 #2 #3 {
-  \typeout{CDR@Line:\the\leftmargin/#1/#2/\l_CDR_count_tl}
+\cs_new:Npn \CDR_line:nn #1 #2 {
+  \typeout{CDR@Line:\the\leftmargin/#1/}
   \hbox to \hsize {
     \kern \leftmargin
-    \use:c { CDR@Number#1 } { #2 }
+    \CDR_info:n { #1 }
     \hbox to \linewidth {
       \FV@LeftListFrame
-      #3
+      #2
       \hss
       \FV@RightListFrame
     }
@@ -677,44 +694,123 @@ C
   \hspace{ \CDR_tag_get:c { numbersep } }
 }
 
-\cs_new:Npn \CDR@NumberLeft #1 {
+\cs_new:Npn \CDR_info_body:n { \CDR_info_body_a:n }
+%\cs_set:Npn \CDR_info_body:n { \use_none:n }
+
+\CDR_int_new:cn { __start } { 0 }
+\CDR_int_new:cn { __step } { 0 }
+%    \end{MacroCode}
+% \begin{function}{ \CDR_number_display:n }
+% First line.
+% \end{function}
+%    \begin{MacroCode}
+\cs_set:Npn \CDR_number_display_a:n {
+  \int_compare:nNnTF { (#1/\FV@StepNumber)*\FV@StepNumber} = {#1} {
+  } {
+  }
+  \@tempcnta=\FV@CodeLineNo
+  \@tempcntb=\FV@CodeLineNo
+  \divide\@tempcntb\FV@StepNumber
+  \multiply\@tempcntb\FV@StepNumber
+  \ifnum\@tempcnta=\@tempcntb\relax\else\fi
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_info_body_a:n}
+% First line.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_info_body_a:n #1 {
+  \CDR_int_set:cn { __ } { 0 }
   \CDR_tag_if_eq:cnF { numbers } { none } {
-    \hbox_overlap_left:n {
-      { \CDR@NumberFormat #1 }
-      \CDR@NumberSep
+    \CDR_tag_if_eq:cnTF { firstnumber } { last } {
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \clist_map_break:n {
+          \CDR_int_set:cc { __start } { ##1 }
+        }
+      }
+    } {
+      \CDR_tag_if_eq:cnTF { firstnumber } { auto } {
+        \CDR_int_set:cn { __start } { 1 }
+      } {
+        \exp_args:Nnf
+        \CDR_int_set:cn { __start } { \CDR_tag_get:c { firstnumber } }
+      }
+    }
+    \typeout{STEP: \CDR_tag_get:c { stepnumber } }
+    \exp_args:Nnx
+    \CDR_int_set:cn { __step } { \CDR_tag_get:c { stepnumber } }
+  }
+  \CDR_tags_if_display:TF {
+    \smash{
+      \parbox[b]{\marginparwidth}{
+        \raggedleft
+        { \CDR@TagsFormat \g_CDR_tags_clist :}
+        \CDR_tag_if_eq:cnTF { numbers } { none } {
+          \cs_set:Npn \CDR_info_body:n { \use_none:n }
+        } {
+          \CDR_int_compare:cNnT { count } = 1 {
+            {}~#1
+          }
+          \cs_set:Npn \CDR_info_body:n { \CDR_info_body_ba:n }
+        }
+      }
+    }
+    \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
+  } {
+    \CDR_tag_if_eq:cnTF { numbers } { none } {
+      \cs_set:Npn \CDR_info_body:n { \use_none:n }
+    } {
+      #1
+      \cs_set:Npn \CDR_info_body:n { \CDR_info_body_bb:n }
     }
   }
 }
-\cs_new:Npn \CDR@NumberFirst #1 {
+%    \end{MacroCode}
+% \begin{function}{\CDR_info_body_a:n}
+% First line.
+% \end{function}
+%    \begin{MacroCode}
+
+
+%'''    if len(lines):
+%      more('First', lines.pop(0))
+%      if len(lines):
+%        more('Second', lines.pop(0))
+%        if stepnumber < 2:
+%          def template():
+%            return 'Black'
+%        elif stepnumber % 5 == 0:
+%          def template():
+%            return 'Black' if number %\
+%              stepnumber == 0 else 'White'
+%        else:
+%          def template():
+%            return 'Black' if (number - firstnumber) %\
+%              stepnumber == 0 else 'White'
+%'''         
+
+%    \end{MacroCode}
+% Display the line number unless the step is >0 and the next line number is displayed.
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_info_body_ba:n #1 {
+
+
+}
+
+\cs_new:Npn \CDR_info_body_bb:n #1 {
+
+}
+
+\cs_new:Npn \CDR_info:n #1 {
   \hbox_overlap_left:n {
-    \renewcommand{\baselinestretch}{1}
+    \cs_set:Npn \baselinestretch { 1 }
     { \CDR@NumberFormat
-      \CDR_tags_if_display:TF {
-        \smash{
-          \parbox[b]{\marginparwidth}{
-            \raggedleft
-            { \CDR@TagsFormat \g_CDR_tags_clist :}
-            \CDR_int_compare:cNnTF { count } = 1 {
-              \CDR_tag_if_eq:cnF { numbers } { none } {
-                {}~#1
-              }
-            }
-          }
-        }
-        \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
-      } {
-        \CDR_tag_if_eq:cnF { numbers } { none } {
-          #1
-        }
-      }
+      \CDR_info_body:n { #1 }
     }
     \CDR@NumberSep
   }
 }
 
-\cs_set_eq:NN \CDR@NumberSecond \CDR@NumberLeft
-\cs_set_eq:NN \CDR@NumberBlack \CDR@NumberLeft
-\cs_set_eq:NN \CDR@NumberWhite \CDR@NumberLeft
 \ExplSyntaxOff
 \makeatother
 

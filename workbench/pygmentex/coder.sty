@@ -109,7 +109,7 @@
   \int_gset:cn { g_CDR@int.#1 } { #2 }
 }
 \CDR_int_new:cn { default } { 1 }
-\CDR_int_new:cn { @ } { 1 }
+\CDR_int_new:cn { __ } { 1 }
 \prg_new_conditional:Nnn \CDR_int_if_exist:c { p, T, F, TF } {
   \int_if_exist:cTF { g_CDR@int.#1 } {
     \prg_return_true:

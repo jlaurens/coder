@@ -58,7 +58,6 @@ class TeXOpts(BaseOpts):
 \CDR@StyleDefine{<placeholder:style_name>} {%
   <placeholder:style_defs>}%
 \makeatother'''
-  line_template =r'''\CDR@Line{<placeholder:type>}{<placeholder:number>}{<placeholder:line>}'''
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
     self.inline_p  = self.ensure_bool(self.is_inline)
@@ -314,50 +313,14 @@ file name with extension, contains processing information.
     texopts = self.texopts
     if texopts.is_inline:
       return hilighted.replace(' ', r'\CDR@Sp '), 0
-    fv_opts = self.fv_opts
     lines = hilighted.split('\n')
     ans_code = []
-    try:
-      firstnumber = abs(int(fv_opts.firstnumber))
-    except ValueError:
-      firstnumber = 1
-    number = firstnumber
-    stepnumber = fv_opts.stepnumber
-    numbering = fv_opts.numbers != 'none'
-    def more(type, line):
-      nonlocal number
-      ans_code.append(texopts.line_template.replace(
-          '<placeholder:type>', f'{type}',
-        ).replace(
-          '<placeholder:number>', f'{number}',
-        ).replace(
-          '<placeholder:line>', line,
-      ))
-      number += 1
+    last = 1
+    for line in lines[1:]:
+      last += 1
+      ans_code.append(rf'''\CDR@Line{{{last}}}{{{line}}}''')
     if len(lines):
-      more('First', lines.pop(0))
-      if len(lines):
-        more('Second', lines.pop(0))
-        if stepnumber < 2:
-          def template():
-            return 'Black'
-        elif stepnumber % 5 == 0:
-          def template():
-            return 'Black' if number %\
-              stepnumber == 0 else 'White'
-        else:
-          def template():
-            return 'Black' if (number - firstnumber) %\
-              stepnumber == 0 else 'White'
-
-      for line in lines:
-        more(template(), line)
-    ans_code[0] = re.sub(
-      r'^(\\CDR@Line)',
-      f'\\1[count={number-firstnumber}]',
-      ans_code[0],
-      count=1
-    )
+      ans_code.insert(0, rf'''\CDR@Line[last={last}]{{{1}}}{{{lines[0]}}}''')
     hilighted = '\n'.join(ans_code)
     return hilighted
   def create_pygmented(self):
