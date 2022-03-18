@@ -3836,7 +3836,7 @@ if __name__ == '__main__':
   \clist_map_inline:nn {
     __pygments, __pygments.block,
     default.block, default.code, default,
-    __fancyvrb, __fancyvrb.block, __fancyvrb.all
+    __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
     \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
   }
@@ -3844,6 +3844,14 @@ if __name__ == '__main__':
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
   \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
+  \keys_define:nn { CDR@Set@tags } {
+    tags .code:n = {
+      \clist_set:Nn \g_CDR_tags_clist { ##1 }
+      \clist_remove_duplicates:N \g_CDR_tags_clist
+    },
+    unknown .code:n =,
+  }
+  \keys_set:nn { CDR@Set@tags } { #1 }
 }
 %    \end{MacroCode}
 %
