@@ -229,18 +229,19 @@ end
 %    \end{MacroCode}
 % Create a |\CDR_tags_if_display:...| set of conditionals.
 %    \begin{MacroCode}
+  \cs_set:Npn \CDR:n ##1 {
+    \prg_set_conditional:Nnn \CDR_tags_if_display: { p, T, F, TF } {
+      ##1
+    }
+  }
   \bool_if:nTF { \CDR_tag_if_truthy_p:c { show~tags }
       && ( ! \CDR_tag_if_truthy_p:c { only~top }
         || ! \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
       )
   } {
-    \prg_set_conditional:Nnn \CDR_tags_if_display: { p, T, F, TF } {
-      \prg_return_true:
-    }
+    \CDR:n { \prg_return_true: }
   } {
-    \prg_set_conditional:Nnn \CDR_tags_if_display: { p, T, F, TF } {
-      \prg_return_false:
-    }
+    \CDR:n { \prg_return_false: }
   }
 %    \end{MacroCode}
 % For each \metatt{tag name}, create an \pkg{l3int} variable and intilize it to 1.
@@ -350,7 +351,25 @@ end
   \bool_if:NTF \l_CDR_pyg_bool {
     \endCDRBlock@Pyg
   } {
-    \endCDRBlock@FV
+    %\endCDRBlock@FV
+  \FV@VerbatimEnd
+%  \CDR_if_numbering:T {
+%%  \typeout{SECOND}
+%%    \CDR_int_compare:cNnTF { __ } > 0 {
+%%      \CDR_int_set:cn { __ } {
+%%        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
+%%      }
+%%      \clist_map_inline:Nn \g_CDR_tags_clist {
+%%        \CDR_int_gadd:cc { ##1 } { __ }
+%%      }
+%%    } {
+%%      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
+%%      \clist_map_inline:Nn \g_CDR_tags_clist {
+%%        \CDR_int_gset:cc { ##1 } { __ }
+%%      }
+%%    }
+%  }
+
   }
   \use:c { end \CDR_block_engine:V \l_CDR_engine_tl }
   \group_end:
@@ -374,13 +393,14 @@ end
   \CDR_tag_keys_set:nn { __local } \l_CDR_kv_clist
   \exp_args:NNV
   \def \FV@KeyValues \l_CDR_kv_clist
-  \CDR_tag_if_eq:cnTF { numbers } { none } {
-    \tl_set:Nn \l_CDR_tl { { \typeout{DEBUG_TRUE.........}prg_return_true: } }
-  } {
-    \tl_set:Nn \l_CDR_tl { { \typeout{DEBUG_TRUE.........}prg_return_false: } }
+  \cs_set:Npn \CDR:n ##1 {
+    \prg_set_conditional:Nnn \CDR_if_numbering: { p, T, F, TF } { ##1 }
   }
-  \exp_args:NNnV
-  \prg_set_conditional:Nnn \CDR_if_numbering: { p, T, F, TF } \l_CDR_tl
+  \CDR_tag_if_eq:cnTF { numbers } { none } {
+    \CDR:n { \prg_return_true: }
+  } {
+    \CDR:n { \prg_return_false: }
+  }
 %    \end{MacroCode}
 % Get the list of tags and setup \CDRLua{} for recording or hilighting.
 %    \begin{MacroCode}
@@ -434,7 +454,7 @@ end
   \FV@VerbatimEnd
 }
 
-\newenvironment{CDRBlock@FV}{
+\newenvironment{CDRBlock@FV} {
 %    \end{MacroCode}
 % \pkg{pygments} is not used, \pkg{fancyvrb} features.
 % We record the key value options about numbering.
@@ -450,12 +470,12 @@ end
     __block,
   }
   \CDR_tag_if_eq:cnTF { numbers } { none } {
-    \tl_set:Nn \l_CDR_tl { \typeout{DEBUG_TRUE.........}{ prg_return_true: } }
+    \tl_set:Nn \l_CDR_tl { \prg_return_true: }
   } {
-    \tl_set:Nn \l_CDR_tl { \typeout{DEBUG_FALSE.........}{ prg_return_false: } }
+    \tl_set:Nn \l_CDR_tl { \prg_return_false: }
   }
   \exp_args:NNnV
-  \prg_set_conditional:Nnn \CDR_if_numbering: { p, T, F, TF } \l_CDR_tl
+  \prg_set_conditional:Nnn \CDR_if_numbering: { p, T, F, TF } \l_CDR_tl  
   \CDR_tag_if_truthy:cF {no~export} {
     \clist_map_inline:nn { i, ii, iii, iv } {
       \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
@@ -486,7 +506,7 @@ end
   \exp_args:NNV
   \def \FV@KeyValues \l_CDR_kv_clist
   \FV@VerbatimBegin
-}{
+} {
   \FV@VerbatimEnd
   \CDR_if_numbering:T {
   \typeout{SECOND}
@@ -698,9 +718,7 @@ C
 % \end{function}
 %    \begin{MacroCode}
     \int_compare:nNnTF { \CDR_int:c { __step } } = 1 {
-      \tl_set:Nn \l_CDR_tl { {
-        \prg_return_true:
-      } }
+      \tl_set:Nn \l_CDR_tl { prg_return_true: }
     } {
       \tl_set:Nn \l_CDR_tl { = { ##1 } {
           \prg_return_true:
@@ -711,7 +729,7 @@ C
       \int_compare:nNnTF { \CDR_int:c { __step } / 5 * 5 } = { \CDR_int:c { __step } } {
         \tl_put_left:Nn \l_CDR_tl { {
           ( ##1 - \CDR_int:c { __start } ) / \CDR_int:c { __step } / \CDR_int:c { __step }
-        } }  
+        } }
       } {
         \tl_put_left:Nn \l_CDR_tl { {
           ( ##1 ) / \CDR_int:c { __step } / \CDR_int:c { __step }
@@ -720,7 +738,7 @@ C
       \tl_put_left:Nn \l_CDR_tl { \int_compare:nNnTF }
     }
     \exp_args:NNnV
-    \prg_set_conditional:Nnn \CDR_int_if_visible:n { p, T, F, TF } \l_CDR_tl
+    \prg_set_conditional:Nnn \CDR_if_numbering: { p, T, F, TF } \l_CDR_tl
 %    \end{MacroCode}
 %    \begin{MacroCode}
   }

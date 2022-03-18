@@ -1,0 +1,59 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+
+\endinput
+
+\noindent
+
+\bgroup
+
+\makeatletter
+\ExplSyntaxOn
+
+\prg_set_conditional:Nnn \CDR_if_TEST: { p, T, F, TF } { \prg_return_true: }
+
+T==\CDR_if_TEST:TF TF\\
+
+
+\tl_set:Nn \l_CDR_tl { \prg_return_true: }
+\exp_args:NNnV
+\prg_set_conditional:Nnn \CDR_if_TEST: { p, T, F, TF } \l_CDR_tl
+
+T==\CDR_if_TEST:TF TF\\
+
+
+\tl_set:Nn \l_CDR_tl { \prg_return_true: }
+\tl_put_left:Nn \l_CDR_tl {
+\prg_set_conditional:Nnn \CDR_if_TEST: { p, T, F, TF }
+}
+\l_CDR_tl
+T==\CDR_if_TEST:TF TF\\
+
+
+\def\FVB@TEST {
+  \@bsphack
+  \FV@VerbatimBegin
+  \FV@Scan
+}
+\def\FVE@TEST {
+  \FV@VerbatimEnd
+  \CDR_if_TEST:T{\typeout{T}}
+  \@esphack
+}
+
+  \@namedef{TEST}{\FV@Environment{}{TEST}}
+  \@namedef{endTEST}{\FVE@TEST}
+
+
+
+\ExplSyntaxOff
+\makeatother
+
+
+\begin{TEST}
+A
+\end{TEST}
+
+\egroup
+
+\end{document}
