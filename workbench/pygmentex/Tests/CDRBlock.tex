@@ -55,7 +55,7 @@ ESSAI
 % \end{variable}
 %
 
-\prg_set_conditional:Nnn \CDR_if_tag_truthy:c { p, T,  F, TF } {
+\prg_set_conditional:Nnn \CDR_tag_if_truthy:c { p, T,  F, TF } {
   \exp_args:Ne
   \str_compare:nNnTF {
     \exp_args:Ne \str_lowercase:n { \CDR_tag_get:c { #1 } }
@@ -241,17 +241,28 @@ end
     __block, default.block, __pygments.block, __fancyvrb.block, __fancyvrb.number,
      __pygments, default, __fancyvrb,
   }
-  \bool_if:nTF { \CDR_if_tag_truthy_p:c { show~tags }
-      && ( ! \CDR_if_tag_truthy_p:c { only~top }
+%    \end{MacroCode}
+% Create a |\CDR_tags_if_display:...| set of conditionals.
+%    \begin{MacroCode}
+  \bool_if:nTF { \CDR_tag_if_truthy_p:c { show~tags }
+      && ( ! \CDR_tag_if_truthy_p:c { only~top }
         || ! \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
       )
   } {
-    \prg_set_conditional:Nnn \CDR_if_display_tags: { p, T, F, TF } {
+    \prg_set_conditional:Nnn \CDR_tags_if_display: { p, T, F, TF } {
       \prg_return_true:
     }
   } {
-    \prg_set_conditional:Nnn \CDR_if_display_tags: { p, T, F, TF } {
+    \prg_set_conditional:Nnn \CDR_tags_if_display: { p, T, F, TF } {
       \prg_return_false:
+    }
+  }
+%    \end{MacroCode}
+% For each \metatt{tag name}, create an \pkg{l3int} variable and intilize it to 1.
+%    \begin{MacroCode}
+  \clist_map_inline:Nn \g_CDR_tags_clist {
+    \CDR_int_if_exist:cF { ##1 } {
+      \CDR_int_new:cn { ##1 } { 1 }
     }
   }
 }
@@ -265,16 +276,16 @@ end
   \bool_set_false:N \l_CDR_pyg_bool
   \CDR_tag_if_exist_here:ccTF { __local } { pygments } {
     \bool_set:Nn \l_CDR_pyg_bool {
-      \CDR_if_tag_truthy_p:c { pygments }
+      \CDR_tag_if_truthy_p:c { pygments }
     }  
   } {
     \clist_if_empty:NTF \g_CDR_tags_clist {
       \bool_set:Nn \l_CDR_pyg_bool {
-        \CDR_if_tag_truthy_p:c { pygments }
+        \CDR_tag_if_truthy_p:c { pygments }
       }
     } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_if_tag_truthy:ccT { ##1 } { pygments } {
+        \CDR_tag_if_truthy:ccT { ##1 } { pygments } {
           \clist_map_break:n {
             \bool_set_true:N \l_CDR_pyg_bool
           }
@@ -393,7 +404,7 @@ end
     \input { \l_CDR_pyg_sty_tl }
   }
   \CDR@StyleUseTag
-  \CDR_if_tag_truthy:cTF {no~export} {
+  \CDR_tag_if_truthy:cTF {no~export} {
     \clist_map_inline:nn { i, ii, iii, iv } {
       \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
         \tl_set:Nn \l_CDR_tl { ####1 }
@@ -439,7 +450,7 @@ end
     __fancyvrb.number,
     __block,
   }
-  \CDR_if_tag_truthy:cF {no~export} {
+  \CDR_tag_if_truthy:cF {no~export} {
     \clist_map_inline:nn { i, ii, iii, iv } {
       \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
         \tl_set:Nn \l_CDR_tl { ####1 }
@@ -449,19 +460,14 @@ end
     }
   }
 %    \end{MacroCode}
-% Prepare the counters. The |__| int starts with 0, which means that it is unused.
+% Prepare the counters. The |@| int starts with 0, which means that it is unused.
 % If the |firstnumber| value is ``last'' then it is used to store the first number.
 %    \begin{MacroCode}
   \CDR_int_set:cn { @ } { 0 }
-  \exp_args:Nf
-  \tl_if_eq:nnF { \CDR_tag_get:c { numbers } } { none } {
-    \exp_args:Nf
-    \tl_if_eq:nnT { \CDR_tag_get:c { firstnumber } } { last } {
+  \CDR_tag_if_eq:cnF { numbers } { none } {
+    \CDR_tag_if_eq:cnT { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
-          \CDR_int_if_exist:cF { ##1 } {
-            \CDR_int_new:cn { ##1 } { 1 }
-          }
           \CDR_int_set:cc { @ } { ##1 }
           \clist_put_right:Nx \l_CDR_kv_clist {
             firstnumber = \CDR_int_use:c { ##1 }
@@ -475,24 +481,17 @@ end
   \FV@VerbatimBegin
 }{
   \FV@VerbatimEnd
-  \exp_args:Nf
-  \tl_if_eq:nnF { \CDR_tag_get:c { numbers } } { none } {
+  \CDR_tag_if_eq:cnF { numbers } { none } {
     \CDR_int_compare:cNnTF { @ } > 0 {
       \CDR_int_set:cn { @ } {
         \value{FancyVerbLine} - \CDR_int_use:c { @ } + 1
       }
       \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_if_exist:cF { ##1 } {
-          \CDR_int_new:cn { ##1 } { 1 }
-        }
         \CDR_int_gadd:cc { ##1 } { @ }
       }
     } {
       \CDR_int_set:cn { @ } { \value{FancyVerbLine} + 1 }
       \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_if_exist:cF { ##1 } {
-          \CDR_int_new:cn { ##1 } { 1 }
-        }
         \CDR_int_gset:cc { ##1 } { @ }
       }
     }
@@ -679,34 +678,37 @@ C
 }
 
 \cs_new:Npn \CDR@NumberLeft #1 {
-  \hbox_overlap_left:n {
-    { \CDR@NumberFormat #1 }
-    \CDR@NumberSep
+  \CDR_tag_if_eq:cnF { numbers } { none } {
+    \hbox_overlap_left:n {
+      { \CDR@NumberFormat #1 }
+      \CDR@NumberSep
+    }
   }
 }
 \cs_new:Npn \CDR@NumberFirst #1 {
   \hbox_overlap_left:n {
     \renewcommand{\baselinestretch}{1}
     { \CDR@NumberFormat
-      \CDR_if_display_tags:TF {
+      \CDR_tags_if_display:TF {
         \smash{
           \parbox[b]{\marginparwidth}{
             \raggedleft
             { \CDR@TagsFormat \g_CDR_tags_clist :}
-            \CDR_int_compare:cNnTF { count } = 1 { ~#1 }
+            \CDR_int_compare:cNnTF { count } = 1 {
+              \CDR_tag_if_eq:cnF { numbers } { none } {
+                {}~#1
+              }
+            }
           }
         }
         \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
       } {
-      ~#1
+        \CDR_tag_if_eq:cnF { numbers } { none } {
+          #1
+        }
       }
     }
     \CDR@NumberSep
-    \typeout{SHOW: \CDR_if_tag_truthy:cTF { show~tags } TF}
-    \typeout{TOP: \CDR_if_tag_truthy:cTF { only~top } TF}
-    \typeout{TAGS: \g_CDR_tags_clist}
-    \typeout{LAST: \g_CDR_last_tags_clist}
-    \typeout{SAME: \CDR_clist_if_eq:NNTF \g_CDR_tags_clist \g_CDR_last_tags_clist TF }
   }
 }
 
@@ -782,11 +784,9 @@ function foo(arg) return arg ** arg end -- tags expected
 \typeout{DEBUGGGGG5}
 \begin{CDRBlock}[
 %  tags={we are the champions,  whatever it isp},
-  fontfamily=menlo,
-  fontsize=\large,
   pygments,
   lang=lua,
-  numbers=left,
+  numbers=none,
   debug,
   showspaces,
   show tags=false,

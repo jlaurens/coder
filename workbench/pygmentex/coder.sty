@@ -207,9 +207,10 @@
     \use_none:n
   }
 }
+\prg_generate_conditional_variant:Nnn \str_if_eq:nn { fn, VV } { p, T, F, TF }
+
 \regex_const:Nn \c_CDR_root_regex { ^(.*)/.*$ } \use_none:n { $ }
 \cs_new:Npn \CDR_tag_choices: {
-  \exp_args:NVV
   \str_if_eq:nnT \l_keys_key_tl \l_keys_choice_tl {
     \exp_args:NnV
     \regex_extract_once:NnNT \c_CDR_root_regex
@@ -225,7 +226,7 @@
   \exp_args:NV
   \CDR_tag_set:n \l_keys_choice_tl
 }
-\prg_new_conditional:Nnn \CDR_if_tag_truthy:cc { p, T,  F, TF } {
+\prg_new_conditional:Nnn \CDR_tag_if_truthy:cc { p, T,  F, TF } {
   \exp_args:Ne
   \str_compare:nNnTF {
     \exp_args:Ne \str_lowercase:n { \CDR_tag_get:cc { #1 } { #2 } }
@@ -235,11 +236,27 @@
     \prg_return_false:
   }
 }
-\prg_new_conditional:Nnn \CDR_if_tag_truthy:c { p, T,  F, TF } {
+\prg_new_conditional:Nnn \CDR_tag_if_truthy:c { p, T,  F, TF } {
   \exp_args:Ne
   \str_compare:nNnTF {
     \exp_args:Ne \str_lowercase:n { \CDR_tag_get:c { #1 } }
   } = { true } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+\prg_new_conditional:Nnn \CDR_tag_if_eq:ccn { p, T,  F, TF } {
+  \exp_args:Nf
+  \str_compare:nNnTF { \CDR_tag_get:cc { #1 } { #2 } } = { #3 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+\prg_new_conditional:Nnn \CDR_tag_if_eq:cn { p, T,  F, TF } {
+  \exp_args:Nf
+  \str_compare:nNnTF { \CDR_tag_get:cc { __local } { #1 } } = { #2 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -1095,7 +1112,7 @@
 } {
 }
 \cs_new:Npn \CDR@DefineSp {
-  \CDR_if_tag_truthy:cTF { showspaces } {
+  \CDR_tag_if_truthy:cTF { showspaces } {
     \cs_set:Npn \CDR@Sp {{\FancyVerbSpace}}
   } {
     \cs_set_eq:NN \CDR@Sp \space
@@ -1120,29 +1137,29 @@
 \cs_new:Npn \CDR_code_format: {
   \frenchspacing
   \CDR_tag_get:cN { baselinestretch } \l_CDR_tl
-  \tl_if_eq:NnF \l_CDR_tl { auto } {
+  \str_if_eq:NnF \l_CDR_tl { auto } {
     \exp_args:NNV
     \def \baselinestretch \l_CDR_tl
   }
   \CDR_tag_get:cN { fontfamily } \l_CDR_tl
-  \tl_if_eq:NnT \l_CDR_tl { tt } { \tl_set:Nn \l_CDR_tl { lmtt } }
+  \str_if_eq:NnT \l_CDR_tl { tt } { \tl_set:Nn \l_CDR_tl { lmtt } }
   \exp_args:NV
   \fontfamily \l_CDR_tl
   \clist_map_inline:nn { series, shape } {
     \CDR_tag_get:cN { font##1 } \l_CDR_tl
-    \tl_if_eq:NnF \l_CDR_tl { auto } {
+    \str_if_eq:NnF \l_CDR_tl { auto } {
       \exp_args:NnV
       \use:c { font##1 } \l_CDR_tl
     }
   }
   \CDR_tag_get:cN { fontsize } \l_CDR_tl
-  \tl_if_eq:NnF \l_CDR_tl { auto } {
+  \str_if_eq:NnF \l_CDR_tl { auto } {
     \tl_use:N \l_CDR_tl
   }
   \selectfont
 }
 \cs_new:Npn \CDR_code:n #1 {
-  \CDR_if_tag_truthy:cTF {pygments} {
+  \CDR_tag_if_truthy:cTF {pygments} {
     \cs_set:Npn \CDR@StyleUseTag {
       \CDR@StyleUse { \CDR_tag_get:c { style } }
       \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
@@ -1236,7 +1253,7 @@
   \CDR_code:n
 }
 \cs_set:Npn \CDR_code:n #1 {
-  \CDR_if_tag_truthy:cTF {pygments} {
+  \CDR_tag_if_truthy:cTF {pygments} {
     \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
       __fancyvrb,
     }
@@ -1382,12 +1399,12 @@
   \bool_set_false:N \l_CDR_pyg_bool
   \clist_if_empty:NTF \g_CDR_tags_clist {
     \bool_set:Nn \l_CDR_pyg_bool {
-      \CDR_if_tag_truthy_p:c { pygments }
+      \CDR_tag_if_truthy_p:c { pygments }
     }
   } {
     \bool_if:NF \l_CDR_pyg_bool {
       \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_if_tag_truthy:ccT { ##1 } { pygments } {
+        \CDR_tag_if_truthy:ccT { ##1 } { pygments } {
           \clist_map_break:n {
             \bool_set_true:N \l_CDR_pyg_bool
           }
@@ -1426,7 +1443,7 @@
       \input { \l_CDR_pyg_sty_tl }
     }
     \CDR@StyleUseTag
-    \CDR_if_tag_truthy:cTF {no~export} {
+    \CDR_tag_if_truthy:cTF {no~export} {
       \clist_map_inline:nn { i, ii, iii, iv } {
         \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
           \tl_set:Nn \l_CDR_tl { ####1 }
@@ -1460,7 +1477,7 @@
   } {
     \exp_args:NNV
     \def \FV@KeyValues \l_CDR_kv_clist
-    \CDR_if_tag_truthy:cF {no~export} {
+    \CDR_tag_if_truthy:cF {no~export} {
       \clist_map_inline:nn { i, ii, iii, iv } {
         \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
           \tl_set:Nn \l_CDR_tl { ####1 }
