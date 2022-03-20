@@ -600,8 +600,10 @@
   tags~format .value_required:n = true,
   numbers~format .code:n = \CDR_tag_set:,
   numbers~format .value_required:n = true,
-  show~tags .code:n = \CDR_tag_boolean_set:x { #1 },
-  show~tags .default:n = true,
+  show~tags .choices:nn =
+    { none, left, right, numbers }
+    { \CDR_tag_choices_set: },
+  show~tags .default:n = numbers,
   only~top .code:n = \CDR_tag_boolean_set:x { #1 },
   only~top .default:n = true,
   use~margin .code:n = \CDR_tag_boolean_set:x { #1 },
@@ -610,7 +612,7 @@
   blockskip .value_required:n = true,
   __initialize .meta:n = {
     tags = ,
-    show~tags = true,
+    show~tags = numbers,
     only~top = true,
     use~margin = true,
     numbers~format = {
@@ -814,7 +816,9 @@
     } #1
   }
 }
+\cs_new:Npn \CDR_set_preflight:n #1 { }
 \NewDocumentCommand \CDRSet { m } {
+  \CDR_set_preflight:n { #1 }
   \CDR_keys_set_known:nnN { CDR@Set } { #1 } \l_CDR_kv_clist
   \clist_map_inline:nn {
     __pygments, __pygments.block,
@@ -1379,7 +1383,9 @@
   \str_set:Nn \l_CDR_str { #1 }
   \lua_now:n {CDR:record_line('l_CDR_str')}
 }
+\cs_new:Npn \CDR_block_preflight:n #1 { }
 \def\FVB@CDRBlock {
+  \exp_args:NV \CDR_block_preflight:n \FV@KeyValues
   \@bsphack
   \group_begin:
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {

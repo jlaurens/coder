@@ -3265,8 +3265,10 @@ if __name__ == '__main__':
 % \itemtt[\CDRCheckRed show tags={[=true$\vert$false]}]^^A
 % whether tags should be displayed.
 %    \begin{MacroCode}[OK]
-  show~tags .code:n = \CDR_tag_boolean_set:x { #1 },
-  show~tags .default:n = true,
+  show~tags .choices:nn =
+    { none, left, right, numbers, mirror }
+    { \CDR_tag_choices_set: },
+  show~tags .default:n = numbers,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed only top{[=true$\vert$false]}]^^A
 % to avoid chunk tags repetitions, if on the same page,
@@ -3295,7 +3297,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
     tags = ,
-    show~tags = true,
+    show~tags = numbers,
     only~top = true,
     use~margin = true,
     numbers~format = {
@@ -3830,8 +3832,19 @@ if __name__ == '__main__':
   }
 }
 %    \end{MacroCode}
+% \begin{function}{\CDR_block_preflight:n}
+% \begin{syntax}
+% \cs{CDR_set_preflight:n} \Arg{CDR@Set kv list}
+% \end{syntax}
+% This is a prefligh hook intended for testing.
+% The default implementation does nothing.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_set_preflight:n #1 { }
+%    \end{MacroCode}
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRSet { m } {
+  \CDR_set_preflight:n { #1 }
   \CDR_keys_set_known:nnN { CDR@Set } { #1 } \l_CDR_kv_clist
   \clist_map_inline:nn {
     __pygments, __pygments.block,
@@ -4843,9 +4856,20 @@ if __name__ == '__main__':
   \lua_now:n {CDR:record_line('l_CDR_str')}
 }
 %    \end{MacroCode}
+% \begin{function}{\CDR_block_preflight:n}
+% \begin{syntax}
+% \cs{CDR_block_preflight:n} \Arg{CDR@Block kv list}
+% \end{syntax}
+% This is a prefligh hook intended for testing.
+% The default implementation does nothing.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_block_preflight:n #1 { }
+%    \end{MacroCode}
 %
 %    \begin{MacroCode}
 \def\FVB@CDRBlock {
+  \exp_args:NV \CDR_block_preflight:n \FV@KeyValues
   \@bsphack
   \group_begin:
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
