@@ -2,12 +2,16 @@
 % !TeX root=../coder_test.tex
 \noindent
 
+\makeatletter
+
 \ExplSyntaxOn
 \CDR_int_new:cn { __last } { 0 }
+
 \keys_define:nn { CDR@Line } {
   last .code:n = \CDR_int_set:cn { __last } { #1 },
 }
-\cs_new:Npn \CDR_typeout:n { \use_none:n }
+
+\cs_new:Npn \CDR@Typeout { \use_none:n }
 
 \ExplSyntaxOff
 
@@ -103,7 +107,7 @@
 %  \CDR_line:nn
 %}
 %\cs_new:Npn \CDR_line:nn #1 #2 {
-%  \CDR_typeout:n {CDR@Line:\the\leftmargin/#1/}
+%\CDR@Typeout {CDR@Line:\the\leftmargin/#1/}
 %  \hbox to \hsize {
 %    \kern \leftmargin
 %    \CDR_info_L:n { #1 }
@@ -158,7 +162,7 @@
 %  return arg ** arg
 %end
 %\end{CDRBlock}
-%\CDR_typeout:n {IN PROGRESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS}
+%\CDR@Typeout {IN PROGRESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS}
 %Next should not be void
 %\CDRSet{cache=false}
 %\begin{CDRBlock}[
@@ -205,7 +209,6 @@
 
 \bgroup
 
-\makeatletter
 \ExplSyntaxOn
 
 
@@ -224,7 +227,7 @@
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_block_setup_tags: {
-\CDR_typeout:n {STEP2}
+\CDR@Typeout {STEP2}
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
     \CDR_tag_get:cN { tags } \l_CDR_clist
     \clist_if_empty:NF \l_CDR_clist {
@@ -249,9 +252,9 @@
     \CDR_tag_if_truthy_p:c { only~top } &&
     \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
   } {
-    \tl_set:Nn \l_CDR_tl { \prg_return_false: }
+    \tl_set:Nn \l_CDR_tl { \prg_return_true: }
   } {
-    \tl_set:Nn \l_CDR_tl { \prg_return_true:  }
+    \tl_set:Nn \l_CDR_tl { \prg_return_false:  }
   }
   \exp_args:NNnV
   \prg_set_conditional:Nnn \CDR_tags_if_already: { p, T, F, TF } \l_CDR_tl
@@ -292,13 +295,13 @@
 \def\FVB@CDRBlock {
   \@bsphack
   \group_begin:
-\CDR_typeout:n {STEP0, \FV@KeyValues}
+\CDR@Typeout {STEP0, \FV@KeyValues}
   \exp_args:NV \CDR_block_preflight:n \FV@KeyValues
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_true:
   }  
   \CDR_tag_keys_set:nn { __block } { __initialize }
-\CDR_typeout:n {STEP1, \l_CDR_kv_clist}
+\CDR@Typeout {STEP1, \l_CDR_kv_clist}
 %    \end{MacroCode}
 % Reading the options: we absorb the options available in |\FV@KeyValues|,
 % first for % \pkg{l3keys} modules, then for |\fvset|.
@@ -317,7 +320,7 @@
 % At least one tag must be provided.
 %    \begin{MacroCode}
   \CDR_block_setup_tags:
-\CDR_typeout:n {STEP1e, \l_CDR_kv_clist}
+\CDR@Typeout {STEP1e, \l_CDR_kv_clist}
   \lua_now:n {
     CDR:hilight_block_setup('g_CDR_tags_clist')
   }
@@ -328,7 +331,7 @@
   \bool_set:Nn \l_CDR_pyg_bool {
     \CDR_tag_if_truthy_p:c { pygments }
   }
-\CDR_typeout:n {STEP1}
+\CDR@Typeout {STEP1}
 %    \end{MacroCode}
 % And we can setup the engine.
 %    \begin{MacroCode}
@@ -351,7 +354,7 @@
 %    \end{MacroCode}
 % Now we branch according whether \pkg{pygments} is used or not.
 %    \begin{MacroCode}
-\CDR_typeout:n {STEP1}
+\CDR@Typeout {STEP1}
   \bool_if:NTF \l_CDR_pyg_bool {
     \CDRBlock@Pyg
   } {
@@ -374,7 +377,7 @@
 \cs_new:Npn \CDRBlockOptions { \exp_last_unbraced:NnV }
 
 \newenvironment { CDRBlock@Pyg } {
-\CDR_typeout:n {DEBUG:PYGMENTS}
+\CDR@Typeout {DEBUG:PYGMENTS}
 %    \end{MacroCode}
 % Catch the keys related to numbering before they are forwarded to \pkg{fancyvrb}.
 %    \begin{MacroCode}
@@ -385,7 +388,7 @@
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb, __fancyvrb.block
   }
-\CDR_typeout:n {KEYS:\l_CDR_kv_clist}
+\CDR@Typeout {KEYS:\l_CDR_kv_clist}
   \exp_args:NnV
   \CDR_tag_keys_set:nn { __local } \l_CDR_kv_clist
   \exp_args:NNV
@@ -452,13 +455,14 @@
     \CDR_int_add:cn { __last } { 1 }
     \clist_map_inline:Nn \g_CDR_tags_clist {
       \CDR_int_gset:cc { ##1 } { __last }
+\CDR@Typeout {INT: ##1 -> \CDR_int_use:c { ##1 } }      
     }
   }
   \FV@VerbatimEnd
 }
 
 \newenvironment { CDRBlock@FV } {
-\CDR_typeout:n {DEBUG:FV}
+\CDR@Typeout {DEBUG:FV}
 %    \end{MacroCode}
 % \pkg{pygments} is not used, \pkg{fancyvrb} features.
 % We record the key value options about numbering.
@@ -494,9 +498,9 @@
 % If the |firstnumber| value is ``last'' then it is used to store the first number.
 %    \begin{MacroCode}
   \CDR_int_set:cn { __ } { 0 }
-\CDR_typeout:n {NUMBERING...}
+\CDR@Typeout {NUMBERING...}
   \CDR_if_number_on:T {
-\CDR_typeout:n {...ON}
+\CDR@Typeout {...ON}
     \CDR_tag_if_eq:cnT { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
@@ -539,7 +543,6 @@
 }
 
 \ExplSyntaxOff
-\makeatother
 
 \subsubsection{\textsf{fancyvrb} linear}
 
@@ -561,7 +564,7 @@ A
 \end{CDRBlock}
 
 \ExplSyntaxOn
-\CDR_int_if_exist:cT { none } { \CDR_typeout:n { none ? FAILURE } }
+\CDR_int_if_exist:cT { none } { \CDR@Typeout { none ? FAILURE } }
 \ExplSyntaxOff
 
 \begin{CDRBlock} [
@@ -574,9 +577,9 @@ B
 C
 \end{CDRBlock}
 \ExplSyntaxOn
-\CDR_typeout:n {tags = \g_CDR_tags_clist }
-\CDR_int_if_exist:cF { none } { \CDR_typeout:n { none ? FAILURE } }
-\CDR_typeout:n {none = \CDR_int_use:c { none } }
+\CDR@Typeout {tags = \g_CDR_tags_clist }
+\CDR_int_if_exist:cF { none } { \CDR@Typeout { none ? FAILURE } }
+\CDR@Typeout {none = \CDR_int_use:c { none } }
 \ExplSyntaxOff
 
 \begin{CDRBlock} [
@@ -589,7 +592,7 @@ B
 C
 \end{CDRBlock}
 \ExplSyntaxOn
-\CDR_typeout:n {none = \CDR_int_use:c { none } }
+\CDR@Typeout {none = \CDR_int_use:c { none } }
 \ExplSyntaxOff
 
 \begin{CDRBlock} [
@@ -602,7 +605,7 @@ B
 C
 \end{CDRBlock}
 \ExplSyntaxOn
-\CDR_typeout:n {none = \CDR_int_use:c { none }}
+\CDR@Typeout {none = \CDR_int_use:c { none }}
 \ExplSyntaxOff
 
 \egroup
@@ -709,7 +712,7 @@ C
 \cs_undefine:N \CDR_info:n
 
 \cs_new:Npn \CDR@Line {
-  \CDR_typeout:n {STEP0}
+\CDR@Typeout {STEP0}
   \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnn } { 
     \PackageError { code } { Missing~`['~at~first~\CDR@Line~call }
   }
@@ -737,6 +740,7 @@ C
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
           \CDR_int_set:cc { __start } { ##1 }
+\CDR@Typeout {START: ##1=\CDR_int_use:c { ##1 } }
         }
       }
     } {
@@ -758,7 +762,7 @@ C
     \prg_set_conditional:Nnn \CDR_if_number_single:  { p, T, F, TF } \l_CDR_tl
     \CDR_int_add:cn { __last } { \CDR_int:c { __start } - 1 }
     \CDR_int_set:cn { __step } { \CDR_tag_get:c { stepnumber } }
-\CDR_typeout:n {CDR_line:nnn:\CDR_int_use:c { __last }, #1/\CDR_int_use:c { __start }/\CDR_int_use:c { __step } }
+\CDR@Typeout {CDR_line:nnn:\CDR_int_use:c { __last }, #1/\CDR_int_use:c { __start }/\CDR_int_use:c { __step } }
 %    \end{MacroCode}
 % \begin{function}[EXP,pTF]{\CDR_if_visible_at_index:n}
 % \begin{syntax}
@@ -848,7 +852,7 @@ C
       \CDR@@Line
     }
   }
-  \CDR_typeout:n {STEP_A, \CDR_int_use:c {__step}, \CDR_int_use:c {__last} }
+\CDR@Typeout {STEP_A, \CDR_int_use:c {__step}, \CDR_int_use:c {__last} }
 %    \end{MacroCode}
 % \begin{function}{\CDR_if_middle_column:, \CDR_if_right_column:}
 % \begin{syntax}
@@ -868,11 +872,17 @@ C
 % One solution is to allways display the first one but it is not satisfying
 % when lines are numbered stepwise, moreover when the tags should be displayed.
 %    \begin{MacroCode}
-\CDR_typeout:n {STEP_NN_0}
+\CDR@Typeout {
+  STEP:CDR_line_?_?:n
+  / \CDR_tags_if_already:TF TF
+  / \CDR_tag_get:c { show~tags }
+  / \CDR_tag_get:c { numbers }
+}
   \tl_clear:N \l_CDR_tl
   \CDR_tags_if_already:TF {
     \tl_put_right:Nn \l_CDR_tl { _N }
   } {
+    \exp_args:Nx
     \str_case:nnF { \CDR_tag_get:c { show~tags } } {
       { left  } { \tl_put_right:Nn \l_CDR_tl { _L } }
       { right } { \tl_put_right:Nn \l_CDR_tl { _R } }
@@ -892,21 +902,21 @@ C
   \str_case:nnF { \CDR_tag_get:c { numbers } } {
     { left  } {
       \tl_put_right:Nn \l_CDR_tl { _L }
-      \cs_set:Npn \CDR@@Line { \CDR_line_box_N_L:n }
+      \cs_set:Npn \CDR@@Line { \CDR_line_box_L:n }
     }
     { right } {
       \tl_put_right:Nn \l_CDR_tl { _R }
-      \cs_set:Npn \CDR@@Line { \CDR_line_box_N_R:n }
+      \cs_set:Npn \CDR@@Line { \CDR_line_box_R:n }
     }
     { none  } {
       \tl_put_right:Nn \l_CDR_tl { _N }
-      \cs_set:Npn \CDR@@Line { \CDR_line_box_N_N:n }    
+      \cs_set:Npn \CDR@@Line { \CDR_line_box_N:n }    
     }
   } { \PackageError
         { coder }
         { Unknown~numbers~options~:~ \CDR_tag_get:c { numbers } }
   }
-\CDR_typeout:n {BRANCH:CDR_line \l_CDR_tl :n}
+\CDR@Typeout {BRANCH:CDR_line \l_CDR_tl :n}
   \use:c { CDR_line \l_CDR_tl :n }  
 }
 %    \end{MacroCode}
@@ -923,42 +933,88 @@ C
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_line_N_N:n {
 \typeout {STEP:CDR_line_N_N:n}
-  \CDR_line_box_N_N:n
+  \CDR_line_box_N:n
 }
-\cs_new:Npn \CDR_line_L_N:n {
+
+\cs_new:Npn \CDR_line_L_N:n #1 {
 \typeout {STEP:CDR_line_L_N:n}
-  \CDR_line_box_L_N:n
+  \CDR_line_box:nnn { \CDR_info_T_L:n { } } { #1 } { }
 }
-\cs_new:Npn \CDR_line_R_N:n {
+
+\cs_new:Npn \CDR_line_R_N:n #1 {
 \typeout {STEP:CDR_line_R_N:n}
-  \CDR_line_box_R_N:n
+  \CDR_line_box:nnn { } { #1 } { \CDR_info_T_R:n { } }
 }
 
-\cs_new:Npn \CDR_line_A_N:n #1 {
-\CDR_typeout:n {STEP:CDR_line_A_N:n}
-  \CDR_line_box_N_N:n
+\cs_new:Npn \CDR_line_A_N:n {
+\CDR@Typeout {STEP:CDR_line_A_N:n}
+  \CDR_line_box_N:n
 }
 
-\cs_new:Npn \CDR_line_M_N:n #1 {
-\CDR_typeout:n {STEP:CDR_line_M_N:n}
-  \CDR_line_box_N_N:n
+\cs_new:Npn \CDR_line_M_N:n {
+\CDR@Typeout {STEP:CDR_line_M_N:n}
+  \CDR_line_box_N:n
 }
 
 \cs_new:Npn \CDR_line_N_L:n #1 {
-\CDR_typeout:n {STEP:CDR_line_N_L:n}
+\CDR@Typeout {STEP:CDR_line_N_L:n}
   \CDR_if_no_number:TF {
     \CDR_line_box:nnn {
       \CDR_info_N_L:n { \CDR@NumberMain }
     } { #1 } {}
   } {
-    \CDR_line_box_N_L:n
+    \CDR_line_box_L:n { #1 }
   }
 }
 
-\cs_set_eq:NN \CDR_line_L_L:n \CDR_line_N_N:n
+\cs_new:Npn \CDR_line_L_L:n #1 {
+\CDR@Typeout {STEP:CDR_line_L_L:n}
+  \CDR_if_number_single:TF {
+    \CDR_line_box:nnn {
+      \CDR_info_T_L:n { \space \CDR@NumberMain }
+    } { #1 } {}
+  } {
+    \CDR_if_no_number:TF {
+      \cs_set:Npn \CDR@@Line {
+        \cs_set:Npn \CDR@@Line {
+          \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR@NumberOther } }
+        }
+        \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR@NumberMain } }
+      }
+    } {
+      \cs_set:Npn \CDR@@Line {
+        \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_number_alt: } }
+      }
+    }
+    \CDR_line_box:nnn { \CDR_info_T_L:n { } } { #1 } { }
+  }
+}
+
+\cs_new:Npn \CDR_line_R_R:n #1 {
+\CDR@Typeout {STEP:CDR_line_R_R:n}
+  \CDR_if_number_single:TF {
+    \CDR_line_box:nnn { } { #1 } {
+      \CDR_info_T_R:n { \CDR@NumberMain }
+    }
+  } {
+    \CDR_if_no_number:TF {
+      \cs_set:Npn \CDR@@Line {
+        \cs_set:Npn \CDR@@Line {
+          \CDR_line_box_R:nn { \CDR_info_N_R:n { \CDR@NumberOther } }
+        }
+        \CDR_line_box_R:nn { \CDR_info_N_R:n { \CDR@NumberMain } }
+      }
+    } {
+      \cs_set:Npn \CDR@@Line {
+        \CDR_line_box_R:nn { \CDR_info_N_R:n { \CDR_number_alt: } }
+      }
+    }
+    \CDR_line_box:nnn { } { #1 } { \CDR_info_T_R:n { } }
+  }
+}
 
 \cs_new:Npn \CDR_line_R_L:n #1 {
-\CDR_typeout:n {STEP:CDR_line_R_L:n}
+\CDR@Typeout {STEP:CDR_line_R_L:n}
   \CDR_line_box:nnn {
     \CDR_if_no_number:TF {
       \CDR_info_N_L:n { \CDR@NumberMain }
@@ -972,10 +1028,14 @@ C
 
 \cs_set_eq:NN \CDR_line_A_L:n \CDR_line_L_L:n
 \cs_set_eq:NN \CDR_line_M_L:n \CDR_line_R_L:n
-\cs_set_eq:NN \CDR_line_N_R:n \CDR_line_N_N:n
+
+\cs_new:Npn \CDR_line_N_R:n {
+\typeout {STEP:CDR_line_N_R:n}
+  \CDR_line_box_R:n
+}
 
 \cs_new:Npn \CDR_line_L_R:n #1 {
-\CDR_typeout:n {STEP:CDR_line_L_R:n}
+\CDR@Typeout {STEP:CDR_line_L_R:n}
   \CDR_line_box:nnn {
     \CDR_info_T_L:n { }
   } { #1 } {
@@ -987,46 +1047,29 @@ C
   }
 }
 
-
-
-\cs_set_eq:NN \CDR_line_R_R:n \CDR_line_N_N:n
-
 \cs_set_eq:NN \CDR_line_A_R:n \CDR_line_R_R:n
 \cs_set_eq:NN \CDR_line_M_R:n \CDR_line_L_R:n
 
-\cs_new:Npn \CDR_line_box_N_N:n #1 {
-\CDR_typeout:n {STEP:CDR_line_box_N_N:n}
+
+\cs_new:Npn \CDR_line_box_N:n #1 {
+\CDR@Typeout {STEP:CDR_line_box_N:n}
   \CDR_line_box:nnn { } { #1 } {}
 }
 
-\cs_new:Npn \CDR_line_box_L_N:n #1 {
-\CDR_typeout:n {STEP:CDR_line_box_L_N:n}
-  \CDR_line_box:nnn { \CDR_info_N_L:n { } } { #1 } {}
-}
-
-\cs_new:Npn \CDR_line_box_R_N:n #1 {
-\CDR_typeout:n {STEP:CDR_line_box_R_N:n}
-  \CDR_line_box:nnn { \CDR_info_N_R:n { } } { #1 } {}
-}
-
-\cs_new:Npn \CDR_line_box_N_L:n #1 {
-\CDR_typeout:n {STEP:CDR_line_box_N_L:n}
+\cs_new:Npn \CDR_line_box_L:n #1 {
+\CDR@Typeout {STEP:CDR_line_box_L:n}
   \CDR_line_box:nnn {
-    \CDR_info_N_L:n { \CDR_number_alt:n { \CDR_int_use:c { __ } } }
+    \CDR_info_N_L:n { \CDR_number_alt: }
   } { #1 } {}
 }
 
-\cs_set_eq:NN \CDR_line_box_L_L:n \CDR_line_box_N_N:n
-\cs_set_eq:NN \CDR_line_box_R_L:n \CDR_line_box_N_N:n
-\cs_set_eq:NN \CDR_line_box_A_L:n \CDR_line_box_L_L:n
-\cs_set_eq:NN \CDR_line_box_M_L:n \CDR_line_box_R_L:n
+\cs_new:Npn \CDR_line_box_R:n #1 {
+\CDR@Typeout {STEP:CDR_line_box_R:n}
+  \CDR_line_box:nnn { } { #1 } { 
+    \CDR_info_N_R:n { \CDR_number_alt: }
+  }
+}
 
-\cs_set_eq:NN \CDR_line_box_N_R:n \CDR_line_box_N_N:n
-\cs_set_eq:NN \CDR_line_box_L_R:n \CDR_line_box_N_N:n
-\cs_set_eq:NN \CDR_line_box_R_R:n \CDR_line_box_N_N:n
-
-\cs_set_eq:NN \CDR_line_box_A_R:n \CDR_line_box_R_R:n
-\cs_set_eq:NN \CDR_line_box_M_R:n \CDR_line_box_L_R:n
 %    \end{MacroCode}
 %
 % \begin{function}{\CDR_line_box:nnn, \CDR_line_box_L:nn, \CDR_line_box_R:nn, \CDR_line_box:nn}
@@ -1042,10 +1085,7 @@ C
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_line_box:nnn #1 #2 #3 {
-\CDR_typeout:n {STEP:CDR_line_box_LR:nn/}
-\CDR_typeout:n {STEP:CDR_line_box_LR:nn/\tl_to_str:n{#1}/}
-\CDR_typeout:n {STEP:CDR_line_box_LR:nn/\tl_to_str:n{#2}/}
-\CDR_typeout:n {STEP:CDR_line_box_LR:nn/\tl_to_str:n{#3}/}
+\CDR@Typeout {STEP:CDR_line_box:nnn/\tl_to_str:n{#1}/.../\tl_to_str:n{#3}/}
   \hbox to \hsize {
     \kern \leftmargin
     #1
@@ -1058,17 +1098,22 @@ C
     #3
   }
 }
+
 \cs_new:Npn \CDR_line_box_L:nn #1 #2 {
   \CDR_line_box:nnn { #1 } { #2 } {}
 }
+
 \cs_new:Npn \CDR_line_box_R:nn #1 #2 {
-\CDR_typeout:n {STEP:CDR_line_box_R:nn}
+\CDR@Typeout {STEP:CDR_line_box_R:nn}
   \CDR_line_box:nnn { } {#2} { #1 }
 }
-\cs_new:Npn \CDR_line_box_N_N:nn #1 #2 {
-\CDR_typeout:n {STEP:CDR_line_box_N_N:nn}
+
+\cs_new:Npn \CDR_line_box_N:nn #1 #2 {
+\CDR@Typeout {STEP:CDR_line_box_N:nn}
   \CDR_line_box:nnn { } { #2 } {}
 }
+
+
 %    \end{MacroCode}
 %
 % \begin{function}{\CDR_line_box:NNn}
@@ -1078,7 +1123,7 @@ C
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_line_build_N:nn {
-\CDR_typeout:n {STEP:CDR_line_build_N:nn}
+\CDR@Typeout {STEP:CDR_line_build_N:nn}
    \CDR_line_box_N_N:nn
 }
 %    \end{MacroCode}
@@ -1101,7 +1146,7 @@ C
   }
 }
 \cs_new:Npn \CDR_line_build_L_T:nn #1 {
-\CDR_typeout:n {CDR_line_build_L_T:nn\space\CDR_if_number_single:TF TF}
+\CDR@Typeout {CDR_line_build_L_T:nn\space\CDR_if_number_single:TF TF}
   \CDR_if_number_single:TF {
     \CDR_line_box_L:nn { \CDR_info_T_L:n { \space\CDRNumberMain{ #1 } } }
   } {
@@ -1114,18 +1159,18 @@ C
       }
     } {
       \CDR_if_visible_at_index:nTF { 2 } {
-        \cs_set:Npn \CDR@@Line ##1 {
-          \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_number_alt:n { ##1 } } }
+        \cs_set:Npn \CDR@@Line {
+          \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_number_alt: } }
         }
       } {
         \CDR_if_visible_at_index:nTF { 3 } {
-          \cs_set:Npn \CDR@@Line ##1 {
-            \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_number_alt:n { ##1 } } }
+          \cs_set:Npn \CDR@@Line {
+            \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_number_alt: } }
           }
         } {
-          \cs_set:Npn \CDR@@Line ##1 {
-            \cs_set:Npn \CDR@@Line ####1 {
-              \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_number_alt:n { ####1 } } }
+          \cs_set:Npn \CDR@@Line {
+            \cs_set:Npn \CDR@@Line {
+              \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_number_alt: } }
             }
             \CDR_line_box_L:nn { \CDR_info_T_L:n { \CDRNumberMain{ ##1 } } }
           }
@@ -1138,7 +1183,7 @@ C
 %    \end{MacroCode}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_line_build_R_T:nn #1 {
-\CDR_typeout:n {CDR_line_build_R_T:nn\space\CDR_if_number_single:TF TF}
+\CDR@Typeout {CDR_line_build_R_T:nn\space\CDR_if_number_single:TF TF}
   \CDR_if_number_single:TF {
     \CDR_line_box_R:nn { \CDR_info_T_R:n { \space\CDRNumberMain{ #1 } } }
   } {
@@ -1204,7 +1249,7 @@ C
 %  \exp_args:Nf
 %  \str_case:nnF { \CDR_tag_get:c { numbers } } {
 %    { left } {
-%\CDR_typeout:n {STEP_NN_left}
+%\CDR@Typeout {STEP_NN_left}
 %      \bool_if:nTF {
 %        \CDR_tags_if_visible_p:n { left } || \CDR_tags_if_visible_p:n { numbers }
 %      } {
@@ -1218,7 +1263,7 @@ C
 %      }
 %    }
 %    { right } {
-%\CDR_typeout:n {STEP_NN_right}
+%\CDR@Typeout {STEP_NN_right}
 %      \bool_if:nTF {
 %        \CDR_tags_if_visible_p:n { right } || \CDR_tags_if_visible_p:n { numbers }
 %      } {
@@ -1228,28 +1273,28 @@ C
 %      }
 %    }
 %    { none } {
-%\CDR_typeout:n {STEP_NN_none}
+%\CDR@Typeout {STEP_NN_none}
 %      \CDR_tags_if_visible:nTF { left } {
-%\CDR_typeout:n {STEP_NN_none_left}
+%\CDR@Typeout {STEP_NN_none_left}
 %        \cs_set:Npn \CDR@@Line ##1 {
 %          \cs_set:Npn \CDR@@Line { \CDR_line_build_N:nn }
 %          \CDR_line_box_L:nn { \CDR_info_T_L:n { } }
 %        }
 %      } {
 %        \CDR_tags_if_visible:nTF { right } {
-%\CDR_typeout:n {STEP_NN_none_right}
+%\CDR@Typeout {STEP_NN_none_right}
 %          \cs_set:Npn \CDR@@Line ##1 {
 %            \cs_set:Npn \CDR@@Line { \CDR_line_build_N:nn }
 %            \CDR_line_box_L:nn { \CDR_info_T_R:n { } }
 %          }
 %        } {
-%\CDR_typeout:n {STEP_NN_none_none}
+%\CDR@Typeout {STEP_NN_none_none}
 %          \cs_set:Npn \CDR@@Line { \CDR_line_build_N:nn }
 %        }
 %      }
 %    }
 %  } { \PackageError { coder } { Unknown~numbers~options~:~ \CDR_tag_get:c { numbers }} }
-%\CDR_typeout:n {STEP_NN_1}
+%\CDR@Typeout {STEP_NN_1}
 %  \CDR@Line
 }
 %    \end{MacroCode}
@@ -1309,7 +1354,7 @@ C
   }
 }
 \cs_new:Npn \CDR_info_T_R:n #1 {
-  \hbox_overlap_left:n {
+  \hbox_overlap_right:n {
     \cs_set:Npn \baselinestretch { 1 }
     \CDR@NumberSep
     \CDR@NumberFormat
@@ -1317,7 +1362,7 @@ C
       \parbox[b]{\marginparwidth}{
         \raggedright
         #1:
-        { \CDR@TagsFormat \g_CDR_tags_clist} 
+        {\CDR@TagsFormat \space \g_CDR_tags_clist} 
       }
     }
   }
@@ -1348,9 +1393,13 @@ C
 % \end{function}
 %    \begin{MacroCode}
 \cs_set:Npn \CDR_number_alt:n #1 {
-  \use:c { CDR@Number 
+  \use:c { CDRNumber 
     \CDR_if_number_visible:nTF { #1 } { Main } { Other }
   } { #1 }
+}
+\cs_set:Npn \CDR_number_alt: {
+\CDR@Typeout{ALT: \CDR_int_use:c { __ } }
+  \CDR_number_alt:n { \CDR_int_use:c { __ } }
 }
 
 %    \end{MacroCode}
@@ -1366,7 +1415,6 @@ C
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRNumberMain {
-		\use:n
 }
 \cs_new:Npn \CDRNumberOther {
 		\use_none:n
@@ -1379,14 +1427,14 @@ C
 % \cs{CDR@NumberOther}
 % \end{syntax}
 % Respectively apply |\CDR@NumberMain| or |\CDR@NumberOther|
-% on |\CDR_int_get:c { __ }|
+% on |\CDR_int_use:c { __ }|
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR@NumberMain {
-		\CDR@NumberMain { \CDR_int_get:c { __ } }
+		\CDRNumberMain { \CDR_int_use:c { __ } }
 }
 \cs_new:Npn \CDR@NumberOther {
-		\CDR@NumberOther { \CDR_int_get:c { __ } }
+		\CDRNumberOther { \CDR_int_use:c { __ } }
 }
 %    \end{MacroCode}
 %
@@ -1567,9 +1615,13 @@ end
 
 \bgroup
 
+\def\CDRNumberMain{\textcolor{red}}
+\def\CDRNumberOther{\textcolor{blue}}
 \CDRSet {
   pygments,
   lang=lua,
+  tags=WHAT,
+  only top=false,
 }
 \begin{CDRBlock}[
         show tags=none,
@@ -1590,63 +1642,69 @@ function foo(arg) return arg ** arg end
   }
   \bgroup
   \input{./Tests/test_single.tex}
+\typeout{---------------------------------------------------------------}
+  \CDRSet {
+    firstnumber=last
+  }
   \input{./Tests/test_more.tex}
   \egroup
 }
-\CDR@nnn{none}{none}{0}
-\CDR@nnn{none}{none}{1}
-\CDR@nnn{none}{none}{5}
-\CDR@nnn{none}{left}{0}
-\CDR@nnn{none}{left}{1}
-\CDR@nnn{none}{left}{5}
-\CDR@nnn{none}{right}{0}
-\CDR@nnn{none}{right}{1}
-\CDR@nnn{none}{right}{5}
-\CDR@nnn{left}{none}{0}
-\CDR@nnn{left}{none}{1}
-\CDR@nnn{left}{none}{5}
-\CDR@nnn{left}{left}{0}
-\CDR@nnn{left}{left}{1}
-\CDR@nnn{left}{left}{5}
-\CDR@nnn{left}{right}{0}
-\CDR@nnn{left}{right}{1}
-\CDR@nnn{left}{right}{5}
-\CDR@nnn{right}{none}{0}
-\CDR@nnn{right}{none}{1}
-\CDR@nnn{right}{none}{5}
-\CDR@nnn{right}{left}{0}
-\CDR@nnn{right}{left}{1}
-\CDR@nnn{right}{left}{5}
-\CDR@nnn{right}{right}{0}
-\CDR@nnn{right}{right}{1}
-\CDR@nnn{right}{right}{5}
-\CDR@nnn{numbers}{none}{0}
-\CDR@nnn{numbers}{none}{1}
-\CDR@nnn{numbers}{none}{5}
-\CDR@nnn{numbers}{left}{0}
-\CDR@nnn{numbers}{left}{1}
-\CDR@nnn{numbers}{left}{5}
-\CDR@nnn{numbers}{right}{0}
-\CDR@nnn{numbers}{right}{1}
-\CDR@nnn{numbers}{right}{5}
-\CDR@nnn{mirror}{none}{0}
-\CDR@nnn{mirror}{none}{1}
-\CDR@nnn{mirror}{none}{5}
-\CDR@nnn{mirror}{left}{0}
-\CDR@nnn{mirror}{left}{1}
-\CDR@nnn{mirror}{left}{5}
-\CDR@nnn{mirror}{right}{0}
-\CDR@nnn{mirror}{right}{1}
-\CDR@nnn{mirror}{right}{5}
+\def\CDR@Typeout{\typeout}
+\typeout{===============================================================}
+%\CDR@nnn{none}{none}{0}
+%\CDR@nnn{none}{none}{1}
+%\CDR@nnn{none}{none}{5}
+%\CDR@nnn{none}{left}{0}
+%\CDR@nnn{none}{left}{1}
+%\CDR@nnn{none}{left}{5}
+%\CDR@nnn{none}{right}{0}
+%\CDR@nnn{none}{right}{1}
+%\CDR@nnn{none}{right}{5}
+%\CDR@nnn{left}{none}{0}
+%\CDR@nnn{left}{none}{1}
+%\CDR@nnn{left}{none}{5}
+%\CDR@nnn{left}{left}{0}
+%\CDR@nnn{left}{left}{1}
+%\CDR@nnn{left}{left}{5}
+%\CDR@nnn{left}{right}{0}
+%\CDR@nnn{left}{right}{1}
+%\CDR@nnn{left}{right}{5}
+%\CDR@nnn{right}{none}{0}
+%\CDR@nnn{right}{none}{1}
+%\CDR@nnn{right}{none}{5}
+%\CDR@nnn{right}{left}{0}
+%\CDR@nnn{right}{left}{1}
+%\CDR@nnn{right}{left}{5}
+%\CDR@nnn{right}{right}{0}
+%\CDR@nnn{right}{right}{1}
+%\CDR@nnn{right}{right}{5}
+%\CDR@nnn{numbers}{none}{0}
+%\CDR@nnn{numbers}{none}{1}
+%\CDR@nnn{numbers}{none}{5}
+%\CDR@nnn{numbers}{left}{0}
+%\CDR@nnn{numbers}{left}{1}
+%\CDR@nnn{numbers}{left}{5}
+%\CDR@nnn{numbers}{right}{0}
+%\CDR@nnn{numbers}{right}{1}
+%\CDR@nnn{numbers}{right}{5}
+%\CDR@nnn{mirror}{none}{0}
+%\CDR@nnn{mirror}{none}{1}
+%\CDR@nnn{mirror}{none}{5}
+%\CDR@nnn{mirror}{left}{0}
+%\CDR@nnn{mirror}{left}{1}
+%\CDR@nnn{mirror}{left}{5}
+%\CDR@nnn{mirror}{right}{0}
+%\CDR@nnn{mirror}{right}{1}
+%\CDR@nnn{mirror}{right}{5}
 %
 % BUGGY
 %\ExplSyntaxOn
 %\clist_map_inline:nn { none, left, right, auto } {
 %  \clist_map_inline:nn { none, left, right } {
 %    \clist_map_inline:nn { 0, 1, 5 } {
-%\CDR_typeout:n {===== SHOW_TAGS=#1}
-%\CDR_typeout:n {===== NUMBERS=##1}
-%\CDR_typeout:n {===== STEPNUMBER=####1}
+%\CDR@Typeout {===== SHOW_TAGS=#1}
+%\CDR@Typeout {===== NUMBERS=##1}
+%\CDR@Typeout {===== STEPNUMBER=####1}
 %      \bgroup
 %        \CDR@nnn { #1 } { ##1 } { ####1 }
 %      \egroup
@@ -1657,5 +1715,6 @@ function foo(arg) return arg ** arg end
 %\makeatother
 %\egroup
 
+\makeatother
 
 \egroup
