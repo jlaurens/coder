@@ -5132,39 +5132,39 @@ if __name__ == '__main__':
 % \end{variable}
 %    \begin{MacroCode}
 \clist_const:Nn \c_CDRBlock@Pyg_clist {
-  % __fancyvrb:
-    formatcom,% = ,
-    fontfamily,% = tt,
-    fontsize,% = auto,
-    fontseries,% = auto,
-    fontshape,% = auto,
-    showspaces,% = false,
-    showtabs,% = false,
-    obeytabs,% = false,
-    tabsize,% = 2,
-    defineactive,% = ,
-    reflabel,% = ,
-  % __fancyvrb.block:
-%    commentchar,% = ,
-%    gobble,% = 0,
-    frame,% = none,
-    label,% = ,
-    labelposition,% = none,% auto?
-    baselinestretch,% = auto,
-    resetmargins,% = true,
-    xleftmargin,% = 0pt,
-    xrightmargin,% = 0pt,
-    hfuzz,% = 2pt,
-    samepage,% = false,
-    % __fancyvrb.number
-%    numbers,% = left,
-%    numbersep,% = 1ex,
-%    firstnumber,% = auto,
-%    stepnumber,% = 1,
-%    numberblanklines,% = true,
-%    firstline,% = ,
-%    lastline,% = ,
-  }
+% __fancyvrb:
+  formatcom,% = ,
+  fontfamily,% = tt,
+  fontsize,% = auto,
+  fontseries,% = auto,
+  fontshape,% = auto,
+  showspaces,% = false,
+  showtabs,% = false,
+  obeytabs,% = false,
+  tabsize,% = 2,
+  defineactive,% = ,
+  reflabel,% = ,
+% __fancyvrb.block:
+%  commentchar,% = ,
+%  gobble,% = 0,
+  frame,% = none,
+  label,% = ,
+  labelposition,% = none,% auto?
+  baselinestretch,% = auto,
+  resetmargins,% = true,
+  xleftmargin,% = 0pt,
+  xrightmargin,% = 0pt,
+  hfuzz,% = 2pt,
+  samepage,% = false,
+  % __fancyvrb.number
+%  numbers,% = left,
+%  numbersep,% = 1ex,
+%  firstnumber,% = auto,
+%  stepnumber,% = 1,
+%  numberblanklines,% = true,
+%  firstline,% = ,
+%  lastline,% = ,
+}
 %    \end{MacroCode}
 %
 % \paragraph{Info}
@@ -5726,7 +5726,7 @@ if __name__ == '__main__':
     \fvset{ ##1 = { ##2 }, }
   }
   \clist_map_inline:Nn \c_CDRBlock@FV_clist {
-    \exp_args:Nnx
+    \exp_args:Nnf
     \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
   }
   \CDR_tag_get:c { format }
@@ -5756,39 +5756,39 @@ if __name__ == '__main__':
 % \end{variable}
 %    \begin{MacroCode}
 \clist_const:Nn \c_CDRBlock@FV_clist {
-  % __fancyvrb:
-    formatcom,% = ,
-    fontfamily,% = tt,
-    fontsize,% = auto,
-    fontseries,% = auto,
-    fontshape,% = auto,
-    showspaces,% = false,
-    showtabs,% = false,
-    obeytabs,% = false,
-    tabsize,% = 2,
-    defineactive,% = ,
-    reflabel,% = ,
-  % __fancyvrb.block:
-    commentchar,% = ,
-    gobble,% = 0,
-    frame,% = none,
-    label,% = ,
-    labelposition,% = none,% auto?
-    baselinestretch,% = auto,
-    resetmargins,% = true,
-    xleftmargin,% = 0pt,
-    xrightmargin,% = 0pt,
-    hfuzz,% = 2pt,
-    samepage,% = false,
-    % __fancyvrb.number
-    numbers,% = left,
-    numbersep,% = 1ex,
-    firstnumber,% = auto,
-    stepnumber,% = 1,
-    numberblanklines,% = true,
-    firstline,% = ,
-    lastline,% = ,
-  }
+% __fancyvrb:
+  formatcom,% = ,
+  fontfamily,% = tt,
+  fontsize,% = auto,
+  fontseries,% = auto,
+  fontshape,% = auto,
+  showspaces,% = false,
+  showtabs,% = false,
+  obeytabs,% = false,
+  tabsize,% = 2,
+  defineactive,% = ,
+  reflabel,% = ,
+% __fancyvrb.block:
+%  commentchar,% = ,
+  gobble,% = 0,
+  frame,% = none,
+  label,% = ,
+  labelposition,% = none,% auto?
+  baselinestretch,% = auto,
+  resetmargins,% = true,
+  xleftmargin,% = 0pt,
+  xrightmargin,% = 0pt,
+  hfuzz,% = 2pt,
+  samepage,% = false,
+% __fancyvrb.number
+  numbers,% = left,
+  numbersep,% = 1ex,
+  firstnumber,% = auto,
+  stepnumber,% = 1,
+  numberblanklines,% = true,
+  firstline,% = ,
+  lastline,% = ,
+}
 %    \end{MacroCode}
 %
 % \subsubsection{Utilities}

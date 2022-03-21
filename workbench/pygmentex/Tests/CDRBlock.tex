@@ -31,100 +31,6 @@
   }
 }
 
-\cs_set:Npn \FVB@CDRBlock {
-\typeout{DEBUG==============================================}
-\typeout{\FV@KeyValues}
-  \@bsphack
-  \group_begin:
-  \exp_args:NV \CDR_block_preflight:n \FV@KeyValues
-%    \end{MacroCode}
-% Set the |\CDR_if_block[_p]:...| conditional family.
-%    \begin{MacroCode}
-  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
-    \prg_return_true:
-  }  
-%    \end{MacroCode}
-% Reading the options: we absorb the options available in |\FV@KeyValues|,
-% first for \pkg{l3keys} modules, except for line numbering because
-% management is different whether \pkg{pygments} is used or not.
-%    \begin{MacroCode}
-  \CDR_tag_keys_set:nn { __block } { __initialize }
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __block, __pygments.block, default.block, __fancyvrb.block,
-    __pygments, default, __fancyvrb,  __fancyvrb.number
-  }
-  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
-\typeout{DEBUG_STEP_2}
-\typeout{\l_CDR_kv_clist}
-  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-\CDR@Debug{CDRBlock.KV1:\l_CDR_kv_clist}
-%    \end{MacroCode}
-% This is done by |\CDR_block_setup_tags:|. Once the list of tags is established,
-% \CDRLua{} is setup accordingly.
-%    \begin{MacroCode}
-  \CDR_block_setup_tags:
-  \lua_now:n {
-    CDR:hilight_block_setup('g_CDR_tags_clist')
-  }
-  \clist_map_inline:Nn \c_CDRBlock@FV_clist {
-    \typeout { KV: ##1, \CDR_tag_get:c { ##1 } }
-  }
-  \typeout { FRAME=\CDR_tag_get:cc { __fancyvrb.block } { frame } }
-
-%    \end{MacroCode}
-% |\l_CDR_pyg_bool| is |true| iff one of the tags needs \pkg{pygments} or there is no tag and |pygments=true| was given.
-%    \begin{MacroCode}
-  \CDR_set_conditional:Nnnn \CDR_if_pygments:
-    { \CDR_tag_if_truthy_p:c { pygments } }
-    { \prg_return_true:  }
-    { \prg_return_false: }
-  \CDR_set_conditional:Nnnn \CDR_if_no_export:
-    { \CDR_tag_if_truthy_p:c { no~export } }
-    { \prg_return_true:  }
-    { \prg_return_false: }
-%    \end{MacroCode}
-% \begin{function}[EXP,pTF]{\CDR_if_number_on:}
-% \begin{syntax}
-% \cs{CDR_if_number:TF} \Arg{true code} \Arg{false code}
-% \end{syntax}
-% Execute \metatt{true code} if line numbering is on,
-% \metatt{false code} otherwise.
-% \end{function}
-%    \begin{MacroCode}
-  \CDR_set_conditional:Nnnn \CDR_if_number_on:
-    { \CDR_tag_if_eq_p:cn { numbers } { none } }
-    { \prg_return_false: }
-    { \prg_return_true: }
-%    \end{MacroCode}
-% \begin{function}[EXP,pTF]{\CDR_tags_if_already:}
-% \begin{syntax}
-% \cs{CDR_tags_if_already:TF} \Arg{true code} \Arg{false code}
-% \end{syntax}
-% Execute \meta{true code} when the tags were already displayed or unnecessary,
-% \meta{false code} otherwise.
-% \end{function}
-%    \begin{MacroCode}
-  \CDR_set_conditional:Nnnn \CDR_tags_if_already: {
-    \CDR_tag_if_truthy_p:c { only~top } &&
-    \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
-  } { \prg_return_true:  }
-    { \prg_return_false: }
-%    \end{MacroCode}
-% And we can setup the engine,
-%    \begin{MacroCode}
-  \CDR_block_engine_begin:
-%    \end{MacroCode}
-% That end the common part, we now branch according to \pkg{pygments} used.
-%    \begin{MacroCode}
-  \CDR_if_pygments:TF {
-    \CDRBlock@Pyg
-  } {
-    \CDRBlock@FV
-  }
-  \FV@Scan
-}
-
 
 \ExplSyntaxOff
 
@@ -176,69 +82,6 @@ ESSAI
 }
 
 
-\newenvironment { CDRBlock@FVX } {
-\CDR@Debug {DEBUG.Block.FV}
-%    \end{MacroCode}
-% We record the key value options about numbering twice, one for \pkg{fancyvrb}
-% and one for \CDRSty{}.
-%    \begin{MacroCode}
-  \CDR_if_no_export:F {
-    \clist_map_inline:nn { i, ii, iii, iv } {
-      \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
-        \tl_set:Nn \l_CDR_tl { ####1 }
-        \lua_now:n { CDR:record_line('l_CDR_tl') }
-        \use:c { CDR@ListProcessLine@ ##1 } { ####1 }
-      }
-    }
-  }
-%    \end{MacroCode}
-% Prepare the counters. The |__| int starts with 0, which means that it is unused.
-% If the |firstnumber| value is ``last'' then it is used to store the first number.
-%    \begin{MacroCode}
-  \CDR_int_set:cn { __ } { 0 }
-\CDR@Debug {NUMBERING...}
-  \CDR_if_number_on:T {
-\CDR@Debug {...ON}
-    \CDR_tag_if_eq:cnT { firstnumber } { last } {
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \clist_map_break:n {
-          \CDR_int_set:cc { __ } { ##1 }
-          \CDR_tag_set:cn { firstnumber } { \CDR_int_use:c { ##1 } }
-        }
-      }
-    }
-  }
-  \cs_set:Npn \CDR:nn ##1 ##2 {
-\CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}  
-    \fvset{ ##1 = { ##2 }, }
-  }
-  \clist_map_inline:Nn \c_CDRBlock@FV_clist {
-    \exp_args:Nnx
-    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
-  }
-  \CDR_tag_get:c { format }
-  \FV@VerbatimBegin
-} {
-  \FV@VerbatimEnd
-  \CDR_if_number_on:T {
-    \CDR_int_compare:cNnTF { __ } > 0 {
-      \CDR_int_set:cn { __ } {
-        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
-      }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gadd:cc { ##1 } { __ }
-      }
-    } {
-      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gset:cc { ##1 } { __ }
-\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
-      }
-    }
-  }
-}
-
-
 \def\CDR@Debug { \typeout }
 \makeatother
 \ExplSyntaxOff
@@ -286,6 +129,37 @@ end
   showspaces
 ]
 local f = function(arg)
+  return arg ** arg
+end
+\end{CDRBlock}
+
+\CDRSet{  tags=,
+  fontfamily=menlo,
+  fontsize=\Large,
+  pygments=false,
+  lang=lua,
+  numbers=right,
+  frame=lines,
+  format=\color{green},
+  debug=true,
+  showspaces,
+  firstnumber=last
+}
+\begin{CDRBlock}
+local f = function(arg)
+  return arg ** arg
+end
+\end{CDRBlock}
+
+\CDRSet{
+  stepnumber=5,
+}
+\begin{CDRBlock}
+local f = function(arg)
+  -- 2
+  -- 3
+  -- 4
+  -- 5
   return arg ** arg
 end
 \end{CDRBlock}
