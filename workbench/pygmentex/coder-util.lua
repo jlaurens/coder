@@ -292,6 +292,9 @@ local function hilight_block_setup(self, tags_clist_var)
       __cls__ = 'PygOpts',
       lang = 'tex',
       style = 'default',
+      texcomments  = false,
+      mathescape   = false,
+      escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',

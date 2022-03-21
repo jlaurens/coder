@@ -1116,6 +1116,9 @@ local function hilight_block_setup(self, tags_clist_var)
       __cls__ = 'PygOpts',
       lang = 'tex',
       style = 'default',
+      texcomments  = false,
+      mathescape   = false,
+      escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
@@ -2100,12 +2103,12 @@ if __name__ == '__main__':
 % set it globally to \metatt{value}.
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_int_new:cn #1 #2 {
-  \int_new:c { g_CDR@int.#1 }
-  \int_gset:cn { g_CDR@int.#1 } { #2 }
+  \int_new:c { CDR@int.#1 }
+  \int_gset:cn { CDR@int.#1 } { #2 }
 }
 %    \end{MacroCode}
 % \end{function}
-% \begin{variable}{\g_CDR@int.default, \g_CDR@int.<tag name>}
+% \begin{variable}{\CDR@int.default, \CDR@int.<tag name>}
 % Generic and named line number counter.
 %    \begin{MacroCode}[OK]
 \CDR_int_new:cn { default } { 1 }
@@ -2120,7 +2123,7 @@ if __name__ == '__main__':
 % Use the integer named after \metatt{tag name}.
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_int:c #1 {
-  \use:c { g_CDR@int.#1 }
+  \use:c { CDR@int.#1 }
 }
 %    \end{MacroCode}
 % \end{function}
@@ -2132,7 +2135,7 @@ if __name__ == '__main__':
 % Use the value of the integer named after \metatt{tag name}.
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_int_use:c #1 {
-  \int_use:c { g_CDR@int.#1 }
+  \int_use:c { CDR@int.#1 }
 }
 %    \end{MacroCode}
 % \end{function}
@@ -2147,7 +2150,7 @@ if __name__ == '__main__':
 % \metatt{false code} otherwise.
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDR_int_if_exist:c { p, T, F, TF } {
-  \int_if_exist:cTF { g_CDR@int.#1 } {
+  \int_if_exist:cTF { CDR@int.#1 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -2180,10 +2183,10 @@ if __name__ == '__main__':
 % Set the integer named after \metatt{tag name} to the \metatt{value}. \cs{CDR_int_gset:cn} makes a global change.
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_int_set:cn #1 #2 {
-  \int_set:cn { g_CDR@int.#1 } { #2 }
+  \int_set:cn { CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_gset:cn #1 #2 {
-  \int_gset:cn { g_CDR@int.#1 } { #2 }
+  \int_gset:cn { CDR@int.#1 } { #2 }
 }
 %    \end{MacroCode}
 % \end{function}
@@ -2213,10 +2216,10 @@ if __name__ == '__main__':
 % \cs{CDR_int_gadd:cn} makes a global change.
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_int_add:cn #1 #2 {
-  \int_add:cn { g_CDR@int.#1 } { #2 }
+  \int_add:cn { CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_gadd:cn #1 #2 {
-  \int_gadd:cn { g_CDR@int.#1 } { #2 }
+  \int_gadd:cn { CDR@int.#1 } { #2 }
 }
 %    \end{MacroCode}
 % \end{function}
@@ -2246,10 +2249,10 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_int_sub:cn #1 #2 {
-  \int_sub:cn { g_CDR@int.#1 } { #2 }
+  \int_sub:cn { CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_gsub:cn #1 #2 {
-  \int_gsub:cn { g_CDR@int.#1 } { #2 }
+  \int_gsub:cn { CDR@int.#1 } { #2 }
 }
 %    \end{MacroCode}
 %
@@ -2728,11 +2731,11 @@ if __name__ == '__main__':
 % \begin{syntax}
 % \cs{CDR_tag_parent_seq:c} \Arg{tag name}
 % \end{syntax}
-% Return the name of the sequence variable containing the list of the parents. Each child has its own sequence of parents.
+% Return the name of the sequence variable containing the list of the parents. Each child has its own sequence of parents assigned locally.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_tag_parent_seq:c #1 {
-  g_CDR:parent.tag @ #1 _seq
+  l_CDR:parent.tag @ #1 _seq
 }
 %    \end{MacroCode}
 % \begin{function}{\CDR_tag_inherit:cn, \CDR_tag_inherit:cf}
@@ -2850,8 +2853,8 @@ if __name__ == '__main__':
 % forwarding to |\keys_set:nn|.
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_tag_keys_set:nn #1 {
-  \exp_args:Nx
-  \keys_set:nn { \c_CDR_tag / \exp_not:n { #1 } }
+  \exp_args:Nf
+  \keys_set:nn { \c_CDR_tag / #1 }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set:nn { nV }
 %    \end{MacroCode}
@@ -2881,7 +2884,7 @@ if __name__ == '__main__':
 \cs_new:Npn \CDR_keys_set_known:nnN #1 #2 {
   \keys_set_known:nnnN { #1 } { #2 } { #1 }
 }
-\cs_generate_variant:Nn \CDR_keys_set_known:nnN { x, VV }
+\cs_generate_variant:Nn \CDR_keys_set_known:nnN { VV }
 %    \end{MacroCode}
 %
 % \begin{function}{\CDR_keys_inherit:nnn}
@@ -2920,7 +2923,8 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
 \cs_generate_variant:Nn \keys_set_known:nnnN { VVV, nVx }
 \cs_new:Npn \CDR_tag_keys_set_known:nnN #1 {
-  \CDR_keys_set_known:xnN { \c_CDR_tag / \exp_not:n { #1 } }
+  \exp_args:Nf
+  \CDR_keys_set_known:nnN { \c_CDR_tag / #1 }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set_known:nnN { nV }
 %    \end{MacroCode}
@@ -3114,8 +3118,7 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \subsubsection{\texttt{\textbackslash c_CDR_tag / __pygments.block }
-% \pkg{l3keys} module}
+% \subsubsection{\texttt{__pygments.block} \pkg{l3keys} module}
 %
 %    \begin{MacroCode}[OK]
 \CDR_tag_keys_define:nn { __pygments.block } {
@@ -4840,14 +4843,6 @@ if __name__ == '__main__':
 % \end{syntax}
 % \end{environment}
 %
-%
-% \subsection{Storage}
-% \begin{variable}{\l_CDR_block_prop}
-%    \begin{MacroCode}
-\prop_new:N \l_CDR_block_prop
-%    \end{MacroCode}
-% \end{variable}
-%
 % \subsection{\texttt{__block} \pkg{l3keys} module}
 % This module is used to parse the user interface of the |CDRBlock| environment.
 %    \begin{MacroCode}[OK]
@@ -4958,8 +4953,8 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
   \CDR_tag_keys_set:nn { __block } { __initialize }
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __block, __pygments.block, default.block,
-    __pygments, default,
+    __block, __pygments.block, default.block, __fancyvrb.block,
+    __pygments, default, __fancyvrb,  __fancyvrb.number
   }
   \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
@@ -5069,6 +5064,12 @@ if __name__ == '__main__':
   \lua_now:n { CDR:hilight_set_var('cache') }
   \CDR_tag_get:cN {debug} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('debug') }
+  \CDR_tag_get:cN {texcomments} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('texcomments') }
+  \CDR_tag_get:cN {escapeinside} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('escapeinside') }
+  \CDR_tag_get:cN {mathescape} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('mathescape') }
   \CDR_tag_get:cN {style} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('style') }
   \CDR@StyleIfExist { \l_CDR_tl } { } {
@@ -5093,6 +5094,15 @@ if __name__ == '__main__':
     }
   }
   \CDR_tag_get:c { format }
+  \cs_set:Npn \CDR:nn ##1 ##2 {
+\CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}  
+    \fvset{ ##1 = { ##2 }, }
+  }
+  \tl_clear:N \FV@KeyValues
+  \clist_map_inline:Nn \c_CDRBlock@Pyg_clist {
+    \exp_args:Nnx
+    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
+  }
   \fvset{ commandchars=\\\{\} }
 %    \end{MacroCode}
 % The |showspace| is actually a bit hacky, maybe a simpler solution exists.
@@ -5116,6 +5126,45 @@ if __name__ == '__main__':
   }
   \FV@VerbatimEnd
 }
+%    \end{MacroCode}
+%
+% \begin{variable}{\c_CDRBlock@Pyg_clist}
+% \end{variable}
+%    \begin{MacroCode}
+\clist_const:Nn \c_CDRBlock@Pyg_clist {
+  % __fancyvrb:
+    formatcom,% = ,
+    fontfamily,% = tt,
+    fontsize,% = auto,
+    fontseries,% = auto,
+    fontshape,% = auto,
+    showspaces,% = false,
+    showtabs,% = false,
+    obeytabs,% = false,
+    tabsize,% = 2,
+    defineactive,% = ,
+    reflabel,% = ,
+  % __fancyvrb.block:
+%    commentchar,% = ,
+%    gobble,% = 0,
+    frame,% = none,
+    label,% = ,
+    labelposition,% = none,% auto?
+    baselinestretch,% = auto,
+    resetmargins,% = true,
+    xleftmargin,% = 0pt,
+    xrightmargin,% = 0pt,
+    hfuzz,% = 2pt,
+    samepage,% = false,
+    % __fancyvrb.number
+%    numbers,% = left,
+%    numbersep,% = 1ex,
+%    firstnumber,% = auto,
+%    stepnumber,% = 1,
+%    numberblanklines,% = true,
+%    firstline,% = ,
+%    lastline,% = ,
+  }
 %    \end{MacroCode}
 %
 % \paragraph{Info}
@@ -5671,12 +5720,42 @@ if __name__ == '__main__':
       }
     }
   }
-  \clist_clear:N \FV@KeyValues
+  \tl_clear:N \FV@KeyValues
   \cs_set:Npn \CDR:nn ##1 ##2 {
 \CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}  
-    \clist_put_left:Nx \FV@KeyValues { ##1 = { ##2 }, }    
+    \fvset{ ##1 = { ##2 }, }
   }
-  \clist_map_inline:nn {
+  \clist_map_inline:Nn \c_CDRBlock@FV_clist {
+    \exp_args:Nnx
+    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
+  }
+  \CDR_tag_get:c { format }
+  \FV@VerbatimBegin
+} {
+  \FV@VerbatimEnd
+  \CDR_if_number_on:T {
+    \CDR_int_compare:cNnTF { __ } > 0 {
+      \CDR_int_set:cn { __ } {
+        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
+      }
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_int_gadd:cc { ##1 } { __ }
+      }
+    } {
+      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_int_gset:cc { ##1 } { __ }
+\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
+      }
+    }
+  }
+}
+%    \end{MacroCode}
+%
+% \begin{variable}{\c_CDRBlock@FV_clist}
+% \end{variable}
+%    \begin{MacroCode}
+\clist_const:Nn \c_CDRBlock@FV_clist {
   % __fancyvrb:
     formatcom,% = ,
     fontfamily,% = tt,
@@ -5709,31 +5788,7 @@ if __name__ == '__main__':
     numberblanklines,% = true,
     firstline,% = ,
     lastline,% = ,
-  } {
-    \exp_args:Nnx
-    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
   }
-  \CDR_tag_get:c { format }
-  \FV@VerbatimBegin
-} {
-  \FV@VerbatimEnd
-  \CDR_if_number_on:T {
-    \CDR_int_compare:cNnTF { __ } > 0 {
-      \CDR_int_set:cn { __ } {
-        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
-      }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gadd:cc { ##1 } { __ }
-      }
-    } {
-      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gset:cc { ##1 } { __ }
-\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
-      }
-    }
-  }
-}
 %    \end{MacroCode}
 %
 % \subsubsection{Utilities}

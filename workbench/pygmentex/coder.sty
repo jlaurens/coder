@@ -106,19 +106,19 @@
 \tl_new:N \l_CDR_name_tl
 \tl_new:N \l_CDR_info_tl
 \cs_new:Npn \CDR_int_new:cn #1 #2 {
-  \int_new:c { g_CDR@int.#1 }
-  \int_gset:cn { g_CDR@int.#1 } { #2 }
+  \int_new:c { CDR@int.#1 }
+  \int_gset:cn { CDR@int.#1 } { #2 }
 }
 \CDR_int_new:cn { default } { 1 }
 \CDR_int_new:cn { __ } { 1 }
 \cs_new:Npn \CDR_int:c #1 {
-  \use:c { g_CDR@int.#1 }
+  \use:c { CDR@int.#1 }
 }
 \cs_new:Npn \CDR_int_use:c #1 {
-  \int_use:c { g_CDR@int.#1 }
+  \int_use:c { CDR@int.#1 }
 }
 \prg_new_conditional:Nnn \CDR_int_if_exist:c { p, T, F, TF } {
-  \int_if_exist:cTF { g_CDR@int.#1 } {
+  \int_if_exist:cTF { CDR@int.#1 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -132,10 +132,10 @@
   }
 }
 \cs_new:Npn \CDR_int_set:cn #1 #2 {
-  \int_set:cn { g_CDR@int.#1 } { #2 }
+  \int_set:cn { CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_gset:cn #1 #2 {
-  \int_gset:cn { g_CDR@int.#1 } { #2 }
+  \int_gset:cn { CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_set:cc #1 #2 {
   \CDR_int_set:cn { #1 } { \CDR_int:c { #2 } }
@@ -144,10 +144,10 @@
   \CDR_int_gset:cn { #1 } { \CDR_int:c { #2 } }
 }
 \cs_new:Npn \CDR_int_add:cn #1 #2 {
-  \int_add:cn { g_CDR@int.#1 } { #2 }
+  \int_add:cn { CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_gadd:cn #1 #2 {
-  \int_gadd:cn { g_CDR@int.#1 } { #2 }
+  \int_gadd:cn { CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_add:cc #1 #2 {
   \CDR_int_add:cn { #1 } { \CDR_int:c { #2 } }
@@ -156,10 +156,10 @@
   \CDR_int_gadd:cn { #1 } { \CDR_int:c { #2 } }
 }
 \cs_new:Npn \CDR_int_sub:cn #1 #2 {
-  \int_sub:cn { g_CDR@int.#1 } { #2 }
+  \int_sub:cn { CDR@int.#1 } { #2 }
 }
 \cs_new:Npn \CDR_int_gsub:cn #1 #2 {
-  \int_gsub:cn { g_CDR@int.#1 } { #2 }
+  \int_gsub:cn { CDR@int.#1 } { #2 }
 }
 \prg_new_conditional:Nnn \CDR_clist_if_eq:NN { p, T, F, TF } {
   \tl_if_eq:NNTF #1 #2 {
@@ -381,7 +381,7 @@
   }
 }
 \cs_new:Npn \CDR_tag_parent_seq:c #1 {
-  g_CDR:parent.tag @ #1 _seq
+  l_CDR:parent.tag @ #1 _seq
 }
 \cs_new:Npn \CDR_tag_inherit:cn #1 #2 {
   \seq_set_from_clist:cn { \CDR_tag_parent_seq:c { #1 } } { #2 }
@@ -427,14 +427,14 @@
 }
 \cs_generate_variant:Nn \CDR_tag_keys_define:nn { nx }
 \cs_new:Npn \CDR_tag_keys_set:nn #1 {
-  \exp_args:Nx
-  \keys_set:nn { \c_CDR_tag / \exp_not:n { #1 } }
+  \exp_args:Nf
+  \keys_set:nn { \c_CDR_tag / #1 }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set:nn { nV }
 \cs_new:Npn \CDR_keys_set_known:nnN #1 #2 {
   \keys_set_known:nnnN { #1 } { #2 } { #1 }
 }
-\cs_generate_variant:Nn \CDR_keys_set_known:nnN { x, VV }
+\cs_generate_variant:Nn \CDR_keys_set_known:nnN { VV }
 \cs_new:Npn \CDR_keys_inherit__:nnn #1 #2 #3 {
   \keys_define:nn { #1 } { #2 .inherit:n = { #3 } }
 }
@@ -452,7 +452,8 @@
 \cs_generate_variant:Nn \CDR_keys_inherit:nnn { VnV, Vnn }
 \cs_generate_variant:Nn \keys_set_known:nnnN { VVV, nVx }
 \cs_new:Npn \CDR_tag_keys_set_known:nnN #1 {
-  \CDR_keys_set_known:xnN { \c_CDR_tag / \exp_not:n { #1 } }
+  \exp_args:Nf
+  \CDR_keys_set_known:nnN { \c_CDR_tag / #1 }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set_known:nnN { nV }
 \tl_set:Nn \l_CDR_tl { /([^/]*)(?:/(.*))?$ } \use_none:n { $ }
@@ -1380,7 +1381,6 @@
   \fvset{showspaces}
   \CDR_code:n
 }
-\prop_new:N \l_CDR_block_prop
 \CDR_tag_keys_define:nn { __block } {
   no~export .code:n = \CDR_tag_boolean_set:x { #1 },
   no~export .default:n = true,
@@ -1418,8 +1418,8 @@
   }
   \CDR_tag_keys_set:nn { __block } { __initialize }
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __block, __pygments.block, default.block,
-    __pygments, default,
+    __block, __pygments.block, default.block, __fancyvrb.block,
+    __pygments, default, __fancyvrb,  __fancyvrb.number
   }
   \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
@@ -1473,6 +1473,12 @@
   \lua_now:n { CDR:hilight_set_var('cache') }
   \CDR_tag_get:cN {debug} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('debug') }
+  \CDR_tag_get:cN {texcomments} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('texcomments') }
+  \CDR_tag_get:cN {escapeinside} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('escapeinside') }
+  \CDR_tag_get:cN {mathescape} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('mathescape') }
   \CDR_tag_get:cN {style} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('style') }
   \CDR@StyleIfExist { \l_CDR_tl } { } {
@@ -1493,6 +1499,15 @@
     }
   }
   \CDR_tag_get:c { format }
+  \cs_set:Npn \CDR:nn ##1 ##2 {
+\CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}
+    \fvset{ ##1 = { ##2 }, }
+  }
+  \tl_clear:N \FV@KeyValues
+  \clist_map_inline:Nn \c_CDRBlock@Pyg_clist {
+    \exp_args:Nnx
+    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
+  }
   \fvset{ commandchars=\\\{\} }
   \CDR@DefineSp
   \lua_now:n { CDR:hilight_source(false, true) }
@@ -1510,6 +1525,31 @@
   }
   \FV@VerbatimEnd
 }
+\clist_const:Nn \c_CDRBlock@Pyg_clist {
+  % __fancyvrb:
+    formatcom,% = ,
+    fontfamily,% = tt,
+    fontsize,% = auto,
+    fontseries,% = auto,
+    fontshape,% = auto,
+    showspaces,% = false,
+    showtabs,% = false,
+    obeytabs,% = false,
+    tabsize,% = 2,
+    defineactive,% = ,
+    reflabel,% = ,
+  % __fancyvrb.block:
+    frame,% = none,
+    label,% = ,
+    labelposition,% = none,% auto?
+    baselinestretch,% = auto,
+    resetmargins,% = true,
+    xleftmargin,% = 0pt,
+    xrightmargin,% = 0pt,
+    hfuzz,% = 2pt,
+    samepage,% = false,
+    % __fancyvrb.number
+  }
 \cs_new:Npn \CDR@NumberFormat {
   \CDR_tag_get:c { numbers~format }
 }
@@ -1922,12 +1962,37 @@
       }
     }
   }
-  \clist_clear:N \FV@KeyValues
+  \tl_clear:N \FV@KeyValues
   \cs_set:Npn \CDR:nn ##1 ##2 {
 \CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}
-    \clist_put_left:Nx \FV@KeyValues { ##1 = { ##2 }, }
+    \fvset{ ##1 = { ##2 }, }
   }
-  \clist_map_inline:nn {
+  \clist_map_inline:Nn \c_CDRBlock@FV_clist {
+    \exp_args:Nnx
+    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
+  }
+  \CDR_tag_get:c { format }
+  \FV@VerbatimBegin
+} {
+  \FV@VerbatimEnd
+  \CDR_if_number_on:T {
+    \CDR_int_compare:cNnTF { __ } > 0 {
+      \CDR_int_set:cn { __ } {
+        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
+      }
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_int_gadd:cc { ##1 } { __ }
+      }
+    } {
+      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_int_gset:cc { ##1 } { __ }
+\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
+      }
+    }
+  }
+}
+\clist_const:Nn \c_CDRBlock@FV_clist {
   % __fancyvrb:
     formatcom,% = ,
     fontfamily,% = tt,
@@ -1960,31 +2025,7 @@
     numberblanklines,% = true,
     firstline,% = ,
     lastline,% = ,
-  } {
-    \exp_args:Nnx
-    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
   }
-  \CDR_tag_get:c { format }
-  \FV@VerbatimBegin
-} {
-  \FV@VerbatimEnd
-  \CDR_if_number_on:T {
-    \CDR_int_compare:cNnTF { __ } > 0 {
-      \CDR_int_set:cn { __ } {
-        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
-      }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gadd:cc { ##1 } { __ }
-      }
-    } {
-      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gset:cc { ##1 } { __ }
-\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
-      }
-    }
-  }
-}
 \cs_new:Npn \CDR_set_conditional:Nnnn #1 #2 #3 #4 {
   \bool_if:nTF { #2 } {
     \prg_set_conditional:Nnn #1 { p, T, F, TF } { #3 }
