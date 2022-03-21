@@ -1,0 +1,45 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+
+\CDRExport{
+  file={Tests/exportB.txt},
+  tags=B,
+}
+\CDRExport{
+  file={Tests/exportC.txt},
+  tags=C,
+}
+\CDRExport{
+  file={Tests/exportD.txt},
+  tags=D,
+}
+\CDRExport{
+  file={Tests/exportB,C.txt},
+  tags={B,C},
+}
+\CDRExport{
+  file={Tests/exportD,B.txt},
+  tags={D,B},
+}
+
+\begin{CDRBlock}[tags={B,C,D}]
+B,C,D:1
+\end{CDRBlock}
+\begin{CDRBlock}[tags={B,C}]
+B,C:2
+\end{CDRBlock}
+\begin{CDRBlock}[tags={D,B}]
+D,B:3
+\end{CDRBlock}
+\begin{CDRBlock}[tags={C,D}]
+C,D:4
+\end{CDRBlock}
+\begin{CDRBlock}[tags={B}]
+B:5
+\end{CDRBlock}
+\begin{CDRBlock}[tags={C}]
+C:6
+\end{CDRBlock}
+\begin{CDRBlock}[tags={D}]
+D:7
+\end{CDRBlock}

@@ -161,6 +161,12 @@
 \cs_new:Npn \CDR_int_gsub:cn #1 #2 {
   \int_gsub:cn { CDR@int.#1 } { #2 }
 }
+\clist_new:N \g_CDR_tags_clist
+\clist_new:N \g_CDR_all_tags_clist
+\clist_new:N \g_CDR_last_tags_clist
+\AddToHook { shipout/before } {
+  \clist_gclear:N \g_CDR_last_tags_clist
+}
 \prg_new_conditional:Nnn \CDR_clist_if_eq:NN { p, T, F, TF } {
   \tl_if_eq:NNTF #1 #2 {
     \prg_return_true:
@@ -218,7 +224,7 @@
     \use_none:n
   }
 }
-\prg_generate_conditional_variant:Nnn \str_if_eq:nn { fn, VV } { p, T, F, TF }
+\prg_generate_conditional_variant:Nnn \str_if_eq:nn { Vn } { p, T, F, TF }
 
 \regex_const:Nn \c_CDR_root_regex { ^(.*)/.*$ } \use_none:n { $ }
 \cs_new:Npn \CDR_tag_choices: {
@@ -887,14 +893,8 @@
     \prg_return_false:
   }
 }
-\prop_new:N \g_CDR_export_prop
+\seq_new:N \g_CDR_export_seq
 \tl_new:N \l_CDR_file_tl
-\clist_new:N \g_CDR_tags_clist
-\clist_new:N \g_CDR_all_tags_clist
-\clist_new:N \g_CDR_last_tags_clist
-\AddToHook { shipout/before } {
-  \clist_gclear:N \g_CDR_last_tags_clist
-}
 \prop_new:N \l_CDR_export_prop
 \keys_define:nn { CDR@Export } {
   file .tl_set:N = \l_CDR_file_tl,
@@ -942,7 +942,7 @@
   \tl_if_empty:NTF \l_CDR_file_tl {
     \PackageWarning
       { coder }
-      { Missing~key~`file' }
+      { Missing~export~key~`file' }
   } {
     \CDR_export_set:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
     \prop_map_inline:Nn \l_CDR_export_prop {
@@ -952,12 +952,12 @@
       \tl_if_empty:NTF \l_CDR_clist {
         \PackageWarning
           { coder }
-          { Missing~key~`tags' }
+          { Missing~export~key~`tags' }
       } {
         \clist_set_eq:NN \g_CDR_tags_clist \l_CDR_clist
+        \clist_remove_duplicates:N \g_CDR_tags_clist
         \clist_put_left:NV \g_CDR_all_tags_clist \l_CDR_clist
         \clist_remove_duplicates:N \g_CDR_all_tags_clist
-        \CDR_export_set:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
         \exp_args:NV
         \CDR_export_get:ccNT \l_CDR_file_tl { lang } \l_CDR_tl {
           \clist_map_inline:Nn \g_CDR_tags_clist {
@@ -965,31 +965,30 @@
           }
         }
       }
+      \seq_put_left:NV \g_CDR_export_seq \l_CDR_file_tl
     } {
       \PackageWarning
         { coder }
-        { Missing~key~`tags' }
+        { Missing~export~key~`tags' }
     }
   }
 }
 \AddToHook { enddocument / end } {
-  \prop_map_inline:Nn \g_CDR_export_prop {
-    \tl_set:Nn \l_CDR_prop { #2 }
-    \str_set:Nx \l_CDR_str {
-      \prop_item:Nn \l_CDR_prop { file }
-    }
+  \seq_map_inline:Nn \g_CDR_export_seq {
+    \str_set:Nx \l_CDR_str { #1 }
     \lua_now:n { CDR:export_file('l_CDR_str') }
     \clist_map_inline:nn {
       tags, raw, preamble, postamble
     } {
-      \str_set:Nx \l_CDR_str {
-        \prop_item:Nn \l_CDR_prop { ##1 }
-      }
-      \lua_now:n {
-        CDR:export_file_info('##1','l_CDR_str')
+      \CDR_export_get:ccNT { #1 } { ##1 } \l_CDR_tl {
+        \exp_args:NNx
+        \str_set:Nn \l_CDR_str { \l_CDR_tl }
+        \lua_now:n {
+          CDR:export_file_info('##1','l_CDR_str')
+        }
       }
     }
-    \lua_now:n { CDR:export_file_complete() }
+    \lua_now:n { CDR:export_complete() }
   }
 }
 \cs_set:Npn \CDR@StyleDefine #1 {
@@ -1176,23 +1175,23 @@
 \cs_new:Npn \CDR_code_format: {
   \frenchspacing
   \CDR_tag_get:cN { baselinestretch } \l_CDR_tl
-  \str_if_eq:NnF \l_CDR_tl { auto } {
+  \str_if_eq:VnF \l_CDR_tl { auto } {
     \exp_args:NNV
     \def \baselinestretch \l_CDR_tl
   }
   \CDR_tag_get:cN { fontfamily } \l_CDR_tl
-  \str_if_eq:NnT \l_CDR_tl { tt } { \tl_set:Nn \l_CDR_tl { lmtt } }
+  \str_if_eq:VnT \l_CDR_tl { tt } { \tl_set:Nn \l_CDR_tl { lmtt } }
   \exp_args:NV
   \fontfamily \l_CDR_tl
   \clist_map_inline:nn { series, shape } {
     \CDR_tag_get:cN { font##1 } \l_CDR_tl
-    \str_if_eq:NnF \l_CDR_tl { auto } {
+    \str_if_eq:VnF \l_CDR_tl { auto } {
       \exp_args:NnV
       \use:c { font##1 } \l_CDR_tl
     }
   }
   \CDR_tag_get:cN { fontsize } \l_CDR_tl
-  \str_if_eq:NnF \l_CDR_tl { auto } {
+  \str_if_eq:VnF \l_CDR_tl { auto } {
     \tl_use:N \l_CDR_tl
   }
   \selectfont
@@ -1403,10 +1402,6 @@
 \CDR_int_new:cn { __last  } { 0 }
 \clist_map_inline:nn { i, ii, iii, iv } {
   \cs_set_eq:cc { CDR@ListProcessLine@ #1 } { FV@ListProcessLine@ #1 }
-}
-\cs_new:Npn \CDR_process_line:n #1 {
-  \str_set:Nn \l_CDR_str { #1 }
-  \lua_now:n {CDR:record_line('l_CDR_str')}
 }
 \cs_new:Npn \CDR_block_preflight:n #1 { }
 \cs_new:Npn \FVB@CDRBlock {

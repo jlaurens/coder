@@ -1,0 +1,22 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+
+\CDRExport{
+  file=Tests/exportA.txt,
+  tags=A,
+}
+
+\begin{CDRBlock}
+1
+2
+3
+\end{CDRBlock}
+
+\ExplSyntaxOn
+\CDRExport{
+  file=Tests/exportA2.txt,
+  tags=A,
+  preamble=\c_percent_str My funny preamble,
+  postamble=\c_percent_str My funny postamble,  
+}
+\ExplSyntaxOff

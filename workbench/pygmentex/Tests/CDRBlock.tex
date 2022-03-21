@@ -3,50 +3,12 @@
 \noindent
 \makeatletter
 
-\def\CDR@Debug { \typeout }
+%\def\CDR@Debug { \typeout }
 \ExplSyntaxOn
-
-\bgroup
-
-\cs_set:Npn \CDR_block_preflight:n #1 {
-  \clist_if_empty:nF { #1 } {
-    \par\noindent Block~options:
-    \begin{itemize}
-    \ttfamily
-    \clist_map_inline:nn { #1 } {
-      \item \tl_to_str:n { ##1 }
-    }
-    \end{itemize}
-  }
-}
-\cs_set:Npn \CDR_set_preflight:n #1 {
-  \clist_if_empty:nF { #1 } {
-    \par\noindent CDRSet:
-    \begin{itemize}
-    \ttfamily
-    \clist_map_inline:nn { #1 } {
-      \item \tl_to_str:n { ##1 }
-    }
-    \end{itemize}
-  }
-}
-
-
-\ExplSyntaxOff
-
-
-%  \CDRSet {
-%    numbers=left,
-%    pygments=false,
-%  }
-%  \input{./Tests/test_single.tex}
-%  \vspace{0.5\baselineskip}
 
 
 
 %\def \CDR@Debug { \typeout }
-
-\ExplSyntaxOff
 
 
 
@@ -82,7 +44,8 @@ ESSAI
 }
 
 
-\def\CDR@Debug { \typeout }
+%\def\CDR@Debug { \typeout }
+
 \makeatother
 \ExplSyntaxOff
 
@@ -163,10 +126,6 @@ local f = function(arg)
   return arg ** arg
 end
 \end{CDRBlock}
-
-\endinput
-
-
 
 
 \typeout {IN PROGRESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS}
@@ -579,57 +538,42 @@ function foo(arg) return arg ** arg end
 }
 % \def\CDR@Debug{\typeout}
 \typeout{===============================================================}
-\CDR@nnn{none}{none}{0}
 \CDR@nnn{none}{none}{1}
 \CDR@nnn{none}{none}{5}
-\CDR@nnn{none}{left}{0}
 \CDR@nnn{none}{left}{1}
 \CDR@nnn{none}{left}{5}
-\CDR@nnn{none}{right}{0}
 \CDR@nnn{none}{right}{1}
 \CDR@nnn{none}{right}{5}
-\CDR@nnn{left}{none}{0}
 \CDR@nnn{left}{none}{1}
 \CDR@nnn{left}{none}{5}
-\CDR@nnn{left}{left}{0}
 \CDR@nnn{left}{left}{1}
 \CDR@nnn{left}{left}{5}
-\CDR@nnn{left}{right}{0}
 \CDR@nnn{left}{right}{1}
 \CDR@nnn{left}{right}{5}
-\CDR@nnn{right}{none}{0}
 \CDR@nnn{right}{none}{1}
 \CDR@nnn{right}{none}{5}
-\CDR@nnn{right}{left}{0}
 \CDR@nnn{right}{left}{1}
 \CDR@nnn{right}{left}{5}
-\CDR@nnn{right}{right}{0}
 \CDR@nnn{right}{right}{1}
 \CDR@nnn{right}{right}{5}
-\CDR@nnn{numbers}{none}{0}
 \CDR@nnn{numbers}{none}{1}
 \CDR@nnn{numbers}{none}{5}
-\CDR@nnn{numbers}{left}{0}
 \CDR@nnn{numbers}{left}{1}
 \CDR@nnn{numbers}{left}{5}
-\CDR@nnn{numbers}{right}{0}
 \CDR@nnn{numbers}{right}{1}
 \CDR@nnn{numbers}{right}{5}
-\CDR@nnn{mirror}{none}{0}
 \CDR@nnn{mirror}{none}{1}
 \CDR@nnn{mirror}{none}{5}
-\CDR@nnn{mirror}{left}{0}
 \CDR@nnn{mirror}{left}{1}
 \CDR@nnn{mirror}{left}{5}
-\CDR@nnn{mirror}{right}{0}
 \CDR@nnn{mirror}{right}{1}
 \CDR@nnn{mirror}{right}{5}
 %
 % BUGGY
 %\ExplSyntaxOn
-%\clist_map_inline:nn { none, left, right, auto } {
+%\clist_map_inline:nn { none, left, right, numbers, mirror } {
 %  \clist_map_inline:nn { none, left, right } {
-%    \clist_map_inline:nn { 0, 1, 5 } {
+%    \clist_map_inline:nn { 1, 5 } {
 %\CDR@Debug {===== SHOW_TAGS=#1}
 %\CDR@Debug {===== NUMBERS=##1}
 %\CDR@Debug {===== STEPNUMBER=####1}

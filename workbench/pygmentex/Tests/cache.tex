@@ -1,0 +1,60 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+\noindent
+\makeatletter
+
+%\def\CDR@Debug { \typeout }
+\ExplSyntaxOn
+
+
+
+%\def \CDR@Debug { \typeout }
+
+
+\begin{luacode}
+
+function CDR:cache_clean_unused()
+end
+
+function CDR:cache_record(pyg_sty_p, pyg_tex_p)
+  if pyg_sty_p then
+print('CDR.DEBUG cache_record', pyg_sty_p)
+    self['.style_set']  [pyg_sty_p] = true
+  end
+  if pyg_tex_p then
+print('CDR.DEBUG cache_record', pyg_tex_p)
+    self['.colored_set'][pyg_tex_p] = true
+  end
+end
+function CDR:cache_clean_unused()
+print('CDR.DEBUG cache_clean_unused')
+  local to_remove = {}
+  for f in lfs.dir(self.dir_p) do
+    if f ~= '.' and f ~= '..' then
+      f = self.dir_p .. f
+print('CANDIDATE', f, self['.style_set'][f], self['.colored_set'][f])
+      if not self['.style_set'][f] and not self['.colored_set'][f] then
+        to_remove[f] = true
+      end
+    end
+  end
+  for f,_ in pairs(to_remove) do
+print('REMOVE', f)
+    os.remove(f)
+  end
+end
+
+\end{luacode}
+
+\bgroup
+
+\CDRSet{
+  pygments=true,
+  lang=lua,
+  style=autumn,
+  cache=true,
+  debug
+}
+\CDRCode|ABCDE|
+
+\egroup

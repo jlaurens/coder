@@ -972,7 +972,7 @@ local function hilight_source(self, sty, src)
   local debug = args.debug
   local pyg_sty_p
   if sty then
-    pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
+    pyg_sty_p = self.dir_p..pygopts.style..'.pyg.sty'
     token.set_macro('l_CDR_pyg_sty_tl', pyg_sty_p)
     texopts.pyg_sty_p = pyg_sty_p
     local mode,_,__ = lfs.attributes(pyg_sty_p, 'mode')
@@ -1001,7 +1001,7 @@ local function hilight_source(self, sty, src)
         pygopts.style
       )
     )
-    local base = dir_p..hash
+    local base = self.dir_p..hash
     pyg_tex_p = base..'.pyg.tex'
     token.set_macro('l_CDR_pyg_tex_tl', pyg_tex_p)
     local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
@@ -1105,7 +1105,7 @@ local function hilight_block_setup(self, tags_clist_var)
     t[#t+1]=tag
   end
   self['.tags clist']  = tags_clist
-  self['.block tags']  = t
+  self['.tags']  = t
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
@@ -1142,17 +1142,18 @@ end
 % CDR:record_line(\meta{line variable name})
 % \end{syntax}
 % Store the content of the given named variable.
+% It will be used for colorization and exportation.
 % \end{function}
 %    \begin{MacroCode}[OK]
 local function record_line(self, line_variable_name)
   local line = assert(token.get_macro(assert(line_variable_name)))
   local ll = assert(self['.lines'])
   ll[#ll+1] = line
-  local lt = self['lines by tag'] or {}
-  self['lines by tag'] = lt
-  for _,tag in ipairs(self['.block tags']) do
-    ll = lt[tag] or {}
-    lt[tag] = ll
+  local records = self['.records'] or {}
+  self['.records'] = records
+  for _,tag in ipairs(self['.tags']) do
+    ll = records[tag] or {}
+    records[tag] = ll
     ll[#ll+1] = line
   end
 end
@@ -1170,8 +1171,9 @@ end
 %    \end{MacroCode}
 %
 % \section{Exportation}
+%
 % For each file to be exported, \CDRSty{} calls |export_file|
-% to initialte the exportation. Then it calls |export_file_info| to
+% to initialize the exportation. Then it calls |export_file_info| to
 % share the |tags|, |raw|, |preamble|, |postamble| data.
 % Finally, |export_complete| is called to complete the exportation.
 % \begin{function}{export_file}
@@ -1183,8 +1185,8 @@ end
 % containing the file name.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function export_file(self, file_name)
-  self['.name'] = assert(token.get_macro(assert(file_name)))
+local function export_file(self, file_name_var)
+  self['.name'] = assert(token.get_macro(assert(file_name_var)))
   self['.export'] = {}
 end
 %    \end{MacroCode}
@@ -1214,27 +1216,40 @@ local function export_complete(self)
   local name    = self['.name']
   local export  = self['.export']
   local records = self['.records']
+  local raw = export.raw == 'true'
   local tt = {}
-  local s = export.preamble
-  if s then
-    tt[#tt+1] = s
+  local s
+  if not raw then
+    s = export.preamble
+    if s and #s>0  then
+      tt[#tt+1] = s
+    end
   end
-  for _,tag in ipairs(export.tags) do
-    s = records[tag]:concat('\n')
-    tt[#tt+1] = s
-    records[tag] = { [1] = s }
+  for tag in string.gmatch(export.tags, '([^,]+)') do
+    local Rs = records[tag]
+    if Rs then
+      if #Rs > 1 then
+        s = table.concat(Rs,'\n')
+        records[tag] = { [1] = s }
+      else
+        s = Rs[1]
+      end
+      tt[#tt+1] = s
+    end
   end
-  s = export.postamble
-  if s then
-    tt[#tt+1] = s
+  if not raw then
+    s = export.postamble
+    if s and #s>0  then
+      tt[#tt+1] = s
+    end
   end
   if #tt>0 then
     local fh = assert(io.open(name,'w'))
-    fh:write(tt:concat('\n'))
+    fh:write(table.concat(tt, '\n'))
     fh:close()
   end
-  self['.file'] = nil
-  self['.exportation'] = nil
+  self['.name'] = nil
+  self['.export'] = nil
 end
 %    \end{MacroCode}
 %
@@ -1265,11 +1280,11 @@ end
 %    \begin{MacroCode}[OK]
 local function cache_clean_all(self)
   local to_remove = {}
-  for f in lfs.dir(dir_p) do
+  for f in lfs.dir(self.dir_p) do
     to_remove[f] = true
   end
   for k,_ in pairs(to_remove) do
-    os.remove(dir_p .. k)
+    os.remove(self.dir_p .. k)
   end
 end
 local function cache_record(self, pyg_sty_p, pyg_tex_p)
@@ -1282,8 +1297,8 @@ local function cache_record(self, pyg_sty_p, pyg_tex_p)
 end
 local function cache_clean_unused(self)
   local to_remove = {}
-  for f in lfs.dir(dir_p) do
-    f = dir_p .. f
+  for f in lfs.dir(self.dir_p) do
+    f = self.dir_p .. f
     if not self['.style_set'][f] and not self['.colored_set'][f] then
       to_remove[f] = true
     end 
@@ -1361,16 +1376,10 @@ return {
 %    \begin{MacroCode}
   hilight_block_setup = hilight_block_setup,
 %    \end{MacroCode}
-% \itemtt[cache_clean_all]
+% \itemtt[cache]
 %    \begin{MacroCode}
   cache_clean_all    = cache_clean_all,
-%    \end{MacroCode}
-% \itemtt[cache_record]
-%    \begin{MacroCode}
   cache_record       = cache_record,
-%    \end{MacroCode}
-% \itemtt[cache_clean_unused]
-%    \begin{MacroCode}
   cache_clean_unused = cache_clean_unused,
 %    \end{MacroCode}
 % \itemtt[Internals]
@@ -1388,7 +1397,14 @@ return {
 %    \end{MacroCode}
 % \itemtt[Other]
 %    \begin{MacroCode}
+  dir_p              = dir_p,
   json_p             = json_p,
+%    \end{MacroCode}
+% \itemtt[Exportation]
+%    \begin{MacroCode}
+  export_file        = export_file,
+  export_file_info   = export_file_info,
+  export_complete    = export_complete,
 %    \end{MacroCode}
 % \end{description}
 %    \begin{MacroCode}
@@ -1824,7 +1840,7 @@ file name with extension, contains processing information.
     hilighted = m.group(1)
     texopts = self.texopts
     if texopts.is_inline:
-      return hilighted.replace(' ', r'\CDR@Sp '), 0
+      return hilighted.replace(' ', r'\CDR@Sp ')
     lines = hilighted.split('\n')
     ans_code = []
     last = 1
@@ -1946,6 +1962,7 @@ if __name__ == '__main__':
 % \end{function}
 %
 % \section{Variables}
+%
 % \subsection{Internal scratch variables}
 % These local variables are used in a very limited scope.
 % \begin{variable}{\l_CDR_bool}
@@ -2258,6 +2275,22 @@ if __name__ == '__main__':
 %
 % \subsection{Utilities}
 %
+% \begin{variable}{\g_CDR_tags_clist, \g_CDR_all_tags_clist, \g_CDR_last_tags_clist}
+% Store the current list of tags used by |\CDRCode| and the
+% |CDRBlock| environment, or declared by |\CDRExport|.
+% All the tags are recorded, if there is an only one, it is not shown
+% in block code chunks.
+% The |\g_CDR_last_tags_clist| variable contains the last list of tags that was displayed.
+%    \begin{MacroCode}[OK]
+\clist_new:N \g_CDR_tags_clist
+\clist_new:N \g_CDR_all_tags_clist
+\clist_new:N \g_CDR_last_tags_clist
+\AddToHook { shipout/before } {
+  \clist_gclear:N \g_CDR_last_tags_clist
+}
+%    \end{MacroCode}
+% \end{variable}
+%
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDR_clist_if_eq:NN { p, T, F, TF } {
   \tl_if_eq:NNTF #1 #2 {
@@ -2407,7 +2440,7 @@ if __name__ == '__main__':
 % is managed.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\prg_generate_conditional_variant:Nnn \str_if_eq:nn { fn, VV } { p, T, F, TF }
+\prg_generate_conditional_variant:Nnn \str_if_eq:nn { Vn } { p, T, F, TF }
 
 \regex_const:Nn \c_CDR_root_regex { ^(.*)/.*$ } \use_none:n { $ }
 \cs_new:Npn \CDR_tag_choices: {
@@ -4005,10 +4038,10 @@ if __name__ == '__main__':
 %
 % \subsection{Storage}
 %
-% \begin{variable}{\g_CDR_export_prop}
-% Global storage for \texttt{\meta{file name}=\meta{file export info}}
+% \begin{variable}{\g_CDR_export_seq}
+% Global list of all the files to be exported.
 %    \begin{MacroCode}[OK]
-\prop_new:N \g_CDR_export_prop
+\seq_new:N \g_CDR_export_seq
 %    \end{MacroCode}
 % \end{variable}
 % \begin{variable}{\l_CDR_file_tl}
@@ -4018,25 +4051,8 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{variable}{\g_CDR_tags_clist, \g_CDR_all_tags_clist, \g_CDR_last_tags_clist}
-% Store the current list of tags used by |\CDRCode| and the
-% |CDRBlock| environment, or declared by |\CDRExport|.
-% All the tags are recorded, if there is an only one, it is not shown
-% in block code chunks.
-% The |\g_CDR_last_tags_clist| variable contains the last list of tags that was displayed.
-%    \begin{MacroCode}[OK]
-\clist_new:N \g_CDR_tags_clist
-\clist_new:N \g_CDR_all_tags_clist
-\clist_new:N \g_CDR_last_tags_clist
-\AddToHook { shipout/before } {
-  \clist_gclear:N \g_CDR_last_tags_clist
-}
-%    \end{MacroCode}
-% \end{variable}
-%
 % \begin{variable}{\l_CDR_export_prop}
 % Used by \texttt{CDR@Export} \pkg{l3keys} module to temporarily store properties.
-% \emph{Nota Bene}: nothing similar with |\g_CDR_export_prop| except the name.
 %    \begin{MacroCode}[OK]
 \prop_new:N \l_CDR_export_prop
 %    \end{MacroCode}
@@ -4137,7 +4153,7 @@ if __name__ == '__main__':
   \tl_if_empty:NTF \l_CDR_file_tl {
     \PackageWarning
       { coder }
-      { Missing~key~`file' }
+      { Missing~export~key~`file' }
   } {
     \CDR_export_set:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
     \prop_map_inline:Nn \l_CDR_export_prop {
@@ -4152,12 +4168,12 @@ if __name__ == '__main__':
       \tl_if_empty:NTF \l_CDR_clist {
         \PackageWarning
           { coder }
-          { Missing~key~`tags' }
+          { Missing~export~key~`tags' }
       } {
         \clist_set_eq:NN \g_CDR_tags_clist \l_CDR_clist
+        \clist_remove_duplicates:N \g_CDR_tags_clist
         \clist_put_left:NV \g_CDR_all_tags_clist \l_CDR_clist
         \clist_remove_duplicates:N \g_CDR_all_tags_clist
-        \CDR_export_set:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
 %    \end{MacroCode}
 % If a |lang| is given, forwards the declaration
 % to all the code chunks tagged within |\g_CDR_tags_clist|.
@@ -4169,10 +4185,11 @@ if __name__ == '__main__':
           }
         }
       }
+      \seq_put_left:NV \g_CDR_export_seq \l_CDR_file_tl
     } {
       \PackageWarning
         { coder }
-        { Missing~key~`tags' }
+        { Missing~export~key~`tags' }
     }
   }
 }
@@ -4181,23 +4198,21 @@ if __name__ == '__main__':
 % Files are created at the end of the typesetting process.
 %    \begin{MacroCode}[OK]
 \AddToHook { enddocument / end } {
-  \prop_map_inline:Nn \g_CDR_export_prop {
-    \tl_set:Nn \l_CDR_prop { #2 }
-    \str_set:Nx \l_CDR_str {
-      \prop_item:Nn \l_CDR_prop { file }
-    }
+  \seq_map_inline:Nn \g_CDR_export_seq {
+    \str_set:Nx \l_CDR_str { #1 }
     \lua_now:n { CDR:export_file('l_CDR_str') }
     \clist_map_inline:nn {
       tags, raw, preamble, postamble
     } {
-      \str_set:Nx \l_CDR_str {
-        \prop_item:Nn \l_CDR_prop { ##1 }
-      }
-      \lua_now:n {
-        CDR:export_file_info('##1','l_CDR_str')
+      \CDR_export_get:ccNT { #1 } { ##1 } \l_CDR_tl {
+        \exp_args:NNx
+        \str_set:Nn \l_CDR_str { \l_CDR_tl }
+        \lua_now:n {
+          CDR:export_file_info('##1','l_CDR_str')
+        }
       }
     }
-    \lua_now:n { CDR:export_file_complete() }
+    \lua_now:n { CDR:export_complete() }
   }
 }
 %    \end{MacroCode}
@@ -4612,23 +4627,23 @@ if __name__ == '__main__':
 \cs_new:Npn \CDR_code_format: {
   \frenchspacing
   \CDR_tag_get:cN { baselinestretch } \l_CDR_tl
-  \str_if_eq:NnF \l_CDR_tl { auto } {
+  \str_if_eq:VnF \l_CDR_tl { auto } {
     \exp_args:NNV
     \def \baselinestretch \l_CDR_tl
   }
   \CDR_tag_get:cN { fontfamily } \l_CDR_tl
-  \str_if_eq:NnT \l_CDR_tl { tt } { \tl_set:Nn \l_CDR_tl { lmtt } }
+  \str_if_eq:VnT \l_CDR_tl { tt } { \tl_set:Nn \l_CDR_tl { lmtt } }
   \exp_args:NV
   \fontfamily \l_CDR_tl
   \clist_map_inline:nn { series, shape } {
     \CDR_tag_get:cN { font##1 } \l_CDR_tl
-    \str_if_eq:NnF \l_CDR_tl { auto } {
+    \str_if_eq:VnF \l_CDR_tl { auto } {
       \exp_args:NnV
       \use:c { font##1 } \l_CDR_tl
     }
   }
   \CDR_tag_get:cN { fontsize } \l_CDR_tl
-  \str_if_eq:NnF \l_CDR_tl { auto } {
+  \str_if_eq:VnF \l_CDR_tl { auto } {
     \tl_use:N \l_CDR_tl
   }
   \selectfont
@@ -4913,10 +4928,6 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
 \clist_map_inline:nn { i, ii, iii, iv } {
   \cs_set_eq:cc { CDR@ListProcessLine@ #1 } { FV@ListProcessLine@ #1 }
-}
-\cs_new:Npn \CDR_process_line:n #1 {
-  \str_set:Nn \l_CDR_str { #1 }
-  \lua_now:n {CDR:record_line('l_CDR_str')}
 }
 %    \end{MacroCode}
 % \begin{function}{\CDR_block_preflight:n}

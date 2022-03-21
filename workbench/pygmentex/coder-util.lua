@@ -174,7 +174,7 @@ local function hilight_source(self, sty, src)
   local debug = args.debug
   local pyg_sty_p
   if sty then
-    pyg_sty_p = dir_p..pygopts.style..'.pyg.sty'
+    pyg_sty_p = self.dir_p..pygopts.style..'.pyg.sty'
     token.set_macro('l_CDR_pyg_sty_tl', pyg_sty_p)
     texopts.pyg_sty_p = pyg_sty_p
     local mode,_,__ = lfs.attributes(pyg_sty_p, 'mode')
@@ -203,7 +203,7 @@ local function hilight_source(self, sty, src)
         pygopts.style
       )
     )
-    local base = dir_p..hash
+    local base = self.dir_p..hash
     pyg_tex_p = base..'.pyg.tex'
     token.set_macro('l_CDR_pyg_tex_tl', pyg_tex_p)
     local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
@@ -281,7 +281,7 @@ local function hilight_block_setup(self, tags_clist_var)
     t[#t+1]=tag
   end
   self['.tags clist']  = tags_clist
-  self['.block tags']  = t
+  self['.tags']  = t
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
@@ -315,18 +315,18 @@ local function record_line(self, line_variable_name)
   local line = assert(token.get_macro(assert(line_variable_name)))
   local ll = assert(self['.lines'])
   ll[#ll+1] = line
-  local lt = self['lines by tag'] or {}
-  self['lines by tag'] = lt
-  for _,tag in ipairs(self['.block tags']) do
-    ll = lt[tag] or {}
-    lt[tag] = ll
+  local records = self['.records'] or {}
+  self['.records'] = records
+  for _,tag in ipairs(self['.tags']) do
+    ll = records[tag] or {}
+    records[tag] = ll
     ll[#ll+1] = line
   end
 end
 local function hilight_advance(self, count)
 end
-local function export_file(self, file_name)
-  self['.name'] = assert(token.get_macro(assert(file_name)))
+local function export_file(self, file_name_var)
+  self['.name'] = assert(token.get_macro(assert(file_name_var)))
   self['.export'] = {}
 end
 local function export_file_info(self, key, value)
@@ -338,23 +338,40 @@ local function export_complete(self)
   local name    = self['.name']
   local export  = self['.export']
   local records = self['.records']
+  local raw = export.raw == 'true'
   local tt = {}
-  local s = export.preamble
-  if s then
-    tt[#tt+1] = s
+  local s
+  if not raw then
+    s = export.preamble
+    if s and #s>0  then
+      tt[#tt+1] = s
+    end
   end
-  for _,tag in ipairs(export.tags) do
-    s = records[tag]:concat('\n')
-    tt[#tt+1] = s
-    records[tag] = { [1] = s }
+  local already = {}
+  for tag in string.gmatch(export.tags, '([^,]+)') do
+    local Rs = records[tag]
+    if Rs then
+      if #Rs > 1 then
+        s = table.concat(Rs,'\n')
+        records[tag] = { [1] = s }
+      else
+        s = Rs[1]
+      end
+      if not already[s] then
+        tt[#tt+1] = s
+        already[s] = true
+      end
+    end
   end
-  s = export.postamble
-  if s then
-    tt[#tt+1] = s
+  if not raw then
+    s = export.postamble
+    if s and #s>0  then
+      tt[#tt+1] = s
+    end
   end
   if #tt>0 then
     local fh = assert(io.open(name,'w'))
-    fh:write(tt:concat('\n'))
+    fh:write(table.concat(tt, '\n'))
     fh:close()
   end
   self['.file'] = nil
@@ -362,11 +379,11 @@ local function export_complete(self)
 end
 local function cache_clean_all(self)
   local to_remove = {}
-  for f in lfs.dir(dir_p) do
+  for f in lfs.dir(self.dir_p) do
     to_remove[f] = true
   end
   for k,_ in pairs(to_remove) do
-    os.remove(dir_p .. k)
+    os.remove(self.dir_p .. k)
   end
 end
 local function cache_record(self, pyg_sty_p, pyg_tex_p)
@@ -379,8 +396,8 @@ local function cache_record(self, pyg_sty_p, pyg_tex_p)
 end
 local function cache_clean_unused(self)
   local to_remove = {}
-  for f in lfs.dir(dir_p) do
-    f = dir_p .. f
+  for f in lfs.dir(self.dir_p) do
+    f = self.dir_p .. f
     if not self['.style_set'][f] and not self['.colored_set'][f] then
       to_remove[f] = true
     end
@@ -418,5 +435,9 @@ return {
   ['.export']        = {},
   ['.name']          = nil,
   already            = false,
+  dir_p              = dir_p,
   json_p             = json_p,
+  export_file        = export_file,
+  export_file_info   = export_file_info,
+  export_complete    = export_complete,
 }
