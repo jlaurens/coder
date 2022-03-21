@@ -392,8 +392,12 @@
 \cs_new:Npn \CDR_tag_inherit:cf {
   \exp_args:Nnf \CDR_tag_inherit:cn
 }
-\cs_new:Npn \CDR_tag_inherit:cV {
-  \exp_args:NnV \CDR_tag_inherit:cn
+\cs_new:Npn \CDR_tag_parents:c #1 {
+  \seq_map_inline:cn { \CDR_tag_parent_seq:c { #1 } } {
+    \quark_if_no_value:nF { ##1 } {
+      ##1,
+    }
+  }
 }
 \AddToHook { begindocument/before } {
   \IfFileExists {./\jobname.aux} {} {
@@ -681,6 +685,13 @@
 }
 \regex_const:Nn \c_CDR_integer_regex { ^(+|-)?\d+$ } \use_none:n { $ }
 \CDR_tag_keys_define:nn { __fancyvrb.block } {
+  commentchar .code:n = \CDR_tag_set:,
+  commentchar .value_required:n = true,
+  gobble .choices:nn = {
+    0,1,2,3,4,5,6,7,8,9
+  } {
+    \CDR_tag_choices_set:
+  },
   frame .choices:nn =
     { none, leftline, topline, bottomline, lines, single }
     { \CDR_tag_choices_set: },
@@ -710,6 +721,8 @@
   samepage .code:n = \CDR_tag_boolean_set:x { #1 },
   samepage .default:n = true,
   __initialize .meta:n = {
+    commentchar = ,
+    gobble = 0,
     frame = none,
     label = ,
     labelposition = none,% auto?
@@ -726,13 +739,6 @@
   \CDR_tag_keys_set:nn { __fancyvrb.block } { __initialize }
 }
 \CDR_tag_keys_define:nn { __fancyvrb.number } {
-  commentchar .code:n = \CDR_tag_set:,
-  commentchar .value_required:n = true,
-  gobble .choices:nn = {
-    0,1,2,3,4,5,6,7,8,9
-  } {
-    \CDR_tag_choices_set:
-  },
   numbers .choices:nn =
     { none, left, right }
     { \CDR_tag_choices_set: },
@@ -762,8 +768,6 @@
   lastline .code:n = \CDR_tag_set:,
   lastline .value_required:n = true,
   __initialize .meta:n = {
-    commentchar = ,
-    gobble = 0,
     numbers = left,
     numbersep = 1ex,
     firstnumber = auto,
@@ -1433,6 +1437,10 @@
     { \CDR_tag_if_truthy_p:c { no~export } }
     { \prg_return_true:  }
     { \prg_return_false: }
+  \CDR_set_conditional:Nnnn \CDR_if_number_on:
+    { \CDR_tag_if_eq_p:cn { numbers } { none } }
+    { \prg_return_false: }
+    { \prg_return_true: }
   \CDR_set_conditional:Nnnn \CDR_tags_if_already: {
     \CDR_tag_if_truthy_p:c { only~top } &&
     \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
@@ -1459,22 +1467,6 @@
 \DefineVerbatimEnvironment{CDRBlock}{CDRBlock}{}
 \newenvironment { CDRBlock@Pyg } {
 \CDR@Debug {DEBUG.CDRBlock:PYGMENTS}
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __fancyvrb.number
-  }
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __fancyvrb, __fancyvrb.block
-  }
-\CDR@Debug {DEBUG.CDRBlock.KEYS:\l_CDR_kv_clist}
-  \exp_args:NnV
-  \CDR_tag_keys_set:nn { __local } \l_CDR_kv_clist
-  \exp_args:NNV
-  \def \FV@KeyValues \l_CDR_kv_clist
-  \CDR_set_conditional:Nnnn \CDR_if_number_on:
-    { \CDR_tag_if_eq_p:cn { numbers } { none } }
-    { \prg_return_false: }
-    { \prg_return_true: }
   \CDR_tag_get:cN {lang} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('lang') }
   \CDR_tag_get:cN {cache} \l_CDR_tl
@@ -1908,20 +1900,6 @@
 }
 \newenvironment { CDRBlock@FV } {
 \CDR@Debug {DEBUG.Block.FV}
-  \exp_args:NNV
-  \def \FV@KeyValues \l_CDR_kv_clist
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __fancyvrb.number,
-  }
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-  \CDR_tag_inherit:cn { __local } {
-    __fancyvrb.number,
-    __block,
-  }
-  \CDR_set_conditional:Nnnn \CDR_if_number_on:
-    { \CDR_tag_if_eq_p:cn { numbers } { none } }
-    { \prg_return_false: }
-    { \prg_return_true: }
   \CDR_if_no_export:F {
     \clist_map_inline:nn { i, ii, iii, iv } {
       \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
@@ -1939,12 +1917,52 @@
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
           \CDR_int_set:cc { __ } { ##1 }
-          \clist_put_right:Nx \l_CDR_kv_clist {
-            firstnumber = \CDR_int_use:c { ##1 }
-          }
+          \CDR_tag_set:cn { firstnumber } { \CDR_int_use:c { ##1 } }
         }
       }
     }
+  }
+  \clist_clear:N \FV@KeyValues
+  \cs_set:Npn \CDR:nn ##1 ##2 {
+\CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}
+    \clist_put_left:Nx \FV@KeyValues { ##1 = { ##2 }, }
+  }
+  \clist_map_inline:nn {
+  % __fancyvrb:
+    formatcom,% = ,
+    fontfamily,% = tt,
+    fontsize,% = auto,
+    fontseries,% = auto,
+    fontshape,% = auto,
+    showspaces,% = false,
+    showtabs,% = false,
+    obeytabs,% = false,
+    tabsize,% = 2,
+    defineactive,% = ,
+    reflabel,% = ,
+  % __fancyvrb.block:
+    commentchar,% = ,
+    gobble,% = 0,
+    frame,% = none,
+    label,% = ,
+    labelposition,% = none,% auto?
+    baselinestretch,% = auto,
+    resetmargins,% = true,
+    xleftmargin,% = 0pt,
+    xrightmargin,% = 0pt,
+    hfuzz,% = 2pt,
+    samepage,% = false,
+    % __fancyvrb.number
+    numbers,% = left,
+    numbersep,% = 1ex,
+    firstnumber,% = auto,
+    stepnumber,% = 1,
+    numberblanklines,% = true,
+    firstline,% = ,
+    lastline,% = ,
+  } {
+    \exp_args:Nnx
+    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
   }
   \CDR_tag_get:c { format }
   \FV@VerbatimBegin

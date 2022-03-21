@@ -1,11 +1,18 @@
 % !TeX program=lualatex
 % !TeX root=../coder_test.tex
 \noindent
+\makeatletter
+
+\ExplSyntaxOn
+\bgroup
+
+\ExplSyntaxOff
+
+\makeatother
 
 \makeatletter
 
 \ExplSyntaxOn
-
 
 \cs_set:Npn \CDR_block_preflight:n #1 {
   \clist_if_empty:nF { #1 } {
@@ -29,6 +36,122 @@
     \end{itemize}
   }
 }
+
+\newenvironment { CDRBlock@FVX } {
+\CDR@Debug {DEBUG.Block.FV2.KV: \l_CDR_kv_clist}
+%    \end{MacroCode}
+% We record the key value options about numbering twice, one for \pkg{fancyvrb}
+% and one for \CDRSty{}.
+%    \begin{MacroCode}
+  \CDR_if_no_export:F {
+    \clist_map_inline:nn { i, ii, iii, iv } {
+      \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
+        \tl_set:Nn \l_CDR_tl { ####1 }
+        \lua_now:n { CDR:record_line('l_CDR_tl') }
+        \use:c { CDR@ListProcessLine@ ##1 } { ####1 }
+      }
+    }
+  }
+%    \end{MacroCode}
+% Prepare the counters. The |__| int starts with 0, which means that it is unused.
+% If the |firstnumber| value is ``last'' then it is used to store the first number.
+%    \begin{MacroCode}
+  \CDR_int_set:cn { __ } { 0 }
+\CDR@Debug {NUMBERING...}
+  \CDR_if_number_on:T {
+\CDR@Debug {...ON}
+    \CDR_tag_if_eq:cnT { firstnumber } { last } {
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \clist_map_break:n {
+          \CDR_int_set:cc { __ } { ##1 }
+          \clist_put_right:Nx \FV@KeyValues {
+            firstnumber = \CDR_int_use:c { ##1 }
+          }
+        }
+      }
+    }
+  }
+  \CDR_tag_get:c { format }
+\CDR@Debug{ Debug.Block.FV.parents: \CDR_tag_parents:c{ __local } }
+PARENTS:\CDR_tag_parents:c{ __local }\\
+  \clist_clear:N \FV@KeyValues
+  \cs_set:Npn \CDR:nn ##1 ##2 {
+\CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}  
+    \clist_put_left:Nx \FV@KeyValues { ##1 = { ##2 }, }    
+  }
+  \clist_map_inline:nn {
+  % __fancyvrb:
+    formatcom,% = ,
+    fontfamily,% = tt,
+    fontsize,% = auto,
+    fontseries,% = auto,
+    fontshape,% = auto,
+    showspaces,% = false,
+    showtabs,% = false,
+    obeytabs,% = false,
+    tabsize,% = 2,
+    defineactive,% = ,
+    reflabel,% = ,
+  % __fancyvrb.block:
+    commentchar,% = ,
+    gobble,% = 0,
+    frame,% = none,
+    label,% = ,
+    labelposition,% = none,% auto?
+    baselinestretch,% = auto,
+    resetmargins,% = true,
+    xleftmargin,% = 0pt,
+    xrightmargin,% = 0pt,
+    hfuzz,% = 2pt,
+    samepage,% = false,
+    % __fancyvrb.number
+    numbers,% = left,
+    numbersep,% = 1ex,
+    firstnumber,% = auto,
+    stepnumber,% = 1,
+    numberblanklines,% = true,
+    firstline,% = ,
+    lastline,% = ,
+  } {
+    \exp_args:Nnx
+    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
+  }
+\CDR@Debug{Debug.CDRBlock.FV.KEYS:\FV@KeyValues}
+\CDR@Debug{NEXT}
+  \FV@VerbatimBegin
+} {
+  \FV@VerbatimEnd
+  \CDR_if_number_on:T {
+    \CDR_int_compare:cNnTF { __ } > 0 {
+      \CDR_int_set:cn { __ } {
+        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
+      }
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_int_gadd:cc { ##1 } { __ }
+      }
+    } {
+      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_int_gset:cc { ##1 } { __ }
+\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
+      }
+    }
+  }
+}
+\ExplSyntaxOff
+
+
+\def\CDR@Debug { \typeout }
+
+  \CDRSet {
+    numbers=left,
+    pygments=false,
+  }
+  \input{./Tests/test_single.tex}
+  \vspace{0.5\baselineskip}
+
+\endinput
+
 %\def \CDR@Debug { \typeout }
 
 \ExplSyntaxOff
@@ -69,76 +192,6 @@ ESSAI
 \def\CDR@ListProcessLine#1{%
   \hbox to \hsize{#1
 }%
-}
-
-
-\renewenvironment { CDRBlock@FV } {
-\CDR@Debug {DEBUG.Block.FV}
-%    \end{MacroCode}
-% We record the key value options about numbering.
-%    \begin{MacroCode}
-  \exp_args:NNV
-  \def \FV@KeyValues \l_CDR_kv_clist
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
-    __fancyvrb.number,
-  }
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-  \CDR_tag_inherit:cn { __local } {
-    __fancyvrb.number,
-    __block,
-  }
-  \CDR_set_conditional:Nnnn \CDR_if_number_on:
-    { \CDR_tag_if_eq_p:cn { numbers } { none } }
-    { \prg_return_false: }
-    { \prg_return_true: }
-  \CDR_if_no_export:F {
-    \clist_map_inline:nn { i, ii, iii, iv } {
-      \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
-        \tl_set:Nn \l_CDR_tl { ####1 }
-        \lua_now:n { CDR:record_line('l_CDR_tl') }
-        \use:c { CDR@ListProcessLine@ ##1 } { ####1 }
-      }
-    }
-  }
-%    \end{MacroCode}
-% Prepare the counters. The |__| int starts with 0, which means that it is unused.
-% If the |firstnumber| value is ``last'' then it is used to store the first number.
-%    \begin{MacroCode}
-  \CDR_int_set:cn { __ } { 0 }
-\CDR@Debug {DEBUG.CDRBlock.NUMBERING...}
-  \CDR_if_number_on:T {
-\CDR@Debug {...ON}
-    \CDR_tag_if_eq:cnT { firstnumber } { last } {
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \clist_map_break:n {
-          \CDR_int_set:cc { __ } { ##1 }
-          \clist_put_right:Nx \l_CDR_kv_clist {
-            firstnumber = \CDR_int_use:c { ##1 }
-          }
-        }
-      }
-    }
-  }
-  \CDR_tag_get:c { format }
-  \FV@VerbatimBegin
-} {
-  \FV@VerbatimEnd
-  \CDR_if_number_on:T {
-    \CDR_int_compare:cNnTF { __ } > 0 {
-      \CDR_int_set:cn { __ } {
-        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
-      }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gadd:cc { ##1 } { __ }
-      }
-    } {
-      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gset:cc { ##1 } { __ }
-\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
-      }
-    }
-  }
 }
 
 \def\CDR@Debug { \typeout }
@@ -192,50 +245,50 @@ local f = function(arg)
   return arg ** arg
 end
 \end{CDRBlock}
-\endinput
 
-%\CDR@Debug {IN PROGRESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS}
-%Next should not be void
-%\CDRSet{cache=false}
-%\begin{CDRBlock}[
-%  tags=,
-%  fontfamily=menlo,
-%  fontsize=\large,
-%  pygments=true,
-%  lang=python,
-%  numbers=left,
-%  frame=single,
-%  debug=true,
-%]
-%def foo(arg):
-%  return arg ** arg
-%\end{CDRBlock}
-%
-%Next should not be void
-%\CDRSet{cache=false}
-%\begin{CDRBlock}[
-%  tags=,
-%  fontfamily=menlo,
-%  fontsize=\large,
-%  pygments=true,
-%  lang=lua,
-%  numbers=left,
-%  frame=lines,
-%  debug=true,
-%  frame=single,
-%  framerule=1mm,
-%  framesep=3mm,
-%  rulecolor=\color{red},
-%  fillcolor=\color{yellow},
-%  showspaces,
-%  baselinestretch=1.75
-%]
-%function foo(arg)
-%  return arg ** arg
-%end
-%\end{CDRBlock}
-%
-%\egroup
+
+\typeout {IN PROGRESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS}
+Next should not be void
+\CDRSet{cache=false}
+\begin{CDRBlock}[
+  tags=,
+  fontfamily=menlo,
+  fontsize=\large,
+  pygments=true,
+  lang=python,
+  numbers=left,
+  frame=single,
+  debug=true,
+]
+def foo(arg):
+  return arg ** arg
+\end{CDRBlock}
+
+Next should not be void
+\CDRSet{cache=false}
+\begin{CDRBlock}[
+  tags=,
+  fontfamily=menlo,
+  fontsize=\large,
+  pygments=true,
+  lang=lua,
+  numbers=left,
+  frame=lines,
+  debug=true,
+  frame=single,
+  framerule=1mm,
+  framesep=3mm,
+  rulecolor=\color{red},
+  fillcolor=\color{yellow},
+  showspaces,
+  baselinestretch=1.75
+]
+function foo(arg)
+  return arg ** arg
+end
+\end{CDRBlock}
+
+\egroup
 
 \subsection{Line numbering}
 
@@ -262,7 +315,7 @@ A
 \end{CDRBlock}
 
 \ExplSyntaxOn
-\CDR_int_if_exist:cT { none } { \CDR@Debug { none ? FAILURE } }
+\CDR_int_if_exist:cT { none } { \typeout { none ? FAILURE } }
 \ExplSyntaxOff
 
 \begin{CDRBlock} [
@@ -275,9 +328,9 @@ B
 C
 \end{CDRBlock}
 \ExplSyntaxOn
-\CDR@Debug {tags = \g_CDR_tags_clist }
-\CDR_int_if_exist:cF { none } { \CDR@Debug { none ? FAILURE } }
-\CDR@Debug {none = \CDR_int_use:c { none } }
+\typeout {tags = \g_CDR_tags_clist }
+\CDR_int_if_exist:cF { none } { \typeout { none ? FAILURE } }
+\typeout {none = \CDR_int_use:c { none } }
 \ExplSyntaxOff
 
 \begin{CDRBlock} [
@@ -290,7 +343,7 @@ B
 C
 \end{CDRBlock}
 \ExplSyntaxOn
-\CDR@Debug {none = \CDR_int_use:c { none } }
+\typeout {none = \CDR_int_use:c { none } }
 \ExplSyntaxOff
 
 \begin{CDRBlock} [
@@ -303,7 +356,7 @@ B
 C
 \end{CDRBlock}
 \ExplSyntaxOn
-\CDR@Debug {none = \CDR_int_use:c { none }}
+\typeout {none = \CDR_int_use:c { none }}
 \ExplSyntaxOff
 
 \egroup
