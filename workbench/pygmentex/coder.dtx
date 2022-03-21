@@ -4669,7 +4669,6 @@ if __name__ == '__main__':
         \CDR_code_format:
         \CDR@DefineSp
         \CDR_tag_get:c { format }
-        \CDR@DefineSp
         \CDR@CodeEngineApply {
           \CDR@StyleIfExist { \l_CDR_tl } {
             \CDR@StyleUseTag
@@ -5400,7 +5399,6 @@ if __name__ == '__main__':
     \CDR_info_N_R:n { \CDR_number_alt: }
   }
 }
-
 %    \end{MacroCode}
 %
 % \begin{function}{\CDR_line_box:nnn, \CDR_line_box_L:nn, \CDR_line_box_R:nn, \CDR_line_box:nn}
@@ -5429,16 +5427,13 @@ if __name__ == '__main__':
     #3
   }
 }
-
 \cs_new:Npn \CDR_line_box_L:nn #1 #2 {
   \CDR_line_box:nnn { #1 } { #2 } {}
 }
-
 \cs_new:Npn \CDR_line_box_R:nn #1 #2 {
 \CDR@Debug {STEP:CDR_line_box_R:nn}
   \CDR_line_box:nnn { } {#2} { #1 }
 }
-
 \cs_new:Npn \CDR_line_box_N:nn #1 #2 {
 \CDR@Debug {STEP:CDR_line_box_N:nn}
   \CDR_line_box:nnn { } { #2 } {}
@@ -5645,9 +5640,6 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-%
-%
-%
 % \subsubsection{\pkg{fancyvrb} only}
 %
 % \pkg{pygments} is not used, fall back to \pkg{fancyvrb} features.
@@ -5661,8 +5653,11 @@ if __name__ == '__main__':
 \newenvironment { CDRBlock@FV } {
 \CDR@Debug {DEBUG.Block.FV}
 %    \end{MacroCode}
-% We record the key value options about numbering.
+% We record the key value options about numbering twice, one for \pkg{fancyvrb}
+% and one for \CDRSty{}.
 %    \begin{MacroCode}
+  \exp_args:NNV
+  \def \FV@KeyValues \l_CDR_kv_clist
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb.number,
   }
@@ -5703,8 +5698,7 @@ if __name__ == '__main__':
       }
     }
   }
-  \exp_args:NNV
-  \def \FV@KeyValues \l_CDR_kv_clist
+  \CDR_tag_get:c { format }
   \FV@VerbatimBegin
 } {
   \FV@VerbatimEnd

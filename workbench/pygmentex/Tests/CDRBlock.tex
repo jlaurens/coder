@@ -35,104 +35,165 @@
 
 
 
-%\bgroup
+\bgroup
+
 %
-%%
-%ESSAI
-%\begin{Verbatim}
-%[]
-%ESSAI
-%\end{Verbatim}
+ESSAI
+\begin{Verbatim}
+[]
+ESSAI
+\end{Verbatim}
+
+\makeatletter
+\def\FVB@MyVerbatim{
+\FV@VerbatimBegin\FV@Scan
+}
+\def\FVE@MyVerbatim{
+\FV@VerbatimEnd
+}
+\makeatother
+\DefineVerbatimEnvironment{MyVerbatim}{MyVerbatim}{}
+
+
+\begin{MyVerbatim}[fontsize=\Large]
+ESSAI
+\end{MyVerbatim}
+
+
+\ExplSyntaxOn
+\makeatletter
+
+\cs_new:Npn \CDR_hilight_record:n #1 {
+}
+
+\def\CDR@ListProcessLine#1{%
+  \hbox to \hsize{#1
+}%
+}
+
+
+\renewenvironment { CDRBlock@FV } {
+\CDR@Debug {DEBUG.Block.FV}
+%    \end{MacroCode}
+% We record the key value options about numbering.
+%    \begin{MacroCode}
+  \exp_args:NNV
+  \def \FV@KeyValues \l_CDR_kv_clist
+  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    __fancyvrb.number,
+  }
+  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
+  \CDR_tag_inherit:cn { __local } {
+    __fancyvrb.number,
+    __block,
+  }
+  \CDR_set_conditional:Nnnn \CDR_if_number_on:
+    { \CDR_tag_if_eq_p:cn { numbers } { none } }
+    { \prg_return_false: }
+    { \prg_return_true: }
+  \CDR_if_no_export:F {
+    \clist_map_inline:nn { i, ii, iii, iv } {
+      \cs_set:cpn { FV@ListProcessLine@ ##1 } ####1 {
+        \tl_set:Nn \l_CDR_tl { ####1 }
+        \lua_now:n { CDR:record_line('l_CDR_tl') }
+        \use:c { CDR@ListProcessLine@ ##1 } { ####1 }
+      }
+    }
+  }
+%    \end{MacroCode}
+% Prepare the counters. The |__| int starts with 0, which means that it is unused.
+% If the |firstnumber| value is ``last'' then it is used to store the first number.
+%    \begin{MacroCode}
+  \CDR_int_set:cn { __ } { 0 }
+\CDR@Debug {DEBUG.CDRBlock.NUMBERING...}
+  \CDR_if_number_on:T {
+\CDR@Debug {...ON}
+    \CDR_tag_if_eq:cnT { firstnumber } { last } {
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \clist_map_break:n {
+          \CDR_int_set:cc { __ } { ##1 }
+          \clist_put_right:Nx \l_CDR_kv_clist {
+            firstnumber = \CDR_int_use:c { ##1 }
+          }
+        }
+      }
+    }
+  }
+  \CDR_tag_get:c { format }
+  \FV@VerbatimBegin
+} {
+  \FV@VerbatimEnd
+  \CDR_if_number_on:T {
+    \CDR_int_compare:cNnTF { __ } > 0 {
+      \CDR_int_set:cn { __ } {
+        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
+      }
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_int_gadd:cc { ##1 } { __ }
+      }
+    } {
+      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_int_gset:cc { ##1 } { __ }
+\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
+      }
+    }
+  }
+}
+
+\def\CDR@Debug { \typeout }
+\makeatother
+\ExplSyntaxOff
+
+\begin{luacode}
+
+function CDR:cache_clean_unused()
+end
+
+local function cache_record(self, pyg_sty_p, pyg_tex_p)
+  if pyg_sty_p then
+    self['.style_set']  [pyg_sty_p] = true
+  end
+  if pyg_tex_p then
+    self['.colored_set'][pyg_tex_p] = true
+  end
+end
+local function cache_clean_unused(self)
+  local to_remove = {}
+  for f in lfs.dir(dir_p) do
+    f = dir_p .. f
+    if not self['.style_set'][f] and not self['.colored_set'][f] then
+      to_remove[f] = true
+    end
+  end
+  for f,_ in pairs(to_remove) do
+    os.remove(f)
+  end
+end
+
+\end{luacode}
+
+
+
 %
-%\makeatletter
-%\def\FVB@MyVerbatim{
-%\FV@VerbatimBegin\FV@Scan
-%}
-%\def\FVE@MyVerbatim{
-%\FV@VerbatimEnd
-%}
-%\makeatother
-%\DefineVerbatimEnvironment{MyVerbatim}{MyVerbatim}{}
-%
-%
-%\begin{MyVerbatim}[fontsize=\Large]
-%ESSAI
-%\end{MyVerbatim}
-%
-%
-%\ExplSyntaxOn
-%\makeatletter
-%
-%\cs_new:Npn \CDR_hilight_record:n #1 {
-%}
-%
-%\def\CDR@ListProcessLine#1{%
-%  \hbox to \hsize{#1
-%}%
-%}
-%
-%
-%
-%
-%
-%\cs_new:Npn \CDR@Line {
-%  \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnn } { \CDR_line:nn }
-%}
-%\cs_new:Npn \CDR_line:nnn [ #1 ] {
-%  \keys_set:nn { CDR@Line } { #1 }
-%  \CDR_line:nn
-%}
-%\cs_new:Npn \CDR_line:nn #1 #2 {
-%\CDR@Debug {CDR@Line:\the\leftmargin/#1/}
-%  \hbox to \hsize {
-%    \kern \leftmargin
-%    \CDR_info_L:n { #1 }
-%    \hbox to \linewidth {
-%      \FV@LeftListFrame
-%      #2
-%      \hss
-%      \FV@RightListFrame
-%    }
-%  }
-%}
-%
-%\cs_new:Npn \CDR@NumberFormat {
-%  \CDR_tag_get:c { numbers~format }
-%}
-%\cs_new:Npn \CDR@TagsFormat {
-%  \CDR_tag_get:c { tags~format }
-%}
-%\cs_new:Npn \CDR@NumberSep {
-%  \hspace{ \CDR_tag_get:c { numbersep } }
-%}
-%
-%
-%\ExplSyntaxOff
-%
-%\makeatother
-%\begin{luacode}
-%
-%function CDR:cache_clean_unused()
-%end
-%
-%\end{luacode}
-%%
-%\begin{CDRBlock}[
-%  tags=,
-%  fontfamily=menlo,
-%  fontsize=\Large,
-%  pygments=false,
-%  lang=lua,
-%  numbers=left,
-%  frame=lines,
-%  format=\color{green},
-%  debug=true,
-%  showspaces
-%]
-%local f = function(arg)
-%  return arg ** arg
-%end
-%\end{CDRBlock}
+\begin{CDRBlock}[
+  tags=,
+  fontfamily=menlo,
+  fontsize=\Large,
+  pygments=false,
+  lang=lua,
+  numbers=left,
+  frame=lines,
+  format=\color{green},
+  debug=true,
+  showspaces
+]
+local f = function(arg)
+  return arg ** arg
+end
+\end{CDRBlock}
+\endinput
+
 %\CDR@Debug {IN PROGRESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS}
 %Next should not be void
 %\CDRSet{cache=false}
@@ -523,7 +584,23 @@ function foo(arg) return arg ** arg end
   }
   \input{./Tests/test_more.tex}
   \vspace{0.5\baselineskip}
-  \end{minipage}
+  \end{minipage}\\
+  \begin{minipage}{0.66\textwidth}
+  \CDRSet {
+    pygments=false,
+  }
+  \input{./Tests/test_single.tex}
+  \vspace{0.5\baselineskip}
+  \end{minipage}\\
+\typeout{---------------------------------------------------------------}
+  \begin{minipage}{0.66\textwidth}
+  \CDRSet {
+    firstnumber=last,
+    pygments=false,
+  }
+  \input{./Tests/test_more.tex}
+  \vspace{0.5\baselineskip}
+  \end{minipage}\\
 }
 % \def\CDR@Debug{\typeout}
 \typeout{===============================================================}

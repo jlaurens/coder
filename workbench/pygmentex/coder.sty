@@ -1225,7 +1225,6 @@
         \CDR_code_format:
         \CDR@DefineSp
         \CDR_tag_get:c { format }
-        \CDR@DefineSp
         \CDR@CodeEngineApply {
           \CDR@StyleIfExist { \l_CDR_tl } {
             \CDR@StyleUseTag
@@ -1730,7 +1729,6 @@
     \CDR_info_N_R:n { \CDR_number_alt: }
   }
 }
-
 \cs_new:Npn \CDR_line_box:nnn #1 #2 #3 {
 \CDR@Debug {STEP:CDR_line_box:nnn/\tl_to_str:n{#1}/.../\tl_to_str:n{#3}/}
   \hbox to \hsize {
@@ -1745,16 +1743,13 @@
     #3
   }
 }
-
 \cs_new:Npn \CDR_line_box_L:nn #1 #2 {
   \CDR_line_box:nnn { #1 } { #2 } {}
 }
-
 \cs_new:Npn \CDR_line_box_R:nn #1 #2 {
 \CDR@Debug {STEP:CDR_line_box_R:nn}
   \CDR_line_box:nnn { } {#2} { #1 }
 }
-
 \cs_new:Npn \CDR_line_box_N:nn #1 #2 {
 \CDR@Debug {STEP:CDR_line_box_N:nn}
   \CDR_line_box:nnn { } { #2 } {}
@@ -1913,6 +1908,8 @@
 }
 \newenvironment { CDRBlock@FV } {
 \CDR@Debug {DEBUG.Block.FV}
+  \exp_args:NNV
+  \def \FV@KeyValues \l_CDR_kv_clist
   \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
     __fancyvrb.number,
   }
@@ -1949,8 +1946,7 @@
       }
     }
   }
-  \exp_args:NNV
-  \def \FV@KeyValues \l_CDR_kv_clist
+  \CDR_tag_get:c { format }
   \FV@VerbatimBegin
 } {
   \FV@VerbatimEnd
