@@ -1100,12 +1100,7 @@ end
 %    \begin{MacroCode}
 local function hilight_block_setup(self, tags_clist_var)
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
-  local t = {}
-  for tag in string.gmatch(tags_clist, '([^,]+)') do
-    t[#t+1]=tag
-  end
-  self['.tags clist']  = tags_clist
-  self['.tags']  = t
+  self['.tags clist'] = tags_clist
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
@@ -1134,7 +1129,6 @@ local function hilight_block_setup(self, tags_clist_var)
   }
   self.hilight_json_written = false
 end
-
 %    \end{MacroCode}
 %
 % \begin{function}{record_line}
@@ -1149,24 +1143,32 @@ local function record_line(self, line_variable_name)
   local line = assert(token.get_macro(assert(line_variable_name)))
   local ll = assert(self['.lines'])
   ll[#ll+1] = line
-  local records = self['.records'] or {}
-  self['.records'] = records
-  for _,tag in ipairs(self['.tags']) do
-    ll = records[tag] or {}
-    records[tag] = ll
-    ll[#ll+1] = line
-  end
 end
 %    \end{MacroCode}
 %
-% \begin{function}{hilight_advance}
+% \begin{function}{hilight_block_teardown}
 % \begin{syntax}
-% CDR:hilight_advance(\metatt{count})
+% CDR:hilight_block_teardown()
 % \end{syntax}
-% \metatt{count} is the number of line hilighted.
+% Records the contents of the \metatt{tags clist var} \LaTeX{} variable
+% to prepare block hilighting.
 % \end{function}
-%    \begin{MacroCode}
-local function hilight_advance(self, count)
+%    \begin{MacroCode}[OK]
+local function hilight_block_teardown(self)
+  local ll = assert(self['.lines'])
+  if #ll > 0 then
+    local records = self['.records'] or {}
+    self['.records'] = records
+    local t = {
+      already = {},
+      code = table.concat(ll,'\n')
+    }
+    for tag in self['.tags clist']:gmatch('([^,]+)') do
+      local tt = records[tag] or {}
+      records[tag] = tt
+      tt[#tt+1] = t
+    end
+  end
 end
 %    \end{MacroCode}
 %
@@ -1228,13 +1230,14 @@ local function export_complete(self)
   for tag in string.gmatch(export.tags, '([^,]+)') do
     local Rs = records[tag]
     if Rs then
-      if #Rs > 1 then
-        s = table.concat(Rs,'\n')
-        records[tag] = { [1] = s }
-      else
-        s = Rs[1]
+      for _,R in ipairs(Rs) do
+        if not R.already[name] or not once then
+          tt[#tt+1] = R.code
+        end
+        if once then
+          R.already[name] = true
+        end
       end
-      tt[#tt+1] = s
     end
   end
   if not raw then
@@ -1366,7 +1369,6 @@ return {
   hilight_set        = hilight_set,
   hilight_set_var    = hilight_set_var,
   hilight_source     = hilight_source,
-  hilight_advance    = hilight_advance,
 %    \end{MacroCode}
 % \itemtt[hilight code]
 %    \begin{MacroCode}
@@ -1374,7 +1376,8 @@ return {
 %    \end{MacroCode}
 % \itemtt[hilight_block_setup]
 %    \begin{MacroCode}
-  hilight_block_setup = hilight_block_setup,
+  hilight_block_setup    = hilight_block_setup,
+  hilight_block_teardown = hilight_block_teardown,
 %    \end{MacroCode}
 % \itemtt[cache]
 %    \begin{MacroCode}
@@ -4120,6 +4123,17 @@ if __name__ == '__main__':
     }
   },
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed once{[=true$\vert$false]}]^^A
+% true to remove any additional material, false otherwise.
+% Initially |true|.
+%    \begin{MacroCode}[OK]
+  once .choices:nn = { false, true, {} } {
+    \prop_put:NVx \l_CDR_export_prop \l_keys_key_str {
+      \int_compare:nNnTF
+        \l_keys_choice_int = 1 { false } { true }
+    }
+  },
+%    \end{MacroCode}
 % \itemtt[\CDRCheckGreen __initialize]^^A
 % Meta key to properly initialize all the variables.
 %    \begin{MacroCode}[OK]
@@ -4131,6 +4145,7 @@ if __name__ == '__main__':
     preamble=,
     postamble=,
     raw=false,
+    once=true,
   },
   __initialize .default:n = \l_CDR_export_prop,
 %    \end{MacroCode}
@@ -4202,7 +4217,7 @@ if __name__ == '__main__':
     \str_set:Nx \l_CDR_str { #1 }
     \lua_now:n { CDR:export_file('l_CDR_str') }
     \clist_map_inline:nn {
-      tags, raw, preamble, postamble
+      tags, raw, once, preamble, postamble
     } {
       \CDR_export_get:ccNT { #1 } { ##1 } \l_CDR_tl {
         \exp_args:NNx
@@ -5044,6 +5059,9 @@ if __name__ == '__main__':
     \endCDRBlock@FV
   }
   \CDR_block_engine_end:
+  \lua_now:n {
+    CDR:hilight_block_teardown()
+  }
   \group_end:
   \@esphack
 }

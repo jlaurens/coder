@@ -923,6 +923,12 @@
         \l_keys_choice_int = 1 { false } { true }
     }
   },
+  once .choices:nn = { false, true, {} } {
+    \prop_put:NVx \l_CDR_export_prop \l_keys_key_str {
+      \int_compare:nNnTF
+        \l_keys_choice_int = 1 { false } { true }
+    }
+  },
   __initialize .meta:n = {
     __initialize_prop = #1,
     file=,
@@ -931,6 +937,7 @@
     preamble=,
     postamble=,
     raw=false,
+    once=true,
   },
   __initialize .default:n = \l_CDR_export_prop,
   __initialize_prop .code:n = \prop_clear:N #1,
@@ -978,7 +985,7 @@
     \str_set:Nx \l_CDR_str { #1 }
     \lua_now:n { CDR:export_file('l_CDR_str') }
     \clist_map_inline:nn {
-      tags, raw, preamble, postamble
+      tags, raw, once, preamble, postamble
     } {
       \CDR_export_get:ccNT { #1 } { ##1 } \l_CDR_tl {
         \exp_args:NNx
@@ -1456,6 +1463,9 @@
     \endCDRBlock@FV
   }
   \CDR_block_engine_end:
+  \lua_now:n {
+    CDR:hilight_block_teardown()
+  }
   \group_end:
   \@esphack
 }

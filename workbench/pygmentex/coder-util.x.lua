@@ -276,12 +276,7 @@ end
 
 local function hilight_block_setup(self, tags_clist_var)
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
-  local t = {}
-  for tag in string.gmatch(tags_clist, '([^,]+)') do
-    t[#t+1]=tag
-  end
-  self['.tags clist']  = tags_clist
-  self['.tags']  = t
+  self['.tags clist'] = tags_clist
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
@@ -310,20 +305,26 @@ local function hilight_block_setup(self, tags_clist_var)
   }
   self.hilight_json_written = false
 end
-
 local function record_line(self, line_variable_name)
   local line = assert(token.get_macro(assert(line_variable_name)))
   local ll = assert(self['.lines'])
   ll[#ll+1] = line
-  local records = self['.records'] or {}
-  self['.records'] = records
-  for _,tag in ipairs(self['.tags']) do
-    ll = records[tag] or {}
-    records[tag] = ll
-    ll[#ll+1] = line
-  end
 end
-local function hilight_advance(self, count)
+local function hilight_block_teardown(self)
+  local ll = assert(self['.lines'])
+  if #ll > 0 then
+    local records = self['.records'] or {}
+    self['.records'] = records
+    local t = {
+      already = {},
+      code = table.concat(ll,'\n')
+    }
+    for tag in self['.tags clist']:gmatch('([^,]+)') do
+      local tt = records[tag] or {}
+      records[tag] = tt
+      tt[#tt+1] = t
+    end
+  end
 end
 local function export_file(self, file_name_var)
   self['.name'] = assert(token.get_macro(assert(file_name_var)))
@@ -347,19 +348,16 @@ local function export_complete(self)
       tt[#tt+1] = s
     end
   end
-  local already = {}
   for tag in string.gmatch(export.tags, '([^,]+)') do
     local Rs = records[tag]
     if Rs then
-      if #Rs > 1 then
-        s = table.concat(Rs,'\n')
-        records[tag] = { [1] = s }
-      else
-        s = Rs[1]
-      end
-      if not already[s] then
-        tt[#tt+1] = s
-        already[s] = true
+      for _,R in ipairs(Rs) do
+        if not R.already[name] or not once then
+          tt[#tt+1] = R.code
+        end
+        if once then
+          R.already[name] = true
+        end
       end
     end
   end
@@ -374,8 +372,8 @@ local function export_complete(self)
     fh:write(table.concat(tt, '\n'))
     fh:close()
   end
-  self['.file'] = nil
-  self['.exportation'] = nil
+  self['.name'] = nil
+  self['.export'] = nil
 end
 local function cache_clean_all(self)
   local to_remove = {}
@@ -423,9 +421,9 @@ return {
   hilight_set        = hilight_set,
   hilight_set_var    = hilight_set_var,
   hilight_source     = hilight_source,
-  hilight_advance    = hilight_advance,
   hilight_code_setup = hilight_code_setup,
-  hilight_block_setup = hilight_block_setup,
+  hilight_block_setup    = hilight_block_setup,
+  hilight_block_teardown = hilight_block_teardown,
   cache_clean_all    = cache_clean_all,
   cache_record       = cache_record,
   cache_clean_unused = cache_clean_unused,
