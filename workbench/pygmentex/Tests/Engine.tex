@@ -1,0 +1,238 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+
+
+\subsection{Code}
+
+
+\CDRCode[pygments=false,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
+
+\CDRCode[pygments=true,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
+
+\begin{CDRBlock}[tags=WHAT,numbersep=2cm]
+1
+2
+3
+\end{CDRBlock}
+
+\ExplSyntaxOn
+\group_begin:
+\makeatletter
+
+\cs_set:Npn \FVB@CDRBlock {
+  \@bsphack
+  \group_begin:
+%  \codebox{Swap}
+  \exp_args:NV \CDR_block_preflight:n \FV@KeyValues
+  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
+    \prg_return_true:
+  }
+  \CDR_tag_keys_set:nn { __block } { __initialize }
+  \CDR_tag_keys_inherit:nn { __local } {
+    __block, __pygments.block, default.block, __fancyvrb.block,
+    __pygments, default, __fancyvrb,  __fancyvrb.number
+  }
+  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
+  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{CDRBlock.KV1:\l_CDR_kv_clist}
+  \CDR_block_setup_tags:
+  \lua_now:n {
+    CDR:hilight_block_setup('g_CDR_tags_clist')
+  }
+  \CDR_set_conditional:Nnnn \CDR_if_pygments:
+    { \CDR_tag_if_truthy_p:c { pygments } }
+    { \prg_return_true:  }
+    { \prg_return_false: }
+  \CDR_set_conditional:Nnnn \CDR_if_no_export:
+    { \CDR_tag_if_truthy_p:c { no~export } }
+    { \prg_return_true:  }
+    { \prg_return_false: }
+  \CDR_set_conditional:Nnnn \CDR_if_number_on:
+    { \CDR_tag_if_eq_p:cn { numbers } { none } }
+    { \prg_return_false: }
+    { \prg_return_true: }
+  \CDR_set_conditional:Nnnn \CDR_tags_if_already: {
+    \CDR_tag_if_truthy_p:c { only~top } &&
+    \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
+  } { \prg_return_true:  }
+    { \prg_return_false: }
+  \CDR_block_engine_begin:
+  \CDR_if_pygments:TF {
+    \CDRBlock@Pyg
+  } {
+    \CDRBlock@FV
+  }
+  \FV@Scan
+}
+\cs_set:Npn \FVE@CDRBlock {
+  \CDR_if_pygments:TF {
+    \endCDRBlock@Pyg
+  } {
+    \endCDRBlock@FV
+  }
+  \CDR_block_engine_end:
+  \lua_now:n {
+    CDR:hilight_block_teardown()
+  }
+%  \endcodebox
+  \group_end:
+  \@esphack
+}
+
+\renewenvironment { CDRBlock@Pyg } {
+\CDR@Debug {DEBUG.CDRBlock:PYGMENTS}
+  \CDR_tag_get:cN {lang} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('lang') }
+  \CDR_tag_get:cN {cache} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('cache') }
+  \CDR_tag_get:cN {debug} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('debug') }
+  \CDR_tag_get:cN {texcomments} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('texcomments') }
+  \CDR_tag_get:cN {escapeinside} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('escapeinside') }
+  \CDR_tag_get:cN {mathescape} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('mathescape') }
+  \CDR_tag_get:cN {style} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('style') }
+  \CDR@StyleIfExist { \l_CDR_tl } { } {
+    \lua_now:n { CDR:hilight_source(true, false) }
+    \input { \l_CDR_pyg_sty_tl }
+  }
+  \CDR@StyleUseTag
+  \def \FV@ProcessLine ##1 {
+    \tl_set:Nn \l_CDR_tl { ##1 }
+    \lua_now:n { CDR:record_line('l_CDR_tl') }
+  }
+} {
+  \CDR_if_number_on:T {
+    \clist_map_inline:Nn \g_CDR_tags_clist {
+      \CDR_int_if_exist:cF { ##1 } {
+        \CDR_int_new:cn { ##1 } { 1 }
+      }
+    }
+  }
+  \CDR_tag_get:c { format }
+  \cs_set:Npn \CDR:nn ##1 ##2 {
+\CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}
+    \fvset{ ##1 = { ##2 }, }
+  }
+  \tl_clear:N \FV@KeyValues
+  \clist_map_inline:Nn \c_CDRBlock@Pyg_clist {
+    \exp_args:Nnx
+    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
+  }
+  \fvset{ commandchars=\\\{\} }
+  \CDR@DefineSp
+  \lua_now:n { CDR:hilight_source(false, true) }
+  \FV@VerbatimBegin
+  \cs_set:Npn \FV@ProcessLine ##1 { ##1 }
+  \makeatletter
+  \input{ \l_CDR_pyg_tex_tl }
+  \makeatother
+  \CDR_if_number_on:T {
+    \CDR_int_add:cn { __last } { 1 }
+    \clist_map_inline:Nn \g_CDR_tags_clist {
+      \CDR_int_gset:cc { ##1 } { __last }
+\CDR@Debug {DEBUG.CDRBlock.LAST: ##1 -> \CDR_int_use:c { ##1 } }
+    }
+  }
+  \FV@VerbatimEnd
+}
+
+
+\ExplSyntaxOff
+
+\newtcolorbox{codebox}[1]{
+  colback=white!5!white,
+  colframe=white!75!black,
+  title=#1,
+  box align=top
+}
+
+
+\CDRBlockEngineNew{mdframed}{}{}
+
+\begin{CDRBlock}[pygments=false]
+1
+2
+3
+\end{CDRBlock}
+
+%\begin{enumerate}
+%  \item Lorem.
+%  \item \mbox{}
+%  \begin{codebox}{Swap}
+%    \begin{Verbatim}
+%   Hello.
+%   \end{Verbatim}
+%  \end{codebox}
+%  \item Epsum.
+%\end{enumerate}
+%
+%
+%%  \begin{codebox}{Swap}
+%\begin{CDRBlock}[numbersep=1cm]
+%1
+%2
+%3
+%\end{CDRBlock}
+%%  \end{codebox}
+
+
+\ExplSyntaxOn
+\makeatother
+\group_end:
+\ExplSyntaxOff
+
+
+\subsection{In progress}
+
+\ExplSyntaxOn
+\group_begin:
+\makeatletter
+
+\tl_new:N \l_CDR_vrb_tl
+\seq_new:N \l_CDR_vrb_seq
+
+\def\FVB@CDRBlockX {
+  \@bsphack
+  \begingroup
+    \seq_clear:N \l_CDR_vrb_seq
+    \def\FV@ProcessLine##1{%
+      \seq_put_right:Nn \l_CDR_vrb_seq { ##1 }
+    }%
+    \FV@Scan
+}
+\def\FVE@CDRBlockX{%
+  \FV@UseKeyValues
+  %\begin{codebox}{Swap}
+  \FV@UseVerbatim {
+    \seq_map_function:NN \l_CDR_vrb_seq \FV@ProcessLine
+  }
+  %\end{codebox}
+  \endgroup
+  \@esphack
+}
+\DefineVerbatimEnvironment{CDRBlockX}{CDRBlockX}{}
+\ExplSyntaxOff
+\newtcolorbox{codebox}[1]{
+  colback=white!5!white,
+  colframe=white!75!black,
+  title=#1,
+  box align=top
+}
+\noindent
+\begin{CDRBlockX}[frame=lines]
+1
+2
+3
+\end{CDRBlockX}
+
+%\LUseVerbatim[frame=lines]{ABCD}
+
+\ExplSyntaxOn
+\makeatother
+\group_end:
+\ExplSyntaxOff

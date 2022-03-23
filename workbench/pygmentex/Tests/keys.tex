@@ -1,0 +1,159 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+Tests of keys
+\noindent
+
+\ExplSyntaxOn
+\group_begin:
+\makeatletter
+\cs_set:Npn \@CDR@TEST #1 #2 {
+  \CDR_tag_keys_if_exist:nnF { #1 } { #2 } {
+    FAILURE:\CDR_tag_module:n { #1 }/#2\\
+  }
+  \tl_if_empty:nF { #1 } {
+    \CDR_tag_keys_if_exist:nnF {  } { #1/#2 } {
+      FAILURE:\CDR_tag_module:n { } / #1/#2 \\
+    }
+  }
+}
+\clist_map_inline:nn {
+    lang,% = tex,
+    pygments,% = \CDR_has_pygments:TF { true } { false },
+    style,% =default,
+    commandprefix,% =PY,
+    mathescape,% =false,
+    escapeinside,% =,
+    __initialize
+} {
+  \@CDR@TEST { __pygments } { #1 }
+}
+\clist_map_inline:nn {
+    texcomments,% = false,
+    __initialize
+} {
+  \@CDR@TEST { __pygments.block } { #1 }
+}
+\clist_map_inline:nn {
+    format,% = ,
+    cache,% = true,
+    debug,% = false,
+    post~processor,% = ,
+    parskip,% = \the\parskip,
+    engine,% = default,
+    default~engine~options,% = ,
+    __initialize
+} {
+  \@CDR@TEST { default } { #1 }
+}
+\clist_map_inline:nn {
+    __initialize
+} {
+  \@CDR@TEST { default.code } { #1 }
+}
+\clist_map_inline:nn {
+    tags,% = ,
+    show~tags,% = numbers,
+    only~top,% = true,
+    use~margin,% = true,
+    numbers~format,% = {
+%      \sffamily
+%      \scriptsize
+%      \color{gray}
+%    },
+    tags~format,% = {
+%      \bfseries
+%    },
+    blockskip,% = \topsep,
+    __initialize
+} {
+  \@CDR@TEST { default.block } { #1 }
+}
+\clist_map_inline:nn {
+    formatcom,% = ,
+    fontfamily,% = tt,
+    fontsize,% = auto,
+    fontseries,% = auto,
+    fontshape,% = auto,
+    showspaces,% = false,
+    showtabs,% = false,
+    obeytabs,% = false,
+    tabsize,% = 2,
+    defineactive,% = ,
+    reflabel,% = ,
+    __initialize
+} {
+  \@CDR@TEST { __fancyvrb } { #1 }
+}
+\clist_map_inline:nn {
+    commentchar,% = ,
+    gobble,% = 0,
+    frame,% = none,
+    label,% = ,
+    labelposition,% = none,% auto?
+    baselinestretch,% = auto,
+    resetmargins,% = true,
+    xleftmargin,% = 0pt,
+    xrightmargin,% = 0pt,
+    hfuzz,% = 2pt,
+    samepage,% = false,
+    __initialize
+} {
+  \@CDR@TEST { __fancyvrb.block } { #1 }
+}
+\clist_map_inline:nn {
+    numbers,% = left,
+    numbersep,% = 1ex,
+    firstnumber,% = auto,
+    stepnumber,% = 1,
+    numberblanklines,% = true,
+    firstline,% = ,
+    lastline,% = ,
+    __initialize
+} {
+  \@CDR@TEST { __fancyvrb.number } { #1 }
+}
+\clist_map_inline:nn {
+    commandchars,% = ,
+    codes,% = ,
+    __initialize
+} {
+  \@CDR@TEST { __fancyvrb.all } { #1 }
+}
+\clist_map_inline:nn {
+    no~export,% = false,
+    no~export~format,% = ,
+    test,% = false,
+    engine~options,% = ,
+    __initialize
+} {
+  \@CDR@TEST { __block } { #1 }
+}
+
+\cs_set:Npn \@CDR@TEST #1 #2 {
+  \keys_if_exist:nnF { #1 } { #2 } {
+    FAILURE:{ #1 }/#2\\
+  }
+}
+\clist_map_inline:nn {
+    file,% =,
+    tags,% =,
+    lang,% = tex,
+    preamble,% =,
+    postamble,% =,
+    raw,% = false,
+    once,% = true,
+    __initialize
+} {
+  \@CDR@TEST { CDR@Export } { #1 }
+}
+\clist_map_inline:nn {
+    only~description,
+    python~path,
+} {
+  \@CDR@TEST { CDR@Set } { #1 }
+}
+
+\makeatother
+\group_end:
+\ExplSyntaxOff
+

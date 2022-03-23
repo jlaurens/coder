@@ -30,16 +30,7 @@
 %%                                 coder-tool.py and
 %%                                 coder.sty.
 %% 
-\RequirePackage{fancyvrb}
-\RequirePackage{color}
-\RequirePackage{emoji}
-\RequirePackage{ifthen}
 
-
-\RequirePackage{xcolor, fancyvrb}
-\AddToHook { begindocument / before } {
-  \RequirePackage{datetime2}
-}
 \def\CDRFileDate{2022/02/07}
 \def\CDRFileVersion{2022/02/07}
 \ProvidesExplPackage{coder}
@@ -48,7 +39,15 @@
   {code inlined in documents}
 
 \NeedsTeXFormat{LaTeX2e}
+\ExplSyntaxOff
 
+\RequirePackage{xcolor, fancyvrb}
+\RequirePackage{emoji}
+\RequirePackage{ifthen}
+\AddToHook { begindocument / before } {
+  \RequirePackage{datetime2}
+}
+\ExplSyntaxOn
 \msg_new:nnn { coder } { :n } { #1 }
 \cs_if_exist:NTF\IfFormatAtLeastTF {
   \IfFormatAtLeastTF{2021/06/01} {} {
@@ -79,7 +78,7 @@
   #1~given~value~`#3'~not~in~#2
 }
 \str_const:Nn \c_CDR_Tags { CDR@Tags }
-\str_const:Nx \c_CDR_tag { \c_CDR_Tags/tag }
+\str_const:Nx \c_CDR_tag { \c_CDR_Tags / tag }
 \str_const:Nn \c_CDR_tag_get { CDR@tag@get }
 \cs_new:Npn \CDR@Debug { \use_none:n }
 \bool_new:N \l_CDR_bool
@@ -427,78 +426,94 @@
     { Conditional~not~available }
 }
 \cs_new:Npn \CDR_process_record: {}
-\cs_generate_variant:Nn \keys_define:nn { Vn, xn }
-\cs_new:Npn \CDR_tag_keys_define:nn #1 {
-  \keys_define:xn { \c_CDR_tag / \exp_not:n { #1 } }
-}
-\cs_generate_variant:Nn \CDR_tag_keys_define:nn { nx }
-\cs_new:Npn \CDR_tag_keys_set:nn #1 {
-  \exp_args:Nf
-  \keys_set:nn { \c_CDR_tag / #1 }
-}
-\cs_generate_variant:Nn \CDR_tag_keys_set:nn { nV }
-\cs_new:Npn \CDR_keys_set_known:nnN #1 #2 {
-  \keys_set_known:nnnN { #1 } { #2 } { #1 }
-}
-\cs_generate_variant:Nn \CDR_keys_set_known:nnN { VV }
-\cs_new:Npn \CDR_keys_inherit__:nnn #1 #2 #3 {
-  \keys_define:nn { #1 } { #2 .inherit:n = { #3 } }
-}
-\cs_new:Npn \CDR_keys_inherit:nnn #1 #2 #3 {
-  \tl_if_empty:nTF { #1 } {
-    \CDR_keys_inherit__:nnn { } { #2 } { #3 }
+\cs_set:Npn \CDR_tag_module:n #1 {
+  \str_if_eq:nnTF { #1 } { .. } {
+    \c_CDR_Tags
   } {
-    \clist_set:Nn \l_CDR_clist { #3 }
-    \exp_args:Nnnx
-    \CDR_keys_inherit__:nnn { #1 } { #2 } {
-      #1 / \clist_use:Nn \l_CDR_clist { ,#1/ }
-    }
+    \tl_if_empty:nTF { #1 } { \c_CDR_Tags / tag } { \c_CDR_Tags / tag / #1 }
   }
 }
-\cs_generate_variant:Nn \CDR_keys_inherit:nnn { VnV, Vnn }
-\cs_generate_variant:Nn \keys_set_known:nnnN { VVV, nVx }
+\cs_new:Npn \CDR_tag_keys_define:nn #1 {
+  \exp_args:Nf
+  \keys_define:nn { \CDR_tag_module:n { #1 } }
+}
+\prg_new_conditional:Nnn \CDR_tag_keys_if_exist:nn { p, T, F, TF } {
+  \exp_args:Nf
+  \keys_if_exist:nnTF { \CDR_tag_module:n { #1 } } { #2 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+\cs_new_protected:Npn \CDR_tag_keys_set:nn #1 {
+  \exp_args:Nf
+  \keys_set:nn { \CDR_tag_module:n { #1 } }
+}
+\cs_generate_variant:Nn \CDR_tag_keys_set:nn { nV }
+\cs_new:Npn \CDR_tag_keys_inherit__:nnn #1 #2 #3 {
+  \keys_define:nn { #1 } { #2 .inherit:n = { #1 / #3 } }
+}
+\cs_new:Npn \CDR_tag_keys_inherit_:nnn #1 #2 #3 {
+  \exp_args:Nnx
+  \use:n { \CDR_tag_keys_inherit__:nnn { #1 } { #2 } } {
+    \clist_use:nn { #3 } { ,#1/ }
+  }
+}
+\cs_new_protected:Npn \CDR_tag_keys_inherit:nn {
+  \exp_args:Nf
+  \CDR_tag_keys_inherit_:nnn { \CDR_tag_module:n { } }
+}
+\cs_new:Npn \CDR_tags_keys_set_known__:nnN #1 #2 {
+  \keys_set_known:nnnN { #1 } { #2 } { #1 }
+}
 \cs_new:Npn \CDR_tag_keys_set_known:nnN #1 {
   \exp_args:Nf
-  \CDR_keys_set_known:nnN { \c_CDR_tag / #1 }
+  \CDR_tags_keys_set_known__:nnN { \CDR_tag_module:n { #1 } }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set_known:nnN { nV }
 \tl_set:Nn \l_CDR_tl { /([^/]*)(?:/(.*))?$ } \use_none:n { $ }
-\tl_put_left:NV \l_CDR_tl \c_CDR_tag
+\exp_args:NNf
+\tl_put_left:Nn \l_CDR_tl { \CDR_tag_module:n {} }
 \tl_put_left:Nn \l_CDR_tl { ^ }
 \exp_args:NNV
 \regex_const:Nn \c_CDR_provide_regex \l_CDR_tl
-\regex_const:Nn \c_CDR_engine_regex { ^[^/]*\sengine\soptions$ } \use_none:n { $ }
-\cs_new:Npn \CDR_tag_provide_from_clist:n #1 {
-  \exp_args:NNx
+\regex_const:Nn \c_CDR_engine_regex { ^[^/]+\sengine\soptions$ } \use_none:n { $ }
+\cs_new:Npn \CDR_tag_provide:n #1 {
+  \exp_args:NNf
   \regex_extract_once:NnNTF \c_CDR_provide_regex {
-    \c_CDR_Tags / #1
+    \CDR_tag_module:n { .. } / #1
   } \l_CDR_seq {
     \tl_set:Nx \l_CDR_tl { \seq_item:Nn \l_CDR_seq 3 }
     \exp_args:Nx
     \clist_map_inline:nn {
       \seq_item:Nn \l_CDR_seq 2
     } {
-      \exp_args:NV
-      \keys_if_exist:nnF \c_CDR_tag { ##1 } {
-        \CDR_keys_inherit:Vnn \c_CDR_tag { ##1 } {
+      \CDR_tag_keys_if_exist:nnF { } { ##1 } {
+        \CDR_tag_keys_inherit:nn { ##1 } {
           __pygments, __pygments.block,
           default.block, default.code, default,
-          __fancyvrb, __fancyvrb.block, __fancyvrb.all
+          __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all,
         }
-        \keys_define:Vn \c_CDR_tag {
+        \CDR_tag_keys_define:nn { } {
           ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ####1 },
           ##1 .value_required:n = true,
         }
+\CDR@Debug{Debug.CDR.provided:\CDR_tag_module:n {##1} = ...}
       }
-      \exp_args:NxV
-      \keys_if_exist:nnF { \c_CDR_tag / ##1 } \l_CDR_tl {
+      \exp_args:NnV
+      \CDR_tag_keys_if_exist:nnF { ##1 } \l_CDR_tl {
         \exp_args:NNV
         \regex_match:NnT \c_CDR_engine_regex
             \l_CDR_tl {
-          \CDR_tag_keys_define:nx { ##1 } {
-            \l_CDR_tl .code:n = \exp_not:n { \CDR_tag_set:n { ####1 } },
-            \l_CDR_tl .value_required:n = true,
+          \exp_args:Nnf
+          \CDR_tag_keys_define:nn { ##1 } {
+            \use:n { \l_CDR_tl } .code:n = \CDR_tag_set:n { ####1 },
           }
+          \exp_args:Nnf
+          \CDR_tag_keys_define:nn { ##1 } {
+            \use:n { \l_CDR_tl } .value_required:n = true,
+          }
+\CDR@Debug{Debug.CDR.provided: \CDR_tag_module:n { ##1 } / \l_CDR_tl = ...}
         }
       }
     }
@@ -508,17 +523,18 @@
         #1 .code:n = \CDR_tag_set:n { ##1 },
         #1 .value_required:n = true,
       }
+\CDR@Debug{Debug.CDR.provided.C:\CDR_tag_module:n { default } / #1 = ...}
     }
   }
 }
-\cs_new:Npn \CDR_tag_provide_from_clist:nn #1 #2 {
-  \CDR_tag_provide_from_clist:n { #1 }
+\cs_new:Npn \CDR_tag_provide:nn #1 #2 {
+  \CDR_tag_provide:n { #1 }
 }
 \cs_new:Npn \CDR_tag_provide_from_kv:n {
   \keyval_parse:nnn {
-    \CDR_tag_provide_from_clist:n
+    \CDR_tag_provide:n
   } {
-    \CDR_tag_provide_from_clist:nn
+    \CDR_tag_provide:nn
   }
 }
 \cs_generate_variant:Nn \CDR_tag_provide_from_kv:n { V }
@@ -549,10 +565,10 @@
   __initialize .meta:n = {
     lang = tex,
     pygments = \CDR_has_pygments:TF { true } { false },
-    style=default,
-    commandprefix=PY,
-    mathescape=false,
-    escapeinside=,
+    style = default,
+    commandprefix = PY,
+    mathescape = false,
+    escapeinside = ,
   },
   __initialize .value_forbidden:n = true,
 }
@@ -563,7 +579,7 @@
   texcomments .code:n = \CDR_tag_boolean_set:x { #1 },
   texcomments .default:n = true,
   __initialize .meta:n = {
-    texcomments=false,
+    texcomments = false,
   },
   __initialize .value_forbidden:n = true,
 }
@@ -816,48 +832,34 @@
     \lua_now:n { CDR:set_python_path('l_CDR_str') }
   },
 }
-\exp_args_generate:n { xV, nnV }
-\cs_new:Npn \CDR_check_unknown:N #1 {
-  \tl_if_empty:NF #1 {
-    \cs_set:Npn \CDR_check_unknown:n ##1 {
-      \PackageWarning
-        { coder }
-        { Unknow~key~`##1' }
-    }
-    \cs_set:Npn \CDR_check_unknown:nn ##1 ##2 {
-      \CDR_check_unknown:n { ##1 }
-    }
-    \exp_args:NnnV
-    \keyval_parse:nnn {
-      \CDR_check_unknown:n
-    } {
-      \CDR_check_unknown:nn
-    } #1
-  }
-}
 \cs_new:Npn \CDR_set_preflight:n #1 { }
 \NewDocumentCommand \CDRSet { m } {
+\CDR@Debug{ Debug.CDRSet:#1/}
   \CDR_set_preflight:n { #1 }
-  \CDR_keys_set_known:nnN { CDR@Set } { #1 } \l_CDR_kv_clist
+  \keys_set_known:nnnN { CDR@Set } { #1 } { CDR@Set } \l_CDR_kv_clist
   \clist_map_inline:nn {
     __pygments, __pygments.block,
     default.block, default.code, default,
     __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
     \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.1:##1/\l_CDR_kv_clist/ }
   }
-  \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
+  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.2:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
-  \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.2a:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
+  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.3:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
   \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
   \keys_define:nn { CDR@Set@tags } {
     tags .code:n = {
       \clist_set:Nn \g_CDR_tags_clist { ##1 }
       \clist_remove_duplicates:N \g_CDR_tags_clist
     },
-    unknown .code:n =,
   }
-  \keys_set:nn { CDR@Set@tags } { #1 }
+  \keys_set_known:nn { CDR@Set@tags } { #1 }
 }
 \cs_new:Npn \CDR_export_get_path:cc #1 #2 {
   CDR @ export @ get @ #1 / #2
@@ -870,8 +872,10 @@
   \CDR_export_set:ccn { #1 }
 }
 \cs_new_protected:Npn \CDR_export_set:VcV #1 #2 #3 {
-  \exp_args:NVnV
-  \CDR_export_set:ccn #1 { #2 } #3
+  \exp_args:NnV
+  \use:n {
+    \exp_args:NV \CDR_export_set:ccn #1 { #2 }
+  } #3
 }
 \prg_new_conditional:Nnn \CDR_export_if_exist:cc { p, T, F, TF } {
   \cs_if_exist:cTF { \CDR_export_get_path:cc { #1 } { #2 } } {
@@ -931,13 +935,13 @@
   },
   __initialize .meta:n = {
     __initialize_prop = #1,
-    file=,
-    tags=,
-    lang=tex,
-    preamble=,
-    postamble=,
-    raw=false,
-    once=true,
+    file =,
+    tags =,
+    lang = tex,
+    preamble =,
+    postamble =,
+    raw = false,
+    once = true,
   },
   __initialize .default:n = \l_CDR_export_prop,
   __initialize_prop .code:n = \prop_clear:N #1,
@@ -1100,7 +1104,7 @@
   }
 }
 \cs_new:Npn \CDR_block_engine_begin: {
-  \CDR_if_code_engine:cF { \CDR_tag_get:c { engine } } {
+  \CDR_if_block_engine:cF { \CDR_tag_get:c { engine } } {
     \PackageError
       { coder }
       { \CDR_tag_get:c { engine }~block~engine~unknown,~replaced~by~`default' }
@@ -1145,15 +1149,14 @@
   }
 }
 \CDRCodeEngineNew { default } { #2 }
-\CDRBlockEngineNew { default } { } { }
 \AtBeginDocument {
   \@ifpackageloaded{efbox} {
     \CDRCodeEngineNew {efbox} {
-      \efbox[#1]{#2}%
+      \efbox[#1]{#2}
     }
-  }
+  } {}
 }
-\CDRBlockEngineNew {} {
+\CDRBlockEngineNew {default} {
 } {
 }
 \cs_new:Npn \CDR@DefineSp {
@@ -1209,7 +1212,7 @@
       \CDR@StyleUse { \CDR_tag_get:c { style } }
       \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
     }
-    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    \CDR_tag_keys_inherit:nn { __local } {
       __fancyvrb,
     }
     \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
@@ -1246,7 +1249,7 @@
             \CDR@StyleUseTag
           }
           \makeatletter
-          \input { \l_CDR_pyg_tex_tl }
+          \input { \l_CDR_pyg_tex_tl }\ignorespaces
           \makeatother
         }
         \group_end:
@@ -1278,7 +1281,7 @@
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_false:
   }
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+  \CDR_tag_keys_inherit:nn { __local } {
     __code, default.code, __pygments, default,
   }
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
@@ -1286,7 +1289,7 @@
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
   \exp_args:NNV
   \def \FV@KeyValues \l_CDR_kv_clist
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+  \CDR_tag_keys_inherit:nn { __local } {
     __fancyvrb,
   }
   \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
@@ -1298,7 +1301,7 @@
 }
 \cs_set:Npn \CDR_code:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
-    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    \CDR_tag_keys_inherit:nn { __local } {
       __fancyvrb,
     }
     \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
@@ -1353,13 +1356,13 @@
           \CDR@FormattingPrep
           \CDR_tag_get:c { format }
         }
-        \CDR@CodeEngineApply { A \mbox { a
+        \CDR@CodeEngineApply { \mbox {
           \exp_args:NNV
           \def \FV@KeyValues \l_CDR_kv_clist
           \FV@UseKeyValues
           \FV@FormattingPrep
           \@nameuse{FV@SV@CDR@Code}
-        z } Z }
+        } }
         \group_end:
       }
     ] { CDR@Code } #1
@@ -1370,13 +1373,13 @@
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_false:
   }
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+  \CDR_tag_keys_inherit:nn { __local } {
     __code, default.code, __pygments, default,
   }
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+  \CDR_tag_keys_inherit:nn { __local } {
     __fancyvrb,
   }
   \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
@@ -1419,7 +1422,7 @@
     \prg_return_true:
   }
   \CDR_tag_keys_set:nn { __block } { __initialize }
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+  \CDR_tag_keys_inherit:nn { __local } {
     __block, __pygments.block, default.block, __fancyvrb.block,
     __pygments, default, __fancyvrb,  __fancyvrb.number
   }

@@ -43,33 +43,48 @@ THIS_IS_VOID=\CDR_tag_get:cc { A } { B }\\
 \tl_if_eq:xnT { \CDR_tag_get:cc { a/d } { e } } { OK } { FAIL \CurrentFile 27\\ }
 \ExplSyntaxOff
 
-Inheritance
+\subsection{Inheritance}
 
 \ExplSyntaxOn
 \group_begin:
-\CDR_keys_inherit:nnn { A } { child } { a, b }
-\keys_define:nn { A/a } { a .tl_set:N = \l_tmpa_tl }
-\keys_define:nn { A/a } { b .tl_set:N = \l_tmpb_tl }
-\keys_set:nn { A/child } { a=a, b=b }
+\CDR_tag_keys_define:nn { A } { a .code:n = \typeout{a=#1} }
+\CDR_tag_keys_set:nn { A } { a=a }
+\CDR_tag_keys_define:nn { B } { b .code:n = \typeout{b=#1} }
+\CDR_tag_keys_set:nn { B } { b=b }
+
+\exp_args:Nf \keys_define:nn { CDR@Tags/tag } {
+  child .inherit:n = { CDR@Tags/tag/A, CDR@Tags/tag/B}
+}
+\CDR_tag_keys_set:nn { child } { a=a, b=b }
+
+\CDR_tag_keys_define:nn { C } { c .code:n = \typeout{c=#1} }
+\CDR_tag_keys_set:nn { C } { c=c }
+
+
+%\cs_new:Npn \CDR_tag_keys_inherit__:nnn #1 #2 #3 {
+%  \keys_define:nn { #1 } { #2 .inherit:n = { #1 / #3 } }
+%}
+%\cs_new:Npn \CDR_tag_keys_inherit_:nnn #1 #2 #3 {
+%  \exp_args:Nnf
+%  \use:n { \CDR_tag_keys_inherit__:nnn { #1 } { #2 } } {
+%    \clist_use:nn { #3 } { ,#1/ }
+%  }
+%}
+%\cs_new:Npn \CDR_tag_keys_inherit:nn {
+%  \exp_args:Nf
+%  \CDR_tag_keys_inherit_:nnn { \CDR_tag_module:n { } }
+%}
+
+
+\CDR_tag_keys_inherit:nn { child } { C }
+\CDR_tag_keys_set:nn { child } { c=c }
+
+\CDR_tag_keys_inherit:nn { child } { A, B }
+
+\CDR_tag_keys_set:nn { child } { a=a, b=b }
+
+
 \tl_if_eq:xnF { \l_tmpa_tl } { a } { FAIL \CurrentFile 38\\ }
 \tl_if_eq:xnF { \l_tmpb_tl } { b } { FAIL \CurrentFile 39\\ }
-\group_end:
-\group_begin:
-\clist_set:Nn \l_tmpa_clist { a, b }
-\CDR_keys_inherit:VnV \c_CDR_tag { child } \l_tmpa_clist
-\CDR_tag_keys_define:nn { a } { a .tl_set:N = \l_tmpa_tl }
-\CDR_tag_keys_define:nn { b } { b .tl_set:N = \l_tmpb_tl }
-\CDR_tag_keys_set:nn { child } { a=a, b=b }
-\tl_if_eq:xnF { \l_tmpa_tl } { a } { FAIL \CurrentFile 47\\ }
-\tl_if_eq:xnF { \l_tmpb_tl } { b } { FAIL \CurrentFile 48\\ }
-
-\group_end:
-\ExplSyntaxOff
-
-TO BE REMOVED
-
-\ExplSyntaxOn
-\group_begin:
-\seq_use:Nn \g_CDR_tag_path_seq \par
 \group_end:
 \ExplSyntaxOff

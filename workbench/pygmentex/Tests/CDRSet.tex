@@ -19,14 +19,16 @@ Tests of \cs{CDRSet}
 \subsection{\texttt{default}}
 \ExplSyntaxOn
 \group_begin:
+\ExplSyntaxOff
 
 \CDRSet{
-  post~processor=ABCD,
   parskip = 2.34\baselineskip,
   engine = falbala,
-  default~engine~options=DEFAULT,
-  falbala~engine~options=FALBALA,
+  default engine options=DEFAULT,
+  falbala engine options=FALBALA,
 }
+
+\ExplSyntaxOn
 \CDR_test:cncn { default } { tl } { post~processor } { ABCD }
 
 X\hspace{\CDR_tag_get:cc { default } { parskip }}X
@@ -39,20 +41,125 @@ X\hspace{\CDR_tag_get:cc { default } { parskip }}X
 \CDR_test:
 
 \group_end:
+
 \ExplSyntaxOff
 
+
+\ExplSyntaxOn
+
+\makeatletter
+\def\CDR@Debug{\typeout}
+\makeatother
+
+\ExplSyntaxOff
 
 \subsection{\texttt{tag/default}}
 \ExplSyntaxOn
 \group_begin:
+\makeatletter
+\cs_set:Npn \CDR_tag_provide:n #1 {
+  \exp_args:NNf
+  \regex_extract_once:NnNTF \c_CDR_provide_regex {
+    \CDR_tag_module:n { .. } / #1
+  } \l_CDR_seq {
+    \tl_set:Nx \l_CDR_tl { \seq_item:Nn \l_CDR_seq 3 }
+    \exp_args:Nx
+    \clist_map_inline:nn {
+      \seq_item:Nn \l_CDR_seq 2
+    } {
+      \CDR_tag_keys_if_exist:nnF { ##1 } { __initialize } {
+\CDR@Debug{Debug.CDR.provided:NO CDR@Tags/tag/default/__initialize }
+      
+        \CDR_tag_keys_inherit:nn { ##1 } {
+          __pygments, __pygments.block,
+          default.block, default.code, default,
+          __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all,
+        }
+        \CDR_tag_keys_define:nn { ##1 } {
+          __initialize __ .meta:n = {},
+          ##1 .value_required:n = true,
+        }
+\CDR@Debug{Debug.CDR.provided:\CDR_tag_module:n {##1} }
+      }
+      \CDR_tag_keys_if_exist:nnF { } { ##1 } {
+        \CDR_tag_keys_define:nn { } {
+          ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ####1 },
+          ##1 .value_required:n = true,
+        }
+\CDR@Debug{Debug.CDR.provided:\CDR_tag_module:n {##1} = ...}
+      }
+      \exp_args:NnV
+      \CDR_tag_keys_if_exist:nnF { ##1 } \l_CDR_tl {
+        \exp_args:NNV
+        \regex_match:NnT \c_CDR_engine_regex
+            \l_CDR_tl {
+          \exp_args:Nnf
+          \CDR_tag_keys_define:nn { ##1 } {
+            \use:n { \l_CDR_tl } .code:n = \CDR_tag_set:n { ####1 },
+          }
+          \exp_args:Nnf
+          \CDR_tag_keys_define:nn { ##1 } {
+            \use:n { \l_CDR_tl } .value_required:n = true,
+          }
+\CDR@Debug{Debug.CDR.provided: \CDR_tag_module:n { ##1 } / \l_CDR_tl = ...}
+        }
+      }
+    }
+  } {
+    \regex_match:NnT \c_CDR_engine_regex { #1 } {
+      \CDR_tag_keys_define:nn { default } {
+        #1 .code:n = \CDR_tag_set:n { ##1 },
+        #1 .value_required:n = true,
+      }
+\CDR@Debug{Debug.CDR.provided.C:\CDR_tag_module:n { default } / #1 = ...}
+    }
+  }
+}
+\RenewDocumentCommand \CDRSet { m } {
+\CDR@Debug{ Debug.CDRSet:#1/}
+  \CDR_set_preflight:n { #1 }
+  \keys_set_known:nnnN { CDR@Set } { #1 } { CDR@Set } \l_CDR_kv_clist
+  \clist_map_inline:nn {
+    __pygments, __pygments.block,
+    default.block, default.code, default,
+    __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
+  } {
+    \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.1:##1/\l_CDR_kv_clist/ }
+  }
+  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.2:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.2a:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }  
+  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+  
+  \keys_if_exist:nnTF { CDR@Tags } { tag/default/falbala~engine~options } { \typeout{ SUCCESS } } { \typeout{ FAILURE } }
+  
+  
+  
+\CDR@Debug{ Debug.CDRSet.3:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
+  \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
+  \keys_define:nn { CDR@Set@tags } {
+    tags .code:n = {
+      \clist_set:Nn \g_CDR_tags_clist { ##1 }
+      \clist_remove_duplicates:N \g_CDR_tags_clist
+    },
+  }
+  \keys_set_known:nn { CDR@Set@tags } { #1 }
+}
+\makeatother
+\ExplSyntaxOff
 
-\CDRSet{
-  tag/default/post~processor=ABCD,
+\CDRSet {
+  tag/default/post processor=ABCD,
   tag/default/parskip = 2.34\baselineskip,
   tag/default/engine = falbala,
-  tag/default/default~engine~options=DEFAULT,
-  tag/default/falbala~engine~options=FALBALA,
+  tag/default/default engine options=DEFAULT,
+  tag/default/falbala engine options=FALBALA,
 }
+
+\ExplSyntaxOn
 \CDR_test:cncn { default } { tl } { post~processor } { ABCD }
 
 X\hspace{\CDR_tag_get:cc { default } { parskip }}X
@@ -108,7 +215,9 @@ FALSE==
 \subsection{\CDRCmd{tag/<name>:__pygments}}
 \ExplSyntaxOn
 \group_begin:
-
+%\makeatletter
+%\def\CDR@Debug{\typeout}
+%\makeatother
 \CDRSet{
   tag/<name>/lang = A,
   tag/<name>/pygments = B,
@@ -145,14 +254,21 @@ FALSE==
 \ExplSyntaxOff
 
 \subsection{\CDRCmd{tag/<name>:__pygments.block}}
+
 \ExplSyntaxOn
 \group_begin:
+\ExplSyntaxOff
+
+\CDRSet{
+  tag/N/stepnumber = 5,
+}
 
 \CDRSet{
   tag/<name>/texcomments = A,
   tag/<name>/texcomments = FALse,
 }
 
+\ExplSyntaxOn
 \CDR_test:cncn { <name> } { tl } { texcomments } { false }
 \CDR_test:
 
@@ -189,7 +305,7 @@ FALSE==
 
 \CDRSet{
     tags = A,
-    show~tags = False,
+    show~tags = left,
     only~top = true,
     use~margin = false,
     tags~format = H,
@@ -208,12 +324,14 @@ FALSE==
 \ExplSyntaxOff
 
 \subsection{\CDRCmd{tag/<name>:default.block}}
+
 \ExplSyntaxOn
 \group_begin:
 
+
 \CDRSet{
     tag/<name>/tags = A,
-    tag/<name>/show~tags = FALSE,
+    tag/<name>/show~tags = right,
     tag/<name>/only~top = true,
     tag/<name>/use~margin = false,
     tag/<name>/tags~format = H,
@@ -361,6 +479,10 @@ FALSE==
 \subsection{\CDRCmd{tag/<name>:__fancyvrb.block}}
 \ExplSyntaxOn
 \group_begin:
+
+\makeatletter
+\def\CDR@Debug{\typeout}
+\makeatother
 
 \CDRSet{
     tag/<name>/commentchar = A,

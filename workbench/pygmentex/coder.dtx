@@ -145,10 +145,6 @@ and the derived files           \jobname.ins,
 \fi
 %</internal>
 %<*sty>
-\RequirePackage{fancyvrb}
-\RequirePackage{color}
-\RequirePackage{emoji}
-\RequirePackage{ifthen}
 %\RequirePackage[font=small,format=plain,labelfont=bf,up,textfont=it,up]{caption}
 %\RequirePackage{caption}
 %\RequirePackage[framemethod=tikz]{mdframed}
@@ -156,11 +152,6 @@ and the derived files           \jobname.ins,
 %\DeclareCaptionType[within=chapter]{pygcode}[Listagem][Lista de listagens]
 %\DeclareCaptionType{pygcode}[Listagem][Lista de listagens]
 %\captionsetup[pygcode]{position=top}
-
-\RequirePackage{xcolor, fancyvrb}
-\AddToHook { begindocument / before } {
-  \RequirePackage{datetime2}
-}
 %</sty>
 %<*driver,sty>
 \def\CDRFileDate{2022/02/07}
@@ -173,7 +164,15 @@ and the derived files           \jobname.ins,
   {code inlined in documents}
 
 \NeedsTeXFormat{LaTeX2e}
+\ExplSyntaxOff
 
+\RequirePackage{xcolor, fancyvrb}
+\RequirePackage{emoji}
+\RequirePackage{ifthen}
+\AddToHook { begindocument / before } {
+  \RequirePackage{datetime2}
+}
+\ExplSyntaxOn
 \msg_new:nnn { coder } { :n } { #1 }
 \cs_if_exist:NTF\IfFormatAtLeastTF {
   \IfFormatAtLeastTF{2021/06/01} {} {
@@ -302,7 +301,7 @@ and the derived files           \jobname.ins,
 % \section{Similar technologies}
 % \begin{description}
 % \item The \pkg{docstrip} utility offers similar features,
-% it is somehow more powerful than \pkg{\jobname} at the cost of
+% it is on some respect more powerful than \pkg{\jobname} at the cost of
 % more technicality and less practicality,
 % \item The \pkg{ydoc.cls} and \pkg{skdoc.cls} are
 % full document classes with similar features but
@@ -316,6 +315,8 @@ and the derived files           \jobname.ins,
 % \begin{itemize}
 % \item
 % \pkg{\jobname} does not play well with \pkg{docstrip}.
+% \item
+% \pkg{\jobname} exportation does not play well with \pkg{beamer}.
 % \end{itemize}
 %
 % \end{documentation}
@@ -351,7 +352,7 @@ and the derived files           \jobname.ins,
 % to instert code snippets as blocks.
 % Moreover, block code chunks can be exported to files, once declared with \cs{CDRExport} command.
 % The \cs{CDRSet} command is used to set various parameters,
-% including display engines declared with either \cs{CDRCodeEngineNew} or \cs{CDRBlockEngineNew}.
+% including display engines declared with either \cs{CDRCodeEngineNew} or \cs{CDRBlockEngineNew}\footnote{Work in progress}.
 %
 % \subsection{Code flow}
 % The normal code flow is
@@ -361,12 +362,11 @@ and the derived files           \jobname.ins,
 % and calls |CDR:hilight_source|,
 % \item \CDRLua{} reads the content of some command, and stores it in a |json| file,
 % together with informations to process this code snippet properly,
-% \item \CDRPy{} is asked by \CDRLua{} to read the |json| file and eventually uses \pkg{pygments} to translate
+% \item \CDRPy{} is then asked by \CDRLua{} to read the |json| file and eventually uses \pkg{pygments} to translate
 % the code snippet into dedicated \LaTeX{} coloring commands. These are stored in a |*.pyg.tex| file
 % named after the md5 digest of the original code chunck,
 % a |*.pyg.sty| \LaTeX{} style file is recorded as well.
-% On return, \CDRPy{} gives to \CDRLua{} some information,
-% to allow the input of both the |*.pyg.sty| and
+% On return, \CDRSty{} is able to input both the |*.pyg.sty| and
 % the |*.pyg.tex| file, which are finally executed and the code is displayed with colors.
 % \CDRPy{} is also partially responsible of code line numbering
 % in conjunction with \CDRSty{}.
@@ -382,7 +382,7 @@ and the derived files           \jobname.ins,
 % \begin{enumerate}
 % \item
 % The \cs{CDRExport} command declares a file path, a list of tags and other
-% usefull information like a coding language. These data are saved as export records
+% usefull informations like a coding language. These data are saved as export records
 % by \CDRLua.
 % \item
 % When some |tags={...}| have been given to the |CDRBlock| environment,
@@ -1843,7 +1843,7 @@ file name with extension, contains processing information.
     hilighted = m.group(1)
     texopts = self.texopts
     if texopts.is_inline:
-      return hilighted.replace(' ', r'\CDR@Sp ')
+      return hilighted.replace(' ', r'\CDR@Sp ')+r'\ignorespaces'
     lines = hilighted.split('\n')
     ans_code = []
     last = 1
@@ -1933,7 +1933,7 @@ if __name__ == '__main__':
 % The latter is a subpath of the former.
 %    \begin{MacroCode}[OK]
 \str_const:Nn \c_CDR_Tags { CDR@Tags }
-\str_const:Nx \c_CDR_tag { \c_CDR_Tags/tag }
+\str_const:Nx \c_CDR_tag { \c_CDR_Tags / tag }
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -2867,18 +2867,52 @@ if __name__ == '__main__':
 % of the document using the |__initialize| meta key.
 %
 % \subsection{Utilities}
+%
+% \begin{function}[EXP]{\CDR_tag_module:n}
+% \begin{syntax}
+% \cs{CDR_tag_module:n} \Arg{module base}
+% \end{syntax}
+% The \metatt{module} is uniquely based on \metatt{module base}.
+% This should be |f| expanded when used as |n| argument of \pkg{l3keys} functions.
+%    \begin{MacroCode}[OK]
+\cs_set:Npn \CDR_tag_module:n #1 {
+  \str_if_eq:nnTF { #1 } { .. } {
+    \c_CDR_Tags
+  } {
+    \tl_if_empty:nTF { #1 } { \c_CDR_Tags / tag } { \c_CDR_Tags / tag / #1 }
+  }
+}
+%    \end{MacroCode}
+% \end{function}
 % \begin{function}{\CDR_tag_keys_define:nn}
 % \begin{syntax}
-% \cs{CDR_tag_keys_define:nn} \Arg{ module base } \Arg{ keyval list }
+% \cs{CDR_tag_keys_define:nn} \Arg{module base} \Arg{keyval list}
 % \end{syntax}
 % The \metatt{module} is uniquely based on \metatt{module base} before
 % forwarding to |\keys_define:nn|.
 %    \begin{MacroCode}[OK]
-\cs_generate_variant:Nn \keys_define:nn { Vn, xn }
 \cs_new:Npn \CDR_tag_keys_define:nn #1 {
-  \keys_define:xn { \c_CDR_tag / \exp_not:n { #1 } }
+  \exp_args:Nf
+  \keys_define:nn { \CDR_tag_module:n { #1 } }
 }
-\cs_generate_variant:Nn \CDR_tag_keys_define:nn { nx }
+%    \end{MacroCode}
+% \end{function}
+% \begin{function}[EXP,TF]{\CDR_tag_keys_if_exist:nn}
+% \begin{syntax}
+% \cs{CDR_tag_keys_if_exist:nnTF} \Arg{module base} \Arg{key} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Execute \metatt{true code} if there is a \metatt{key} for the given \metatt{module base},
+% \metatt{false code} otherwise.
+% If \metatt{module base} is empty, \Arg{key} is the module base used.
+%    \begin{MacroCode}[OK]
+\prg_new_conditional:Nnn \CDR_tag_keys_if_exist:nn { p, T, F, TF } {
+  \exp_args:Nf
+  \keys_if_exist:nnTF { \CDR_tag_module:n { #1 } } { #2 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
 %    \end{MacroCode}
 % \end{function}
 % \begin{function}{\CDR_tag_keys_set:nn}
@@ -2888,9 +2922,9 @@ if __name__ == '__main__':
 % The \metatt{module} is uniquely based on \metatt{module base} before
 % forwarding to |\keys_set:nn|.
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_tag_keys_set:nn #1 {
+\cs_new_protected:Npn \CDR_tag_keys_set:nn #1 {
   \exp_args:Nf
-  \keys_set:nn { \c_CDR_tag / #1 }
+  \keys_set:nn { \CDR_tag_module:n { #1 } }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set:nn { nV }
 %    \end{MacroCode}
@@ -2909,43 +2943,26 @@ if __name__ == '__main__':
 % |\c_CDR_tag/|\metatt{tag name}|/|\metatt{engine name}| engine options|
 % where \metatt{engine name} is not known in advance.
 %
-% \begin{function}{\CDR_keys_set_known:nnN}
+% \begin{function}{\CDR_tag_keys_inherit:nn}
 % \begin{syntax}
-% \cs{CDR_keys_set_known:nnN} \Arg{module} \Arg{key[=value] items} \meta{tl var}
+% \cs{CDR_tag_keys_inherit:nn} \Arg{tag name} \Arg{parents comma list}
 % \end{syntax}
-% Wrappers over |\keys_set_known:nnnN|
-% where the \metatt{root} is also the \metatt{module}.
+% Set the inheritance: \metatt{tag name} inherits from each parent, which is a tag name.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_keys_set_known:nnN #1 #2 {
-  \keys_set_known:nnnN { #1 } { #2 } { #1 }
+\cs_new:Npn \CDR_tag_keys_inherit__:nnn #1 #2 #3 {
+  \keys_define:nn { #1 } { #2 .inherit:n = { #1 / #3 } }
 }
-\cs_generate_variant:Nn \CDR_keys_set_known:nnN { VV }
-%    \end{MacroCode}
-%
-% \begin{function}{\CDR_keys_inherit:nnn}
-% \begin{syntax}
-% \cs{CDR_keys_inherit:nnn} \Arg{tag root} \Arg{tag name} \Arg{parents comma list}
-% \end{syntax}
-% The \metatt{tag name} and parents are given relative to \metatt{tag root}.
-% Set the inheritance.
-% \end{function}
-%    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_keys_inherit__:nnn #1 #2 #3 {
-  \keys_define:nn { #1 } { #2 .inherit:n = { #3 } }
-}
-\cs_new:Npn \CDR_keys_inherit:nnn #1 #2 #3 {
-  \tl_if_empty:nTF { #1 } {
-    \CDR_keys_inherit__:nnn { } { #2 } { #3 }
-  } {
-    \clist_set:Nn \l_CDR_clist { #3 }
-    \exp_args:Nnnx
-    \CDR_keys_inherit__:nnn { #1 } { #2 } {
-      #1 / \clist_use:Nn \l_CDR_clist { ,#1/ }
-    }    
+\cs_new:Npn \CDR_tag_keys_inherit_:nnn #1 #2 #3 {
+  \exp_args:Nnx
+  \use:n { \CDR_tag_keys_inherit__:nnn { #1 } { #2 } } {
+    \clist_use:nn { #3 } { ,#1/ }
   }
 }
-\cs_generate_variant:Nn \CDR_keys_inherit:nnn { VnV, Vnn }
+\cs_new_protected:Npn \CDR_tag_keys_inherit:nn {
+  \exp_args:Nf
+  \CDR_tag_keys_inherit_:nnn { \CDR_tag_module:n { } }
+}
 %    \end{MacroCode}
 %
 % \begin{function}{\CDR_tag_keys_set_known:nnN}
@@ -2953,14 +2970,16 @@ if __name__ == '__main__':
 % \cs{CDR_tag_keys_set_known:nnN} \Arg{tag name} \Arg{key[=value] items} \meta{tl var}
 % \end{syntax}
 % Wrappers over |\keys_set_known:nnnN|
-% where the module is given by |\c_CDR_tag/|\metatt{tag name}.
+% where the module is given by |\CDR_tag_module:n{|\metatt{tag name}|}|.
 % \emph{Implementation detail} the remaining arguments are absorbed by the last macro.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_generate_variant:Nn \keys_set_known:nnnN { VVV, nVx }
+\cs_new:Npn \CDR_tags_keys_set_known__:nnN #1 #2 {
+  \keys_set_known:nnnN { #1 } { #2 } { #1 }
+}
 \cs_new:Npn \CDR_tag_keys_set_known:nnN #1 {
   \exp_args:Nf
-  \CDR_keys_set_known:nnN { \c_CDR_tag / #1 }
+  \CDR_tags_keys_set_known__:nnN { \CDR_tag_module:n { #1 } }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set_known:nnN { nV }
 %    \end{MacroCode}
@@ -2968,16 +2987,17 @@ if __name__ == '__main__':
 % To parse a \pkg{l3keys} full key path.
 %    \begin{MacroCode}[OK]
 \tl_set:Nn \l_CDR_tl { /([^/]*)(?:/(.*))?$ } \use_none:n { $ }
-\tl_put_left:NV \l_CDR_tl \c_CDR_tag
+\exp_args:NNf
+\tl_put_left:Nn \l_CDR_tl { \CDR_tag_module:n {} }
 \tl_put_left:Nn \l_CDR_tl { ^ }
 \exp_args:NNV
 \regex_const:Nn \c_CDR_provide_regex \l_CDR_tl
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{function}{\CDR_tag_provide_from_clist:n,\CDR_tag_provide_from_kv:n}
+% \begin{function}{\@CDR@TEST,\CDR_tag_provide_from_kv:n}
 % \begin{syntax}
-% \cs{CDR_tag_provide_from_clist:n} \Arg{deep comma list}
+% \cs{CDR_tag_provide:n} \Arg{deep comma list}
 % \cs{CDR_tag_provide_from_kv:n} \Arg{key-value list}
 % \end{syntax}
 % \metatt{deep comma list} has format
@@ -2988,40 +3008,46 @@ if __name__ == '__main__':
 % For that purpose, we use |\keyval_parse:nnn| with two |\CDR_tag_provide:| helper.
 %
 % Notice that a tag name should contain no `/'.
+% Implementation detail: uses |\l_CDR_tl|.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\regex_const:Nn \c_CDR_engine_regex { ^[^/]*\sengine\soptions$ } \use_none:n { $ }
-\cs_new:Npn \CDR_tag_provide_from_clist:n #1 {
-  \exp_args:NNx
+\regex_const:Nn \c_CDR_engine_regex { ^[^/]+\sengine\soptions$ } \use_none:n { $ }
+\cs_new:Npn \CDR_tag_provide:n #1 {
+  \exp_args:NNf
   \regex_extract_once:NnNTF \c_CDR_provide_regex {
-    \c_CDR_Tags / #1
+    \CDR_tag_module:n { .. } / #1
   } \l_CDR_seq {
     \tl_set:Nx \l_CDR_tl { \seq_item:Nn \l_CDR_seq 3 }
     \exp_args:Nx
     \clist_map_inline:nn {
       \seq_item:Nn \l_CDR_seq 2
     } {
-      \exp_args:NV
-      \keys_if_exist:nnF \c_CDR_tag { ##1 } {
-        \CDR_keys_inherit:Vnn \c_CDR_tag { ##1 } {
+      \CDR_tag_keys_if_exist:nnF { } { ##1 } {
+        \CDR_tag_keys_inherit:nn { ##1 } {
           __pygments, __pygments.block,
           default.block, default.code, default,
-          __fancyvrb, __fancyvrb.block, __fancyvrb.all
+          __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all,
         }
-        \keys_define:Vn \c_CDR_tag {
+        \CDR_tag_keys_define:nn { } {
           ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ####1 },
           ##1 .value_required:n = true,
         }
+\CDR@Debug{Debug.CDR.provided:\CDR_tag_module:n {##1} = ...}
       }
-      \exp_args:NxV
-      \keys_if_exist:nnF { \c_CDR_tag / ##1 } \l_CDR_tl {
+      \exp_args:NnV
+      \CDR_tag_keys_if_exist:nnF { ##1 } \l_CDR_tl {
         \exp_args:NNV
         \regex_match:NnT \c_CDR_engine_regex
             \l_CDR_tl {
-          \CDR_tag_keys_define:nx { ##1 } {
-            \l_CDR_tl .code:n = \exp_not:n { \CDR_tag_set:n { ####1 } },
-            \l_CDR_tl .value_required:n = true,
+          \exp_args:Nnf
+          \CDR_tag_keys_define:nn { ##1 } {
+            \use:n { \l_CDR_tl } .code:n = \CDR_tag_set:n { ####1 },
           }
+          \exp_args:Nnf
+          \CDR_tag_keys_define:nn { ##1 } {
+            \use:n { \l_CDR_tl } .value_required:n = true,
+          }
+\CDR@Debug{Debug.CDR.provided: \CDR_tag_module:n { ##1 } / \l_CDR_tl = ...}
         }
       }
     }
@@ -3031,17 +3057,18 @@ if __name__ == '__main__':
         #1 .code:n = \CDR_tag_set:n { ##1 },
         #1 .value_required:n = true,
       }
+\CDR@Debug{Debug.CDR.provided.C:\CDR_tag_module:n { default } / #1 = ...}
     }
   }
 }
-\cs_new:Npn \CDR_tag_provide_from_clist:nn #1 #2 {
-  \CDR_tag_provide_from_clist:n { #1 }
+\cs_new:Npn \CDR_tag_provide:nn #1 #2 {
+  \CDR_tag_provide:n { #1 }
 }
 \cs_new:Npn \CDR_tag_provide_from_kv:n {
   \keyval_parse:nnn {
-    \CDR_tag_provide_from_clist:n
+    \CDR_tag_provide:n
   } {
-    \CDR_tag_provide_from_clist:nn
+    \CDR_tag_provide:nn
   }
 }
 \cs_generate_variant:Nn \CDR_tag_provide_from_kv:n { V }
@@ -3139,10 +3166,10 @@ if __name__ == '__main__':
   __initialize .meta:n = {
     lang = tex,
     pygments = \CDR_has_pygments:TF { true } { false },
-    style=default,
-    commandprefix=PY,
-    mathescape=false,
-    escapeinside=,
+    style = default,
+    commandprefix = PY,
+    mathescape = false,
+    escapeinside = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -3172,7 +3199,7 @@ if __name__ == '__main__':
 % Initializer.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
-    texcomments=false,
+    texcomments = false,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -3875,34 +3902,7 @@ if __name__ == '__main__':
 % \end{function}
 %
 % \subsection{Implementation}
-% \begin{function}{\CDR_check_unknown:N}
-% \begin{syntax}
-% \cs{CDR_check_unknown:N} \marg{tl variable}
-% \end{syntax}
-% In normal situation, the argument is expected to be empty.
-% When the argument is not empty, send a package warning for each key. 
-% \end{function}
-%    \begin{MacroCode}[OK]
-\exp_args_generate:n { xV, nnV }
-\cs_new:Npn \CDR_check_unknown:N #1 {
-  \tl_if_empty:NF #1 {
-    \cs_set:Npn \CDR_check_unknown:n ##1 {
-      \PackageWarning
-        { coder }
-        { Unknow~key~`##1' }
-    }
-    \cs_set:Npn \CDR_check_unknown:nn ##1 ##2 {
-      \CDR_check_unknown:n { ##1 }
-    }
-    \exp_args:NnnV
-    \keyval_parse:nnn {
-      \CDR_check_unknown:n
-    } {
-      \CDR_check_unknown:nn
-    } #1
-  }
-}
-%    \end{MacroCode}
+%
 % \begin{function}{\CDR_block_preflight:n}
 % \begin{syntax}
 % \cs{CDR_set_preflight:n} \Arg{CDR@Set kv list}
@@ -3915,27 +3915,32 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRSet { m } {
+\CDR@Debug{ Debug.CDRSet:#1/}
   \CDR_set_preflight:n { #1 }
-  \CDR_keys_set_known:nnN { CDR@Set } { #1 } \l_CDR_kv_clist
+  \keys_set_known:nnnN { CDR@Set } { #1 } { CDR@Set } \l_CDR_kv_clist
   \clist_map_inline:nn {
     __pygments, __pygments.block,
     default.block, default.code, default,
     __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
     \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.1:##1/\l_CDR_kv_clist/ }
   }
-  \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
+  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.2:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
-  \CDR_keys_set_known:VVN \c_CDR_Tags \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.2a:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }  
+  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.3:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
   \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
+\CDR@Debug{ Debug.CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
   \keys_define:nn { CDR@Set@tags } {
     tags .code:n = {
       \clist_set:Nn \g_CDR_tags_clist { ##1 }
       \clist_remove_duplicates:N \g_CDR_tags_clist
     },
-    unknown .code:n =,
   }
-  \keys_set:nn { CDR@Set@tags } { #1 }
+  \keys_set_known:nn { CDR@Set@tags } { #1 }
 }
 %    \end{MacroCode}
 %
@@ -3981,8 +3986,10 @@ if __name__ == '__main__':
   \CDR_export_set:ccn { #1 }
 }
 \cs_new_protected:Npn \CDR_export_set:VcV #1 #2 #3 {
-  \exp_args:NVnV
-  \CDR_export_set:ccn #1 { #2 } #3
+  \exp_args:NnV
+  \use:n {
+    \exp_args:NV \CDR_export_set:ccn #1 { #2 }
+  } #3
 }
 %    \end{MacroCode}
 %
@@ -4139,13 +4146,13 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
     __initialize_prop = #1,
-    file=,
-    tags=,
-    lang=tex,
-    preamble=,
-    postamble=,
-    raw=false,
-    once=true,
+    file =,
+    tags =,
+    lang = tex,
+    preamble =,
+    postamble =,
+    raw = false,
+    once = true,
   },
   __initialize .default:n = \l_CDR_export_prop,
 %    \end{MacroCode}
@@ -4458,7 +4465,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_block_engine_begin: {
-  \CDR_if_code_engine:cF { \CDR_tag_get:c { engine } } {
+  \CDR_if_block_engine:cF { \CDR_tag_get:c { engine } } {
     \PackageError
       { coder }
       { \CDR_tag_get:c { engine }~block~engine~unknown,~replaced~by~`default' }
@@ -4532,25 +4539,19 @@ if __name__ == '__main__':
 \CDRCodeEngineNew { default } { #2 }
 %    \end{MacroCode}
 % 
-% \subsection{Default block engine}
-% The default block engine does nothing.
-%    \begin{MacroCode}[OK]
-\CDRBlockEngineNew { default } { } { }
-%    \end{MacroCode}
-% 
 % \subsection{\pkg{efbox} code engine}
 %    \begin{MacroCode}
 \AtBeginDocument {
   \@ifpackageloaded{efbox} {
     \CDRCodeEngineNew {efbox} {
-      \efbox[#1]{#2}%
+      \efbox[#1]{#2}
     }
-  }
+  } {}
 }
 %    \end{MacroCode}
 % \subsection{Block mode default engine}
 %    \begin{MacroCode}
-\CDRBlockEngineNew {} {
+\CDRBlockEngineNew {default} {
 } {
 }
 %    \end{MacroCode}
@@ -4679,7 +4680,7 @@ if __name__ == '__main__':
       \CDR@StyleUse { \CDR_tag_get:c { style } }
       \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
     }
-    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    \CDR_tag_keys_inherit:nn { __local } {
       __fancyvrb,
     }
     \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
@@ -4716,7 +4717,7 @@ if __name__ == '__main__':
             \CDR@StyleUseTag
           }
           \makeatletter
-          \input { \l_CDR_pyg_tex_tl }
+          \input { \l_CDR_pyg_tex_tl }\ignorespaces
           \makeatother
         }
         \group_end:
@@ -4751,7 +4752,7 @@ if __name__ == '__main__':
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_false:
   }  
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+  \CDR_tag_keys_inherit:nn { __local } {
     __code, default.code, __pygments, default,
   }
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
@@ -4759,7 +4760,7 @@ if __name__ == '__main__':
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
   \exp_args:NNV
   \def \FV@KeyValues \l_CDR_kv_clist
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+  \CDR_tag_keys_inherit:nn { __local } {
     __fancyvrb,
   }
   \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist  
@@ -4771,7 +4772,7 @@ if __name__ == '__main__':
 }
 \cs_set:Npn \CDR_code:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
-    \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+    \CDR_tag_keys_inherit:nn { __local } {
       __fancyvrb,
     }
     \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
@@ -4826,13 +4827,13 @@ if __name__ == '__main__':
           \CDR@FormattingPrep
           \CDR_tag_get:c { format }
         }
-        \CDR@CodeEngineApply { A \mbox { a
+        \CDR@CodeEngineApply { \mbox {
           \exp_args:NNV
           \def \FV@KeyValues \l_CDR_kv_clist
           \FV@UseKeyValues
           \FV@FormattingPrep
           \@nameuse{FV@SV@CDR@Code}
-        z } Z }
+        } }
         \group_end:
       }
     ] { CDR@Code } #1
@@ -4846,13 +4847,13 @@ if __name__ == '__main__':
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_false:
   }  
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+  \CDR_tag_keys_inherit:nn { __local } {
     __code, default.code, __pygments, default,
   }
   \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+  \CDR_tag_keys_inherit:nn { __local } {
     __fancyvrb,
   }
   \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist  
@@ -4978,7 +4979,7 @@ if __name__ == '__main__':
 % management is different whether \pkg{pygments} is used or not.
 %    \begin{MacroCode}
   \CDR_tag_keys_set:nn { __block } { __initialize }
-  \CDR_keys_inherit:Vnn \c_CDR_tag { __local } {
+  \CDR_tag_keys_inherit:nn { __local } {
     __block, __pygments.block, default.block, __fancyvrb.block,
     __pygments, default, __fancyvrb,  __fancyvrb.number
   }
