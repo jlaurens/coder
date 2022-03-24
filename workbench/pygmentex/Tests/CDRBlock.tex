@@ -497,7 +497,9 @@ function foo(arg) return arg ** arg end
 %\endinput
 \makeatletter
 \def\CDR@nnn#1#2#3{
-  \CDRSet {
+\typeout{===============================================================}
+\typeout{SHOW:#1/NUM:#2/STEP:#3/}
+   \CDRSet {
     show tags=#1,
     numbers=#2,
     stepnumber=#3

@@ -110,6 +110,7 @@
 }
 \CDR_int_new:cn { default } { 1 }
 \CDR_int_new:cn { __ } { 1 }
+\CDR_int_new:cn { __line } { 1 }
 \cs_new:Npn \CDR_int:c #1 {
   \use:c { CDR@int.#1 }
 }
@@ -492,7 +493,7 @@
         \CDR_tag_keys_inherit:nn { ##1 } {
           __pygments, __pygments.block,
           default.block, default.code, default,
-          __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all,
+          __fancyvrb, __fancyvrb.block, __fancyvrb.frame, __fancyvrb.number, __fancyvrb.all,
         }
         \CDR_tag_keys_define:nn { } {
           ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ####1 },
@@ -706,15 +707,7 @@
 \AtBeginDocument{
   \CDR_tag_keys_set:nn { __fancyvrb } { __initialize }
 }
-\regex_const:Nn \c_CDR_integer_regex { ^(+|-)?\d+$ } \use_none:n { $ }
-\CDR_tag_keys_define:nn { __fancyvrb.block } {
-  commentchar .code:n = \CDR_tag_set:,
-  commentchar .value_required:n = true,
-  gobble .choices:nn = {
-    0,1,2,3,4,5,6,7,8,9
-  } {
-    \CDR_tag_choices_set:
-  },
+\CDR_tag_keys_define:nn { __fancyvrb.frame } {
   frame .choices:nn =
     { none, leftline, topline, bottomline, lines, single }
     { \CDR_tag_choices_set: },
@@ -731,6 +724,29 @@
   labelposition .choices:nn =
     { none, topline, bottomline, all }
     { \CDR_tag_choices_set: },
+  __initialize .meta:n = {
+    frame = none,
+    framerule = 0.4pt,
+    framesep = \fboxsep,
+    rulecolor = black,
+    fillcolor = ,
+    label = ,
+    labelposition = none,% auto?
+  },
+  __initialize .value_forbidden:n = true,
+}
+\AtBeginDocument{
+  \CDR_tag_keys_set:nn { __fancyvrb.frame } { __initialize }
+}
+\regex_const:Nn \c_CDR_integer_regex { ^(+|-)?\d+$ } \use_none:n { $ }
+\CDR_tag_keys_define:nn { __fancyvrb.block } {
+  commentchar .code:n = \CDR_tag_set:,
+  commentchar .value_required:n = true,
+  gobble .choices:nn = {
+    0,1,2,3,4,5,6,7,8,9
+  } {
+    \CDR_tag_choices_set:
+  },
   baselinestretch .code:n = \CDR_tag_set:,
   baselinestretch .value_required:n = true,
   xleftmargin .code:n = \CDR_tag_set:,
@@ -746,9 +762,6 @@
   __initialize .meta:n = {
     commentchar = ,
     gobble = 0,
-    frame = none,
-    label = ,
-    labelposition = none,% auto?
     baselinestretch = auto,
     resetmargins = true,
     xleftmargin = 0pt,
@@ -840,7 +853,7 @@
   \clist_map_inline:nn {
     __pygments, __pygments.block,
     default.block, default.code, default,
-    __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
+    __fancyvrb, __fancyvrb.frame, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
     \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.1:##1/\l_CDR_kv_clist/ }
@@ -1019,17 +1032,17 @@
   }
 }
 \cs_set_eq:NN \CDR@StyleIfExist \CDR@StyleIfExist:cTF
-\cs_new:Npn \CDR_code_engine:c #1 {
+\cs_new:Npn \CDRCodeengine:c #1 {
   CDR@colored/code/#1:nn
 }
-\cs_new:Npn \CDR_block_engine:c #1 {
+\cs_new:Npn \CDRBlock_engine:c #1 {
   CDR@colored/block/#1
 }
-\cs_new:Npn \CDR_code_engine:V {
-  \exp_args:NV \CDR_code_engine:c
+\cs_new:Npn \CDRCodeengine:V {
+  \exp_args:NV \CDRCodeengine:c
 }
-\cs_new:Npn \CDR_block_engine:V {
-  \exp_args:NV \CDR_block_engine:c
+\cs_new:Npn \CDRBlock_engine:V {
+  \exp_args:NV \CDRBlock_engine:c
 }
 \tl_new:N \l_CDR_engine_tl
 \NewDocumentCommand \CDRCodeEngineNew { mm } {
@@ -1039,7 +1052,7 @@
       { coder }
       { The~engine~cannot~be~void. }
   } {
-    \cs_new:cpn { \CDR_code_engine:c {#1} } ##1 ##2 {
+    \cs_new:cpn { \CDRCodeengine:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
@@ -1054,8 +1067,8 @@
       { The~engine~cannot~be~void. }
       \use_none:n
   } {
-    \cs_if_exist:cTF { \CDR_code_engine:c { #1 } } {
-      \cs_set:cpn { \CDR_code_engine:c { #1 } } ##1 ##2 {
+    \cs_if_exist:cTF { \CDRCodeengine:c { #1 } } {
+      \cs_set:cpn { \CDRCodeengine:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
         #2
       }
@@ -1076,7 +1089,7 @@
     \CDR_tag_set:cn { engine } { default }
   }
   \exp_args:Nnx
-  \use:c { \CDR_code_engine:c { \CDR_tag_get:c { engine } } } {
+  \use:c { \CDRCodeengine:c { \CDR_tag_get:c { engine } } } {
     \CDR_tag_get:c { \CDR_tag_get:c { engine }~engine~options },
     \CDR_tag_get:c { engine~options }
   } {
@@ -1085,7 +1098,7 @@
   }
 }
 \NewDocumentCommand \CDRBlockEngineNew { mm } {
-  \NewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
+  \NewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { m } {
     \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
     #2
   }
@@ -1097,13 +1110,13 @@
       { The~engine~cannot~be~void. }
       \use_none:n
   } {
-    \RenewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
+    \RenewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { m } {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
   }
 }
-\cs_new:Npn \CDR_block_engine_begin: {
+\cs_new:Npn \CDRBlock_engine_begin: {
   \CDR_if_block_engine:cF { \CDR_tag_get:c { engine } } {
     \PackageError
       { coder }
@@ -1112,37 +1125,37 @@
     \CDR_tag_set:cn { engine } { default }
   }
   \exp_args:Nnx
-  \use:c { \CDR_block_engine:c \CDR_tag_get:c { engine } } {
+  \use:c { \CDRBlock_engine:c \CDR_tag_get:c { engine } } {
     \CDR_tag_get:c { \CDR_tag_get:c { engine }~engine~options },
     \CDR_tag_get:c { engine~options },
   }
 }
-\cs_new:Npn \CDR_block_engine_end: {
-  \use:c { end \CDR_block_engine:c \CDR_tag_get:c { engine } }
+\cs_new:Npn \CDRBlock_engine_end: {
+  \use:c { end \CDRBlock_engine:c \CDR_tag_get:c { engine } }
 }
 \prg_new_conditional:Nnn \CDR_if_code_engine:c { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_code_engine:c { #1 } } {
+  \cs_if_exist:cTF { \CDRCodeengine:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
 \prg_new_conditional:Nnn \CDR_if_code_engine:V { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_code_engine:V #1 } {
+  \cs_if_exist:cTF { \CDRCodeengine:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
 \prg_new_conditional:Nnn \CDR_if_block_engine:c { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_block_engine:c { #1 } } {
+  \cs_if_exist:cTF { \CDRBlock_engine:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
 \prg_new_conditional:Nnn \CDR_if_block_engine:V { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_block_engine:V #1 } {
+  \cs_if_exist:cTF { \CDRBlock_engine:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -1182,7 +1195,7 @@
   \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
 }
 \cs_generate_variant:Nn \CDR_brace_if_contains_comma:n { V }
-\cs_new:Npn \CDR_code_format: {
+\cs_new:Npn \CDRCodeformat: {
   \frenchspacing
   \CDR_tag_get:cN { baselinestretch } \l_CDR_tl
   \str_if_eq:VnF \l_CDR_tl { auto } {
@@ -1206,7 +1219,7 @@
   }
   \selectfont
 }
-\cs_new:Npn \CDR_code:n #1 {
+\cs_new:Npn \CDRCode:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
     \cs_set:Npn \CDR@StyleUseTag {
       \CDR@StyleUse { \CDR_tag_get:c { style } }
@@ -1236,7 +1249,7 @@
         \FV@DefineWhiteSpace
         \FancyVerbDefineActive
         \FancyVerbFormatCom
-        \CDR_code_format:
+        \CDRCodeformat:
         \CDR@DefineSp
         \CDR_tag_get:c { format }
         \CDR@CodeEngineApply {
@@ -1297,9 +1310,9 @@
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, default.code, __pygments, default, __fancyvrb,
   }
-  \CDR_code:n
+  \CDRCode:n
 }
-\cs_set:Npn \CDR_code:n #1 {
+\cs_set:Npn \CDRCode:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
     \CDR_tag_keys_inherit:nn { __local } {
       __fancyvrb,
@@ -1328,7 +1341,7 @@
         \FancyVerbDefineActive
         \FancyVerbFormatCom
         \CDR@DefineSp
-        \CDR_code_format:
+        \CDRCodeformat:
         \CDR_tag_get:c { format }
         \CDR@CodeEngineApply {
           \CDR@StyleIfExist { \CDR_tag_get:c {style} } {
@@ -1388,7 +1401,7 @@
     __code, default.code, __pygments, default, __fancyvrb,
   }
   \fvset{showspaces}
-  \CDR_code:n
+  \CDRCode:n
 }
 \CDR_tag_keys_define:nn { __block } {
   no~export .code:n = \CDR_tag_boolean_set:x { #1 },
@@ -1413,45 +1426,38 @@
 \clist_map_inline:nn { i, ii, iii, iv } {
   \cs_set_eq:cc { CDR@ListProcessLine@ #1 } { FV@ListProcessLine@ #1 }
 }
-\cs_new:Npn \CDR_block_preflight:n #1 { }
+\cs_new:Npn \CDRBlock_preflight:n #1 { }
 \cs_new:Npn \FVB@CDRBlock {
   \@bsphack
   \group_begin:
-  \exp_args:NV \CDR_block_preflight:n \FV@KeyValues
+  \exp_args:NV \CDRBlock_preflight:n \FV@KeyValues
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_true:
   }
   \CDR_tag_keys_set:nn { __block } { __initialize }
   \CDR_tag_keys_inherit:nn { __local } {
-    __block, __pygments.block, default.block, __fancyvrb.block,
+    __block, __pygments.block, default.block, __fancyvrb.block, __fancyvrb.frame,
     __pygments, default, __fancyvrb,  __fancyvrb.number
   }
   \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
 \CDR@Debug{CDRBlock.KV1:\l_CDR_kv_clist}
-  \CDR_block_setup_tags:
+  \CDRBlock_setup_tags:
   \lua_now:n {
     CDR:hilight_block_setup('g_CDR_tags_clist')
   }
-  \CDR_set_conditional:Nnnn \CDR_if_pygments:
+  \CDR_set_conditional:Nn \CDR_if_pygments:
     { \CDR_tag_if_truthy_p:c { pygments } }
-    { \prg_return_true:  }
-    { \prg_return_false: }
-  \CDR_set_conditional:Nnnn \CDR_if_no_export:
+  \CDR_set_conditional:Nn \CDR_if_no_export:
     { \CDR_tag_if_truthy_p:c { no~export } }
-    { \prg_return_true:  }
-    { \prg_return_false: }
-  \CDR_set_conditional:Nnnn \CDR_if_number_on:
-    { \CDR_tag_if_eq_p:cn { numbers } { none } }
-    { \prg_return_false: }
-    { \prg_return_true: }
-  \CDR_set_conditional:Nnnn \CDR_tags_if_already: {
+  \CDR_set_conditional:Nn \CDR_if_number_on:
+    { ! \CDR_tag_if_eq_p:cn { numbers } { none } }
+  \CDR_set_conditional:Nn \CDR_tags_if_already: {
     \CDR_tag_if_truthy_p:c { only~top } &&
     \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
-  } { \prg_return_true:  }
-    { \prg_return_false: }
-  \CDR_block_engine_begin:
+  }
+  \CDRBlock_engine_begin:
   \CDR_if_pygments:TF {
     \CDRBlock@Pyg
   } {
@@ -1465,7 +1471,7 @@
   } {
     \endCDRBlock@FV
   }
-  \CDR_block_engine_end:
+  \CDRBlock_engine_end:
   \lua_now:n {
     CDR:hilight_block_teardown()
   }
@@ -1546,6 +1552,10 @@
   defineactive,% = ,
   reflabel,% = ,
   frame,% = none,
+  framerule,% = 0.4pt,
+  framesep,% = \fboxsep,
+  rulecolor,% = black,
+  fillcolor,% = ,
   label,% = ,
   labelposition,% = none,% auto?
   baselinestretch,% = auto,
@@ -1645,13 +1655,13 @@
   \CDR_line_box:nnn { } { #1 } { \CDR_info_T_R:n { } }
 }
 
-\cs_new:Npn \CDR_line_A_N:n {
-\CDR@Debug {Debug.CDR_line_A_N:n}
+\cs_new:Npn \CDR_line_S_N:n {
+\CDR@Debug {Debug.CDR_line_S_N:n}
   \CDR_line_box_N:n
 }
 
-\cs_new:Npn \CDR_line_M_N:n {
-\CDR@Debug {STEP:CDR_line_M_N:n}
+\cs_new:Npn \CDR_line_O_N:n {
+\CDR@Debug {STEP:CDR_line_O_N:n}
   \CDR_line_box_N:n
 }
 
@@ -1725,8 +1735,8 @@
   }
 }
 
-\cs_set_eq:NN \CDR_line_A_L:n \CDR_line_L_L:n
-\cs_set_eq:NN \CDR_line_M_L:n \CDR_line_R_L:n
+\cs_set_eq:NN \CDR_line_S_L:n \CDR_line_L_L:n
+\cs_set_eq:NN \CDR_line_O_L:n \CDR_line_R_L:n
 
 \cs_new:Npn \CDR_line_N_R:n {
 \typeout {STEP:CDR_line_N_R:n}
@@ -1746,8 +1756,8 @@
   }
 }
 
-\cs_set_eq:NN \CDR_line_A_R:n \CDR_line_R_R:n
-\cs_set_eq:NN \CDR_line_M_R:n \CDR_line_L_R:n
+\cs_set_eq:NN \CDR_line_S_R:n \CDR_line_R_R:n
+\cs_set_eq:NN \CDR_line_O_R:n \CDR_line_L_R:n
 
 \cs_new:Npn \CDR_line_box_N:n #1 {
 \CDR@Debug {STEP:CDR_line_box_N:n}
@@ -1794,7 +1804,7 @@
 }
 \cs_new:Npn \CDR@Line {
 \CDR@Debug {STEP0}
-  \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnn } {
+  \peek_meaning_ignore_spaces:NTF [ { \CDR@Line: } {
     \PackageError { code } { Missing~`['~at~first~\CDR@Line~call }
   }
 }
@@ -1857,39 +1867,23 @@
     \exp_args:NNnV
     \prg_set_conditional:Nnn \CDR_if_visible_at_index:n { p, T, F, TF } \l_CDR_tl
     \CDR_int_compare:cNnTF { __step } < 2 {
-      \tl_set:Nn \l_CDR_tl {
-        \CDR_int_compare:cNnTF { __last } < { ##1 } {
-          \prg_return_false:
-        } {
-          \prg_return_true:
-        }
-      }
       \CDR_int_set:cn { __step } { 1 }
+      \CDR_set_conditional:Nnnn \CDR_if_number_visible:n {
+        ! \CDR_int_compare_p:cNn { __last } < { ##1 }
+      } { \prg_return_true: } { \prg_return_false: }
     } {
-      \tl_set:Nn \l_CDR_tl {
-        \bool_if:nTF {
-          \int_compare_p:nNn {
-            ( ##1 ) / \CDR_int:c { __step } * \CDR_int:c { __step }
-          } = { ##1 }
-          && ! \CDR_int_compare_p:cNn { __last } < { ##1 }
-        } {
-          \prg_return_true:
-        } {
-          \prg_return_false:
-        }
+      \CDR_set_conditional:Nnnn \CDR_if_number_visible:n {
+        \int_compare_p:nNn {
+          ( ##1 ) / \CDR_int:c { __step } * \CDR_int:c { __step }
+        } = { ##1 }
+        && ! \CDR_int_compare_p:cNn { __last } < { ##1 }
+      } { \prg_return_true: } { \prg_return_false: }
+    }
+    \CDR_set_conditional:Nn \CDR_if_no_number: {
+      \CDR_int_compare_p:cNnTF { __start } > {
+        \CDR_int:c { __last } / \CDR_int:c { __step } * \CDR_int:c { __step }
       }
     }
-    \exp_args:NNnV
-    \prg_set_conditional:Nnn \CDR_if_number_visible:n { p, T, F, TF } \l_CDR_tl
-    \CDR_int_compare:cNnTF { __start } > {
-      \CDR_int:c { __last } / \CDR_int:c { __step } * \CDR_int:c { __step }
-    } {
-      \tl_set:Nn \l_CDR_tl { \prg_return_true: }
-    } {
-      \tl_set:Nn \l_CDR_tl { \prg_return_false: }
-    }
-    \exp_args:NNnV
-    \prg_set_conditional:Nnn \CDR_if_no_number:  { p, T, F, TF } \l_CDR_tl
     \cs_set:Npn \CDR@Line ##1 {
       \CDR_int_set:cn { __ } { ##1 + \CDR_int:c { __start } - #2 }
       \CDR@@Line
@@ -1900,7 +1894,7 @@
       \CDR@@Line
     }
   }
-\CDR@Debug {STEP_A, \CDR_int_use:c {__step}, \CDR_int_use:c {__last} }
+\CDR@Debug {STEP_S, \CDR_int_use:c {__step}, \CDR_int_use:c {__last} }
 \CDR@Debug {
   STEP:CDR_line_?_?:n
   / \CDR_tags_if_already:TF TF
@@ -1916,8 +1910,8 @@
       { left  } { \tl_put_right:Nn \l_CDR_tl { _L } }
       { right } { \tl_put_right:Nn \l_CDR_tl { _R } }
       { none  } { \tl_put_right:Nn \l_CDR_tl { _N } }
-      { numbers } { \tl_put_right:Nn \l_CDR_tl { _A } }
-      { mirror  } { \tl_put_right:Nn \l_CDR_tl { _M } }
+      { numbers } { \tl_put_right:Nn \l_CDR_tl { _S } }
+      { mirror  } { \tl_put_right:Nn \l_CDR_tl { _O } }
     } { \PackageError
           { coder }
           { Unknown~show~tags~options~:~ \CDR_tag_get:c { show~tags } }
@@ -2010,17 +2004,21 @@
   tabsize,% = 2,
   defineactive,% = ,
   reflabel,% = ,
-  gobble,% = 0,
   frame,% = none,
+  framerule,% = 0.4pt,
+  framesep,% = \fboxsep,
+  rulecolor,% = black,
+  fillcolor,% = ,
   label,% = ,
   labelposition,% = none,% auto?
+  gobble,% = 0,
   baselinestretch,% = auto,
   resetmargins,% = true,
   xleftmargin,% = 0pt,
   xrightmargin,% = 0pt,
   hfuzz,% = 2pt,
   samepage,% = false,
-  numbers,% = left,
+  numbers,% = none,
   numbersep,% = 1ex,
   firstnumber,% = auto,
   stepnumber,% = 1,
@@ -2028,11 +2026,16 @@
   firstline,% = ,
   lastline,% = ,
 }
-\cs_new:Npn \CDR_set_conditional:Nnnn #1 #2 #3 #4 {
+\cs_new:Npn \CDR_set_conditional:Nn #1 #2 {
   \bool_if:nTF { #2 } {
-    \prg_set_conditional:Nnn #1 { p, T, F, TF } { #3 }
+    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_true: }
   } {
-    \prg_set_conditional:Nnn #1 { p, T, F, TF } { #4 }
+    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_false: }
+  }
+}
+\cs_new:Npn \CDR_set_conditional_alt:Nn #1 #2 {
+  \prg_set_conditional:Nnn #1 { p, T, F, TF } {
+    \bool_if:nTF { #2 } { \prg_return_true: } { \prg_return_false: }
   }
 }
 \prg_set_conditional:Nnn \CDR_if_middle_column: { p, T, F, TF } { \prg_return_false: }
@@ -2049,7 +2052,7 @@
     \prg_return_false:
   }
 }
-\cs_new_protected:Npn \CDR_block_setup_tags: {
+\cs_new_protected_nopar:Npn \CDRBlock_setup_tags: {
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
     \CDR_tag_get:cN { tags } \l_CDR_clist
     \clist_if_empty:NF \l_CDR_clist {
@@ -2061,10 +2064,10 @@
       { coder }
       { No~(default)~tags~provided. }
   }
-\CDR@Debug {CDR_block_setup_tags:\space\g_CDR_tags_clist}
+\CDR@Debug {CDRBlock_setup_tags:\space\g_CDR_tags_clist}
   \CDR_tag_inherit:cf { __local } {
     \g_CDR_tags_clist,
-    __block, default.block, __pygments.block, __fancyvrb.block, __fancyvrb.number,
+    __block, default.block, __pygments.block, __fancyvrb.block __fancyvrb.frame, __fancyvrb.number,
      __pygments, default, __fancyvrb,
   }
   \clist_map_inline:Nn \g_CDR_tags_clist {

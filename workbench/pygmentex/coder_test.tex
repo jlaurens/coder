@@ -11,10 +11,10 @@
 \usepackage{coder}
 \RequirePackage{efbox}
 \RequirePackage{mdframed}
+\RequirePackage{luacode}
 \usepackage{tcolorbox}
 
 %
-%\usepackage{luacode} % JL
 %
 %\ExplSyntaxOn
 %\prop_new:N \l_CDR_test_prop
@@ -113,11 +113,11 @@ Path=\l_CDR_tl\\
 %\ExplSyntaxOff\makeatother
 %\input{Tests/CDRCode}
 %
-%\section{\texttt{CDRBlock}}
-%\makeatletter\ExplSyntaxOn
-%\def\CDR@Debug { \use_none:n }
-%\ExplSyntaxOff\makeatother
-%\input{Tests/CDRBlock}
+\section{\texttt{CDRBlock}}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/CDRBlock}
 %
 %\section{\texttt{cache}}
 %\makeatletter\ExplSyntaxOn
@@ -134,6 +134,6 @@ Path=\l_CDR_tl\\
 %\def\CDR@Debug { \use_none:n }
 %\ExplSyntaxOff\makeatother
 %\input{Tests/exportB,C,D}
-%
-%\end{document}
-%
+
+\end{document}
+

@@ -87,6 +87,10 @@ class FVOpts(BaseOpts):
   linenosep = '0pt'
   commentchar = ''
   frame = 'none'
+  framerule = '0.4pt',
+  framesep = r'\fboxsep',
+  rulecolor = 'black',
+  fillcolor = '',
   label = ''
   labelposition = 'none'
   numbers = 'left'

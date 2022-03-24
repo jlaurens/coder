@@ -292,7 +292,7 @@ and the derived files           \jobname.ins,
 %
 % The file \url{coder-manual.pdf} gives different examples. Here is the implementation of the package.
 %
-% This \LaTeX{} package requires \LuaTeX{} and may use syntax coloring based on \pkg{pygments}.
+% This \LaTeX{} package requires \LuaTeX{} and may use syntax coloring based on the \pkg{pygments}\footnote{The \pkg{\jobname} package has been tested with \pkg{pygments} version 2.11.2} package.
 % \end{abstract}
 %
 % \section{Package dependencies}
@@ -322,23 +322,6 @@ and the derived files           \jobname.ins,
 % \end{documentation}
 % 
 % \begin{implementation}
-%
-% \section{Namespace and conventions}
-% \LaTeX{} identifiers related to \pkg{\jobname} start with |CDR|,
-% including both commands and evironment.
-% \pkg{expl3} identifiers also start with |CDR|, after and eventual leading |c_|, |l_| or |g_|.
-% \pkg{l3keys} module path's first component is either |CDR|
-% or starts with |CDR@|.
-%
-% \lua{} objects (functions and variables) are collected
-% in the \texttt{CDR} table automatically created
-% while loading \CDRLua{} from \CDRSty{}.
-%
-% The |c| argument specifier is used here in a more general acception.
-% Normaly , it means that the argument is turned to a command sequence name.
-% Here, it means that the argument is part of something bigger
-% which is turned to a command sequence name.
-% As such, there is no need to explictly expand such an argument.
 %
 % \section{Presentation}
 % \pkg{\jobname} is a triptych of three complementary components
@@ -417,9 +400,26 @@ and the derived files           \jobname.ins,
 % Each processed code chunk has a list of associate tags.
 % Most tag inherits from default ones.
 %
+% \section{Namespace and conventions}
+% \LaTeX{} identifiers related to \pkg{\jobname} start with |CDR|,
+% including both commands and evironment.
+% \pkg{expl3} identifiers also start with |CDR|, after and eventual leading |c_|, |l_| or |g_|.
+% \pkg{l3keys} module path's first component is either |CDR|
+% or starts with |CDR@|.
+%
+% \lua{} objects (functions and variables) are collected
+% in the \texttt{CDR} table automatically created
+% while loading \CDRLua{} from \CDRSty{}.
+%
+% The |c| argument specifier is used here in a more general acception.
+% Normaly , it means that the argument is turned to a command sequence name.
+% Here, it means that the argument is part of something bigger
+% which is turned to a command sequence name.
+% As such, there is no need to explictly expand such an argument.
+%
 % \section{Options}
-% Key-value options allow the user, \CDRSty{}, \CDRLua{} and CDRPy{} to exchange
-% data. What the user is allowed to do is detailed in \url{coder-manual.pdf}.
+% Key-value options allow the user, \CDRSty{}, \CDRLua{} and \CDRPy{} to exchange
+% data. What the user is allowed to do is illustrated in \url{coder-manual.pdf}.
 %
 % \subsection{\pkg{fancyvrb}}
 % These are \pkg{fancyvrb} options verbatim.
@@ -1537,6 +1537,10 @@ class FVOpts(BaseOpts):
   linenosep = '0pt'
   commentchar = ''
   frame = 'none'
+  framerule = '0.4pt',
+  framesep = r'\fboxsep',
+  rulecolor = 'black',
+  fillcolor = '',
   label = ''
   labelposition = 'none'
   numbers = 'left'
@@ -2128,11 +2132,12 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 % \end{function}
-% \begin{variable}{\CDR@int.default, \CDR@int.<tag name>}
+% \begin{variable}{default, __, __line}
 % Generic and named line number counter.
 %    \begin{MacroCode}[OK]
 \CDR_int_new:cn { default } { 1 }
 \CDR_int_new:cn { __ } { 1 }
+\CDR_int_new:cn { __line } { 1 }
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -3026,7 +3031,7 @@ if __name__ == '__main__':
         \CDR_tag_keys_inherit:nn { ##1 } {
           __pygments, __pygments.block,
           default.block, default.code, default,
-          __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all,
+          __fancyvrb, __fancyvrb.block, __fancyvrb.frame, __fancyvrb.number, __fancyvrb.all,
         }
         \CDR_tag_keys_define:nn { } {
           ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ####1 },
@@ -3535,33 +3540,13 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \subsubsection{\texttt{__fancyvrb.block} \pkg{l3keys} module}
+% \subsubsection{\texttt{__fancyvrb.frame} \pkg{l3keys} module}
 %
-% Block specific options, except numbering.
+% Block specific options, frame related.
 %    \begin{MacroCode}[OK]
-\regex_const:Nn \c_CDR_integer_regex { ^(+|-)?\d+$ } \use_none:n { $ }
-\CDR_tag_keys_define:nn { __fancyvrb.block } {
+\CDR_tag_keys_define:nn { __fancyvrb.frame } {
 %    \end{MacroCode}
 % \begin{description}
-% \itemtt[\CDRCheckRed commentchar=\meta{character}]^^A
-% lines starting with this character are ignored.
-% Initially empty.
-%    \begin{MacroCode}[OK]
-  commentchar .code:n = \CDR_tag_set:,
-  commentchar .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed gobble=\meta{integer}]^^A
-% number of characters to suppress
-% at the beginning of each line (from 0 to 9),
-% mainly useful when environments are indented.
-% Only |block| mode.
-%    \begin{MacroCode}[OK]
-  gobble .choices:nn = {
-    0,1,2,3,4,5,6,7,8,9
-  } {
-    \CDR_tag_choices_set:
-  },
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed frame=none$\vert$leftline$\vert$topline$\vert$bottomline$\vert$lines$\vert$single]^^A
 % type of frame around the verbatim environment.
 % With \texttt{leftline} and \texttt{single} modes, a space of a length given
@@ -3628,6 +3613,55 @@ if __name__ == '__main__':
     { none, topline, bottomline, all }
     { \CDR_tag_choices_set: },
 %    \end{MacroCode}
+% \itemtt[\CDRCheckGreen __initialize]^^A
+% Initialization.
+%    \begin{MacroCode}[OK]
+  __initialize .meta:n = {
+    frame = none,
+    framerule = 0.4pt,
+    framesep = \fboxsep,
+    rulecolor = black,
+    fillcolor = ,
+    label = ,
+    labelposition = none,% auto?
+  },
+  __initialize .value_forbidden:n = true,
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[OK]
+}
+\AtBeginDocument{
+  \CDR_tag_keys_set:nn { __fancyvrb.frame } { __initialize }
+}
+%    \end{MacroCode}
+%
+% \subsubsection{\texttt{__fancyvrb.block} \pkg{l3keys} module}
+%
+% Block specific options, except numbering.
+%    \begin{MacroCode}[OK]
+\regex_const:Nn \c_CDR_integer_regex { ^(+|-)?\d+$ } \use_none:n { $ }
+\CDR_tag_keys_define:nn { __fancyvrb.block } {
+%    \end{MacroCode}
+% \begin{description}
+% \itemtt[\CDRCheckRed commentchar=\meta{character}]^^A
+% lines starting with this character are ignored.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  commentchar .code:n = \CDR_tag_set:,
+  commentchar .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed gobble=\meta{integer}]^^A
+% number of characters to suppress
+% at the beginning of each line (from 0 to 9),
+% mainly useful when environments are indented.
+% Only |block| mode.
+%    \begin{MacroCode}[OK]
+  gobble .choices:nn = {
+    0,1,2,3,4,5,6,7,8,9
+  } {
+    \CDR_tag_choices_set:
+  },
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed baselinestretch=auto$\vert$\meta{dimension}]^^A
 % value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
 % Initially \texttt{auto}: its current value just before the verbatim command.
@@ -3685,9 +3719,6 @@ if __name__ == '__main__':
   __initialize .meta:n = {
     commentchar = ,
     gobble = 0,
-    frame = none,
-    label = ,
-    labelposition = none,% auto?
     baselinestretch = auto,
     resetmargins = true,
     xleftmargin = 0pt,
@@ -3903,7 +3934,7 @@ if __name__ == '__main__':
 %
 % \subsection{Implementation}
 %
-% \begin{function}{\CDR_block_preflight:n}
+% \begin{function}{\CDRBlock_preflight:n}
 % \begin{syntax}
 % \cs{CDR_set_preflight:n} \Arg{CDR@Set kv list}
 % \end{syntax}
@@ -3921,7 +3952,7 @@ if __name__ == '__main__':
   \clist_map_inline:nn {
     __pygments, __pygments.block,
     default.block, default.code, default,
-    __fancyvrb, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
+    __fancyvrb, __fancyvrb.frame, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
     \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.1:##1/\l_CDR_kv_clist/ }
@@ -4295,28 +4326,28 @@ if __name__ == '__main__':
 %
 % \section{Creating display engines}
 % \subsection{Utilities}
-% \begin{function}[EXP]{\CDR_code_engine:c, \CDR_code_engine:V, \CDR_block_engine:c, \CDR_block_engine:V}
+% \begin{function}[EXP]{\CDRCodeengine:c, \CDRCodeengine:V, \CDRBlock_engine:c, \CDRBlock_engine:V}
 % \begin{syntax}
-% \cs{CDR_code_engine:c} \Arg{engine name}
-% \cs{CDR_block_engine:c} \Arg{engine name}
+% \cs{CDRCodeengine:c} \Arg{engine name}
+% \cs{CDRBlock_engine:c} \Arg{engine name}
 % \end{syntax}
-% |\CDR_code_engine:c| builds a command sequence name
+% |\CDRCodeengine:c| builds a command sequence name
 % based on \metatt{engine name}.
-% |\CDR_block_engine:c| builds an environment name
+% |\CDRBlock_engine:c| builds an environment name
 % based on \metatt{engine name}.
 %\end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_code_engine:c #1 {
+\cs_new:Npn \CDRCodeengine:c #1 {
   CDR@colored/code/#1:nn
 }
-\cs_new:Npn \CDR_block_engine:c #1 {
+\cs_new:Npn \CDRBlock_engine:c #1 {
   CDR@colored/block/#1
 }
-\cs_new:Npn \CDR_code_engine:V {
-  \exp_args:NV \CDR_code_engine:c
+\cs_new:Npn \CDRCodeengine:V {
+  \exp_args:NV \CDRCodeengine:c
 }
-\cs_new:Npn \CDR_block_engine:V {
-  \exp_args:NV \CDR_block_engine:c
+\cs_new:Npn \CDRBlock_engine:V {
+  \exp_args:NV \CDRBlock_engine:c
 }
 %    \end{MacroCode}
 %
@@ -4357,7 +4388,7 @@ if __name__ == '__main__':
       { coder }
       { The~engine~cannot~be~void. }
   } {
-    \cs_new:cpn { \CDR_code_engine:c {#1} } ##1 ##2 {
+    \cs_new:cpn { \CDRCodeengine:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
@@ -4374,8 +4405,8 @@ if __name__ == '__main__':
       { The~engine~cannot~be~void. }
       \use_none:n
   } {
-    \cs_if_exist:cTF { \CDR_code_engine:c { #1 } } {
-      \cs_set:cpn { \CDR_code_engine:c { #1 } } ##1 ##2 {
+    \cs_if_exist:cTF { \CDRCodeengine:c { #1 } } {
+      \cs_set:cpn { \CDRCodeengine:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
         #2
       }
@@ -4406,7 +4437,7 @@ if __name__ == '__main__':
     \CDR_tag_set:cn { engine } { default }
   }
   \exp_args:Nnx
-  \use:c { \CDR_code_engine:c { \CDR_tag_get:c { engine } } } {
+  \use:c { \CDRCodeengine:c { \CDR_tag_get:c { engine } } } {
     \CDR_tag_get:c { \CDR_tag_get:c { engine }~engine~options },
     \CDR_tag_get:c { engine~options }
   } {
@@ -4432,7 +4463,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRBlockEngineNew { mm } {
-  \NewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
+  \NewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { m } {
     \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
     #2
   }
@@ -4446,7 +4477,7 @@ if __name__ == '__main__':
       { The~engine~cannot~be~void. }
       \use_none:n
   } {
-    \RenewDocumentEnvironment { \CDR_block_engine:c { #1 } } { m } {
+    \RenewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { m } {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
@@ -4454,7 +4485,7 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDR_block_engine_begin:, \CDR@BlockEngineEnd}
+% \begin{function}{\CDRBlock_engine_begin:, \CDR@BlockEngineEnd}
 % \begin{syntax}
 % \cs{CDR@BlockEngineBegin}
 % \cs{CDR@BlockEngineEnd}
@@ -4464,7 +4495,7 @@ if __name__ == '__main__':
 % This does not start a new group.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new:Npn \CDR_block_engine_begin: {
+\cs_new:Npn \CDRBlock_engine_begin: {
   \CDR_if_block_engine:cF { \CDR_tag_get:c { engine } } {
     \PackageError
       { coder }
@@ -4473,13 +4504,13 @@ if __name__ == '__main__':
     \CDR_tag_set:cn { engine } { default }
   }
   \exp_args:Nnx
-  \use:c { \CDR_block_engine:c \CDR_tag_get:c { engine } } {
+  \use:c { \CDRBlock_engine:c \CDR_tag_get:c { engine } } {
     \CDR_tag_get:c { \CDR_tag_get:c { engine }~engine~options },
     \CDR_tag_get:c { engine~options },
   }
 }
-\cs_new:Npn \CDR_block_engine_end: {
-  \use:c { end \CDR_block_engine:c \CDR_tag_get:c { engine } }
+\cs_new:Npn \CDRBlock_engine_end: {
+  \use:c { end \CDRBlock_engine:c \CDR_tag_get:c { engine } }
 }
 %    \begin{MacroCode}
 %
@@ -4495,14 +4526,14 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDR_if_code_engine:c { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_code_engine:c { #1 } } {
+  \cs_if_exist:cTF { \CDRCodeengine:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
 \prg_new_conditional:Nnn \CDR_if_code_engine:V { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_code_engine:V #1 } {
+  \cs_if_exist:cTF { \CDRCodeengine:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -4518,14 +4549,14 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDR_if_block_engine:c { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_block_engine:c { #1 } } {
+  \cs_if_exist:cTF { \CDRBlock_engine:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
 \prg_new_conditional:Nnn \CDR_if_block_engine:V { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDR_block_engine:V #1 } {
+  \cs_if_exist:cTF { \CDRBlock_engine:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -4629,9 +4660,9 @@ if __name__ == '__main__':
 %
 % \subsection{Implementation}
 %
-% \begin{function}{\CDR_code_format:}
+% \begin{function}{\CDRCodeformat:}
 % \begin{syntax}
-% \cs{CDR_code_format:}
+% \cs{CDRCodeformat:}
 % \end{syntax}
 % Private utility to setup the formatting.
 % \end{function}
@@ -4640,7 +4671,7 @@ if __name__ == '__main__':
   \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
 }
 \cs_generate_variant:Nn \CDR_brace_if_contains_comma:n { V }
-\cs_new:Npn \CDR_code_format: {
+\cs_new:Npn \CDRCodeformat: {
   \frenchspacing
   \CDR_tag_get:cN { baselinestretch } \l_CDR_tl
   \str_if_eq:VnF \l_CDR_tl { auto } {
@@ -4667,14 +4698,14 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDR_code:n}
+% \begin{function}{\CDRCode:n}
 % \begin{syntax}
-% \cs{CDR_code:n} \meta{delimiter}
+% \cs{CDRCode:n} \meta{delimiter}
 % \end{syntax}
 % Main utility used by |\CDRCode|.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_code:n #1 {
+\cs_new:Npn \CDRCode:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
     \cs_set:Npn \CDR@StyleUseTag {
       \CDR@StyleUse { \CDR_tag_get:c { style } }
@@ -4704,7 +4735,7 @@ if __name__ == '__main__':
         \FV@DefineWhiteSpace
         \FancyVerbDefineActive
         \FancyVerbFormatCom
-        \CDR_code_format:
+        \CDRCodeformat:
         \CDR@DefineSp
         \CDR_tag_get:c { format }
         \CDR@CodeEngineApply {
@@ -4768,9 +4799,9 @@ if __name__ == '__main__':
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, default.code, __pygments, default, __fancyvrb,
   }
-  \CDR_code:n
+  \CDRCode:n
 }
-\cs_set:Npn \CDR_code:n #1 {
+\cs_set:Npn \CDRCode:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
     \CDR_tag_keys_inherit:nn { __local } {
       __fancyvrb,
@@ -4799,7 +4830,7 @@ if __name__ == '__main__':
         \FancyVerbDefineActive
         \FancyVerbFormatCom
         \CDR@DefineSp
-        \CDR_code_format:
+        \CDRCodeformat:
         \CDR_tag_get:c { format }
         \CDR@CodeEngineApply {
           \CDR@StyleIfExist { \CDR_tag_get:c {style} } {
@@ -4862,7 +4893,7 @@ if __name__ == '__main__':
     __code, default.code, __pygments, default, __fancyvrb,
   }
   \fvset{showspaces}
-  \CDR_code:n
+  \CDRCode:n
 }
 %    \end{MacroCode}
 %
@@ -4928,7 +4959,12 @@ if __name__ == '__main__':
 % \subsubsection{Storage}
 %
 % \begin{variable}{__start, __step, __last }
-% For the line numbering, these are standard loop integer controls.
+% For the line numbering, these are loop integer controls.
+% \begin{description}
+% \itemtt[__start] for the first index
+% \itemtt[__step] for the step, defaults to 1
+% \itemtt[__last] for the last index, included
+% \end{description}
 %    \begin{MacroCode}[OK]
 \CDR_int_new:cn { __start } { 0 }
 \CDR_int_new:cn { __step  } { 0 }
@@ -4946,15 +4982,15 @@ if __name__ == '__main__':
   \cs_set_eq:cc { CDR@ListProcessLine@ #1 } { FV@ListProcessLine@ #1 }
 }
 %    \end{MacroCode}
-% \begin{function}{\CDR_block_preflight:n}
+% \begin{function}{\CDRBlock_preflight:n}
 % \begin{syntax}
-% \cs{CDR_block_preflight:n} \Arg{CDR@Block kv list}
+% \cs{CDRBlock_preflight:n} \Arg{CDR@Block kv list}
 % \end{syntax}
 % This is a prefligh hook intended for testing.
 % The default implementation does nothing.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new:Npn \CDR_block_preflight:n #1 { }
+\cs_new:Npn \CDRBlock_preflight:n #1 { }
 %    \end{MacroCode}
 %
 % \subsubsection{Main environment}
@@ -4966,7 +5002,7 @@ if __name__ == '__main__':
 \cs_new:Npn \FVB@CDRBlock {
   \@bsphack
   \group_begin:
-  \exp_args:NV \CDR_block_preflight:n \FV@KeyValues
+  \exp_args:NV \CDRBlock_preflight:n \FV@KeyValues
 %    \end{MacroCode}
 % Set the |\CDR_if_block[_p]:...| conditional family.
 %    \begin{MacroCode}
@@ -4980,7 +5016,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
   \CDR_tag_keys_set:nn { __block } { __initialize }
   \CDR_tag_keys_inherit:nn { __local } {
-    __block, __pygments.block, default.block, __fancyvrb.block,
+    __block, __pygments.block, default.block, __fancyvrb.block, __fancyvrb.frame,
     __pygments, default, __fancyvrb,  __fancyvrb.number
   }
   \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
@@ -4988,24 +5024,20 @@ if __name__ == '__main__':
   \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
 \CDR@Debug{CDRBlock.KV1:\l_CDR_kv_clist}
 %    \end{MacroCode}
-% This is done by |\CDR_block_setup_tags:|. Once the list of tags is established,
+% This is done by |\CDRBlock_setup_tags:|. Once the list of tags is established,
 % \CDRLua{} is setup accordingly.
 %    \begin{MacroCode}
-  \CDR_block_setup_tags:
+  \CDRBlock_setup_tags:
   \lua_now:n {
     CDR:hilight_block_setup('g_CDR_tags_clist')
   }
 %    \end{MacroCode}
 % |\l_CDR_pyg_bool| is |true| iff one of the tags needs \pkg{pygments} or there is no tag and |pygments=true| was given.
 %    \begin{MacroCode}
-  \CDR_set_conditional:Nnnn \CDR_if_pygments:
+  \CDR_set_conditional:Nn \CDR_if_pygments:
     { \CDR_tag_if_truthy_p:c { pygments } }
-    { \prg_return_true:  }
-    { \prg_return_false: }
-  \CDR_set_conditional:Nnnn \CDR_if_no_export:
+  \CDR_set_conditional:Nn \CDR_if_no_export:
     { \CDR_tag_if_truthy_p:c { no~export } }
-    { \prg_return_true:  }
-    { \prg_return_false: }
 %    \end{MacroCode}
 % \begin{function}[EXP,pTF]{\CDR_if_number_on:}
 % \begin{syntax}
@@ -5015,10 +5047,8 @@ if __name__ == '__main__':
 % \metatt{false code} otherwise.
 % \end{function}
 %    \begin{MacroCode}
-  \CDR_set_conditional:Nnnn \CDR_if_number_on:
-    { \CDR_tag_if_eq_p:cn { numbers } { none } }
-    { \prg_return_false: }
-    { \prg_return_true: }
+  \CDR_set_conditional:Nn \CDR_if_number_on:
+    { ! \CDR_tag_if_eq_p:cn { numbers } { none } }
 %    \end{MacroCode}
 % \begin{function}[EXP,pTF]{\CDR_tags_if_already:}
 % \begin{syntax}
@@ -5028,15 +5058,14 @@ if __name__ == '__main__':
 % \meta{false code} otherwise.
 % \end{function}
 %    \begin{MacroCode}
-  \CDR_set_conditional:Nnnn \CDR_tags_if_already: {
+  \CDR_set_conditional:Nn \CDR_tags_if_already: {
     \CDR_tag_if_truthy_p:c { only~top } &&
     \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
-  } { \prg_return_true:  }
-    { \prg_return_false: }
+  }
 %    \end{MacroCode}
 % And we can setup the engine,
 %    \begin{MacroCode}
-  \CDR_block_engine_begin:
+  \CDRBlock_engine_begin:
 %    \end{MacroCode}
 % That end the common part, we now branch according to \pkg{pygments} used.
 %    \begin{MacroCode}
@@ -5059,7 +5088,7 @@ if __name__ == '__main__':
   } {
     \endCDRBlock@FV
   }
-  \CDR_block_engine_end:
+  \CDRBlock_engine_end:
   \lua_now:n {
     CDR:hilight_block_teardown()
   }
@@ -5174,12 +5203,17 @@ if __name__ == '__main__':
   tabsize,% = 2,
   defineactive,% = ,
   reflabel,% = ,
+% __fancyvrb.frame:
+  frame,% = none,
+  framerule,% = 0.4pt,
+  framesep,% = \fboxsep,
+  rulecolor,% = black,
+  fillcolor,% = ,
+  label,% = ,
+  labelposition,% = none,% auto?
 % __fancyvrb.block:
 %  commentchar,% = ,
 %  gobble,% = 0,
-  frame,% = none,
-  label,% = ,
-  labelposition,% = none,% auto?
   baselinestretch,% = auto,
   resetmargins,% = true,
   xleftmargin,% = 0pt,
@@ -5316,15 +5350,18 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \paragraph{Boxes}
-%
-%
-% \begin{function}{\CDR_line_[LRNA]_[LRN]:nn}
+% \paragraph{Boxes for lines}
+% The first index is for the tags (|L|, |R|, |N|, |A|, |M|),
+% the second for the numbers (|L|, |R|, |N|).
+% |L| stands for left, |R| stands for right, |N| stands for nothing,
+% |S| stands for same side as numbers, |O| stands for opposite side of numbers.
+% 
+% \begin{function}{\CDR_line_[LRNSO]_[LRN]:nn}
 % \begin{syntax}
-% \cs{CDR_line_[LRNA]_[LRN]:nn} \Arg{line number} \Arg{line content}
+% \cs{CDR_line_[LRNSO]_[LRN]:nn} \Arg{line number} \Arg{line content}
 % \end{syntax}
 % These functions may be called by |\CDR_line:nn| on each block.
-% |LRNA| corresponds to the |show tags| options
+% |LRNSO| corresponds to the |show tags| options
 % whereas |LRN| corresponds to the |numbers| options.
 % These functions display the first line and setup the next one.
 % \end{function}
@@ -5344,13 +5381,13 @@ if __name__ == '__main__':
   \CDR_line_box:nnn { } { #1 } { \CDR_info_T_R:n { } }
 }
 
-\cs_new:Npn \CDR_line_A_N:n {
-\CDR@Debug {Debug.CDR_line_A_N:n}
+\cs_new:Npn \CDR_line_S_N:n {
+\CDR@Debug {Debug.CDR_line_S_N:n}
   \CDR_line_box_N:n
 }
 
-\cs_new:Npn \CDR_line_M_N:n {
-\CDR@Debug {STEP:CDR_line_M_N:n}
+\cs_new:Npn \CDR_line_O_N:n {
+\CDR@Debug {STEP:CDR_line_O_N:n}
   \CDR_line_box_N:n
 }
 
@@ -5424,8 +5461,8 @@ if __name__ == '__main__':
   }
 }
 
-\cs_set_eq:NN \CDR_line_A_L:n \CDR_line_L_L:n
-\cs_set_eq:NN \CDR_line_M_L:n \CDR_line_R_L:n
+\cs_set_eq:NN \CDR_line_S_L:n \CDR_line_L_L:n
+\cs_set_eq:NN \CDR_line_O_L:n \CDR_line_R_L:n
 
 \cs_new:Npn \CDR_line_N_R:n {
 \typeout {STEP:CDR_line_N_R:n}
@@ -5445,8 +5482,8 @@ if __name__ == '__main__':
   }
 }
 
-\cs_set_eq:NN \CDR_line_A_R:n \CDR_line_R_R:n
-\cs_set_eq:NN \CDR_line_M_R:n \CDR_line_L_R:n
+\cs_set_eq:NN \CDR_line_S_R:n \CDR_line_R_R:n
+\cs_set_eq:NN \CDR_line_O_R:n \CDR_line_L_R:n
 
 
 \cs_new:Npn \CDR_line_box_N:n #1 {
@@ -5513,7 +5550,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \cs_new:Npn \CDR@Line {
 \CDR@Debug {STEP0}
-  \peek_meaning_ignore_spaces:NTF [ { \CDR_line:nnn } { 
+  \peek_meaning_ignore_spaces:NTF [ { \CDR@Line: } { 
     \PackageError { code } { Missing~`['~at~first~\CDR@Line~call }
   }
 }
@@ -5525,7 +5562,9 @@ if __name__ == '__main__':
 % This is the very first command called when typesetting.
 % Some setup are made for line numbering, in particular the |\CDR_if_visible_at_index:n...|
 % family is set here.
-% The first line of the |...pyg.tex| files must read |\CDR@Line[last=...]{1}{...}|.
+% The first line must read |\CDR@Line[last=...]{1}{...}|,
+% be it input from any |...pyg.tex| files or directly,
+% like for \pkg{fancyvrb} usage.
 % \end{function}
 %    \begin{MacroCode}
 \keys_define:nn { CDR@Line } {
@@ -5606,41 +5645,25 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %    \begin{MacroCode}
     \CDR_int_compare:cNnTF { __step } < 2 {
-      \tl_set:Nn \l_CDR_tl {
-        \CDR_int_compare:cNnTF { __last } < { ##1 } {
-          \prg_return_false:
-        } {
-          \prg_return_true:
-        }
-      }
       \CDR_int_set:cn { __step } { 1 }
+      \CDR_set_conditional:Nnnn \CDR_if_number_visible:n {
+        ! \CDR_int_compare_p:cNn { __last } < { ##1 }
+      } { \prg_return_true: } { \prg_return_false: }
     } {
-      \tl_set:Nn \l_CDR_tl {
-        \bool_if:nTF {
-          \int_compare_p:nNn {
-            ( ##1 ) / \CDR_int:c { __step } * \CDR_int:c { __step }
-          } = { ##1 }
-          && ! \CDR_int_compare_p:cNn { __last } < { ##1 }
-        } {
-          \prg_return_true:
-        } {
-          \prg_return_false:
-        }
-      }
+      \CDR_set_conditional:Nnnn \CDR_if_number_visible:n {
+        \int_compare_p:nNn {
+          ( ##1 ) / \CDR_int:c { __step } * \CDR_int:c { __step }
+        } = { ##1 }
+        && ! \CDR_int_compare_p:cNn { __last } < { ##1 }
+      } { \prg_return_true: } { \prg_return_false: }
     }
-    \exp_args:NNnV
-    \prg_set_conditional:Nnn \CDR_if_number_visible:n { p, T, F, TF } \l_CDR_tl
 %    \end{MacroCode}
 %    \begin{MacroCode}
-    \CDR_int_compare:cNnTF { __start } > {
-      \CDR_int:c { __last } / \CDR_int:c { __step } * \CDR_int:c { __step }
-    } {
-      \tl_set:Nn \l_CDR_tl { \prg_return_true: }
-    } {
-      \tl_set:Nn \l_CDR_tl { \prg_return_false: }
+    \CDR_set_conditional:Nn \CDR_if_no_number: {
+      \CDR_int_compare_p:cNnTF { __start } > {
+        \CDR_int:c { __last } / \CDR_int:c { __step } * \CDR_int:c { __step }
+      }
     }
-    \exp_args:NNnV 
-    \prg_set_conditional:Nnn \CDR_if_no_number:  { p, T, F, TF } \l_CDR_tl
     \cs_set:Npn \CDR@Line ##1 {
       \CDR_int_set:cn { __ } { ##1 + \CDR_int:c { __start } - #2 }
       \CDR@@Line
@@ -5651,7 +5674,7 @@ if __name__ == '__main__':
       \CDR@@Line
     }
   }
-\CDR@Debug {STEP_A, \CDR_int_use:c {__step}, \CDR_int_use:c {__last} }
+\CDR@Debug {STEP_S, \CDR_int_use:c {__step}, \CDR_int_use:c {__last} }
 %    \end{MacroCode}
 % Convenient method to branch whether one line number will be displayed or not,
 % considering the stepping.
@@ -5674,8 +5697,8 @@ if __name__ == '__main__':
       { left  } { \tl_put_right:Nn \l_CDR_tl { _L } }
       { right } { \tl_put_right:Nn \l_CDR_tl { _R } }
       { none  } { \tl_put_right:Nn \l_CDR_tl { _N } }
-      { numbers } { \tl_put_right:Nn \l_CDR_tl { _A } }
-      { mirror  } { \tl_put_right:Nn \l_CDR_tl { _M } }
+      { numbers } { \tl_put_right:Nn \l_CDR_tl { _S } }
+      { mirror  } { \tl_put_right:Nn \l_CDR_tl { _O } }
     } { \PackageError
           { coder }
           { Unknown~show~tags~options~:~ \CDR_tag_get:c { show~tags } }
@@ -5798,12 +5821,17 @@ if __name__ == '__main__':
   tabsize,% = 2,
   defineactive,% = ,
   reflabel,% = ,
+% __fancyvrb.frame:
+  frame,% = none,
+  framerule,% = 0.4pt,
+  framesep,% = \fboxsep,
+  rulecolor,% = black,
+  fillcolor,% = ,
+  label,% = ,
+  labelposition,% = none,% auto?
 % __fancyvrb.block:
 %  commentchar,% = ,
   gobble,% = 0,
-  frame,% = none,
-  label,% = ,
-  labelposition,% = none,% auto?
   baselinestretch,% = auto,
   resetmargins,% = true,
   xleftmargin,% = 0pt,
@@ -5811,7 +5839,7 @@ if __name__ == '__main__':
   hfuzz,% = 2pt,
   samepage,% = false,
 % __fancyvrb.number
-  numbers,% = left,
+  numbers,% = none,
   numbersep,% = 1ex,
   firstnumber,% = auto,
   stepnumber,% = 1,
@@ -5825,21 +5853,36 @@ if __name__ == '__main__':
 %
 % This is put aside for better clarity.
 %
-% \begin{function}{\CDR_set_conditional:Nnnn}
+% \begin{function}{\CDR_set_conditional:Nn}
 % \begin{syntax}
-% \cs{CDR_set_conditional:Nnnn} \meta{core name} \Arg{condition} \Arg{true code} \Arg{false code}
+% \cs{CDR_set_conditional:Nn} \meta{core name} \Arg{condition}
 % \end{syntax}
 % Wrapper over |\prg_set_conditional:Nnn|.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new:Npn \CDR_set_conditional:Nnnn #1 #2 #3 #4 {
+\cs_new:Npn \CDR_set_conditional:Nn #1 #2 {
   \bool_if:nTF { #2 } {
-    \prg_set_conditional:Nnn #1 { p, T, F, TF } { #3 }
+    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_true: }
   } {
-    \prg_set_conditional:Nnn #1 { p, T, F, TF } { #4 }
+    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_false: }
   }
 }
 %    \end{MacroCode}
+%
+% \begin{function}{\CDR_set_conditional_alt:Nn}
+% \begin{syntax}
+% \cs{CDR_set_conditional_alt:Nnnn} \meta{core name} \Arg{condition}
+% \end{syntax}
+% Wrapper over |\prg_set_conditional:Nnn|.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_set_conditional_alt:Nn #1 #2 {
+  \prg_set_conditional:Nnn #1 { p, T, F, TF } {
+    \bool_if:nTF { #2 } { \prg_return_true: } { \prg_return_false: }
+  }
+}
+%    \end{MacroCode}
+%
 % \begin{function}{\CDR_if_middle_column:, \CDR_if_right_column:}
 % \begin{syntax}
 % \cs{CDR_int_if_middle_column:TF} \Arg{true code} \Arg{false code}
@@ -5875,7 +5918,7 @@ if __name__ == '__main__':
   }
 }
 %    \end{MacroCode}
-% \begin{function}{\CDR_block_setup_tags:}
+% \begin{function}{\CDRBlock_setup_tags:}
 % Utility to setup the tags and the tag inheritance tree.
 % When not provided explicitly with the |tags=...| user interface,
 % a code chunk will have the list of tags stored in |\g_CDR_tags_clist|
@@ -5883,7 +5926,7 @@ if __name__ == '__main__':
 % At least one tag must be provided, either implicitly or explicitly.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new_protected:Npn \CDR_block_setup_tags: {
+\cs_new_protected_nopar:Npn \CDRBlock_setup_tags: {
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
     \CDR_tag_get:cN { tags } \l_CDR_clist
     \clist_if_empty:NF \l_CDR_clist {
@@ -5895,13 +5938,13 @@ if __name__ == '__main__':
       { coder }
       { No~(default)~tags~provided. }
   }
-\CDR@Debug {CDR_block_setup_tags:\space\g_CDR_tags_clist}
+\CDR@Debug {CDRBlock_setup_tags:\space\g_CDR_tags_clist}
 %    \end{MacroCode}
 % Setup the inheritance tree for the |\CDR_tag_get:...| related functions.
 %    \begin{MacroCode}
   \CDR_tag_inherit:cf { __local } {
     \g_CDR_tags_clist,
-    __block, default.block, __pygments.block, __fancyvrb.block, __fancyvrb.number,
+    __block, default.block, __pygments.block, __fancyvrb.block __fancyvrb.frame, __fancyvrb.number,
      __pygments, default, __fancyvrb,
   }
 %    \end{MacroCode}
