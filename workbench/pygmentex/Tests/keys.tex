@@ -52,6 +52,11 @@ Tests of keys
 }
 \clist_map_inline:nn {
     tags,% = ,
+    __initialize
+} {
+  \@CDR@TEST { __tags } { #1 }
+}
+\clist_map_inline:nn {
     show~tags,% = numbers,
     only~top,% = true,
     use~margin,% = true,
@@ -85,11 +90,20 @@ Tests of keys
   \@CDR@TEST { __fancyvrb } { #1 }
 }
 \clist_map_inline:nn {
-    commentchar,% = ,
-    gobble,% = 0,
     frame,% = none,
+    framerule,% = 0.4pt,
+    framesep,% = \fboxsep,
+    rulecolor,% = black,
+    fillcolor,% = ,
     label,% = ,
     labelposition,% = none,% auto?
+    __initialize
+} {
+  \@CDR@TEST { __fancyvrb.frame } { #1 }
+}
+\clist_map_inline:nn {
+    commentchar,% = ,
+    gobble,% = 0,
     baselinestretch,% = auto,
     resetmargins,% = true,
     xleftmargin,% = 0pt,

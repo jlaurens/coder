@@ -479,7 +479,8 @@
 \exp_args:NNV
 \regex_const:Nn \c_CDR_provide_regex \l_CDR_tl
 \regex_const:Nn \c_CDR_engine_regex { ^[^/]+\sengine\soptions$ } \use_none:n { $ }
-\cs_new:Npn \CDR_tag_provide:n #1 {
+\cs_new_protected_nopar:Npn \CDR_tag_provide:n #1 {
+\CDR@Debug { \string\CDR_tag_provide:n: #1 }
   \exp_args:NNf
   \regex_extract_once:NnNTF \c_CDR_provide_regex {
     \CDR_tag_module:n { .. } / #1
@@ -492,14 +493,14 @@
       \CDR_tag_keys_if_exist:nnF { } { ##1 } {
         \CDR_tag_keys_inherit:nn { ##1 } {
           __pygments, __pygments.block,
-          default.block, default.code, default,
+          default.block, default.code, default, __tags,
           __fancyvrb, __fancyvrb.block, __fancyvrb.frame, __fancyvrb.number, __fancyvrb.all,
         }
         \CDR_tag_keys_define:nn { } {
           ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ####1 },
           ##1 .value_required:n = true,
         }
-\CDR@Debug{Debug.CDR.provided:\CDR_tag_module:n {##1} = ...}
+\CDR@Debug{\string\CDR_tag_provide:n \CDR_tag_module:n {##1} = ...}
       }
       \exp_args:NnV
       \CDR_tag_keys_if_exist:nnF { ##1 } \l_CDR_tl {
@@ -514,7 +515,7 @@
           \CDR_tag_keys_define:nn { ##1 } {
             \use:n { \l_CDR_tl } .value_required:n = true,
           }
-\CDR@Debug{Debug.CDR.provided: \CDR_tag_module:n { ##1 } / \l_CDR_tl = ...}
+\CDR@Debug{\string\CDR_tag_provide:n: \CDR_tag_module:n { ##1 } / \l_CDR_tl = ...}
         }
       }
     }
@@ -524,7 +525,7 @@
         #1 .code:n = \CDR_tag_set:n { ##1 },
         #1 .value_required:n = true,
       }
-\CDR@Debug{Debug.CDR.provided.C:\CDR_tag_module:n { default } / #1 = ...}
+\CDR@Debug{\string\CDR_tag_provide:n.C:\CDR_tag_module:n { default } / #1 = ...}
     }
   }
 }
@@ -624,7 +625,7 @@
 \AtBeginDocument{
   \CDR_tag_keys_set:nn { default.code } { __initialize }
 }
-\CDR_tag_keys_define:nn { core.block } {
+\CDR_tag_keys_define:nn { __tags } {
   tags .code:n = {
     \clist_set:Nn \l_CDR_clist { #1 }
     \clist_remove_duplicates:N \l_CDR_clist
@@ -638,7 +639,7 @@
   __initialize .value_forbidden:n = true,
 }
 \AtBeginDocument{
-  \CDR_tag_keys_set:nn { core.block } { __initialize }
+  \CDR_tag_keys_set:nn { __tags } { __initialize }
 }
 \CDR_tag_keys_define:nn { default.block } {
   tags~format .code:n = \CDR_tag_set:,
@@ -855,12 +856,12 @@
 }
 \cs_new:Npn \CDR_set_preflight:n #1 { }
 \NewDocumentCommand \CDRSet { m } {
-\CDR@Debug{ Debug.CDRSet:#1/}
+\CDR@Debug{\string\CDRSet}
   \CDR_set_preflight:n { #1 }
   \keys_set_known:nnnN { CDR@Set } { #1 } { CDR@Set } \l_CDR_kv_clist
   \clist_map_inline:nn {
     __pygments, __pygments.block,
-    core.block, default.block, default.code, default,
+    __tags, default.block, default.code, default,
     __fancyvrb, __fancyvrb.frame, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
     \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
@@ -2069,7 +2070,7 @@
   }
 }
 \cs_new_protected_nopar:Npn \CDRBlock_setup_tags: {
-  \CDR_tag_keys_inherit:nn { __local } { core.block }
+  \CDR_tag_keys_inherit:nn { __local } { __tags }
   \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \FV@KeyValues
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
     \CDR_tag_get:cN { tags } \l_CDR_clist
@@ -2085,7 +2086,7 @@
 \CDR@Debug {CDRBlock_setup_tags:\space\g_CDR_tags_clist}
   \CDR_tag_inherit:cf { __local } {
     \g_CDR_tags_clist,
-    __block, core.block, default.block, __pygments.block,
+    __block, __tags, default.block, __pygments.block,
     __fancyvrb.block __fancyvrb.frame, __fancyvrb.number,
     __pygments, default, __fancyvrb,
   }

@@ -3017,7 +3017,8 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \regex_const:Nn \c_CDR_engine_regex { ^[^/]+\sengine\soptions$ } \use_none:n { $ }
-\cs_new:Npn \CDR_tag_provide:n #1 {
+\cs_new_protected_nopar:Npn \CDR_tag_provide:n #1 {
+\CDR@Debug { \string\CDR_tag_provide:n: #1 }
   \exp_args:NNf
   \regex_extract_once:NnNTF \c_CDR_provide_regex {
     \CDR_tag_module:n { .. } / #1
@@ -3030,14 +3031,14 @@ if __name__ == '__main__':
       \CDR_tag_keys_if_exist:nnF { } { ##1 } {
         \CDR_tag_keys_inherit:nn { ##1 } {
           __pygments, __pygments.block,
-          default.block, default.code, default,
+          default.block, default.code, default, __tags,
           __fancyvrb, __fancyvrb.block, __fancyvrb.frame, __fancyvrb.number, __fancyvrb.all,
         }
         \CDR_tag_keys_define:nn { } {
           ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ####1 },
           ##1 .value_required:n = true,
         }
-\CDR@Debug{Debug.CDR.provided:\CDR_tag_module:n {##1} = ...}
+\CDR@Debug{\string\CDR_tag_provide:n \CDR_tag_module:n {##1} = ...}
       }
       \exp_args:NnV
       \CDR_tag_keys_if_exist:nnF { ##1 } \l_CDR_tl {
@@ -3052,7 +3053,7 @@ if __name__ == '__main__':
           \CDR_tag_keys_define:nn { ##1 } {
             \use:n { \l_CDR_tl } .value_required:n = true,
           }
-\CDR@Debug{Debug.CDR.provided: \CDR_tag_module:n { ##1 } / \l_CDR_tl = ...}
+\CDR@Debug{\string\CDR_tag_provide:n: \CDR_tag_module:n { ##1 } / \l_CDR_tl = ...}
         }
       }
     }
@@ -3062,7 +3063,7 @@ if __name__ == '__main__':
         #1 .code:n = \CDR_tag_set:n { ##1 },
         #1 .value_required:n = true,
       }
-\CDR@Debug{Debug.CDR.provided.C:\CDR_tag_module:n { default } / #1 = ...}
+\CDR@Debug{\string\CDR_tag_provide:n.C:\CDR_tag_module:n { default } / #1 = ...}
     }
   }
 }
@@ -3328,9 +3329,9 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \subsubsection{\texttt{core.block} \pkg{l3keys} module}
+% \subsubsection{\texttt{__tags} \pkg{l3keys} module}
 %    \begin{MacroCode}[OK]
-\CDR_tag_keys_define:nn { core.block } {
+\CDR_tag_keys_define:nn { __tags } {
 %    \end{MacroCode}
 % Known keys include:
 % \begin{description}
@@ -3361,7 +3362,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
 }
 \AtBeginDocument{
-  \CDR_tag_keys_set:nn { core.block } { __initialize }
+  \CDR_tag_keys_set:nn { __tags } { __initialize }
 }
 %    \end{MacroCode}
 %
@@ -3966,12 +3967,12 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRSet { m } {
-\CDR@Debug{ Debug.CDRSet:#1/}
+\CDR@Debug{\string\CDRSet}
   \CDR_set_preflight:n { #1 }
   \keys_set_known:nnnN { CDR@Set } { #1 } { CDR@Set } \l_CDR_kv_clist
   \clist_map_inline:nn {
     __pygments, __pygments.block,
-    core.block, default.block, default.code, default,
+    __tags, default.block, default.code, default,
     __fancyvrb, __fancyvrb.frame, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
     \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
@@ -5958,7 +5959,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new_protected_nopar:Npn \CDRBlock_setup_tags: {
-  \CDR_tag_keys_inherit:nn { __local } { core.block }
+  \CDR_tag_keys_inherit:nn { __local } { __tags }
   \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \FV@KeyValues
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
     \CDR_tag_get:cN { tags } \l_CDR_clist
@@ -5977,7 +5978,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
   \CDR_tag_inherit:cf { __local } {
     \g_CDR_tags_clist,
-    __block, core.block, default.block, __pygments.block,
+    __block, __tags, default.block, __pygments.block,
     __fancyvrb.block __fancyvrb.frame, __fancyvrb.number,
     __pygments, default, __fancyvrb,
   }
