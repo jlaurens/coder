@@ -455,18 +455,21 @@
   \CDR_tag_keys_set:nn { __local }
 }
 \cs_generate_variant:Nn \CDR_local_set:n { V }
-\cs_new:Npn \CDR_tag_keys_inherit__:nnn #1 #2 #3 {
+\cs_new_protected_nopar:Npn \CDR_tag_keys_inherit__:nnn #1 #2 #3 {
   \keys_define:nn { #1 } { #2 .inherit:n = { #1 / #3 } }
 }
-\cs_new:Npn \CDR_tag_keys_inherit_:nnn #1 #2 #3 {
+\cs_new_protected_nopar:Npn \CDR_tag_keys_inherit_:nnn #1 #2 #3 {
   \exp_args:Nnx
   \use:n { \CDR_tag_keys_inherit__:nnn { #1 } { #2 } } {
     \clist_use:nn { #3 } { ,#1/ }
   }
 }
-\cs_new_protected:Npn \CDR_tag_keys_inherit:nn {
+\cs_new_protected_nopar:Npn \CDR_tag_keys_inherit:nn {
   \exp_args:Nf
   \CDR_tag_keys_inherit_:nnn { \CDR_tag_module:n { } }
+}
+\cs_new_protected_nopar:Npn \CDR_local_inherit:n {
+  \CDR_tag_keys_inherit:nn { __local }
 }
 \cs_new_protected_nopar:Npn \CDR_tag_keys_set_known__:nnN #1 #2 {
   \keys_set_known:nnnN { #1 } { #2 } { #1 }
@@ -1259,7 +1262,7 @@
       \CDR@StyleUse { \CDR_tag_get:c { style } }
       \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
     }
-    \CDR_tag_keys_inherit:nn { __local } {
+    \CDR_local_inherit:n {
       __fancyvrb,
     }
     \CDR_local_set:N \l_CDR_kv_clist
@@ -1329,13 +1332,13 @@
     \prg_return_false:
   }
   \clist_set:Nn \FV@KeyValues { #1 }
-  \CDR_tag_keys_inherit:nn { __local } {
+  \CDR_local_inherit:n {
     __code, default.code, __pygments, default,
   }
   \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_provide_from_kv:V \FV@KeyValues
   \CDR_local_set_known:N \FV@KeyValues
-  \CDR_tag_keys_inherit:nn { __local } {
+  \CDR_local_inherit:n {
     __fancyvrb,
   }
   \CDR_local_set_known:VN \FV@KeyValues \l_CDR_kv_clist
@@ -1347,7 +1350,7 @@
 }
 \cs_set:Npn \CDRCode:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
-    \CDR_tag_keys_inherit:nn { __local } {
+    \CDR_local_inherit:n {
       __fancyvrb,
     }
     \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
@@ -1486,7 +1489,7 @@
   }
   \CDR_tag_keys_set:nn { __block } { __initialize }
   \CDRBlock_setup_tags:
-  \CDR_tag_keys_inherit:nn { __local } {
+  \CDR_local_inherit:n {
     __block, __pygments.block, default.block,
     __pygments, default
   }
@@ -1494,14 +1497,14 @@
   \CDR_tag_provide_from_kv:V \FV@KeyValues
   \CDR_local_set_known:N \FV@KeyValues
  \CDR@Debug{CDRBlock.KV1:\l_CDR_kv_clist}
-  \CDR_tag_keys_inherit:nn { __local } {
+  \CDR_local_inherit:n {
     \CDR_tag_if_eq:cnF { engine } { default } {
       __fancyvrb.frame,
     },
     __fancyvrb.number,
   }
   \CDR_local_set_known:N \FV@KeyValues
-  \CDR_tag_keys_inherit:nn { __local } {
+  \CDR_local_inherit:n {
     __fancyvrb.block,
     __fancyvrb,
   }
@@ -2061,7 +2064,7 @@
   }
 }
 \cs_new_protected_nopar:Npn \CDRBlock_setup_tags: {
-  \CDR_tag_keys_inherit:nn { __local } { __tags }
+  \CDR_local_inherit:n { __tags }
   \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
     \CDR_tag_get:cN { tags } \l_CDR_clist
