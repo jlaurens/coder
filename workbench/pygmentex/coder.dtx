@@ -2988,7 +2988,7 @@ if __name__ == '__main__':
 % \begin{function}{\CDR_local_inherit:n}
 % \begin{syntax}
 % Wrapper over |\CDR_tag_keys_inherit:nn| where \metatt{tag name} is
-% given by \cs{CDR_tag_module:n{__local}}|.
+% given by \cs{CDR_tag_module:n}|{__local}|.
 % \end{syntax}
 % Set the inheritance: \metatt{tag name} inherits from each parent, which is a tag name.
 % \end{function}
@@ -4797,85 +4797,6 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRCode:n}
-% \begin{syntax}
-% \cs{CDRCode:n} \meta{delimiter}
-% \end{syntax}
-% Main utility used by |\CDRCode|.
-% \end{function}
-%    \begin{MacroCode}[OK]
-\cs_new:Npn \CDRCode:n #1 {
-  \CDR_tag_if_truthy:cTF {pygments} {
-    \cs_set:Npn \CDR@StyleUseTag {
-      \CDR@StyleUse { \CDR_tag_get:c { style } }
-      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
-    }
-    \CDR_local_inherit:n {
-      __fancyvrb,
-    }
-    \CDR_local_set:N \l_CDR_kv_clist
-    \DefineShortVerb { #1 }
-    \SaveVerb [
-      aftersave = {
-        \exp_args:Nx \UndefineShortVerb { #1 }
-        \lua_now:n { CDR:hilight_code_setup() }
-        \CDR_tag_get:cN {lang} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('lang') }
-        \CDR_tag_get:cN {cache} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('cache') }
-        \CDR_tag_get:cN {debug} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('debug') }
-        \CDR_tag_get:cN {style} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('style') }
-        \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
-        \FV@UseKeyValues
-        \frenchspacing
-        %  \FV@SetupFont Break
-        \FV@DefineWhiteSpace
-        \FancyVerbDefineActive
-        \FancyVerbFormatCom
-        \CDRCodeformat:
-        \CDR@DefineSp
-        \CDR_tag_get:c { format }
-        \CDR@CodeEngineApply {
-          \CDR@StyleIfExist { \l_CDR_tl } {
-            \CDR@StyleUseTag
-            \lua_now:n { CDR:hilight_source(false, true) }        
-          } {
-            \lua_now:n { CDR:hilight_source(true, true) }
-            \input { \l_CDR_pyg_sty_tl }
-            \CDR@StyleUseTag
-          }
-          \makeatletter
-          \input { \l_CDR_pyg_tex_tl }\ignorespaces
-          \makeatother
-        }
-        \group_end:
-      }
-    ] { CDR@Source } #1
-  } {
-    \exp_args:NV \fvset \l_CDR_kv_clist
-    \DefineShortVerb { #1 }
-    \SaveVerb [
-      aftersave = {
-        \UndefineShortVerb { #1 }
-        \cs_set_eq:NN \CDR@FormattingPrep \FV@FormattingPrep
-        \cs_set:Npn \FV@FormattingPrep {
-          \CDR@FormattingPrep
-          \CDR_tag_get:c { format }
-        }
-        \CDR@CodeEngineApply { \mbox {
-          \FV@UseKeyValues
-          \FV@FormattingPrep
-          \FV@SV@CDR@Code
-        } }
-        \group_end:
-      }
-    ] { CDR@Code } #1
-  }
-}
-%    \end{MacroCode}
-%
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRCode { O{} } {
   \group_begin:
@@ -4892,19 +4813,28 @@ if __name__ == '__main__':
   \CDR_local_inherit:n {
     __fancyvrb,
   }
-  \CDR_local_set_known:VN \FV@KeyValues \l_CDR_kv_clist  
+  \CDR_local_set:V \FV@KeyValues  
   \CDR_tag_inherit:cf { __local } {
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, default.code, __pygments, default, __fancyvrb,
   }
   \CDRCode:n
 }
+%    \end{MacroCode}
+%
+% \begin{function}{\CDRCode:n}
+% \begin{syntax}
+% \cs{CDRCode:n} \meta{delimiter}
+% \end{syntax}
+% Main utility used by |\CDRCode|.
+% \end{function}
+%    \begin{MacroCode}[OK]
 \cs_set:Npn \CDRCode:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
-    \CDR_local_inherit:n {
-      __fancyvrb,
+    \cs_set:Npn \CDR@StyleUseTag {
+      \CDR@StyleUse { \CDR_tag_get:c { style } }
+      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
     }
-    \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
@@ -4919,19 +4849,17 @@ if __name__ == '__main__':
         \CDR_tag_get:cN {style} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('style') }
         \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
-        \exp_args:NNV
-        \def \FV@KeyValues \l_CDR_kv_clist
         \FV@UseKeyValues
         \frenchspacing
         %  \FV@SetupFont Break
         \FV@DefineWhiteSpace
         \FancyVerbDefineActive
         \FancyVerbFormatCom
-        \CDR@DefineSp
         \CDRCodeformat:
+        \CDR@DefineSp
         \CDR_tag_get:c { format }
         \CDR@CodeEngineApply {
-          \CDR@StyleIfExist { \CDR_tag_get:c {style} } {
+          \CDR@StyleIfExist { \CDR_tag_get:c { style } } {
             \CDR@StyleUseTag
             \lua_now:n { CDR:hilight_source(false, true) }        
           } {
@@ -4940,10 +4868,19 @@ if __name__ == '__main__':
             \CDR@StyleUseTag
           }
           \makeatletter
-          \input { \l_CDR_pyg_tex_tl }
+          \lua_now:n {
+            CDR.synctex_tag = tex.get_synctex_tag();
+            CDR.synctex_line = tex.inputlineno;
+            tex.set_synctex_mode(1)
+          }
+          \input { \l_CDR_pyg_tex_tl }\ignorespaces
+          \lua_now:n {
+            tex.set_synctex_mode(0)
+          }
           \makeatother
         }
         \group_end:
+
       }
     ] { CDR@Source } #1
   } {
@@ -4957,11 +4894,9 @@ if __name__ == '__main__':
           \CDR_tag_get:c { format }
         }
         \CDR@CodeEngineApply { \mbox {
-          \exp_args:NNV
-          \def \FV@KeyValues \l_CDR_kv_clist
           \FV@UseKeyValues
           \FV@FormattingPrep
-          \@nameuse{FV@SV@CDR@Code}
+          \FV@SV@CDR@Code
         } }
         \group_end:
       }
