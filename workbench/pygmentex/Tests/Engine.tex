@@ -278,9 +278,12 @@
 %    \exp_args:Nnf
 %    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
 %  }
-  \CDR_tag_get:c { format }
   \FV@UseKeyValues
   \FV@UseVerbatim {
+    \CDR_tag_get:c { format }
+    \CDR_if_no_export:T {
+      \CDR_tag_get:c { no~export~format }
+    }
     \tl_set:Nx \l_CDR_tl { [ last=%]
       \seq_count:N \l_CDR_vrb_seq %[
     ] }
@@ -360,6 +363,8 @@
     { \CDR_tag_if_truthy_p:c { pygments } }
   \CDR_set_conditional:Nn \CDR_if_no_export:
     { \CDR_tag_if_truthy_p:c { no~export } }
+  \CDR_set_conditional:Nn \CDR_if_dry_numbers:
+    { \CDR_tag_if_truthy_p:c { dry~numbers } }
   \CDR_set_conditional:Nn \CDR_if_number_on:
     { ! \CDR_tag_if_eq_p:cn { numbers } { none } }
   \CDR_set_conditional:Nn \CDR_tags_if_already: {
@@ -377,6 +382,12 @@
 
 
 \cs_new_protected_nopar:Npn \CDRBlock_teardown: {
+  \CDR_if_dry_numbers:F {
+    \tl_set:Nx \l_CDR_tl { \seq_count:N \l_CDR_vrb_seq }
+    \clist_map_inline:Nn \g_CDR_tags_clist {
+      \CDR_int_gadd:cn { ##1 } { \l_CDR_tl }
+    }    
+  }
   \lua_now:n {
     CDR:hilight_block_teardown()
   }
@@ -416,6 +427,10 @@
   \lua_now:n { CDR:hilight_source(false, true) }
   \fvset{ commandchars=\\\{\} }
   \FV@UseVerbatim {
+    \CDR_tag_get:c { format }
+    \CDR_if_no_export:T {
+      \CDR_tag_get:c { no~export~format }
+    }
     \makeatletter
     \input{ \l_CDR_pyg_tex_tl }
     \makeatother

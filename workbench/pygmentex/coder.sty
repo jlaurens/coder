@@ -1032,14 +1032,14 @@
   }
 }
 \cs_set_eq:NN \CDR@StyleIfExist \CDR@StyleIfExist:cTF
-\cs_new:Npn \CDRCodeengine:c #1 {
+\cs_new:Npn \CDRCode_engine:c #1 {
   CDR@colored/code/#1:nn
 }
 \cs_new:Npn \CDRBlock_engine:c #1 {
   CDR@colored/block/#1
 }
-\cs_new:Npn \CDRCodeengine:V {
-  \exp_args:NV \CDRCodeengine:c
+\cs_new:Npn \CDRCode_engine:V {
+  \exp_args:NV \CDRCode_engine:c
 }
 \cs_new:Npn \CDRBlock_engine:V {
   \exp_args:NV \CDRBlock_engine:c
@@ -1052,7 +1052,7 @@
       { coder }
       { The~engine~cannot~be~void. }
   } {
-    \cs_new:cpn { \CDRCodeengine:c {#1} } ##1 ##2 {
+    \cs_new:cpn { \CDRCode_engine:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
@@ -1067,8 +1067,8 @@
       { The~engine~cannot~be~void. }
       \use_none:n
   } {
-    \cs_if_exist:cTF { \CDRCodeengine:c { #1 } } {
-      \cs_set:cpn { \CDRCodeengine:c { #1 } } ##1 ##2 {
+    \cs_if_exist:cTF { \CDRCode_engine:c { #1 } } {
+      \cs_set:cpn { \CDRCode_engine:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
         #2
       }
@@ -1080,7 +1080,7 @@
     \ignorespaces
   }
 }
-\cs_new_protected:Npn \CDR@CodeEngineApply #1 {
+\cs_new_protected:Npn \CDR@CodeEngineApply {
   \CDR_if_code_engine:cF { \CDR_tag_get:c { engine } } {
     \PackageError
       { coder }
@@ -1088,13 +1088,11 @@
       {See~\CDRCodeEngineNew~in~the~coder~manual}
     \CDR_tag_set:cn { engine } { default }
   }
+  \CDR_tag_get:c { format }
   \exp_args:Nnx
-  \use:c { \CDRCodeengine:c { \CDR_tag_get:c { engine } } } {
+  \use:c { \CDRCode_engine:c { \CDR_tag_get:c { engine } } } {
     \CDR_tag_get:c { \CDR_tag_get:c { engine }~engine~options },
     \CDR_tag_get:c { engine~options }
-  } {
-    \CDR_tag_get:c { format }
-    #1
   }
 }
 \NewDocumentCommand \CDRBlockEngineNew { mm } {
@@ -1134,14 +1132,14 @@
   \use:c { end \CDRBlock_engine:c \CDR_tag_get:c { engine } }
 }
 \prg_new_conditional:Nnn \CDR_if_code_engine:c { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDRCodeengine:c { #1 } } {
+  \cs_if_exist:cTF { \CDRCode_engine:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
 \prg_new_conditional:Nnn \CDR_if_code_engine:V { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDRCodeengine:V #1 } {
+  \cs_if_exist:cTF { \CDRCode_engine:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -1407,7 +1405,8 @@
   no~export .code:n = \CDR_tag_boolean_set:x { #1 },
   no~export .default:n = true,
   no~export~format .code:n = \CDR_tag_set:,
-  no~export~format .value_required:n = true,
+  no~last .code:n = \CDR_tag_set:,
+  no~last .default:n = true,
   test .code:n = \CDR_tag_boolean_set:x { #1 },
   test .default:n = true,
   engine~options .code:n = \CDR_tag_set:,
@@ -1415,6 +1414,7 @@
   __initialize .meta:n = {
     no~export = false,
     no~export~format = ,
+    no~last = false,
     test = false,
     engine~options = ,
   },

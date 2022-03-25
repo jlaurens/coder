@@ -4326,25 +4326,25 @@ if __name__ == '__main__':
 %
 % \section{Creating display engines}
 % \subsection{Utilities}
-% \begin{function}[EXP]{\CDRCodeengine:c, \CDRCodeengine:V, \CDRBlock_engine:c, \CDRBlock_engine:V}
+% \begin{function}[EXP]{\CDRCode_engine:c, \CDRCode_engine:V, \CDRBlock_engine:c, \CDRBlock_engine:V}
 % \begin{syntax}
 % \cs{CDRCodeengine:c} \Arg{engine name}
 % \cs{CDRBlock_engine:c} \Arg{engine name}
 % \end{syntax}
-% |\CDRCodeengine:c| builds a command sequence name
+% |\CDRCode_engine:c| builds a command sequence name
 % based on \metatt{engine name}.
 % |\CDRBlock_engine:c| builds an environment name
 % based on \metatt{engine name}.
 %\end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDRCodeengine:c #1 {
+\cs_new:Npn \CDRCode_engine:c #1 {
   CDR@colored/code/#1:nn
 }
 \cs_new:Npn \CDRBlock_engine:c #1 {
   CDR@colored/block/#1
 }
-\cs_new:Npn \CDRCodeengine:V {
-  \exp_args:NV \CDRCodeengine:c
+\cs_new:Npn \CDRCode_engine:V {
+  \exp_args:NV \CDRCode_engine:c
 }
 \cs_new:Npn \CDRBlock_engine:V {
   \exp_args:NV \CDRBlock_engine:c
@@ -4388,7 +4388,7 @@ if __name__ == '__main__':
       { coder }
       { The~engine~cannot~be~void. }
   } {
-    \cs_new:cpn { \CDRCodeengine:c {#1} } ##1 ##2 {
+    \cs_new:cpn { \CDRCode_engine:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #2
     }
@@ -4405,8 +4405,8 @@ if __name__ == '__main__':
       { The~engine~cannot~be~void. }
       \use_none:n
   } {
-    \cs_if_exist:cTF { \CDRCodeengine:c { #1 } } {
-      \cs_set:cpn { \CDRCodeengine:c { #1 } } ##1 ##2 {
+    \cs_if_exist:cTF { \CDRCode_engine:c { #1 } } {
+      \cs_set:cpn { \CDRCode_engine:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
         #2
       }
@@ -4428,7 +4428,7 @@ if __name__ == '__main__':
 % \emph{Implementation detail}: the argument is parsed by the last macro.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new_protected:Npn \CDR@CodeEngineApply #1 {
+\cs_new_protected:Npn \CDR@CodeEngineApply {
   \CDR_if_code_engine:cF { \CDR_tag_get:c { engine } } {
     \PackageError
       { coder }
@@ -4436,13 +4436,11 @@ if __name__ == '__main__':
       {See~\CDRCodeEngineNew~in~the~coder~manual}
     \CDR_tag_set:cn { engine } { default }
   }
+  \CDR_tag_get:c { format }  
   \exp_args:Nnx
-  \use:c { \CDRCodeengine:c { \CDR_tag_get:c { engine } } } {
+  \use:c { \CDRCode_engine:c { \CDR_tag_get:c { engine } } } {
     \CDR_tag_get:c { \CDR_tag_get:c { engine }~engine~options },
     \CDR_tag_get:c { engine~options }
-  } {
-    \CDR_tag_get:c { format }
-    #1
   }
 }
 %    \end{MacroCode}
@@ -4526,14 +4524,14 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDR_if_code_engine:c { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDRCodeengine:c { #1 } } {
+  \cs_if_exist:cTF { \CDRCode_engine:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
 \prg_new_conditional:Nnn \CDR_if_code_engine:V { p, T, F, TF } {
-  \cs_if_exist:cTF { \CDRCodeengine:V #1 } {
+  \cs_if_exist:cTF { \CDRCode_engine:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -4918,11 +4916,19 @@ if __name__ == '__main__':
   no~export .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed no export format=\metatt{format commands}]^^A
-% a format appended to |tags format| and |numbers format| when |no export| is |true|..
+% a format appended to |format|, |tags format| and |numbers format|
+% when |no export| is |true|..
 % Initially empty.
 %    \begin{MacroCode}[OK]
   no~export~format .code:n = \CDR_tag_set:,
-  no~export~format .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed no export format=\metatt{format commands}]^^A
+% a format appended to |format|, |tags format| and |numbers format|
+% when |no export| is |true|..
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  dry~numbers .code:n = \CDR_tag_set:,
+  dry~numbers .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed test{[=true$\vert$false]}]^^A
 % whether the chunk is a test,
@@ -4944,6 +4950,7 @@ if __name__ == '__main__':
   __initialize .meta:n = {
     no~export = false,
     no~export~format = ,
+    dry~numbers = false,
     test = false,
     engine~options = ,
   },
