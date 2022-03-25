@@ -2920,6 +2920,7 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 % \end{function}
+%
 % \begin{function}{\CDR_tag_keys_set:nn}
 % \begin{syntax}
 % \cs{CDR_tag_keys_set:nn} \Arg{module base} \Arg{keyval list}
@@ -2932,6 +2933,20 @@ if __name__ == '__main__':
   \keys_set:nn { \CDR_tag_module:n { #1 } }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set:nn { nV }
+%    \end{MacroCode}
+% \end{function}
+%
+% \begin{function}{\CDR_tag_keys_set:nn}
+% \begin{syntax}
+% \cs{CDR_tag_keys_set:nn} \Arg{module base} \Arg{keyval list}
+% \end{syntax}
+% The \metatt{module} is uniquely based on \metatt{module base} before
+% forwarding to |\keys_set:nn|.
+%    \begin{MacroCode}[OK]
+\cs_new_protected:Npn \CDR_local_set:n {
+  \CDR_tag_keys_set:nn { __local }
+}
+\cs_generate_variant:Nn \CDR_local_set:n { V }
 %    \end{MacroCode}
 % \end{function}
 %
@@ -2970,24 +2985,49 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDR_tag_keys_set_known:nnN}
+% \begin{function}{\CDR_tag_keys_set_known:nnN, \CDR_tag_keys_set_known:nVN, \CDR_tag_keys_set_known:nN, \CDR_tag_keys_set_known:N}
 % \begin{syntax}
-% \cs{CDR_tag_keys_set_known:nnN} \Arg{tag name} \Arg{key[=value] items} \meta{tl var}
+% \cs{CDR_tag_keys_set_known:nnN} \Arg{tag name} \Arg{key[=value] items} \meta{clist var}
+% \cs{CDR_tag_keys_set_known:nN} \Arg{tag name} \meta{clist var}
 % \end{syntax}
 % Wrappers over |\keys_set_known:nnnN|
 % where the module is given by |\CDR_tag_module:n{|\metatt{tag name}|}|.
 % \emph{Implementation detail} the remaining arguments are absorbed by the last macro.
+% When \metatt{key[=value] items} is omitted, it is the content of \metatt{clist var}.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_tags_keys_set_known__:nnN #1 #2 {
+\cs_new_protected_nopar:Npn \CDR_tag_keys_set_known__:nnN #1 #2 {
   \keys_set_known:nnnN { #1 } { #2 } { #1 }
 }
-\cs_new:Npn \CDR_tag_keys_set_known:nnN #1 {
+\cs_new_protected_nopar:Npn \CDR_tag_keys_set_known:nnN #1 {
   \exp_args:Nf
-  \CDR_tags_keys_set_known__:nnN { \CDR_tag_module:n { #1 } }
+  \CDR_tag_keys_set_known__:nnN { \CDR_tag_module:n { #1 } }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set_known:nnN { nV }
+\cs_new_protected_nopar:Npn \CDR_tag_keys_set_known:nN #1 #2 {
+  \CDR_tag_keys_set_known:nVN { #1 } #2 #2
+}
 %    \end{MacroCode}
+%
+% \begin{function}{\CDR_tag_keys_set_known:nnN, \CDR_tag_keys_set_known:nVN, \CDR_tag_keys_set_known:nN, \CDR_tag_keys_set_known:N}
+% \begin{syntax}
+% \cs{CDR_local_set_known:nN} \Arg{key[=value] items} \meta{clist var}
+% \cs{CDR_local_set_known:N} \meta{clist var}
+% \end{syntax}
+% Wrappers over |\CDR_tag_keys_set_known:...|
+% where the module is given by |\CDR_tag_module:n{|__local|}|.
+% When \metatt{key[=value] items} is omitted, it is the content of \metatt{clist var}.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\cs_new_protected_nopar:Npn \CDR_local_set_known:nN {
+  \CDR_tag_keys_set_known:nnN { __local }
+}
+\cs_generate_variant:Nn \CDR_local_set_known:nN { V }
+\cs_new_protected_nopar:Npn \CDR_local_set_known:N #1 {
+  \CDR_local_set_known:VN #1 #1
+}
+%    \end{MacroCode}
+%
 % \begin{variable}{\c_CDR_provide_regex}
 % To parse a \pkg{l3keys} full key path.
 %    \begin{MacroCode}[OK]
@@ -3975,14 +4015,14 @@ if __name__ == '__main__':
     __tags, default.block, default.code, default,
     __fancyvrb, __fancyvrb.frame, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
-    \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
+    \CDR_tag_keys_set_known:nN { ##1 } \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.1:##1/\l_CDR_kv_clist/ }
   }
-  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+  \CDR_tag_keys_set_known:nN { .. } \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.2:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.2a:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }  
-  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+  \CDR_tag_keys_set_known:nN { .. } \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.3:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
   \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
@@ -4760,7 +4800,7 @@ if __name__ == '__main__':
     \CDR_tag_keys_inherit:nn { __local } {
       __fancyvrb,
     }
-    \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
+    \CDR_local_set:N \l_CDR_kv_clist
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
@@ -4828,19 +4868,18 @@ if __name__ == '__main__':
   \group_begin:
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_false:
-  }  
+  }
+  \clist_set:Nn \FV@KeyValues { #1 }
   \CDR_tag_keys_inherit:nn { __local } {
     __code, default.code, __pygments, default,
   }
-  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
-  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-  \exp_args:NNV
-  \def \FV@KeyValues \l_CDR_kv_clist
+  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_tag_provide_from_kv:V \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_keys_inherit:nn { __local } {
     __fancyvrb,
   }
-  \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist  
+  \CDR_local_set_known:VN \FV@KeyValues \l_CDR_kv_clist  
   \CDR_tag_inherit:cf { __local } {
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, default.code, __pygments, default, __fancyvrb,
@@ -4915,31 +4954,6 @@ if __name__ == '__main__':
       }
     ] { CDR@Code } #1
   }
-}
-%    \end{MacroCode}
-%
-%    \begin{MacroCode}[OK]
-\RenewDocumentCommand \CDRCode { O{} } {
-  \group_begin:
-  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
-    \prg_return_false:
-  }  
-  \CDR_tag_keys_inherit:nn { __local } {
-    __code, default.code, __pygments, default,
-  }
-  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
-  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-  \CDR_tag_keys_inherit:nn { __local } {
-    __fancyvrb,
-  }
-  \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist  
-  \CDR_tag_inherit:cf { __local } {
-    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-    __code, default.code, __pygments, default, __fancyvrb,
-  }
-  \fvset{showspaces}
-  \CDRCode:n
 }
 %    \end{MacroCode}
 %
@@ -5123,9 +5137,9 @@ if __name__ == '__main__':
     __block, __pygments.block, default.block,
     __pygments, default
   }
-  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \FV@KeyValues
- \CDR_tag_provide_from_kv:V \FV@KeyValues
-  \CDR_tag_keys_set_known:nVN { __local }\FV@KeyValues \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_tag_provide_from_kv:V \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
  \CDR@Debug{CDRBlock.KV1:\l_CDR_kv_clist}
 %    \end{MacroCode}
 % Now |\FV@KeyValues| is meant to contains only keys
@@ -5140,7 +5154,7 @@ if __name__ == '__main__':
     },
     __fancyvrb.number,
   }
-  \CDR_tag_keys_set_known:nVN { __local }\FV@KeyValues \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
 %    \end{MacroCode}
 % These keys are read without removing them
 % later and eventually forwarded to \pkg{fancyvrb}
@@ -5150,7 +5164,7 @@ if __name__ == '__main__':
     __fancyvrb.block,
     __fancyvrb,
   }
-  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
+  \CDR_local_set_known:VN \FV@KeyValues \l_CDR_kv_clist
   \lua_now:n {
     CDR:hilight_block_setup('g_CDR_tags_clist')
   }
@@ -5960,7 +5974,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \cs_new_protected_nopar:Npn \CDRBlock_setup_tags: {
   \CDR_tag_keys_inherit:nn { __local } { __tags }
-  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
     \CDR_tag_get:cN { tags } \l_CDR_clist
     \clist_if_empty:NF \l_CDR_clist {
