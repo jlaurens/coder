@@ -451,6 +451,10 @@
   \keys_set:nn { \CDR_tag_module:n { #1 } }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set:nn { nV }
+\cs_new_protected:Npn \CDR_local_set:n {
+  \CDR_tag_keys_set:nn { __local }
+}
+\cs_generate_variant:Nn \CDR_local_set:n { V }
 \cs_new:Npn \CDR_tag_keys_inherit__:nnn #1 #2 #3 {
   \keys_define:nn { #1 } { #2 .inherit:n = { #1 / #3 } }
 }
@@ -464,14 +468,24 @@
   \exp_args:Nf
   \CDR_tag_keys_inherit_:nnn { \CDR_tag_module:n { } }
 }
-\cs_new:Npn \CDR_tags_keys_set_known__:nnN #1 #2 {
+\cs_new_protected_nopar:Npn \CDR_tag_keys_set_known__:nnN #1 #2 {
   \keys_set_known:nnnN { #1 } { #2 } { #1 }
 }
-\cs_new:Npn \CDR_tag_keys_set_known:nnN #1 {
+\cs_new_protected_nopar:Npn \CDR_tag_keys_set_known:nnN #1 {
   \exp_args:Nf
-  \CDR_tags_keys_set_known__:nnN { \CDR_tag_module:n { #1 } }
+  \CDR_tag_keys_set_known__:nnN { \CDR_tag_module:n { #1 } }
 }
 \cs_generate_variant:Nn \CDR_tag_keys_set_known:nnN { nV }
+\cs_new_protected_nopar:Npn \CDR_tag_keys_set_known:nN #1 #2 {
+  \CDR_tag_keys_set_known:nVN { #1 } #2 #2
+}
+\cs_new_protected_nopar:Npn \CDR_local_set_known:nN {
+  \CDR_tag_keys_set_known:nnN { __local }
+}
+\cs_generate_variant:Nn \CDR_local_set_known:nN { V }
+\cs_new_protected_nopar:Npn \CDR_local_set_known:N #1 {
+  \CDR_local_set_known:VN #1 #1
+}
 \tl_set:Nn \l_CDR_tl { /([^/]*)(?:/(.*))?$ } \use_none:n { $ }
 \exp_args:NNf
 \tl_put_left:Nn \l_CDR_tl { \CDR_tag_module:n {} }
@@ -864,14 +878,14 @@
     __tags, default.block, default.code, default,
     __fancyvrb, __fancyvrb.frame, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
-    \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
+    \CDR_tag_keys_set_known:nN { ##1 } \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.1:##1/\l_CDR_kv_clist/ }
   }
-  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+  \CDR_tag_keys_set_known:nN { .. } \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.2:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.2a:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
-  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+  \CDR_tag_keys_set_known:nN { .. } \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.3:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
   \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
 \CDR@Debug{ Debug.CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
@@ -1248,7 +1262,7 @@
     \CDR_tag_keys_inherit:nn { __local } {
       __fancyvrb,
     }
-    \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
+    \CDR_local_set:N \l_CDR_kv_clist
     \DefineShortVerb { #1 }
     \SaveVerb [
       aftersave = {
@@ -1314,18 +1328,17 @@
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_false:
   }
+  \clist_set:Nn \FV@KeyValues { #1 }
   \CDR_tag_keys_inherit:nn { __local } {
     __code, default.code, __pygments, default,
   }
-  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
-  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-  \exp_args:NNV
-  \def \FV@KeyValues \l_CDR_kv_clist
+  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_tag_provide_from_kv:V \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_keys_inherit:nn { __local } {
     __fancyvrb,
   }
-  \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
+  \CDR_local_set_known:VN \FV@KeyValues \l_CDR_kv_clist
   \CDR_tag_inherit:cf { __local } {
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, default.code, __pygments, default, __fancyvrb,
@@ -1400,28 +1413,6 @@
       }
     ] { CDR@Code } #1
   }
-}
-\RenewDocumentCommand \CDRCode { O{} } {
-  \group_begin:
-  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
-    \prg_return_false:
-  }
-  \CDR_tag_keys_inherit:nn { __local } {
-    __code, default.code, __pygments, default,
-  }
-  \CDR_tag_keys_set_known:nnN { __local } { #1 } \l_CDR_kv_clist
-  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
-  \CDR_tag_keys_set_known:nVN { __local } \l_CDR_kv_clist \l_CDR_kv_clist
-  \CDR_tag_keys_inherit:nn { __local } {
-    __fancyvrb,
-  }
-  \CDR_tag_keys_set:nV { __local } \l_CDR_kv_clist
-  \CDR_tag_inherit:cf { __local } {
-    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-    __code, default.code, __pygments, default, __fancyvrb,
-  }
-  \fvset{showspaces}
-  \CDRCode:n
 }
 \CDR_tag_keys_define:nn { __block } {
   no~export .code:n = \CDR_tag_boolean_set:x { #1 },
@@ -1499,9 +1490,9 @@
     __block, __pygments.block, default.block,
     __pygments, default
   }
-  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \FV@KeyValues
- \CDR_tag_provide_from_kv:V \FV@KeyValues
-  \CDR_tag_keys_set_known:nVN { __local }\FV@KeyValues \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_tag_provide_from_kv:V \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
  \CDR@Debug{CDRBlock.KV1:\l_CDR_kv_clist}
   \CDR_tag_keys_inherit:nn { __local } {
     \CDR_tag_if_eq:cnF { engine } { default } {
@@ -1509,12 +1500,12 @@
     },
     __fancyvrb.number,
   }
-  \CDR_tag_keys_set_known:nVN { __local }\FV@KeyValues \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_keys_inherit:nn { __local } {
     __fancyvrb.block,
     __fancyvrb,
   }
-  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
+  \CDR_local_set_known:VN \FV@KeyValues \l_CDR_kv_clist
   \lua_now:n {
     CDR:hilight_block_setup('g_CDR_tags_clist')
   }
@@ -2071,7 +2062,7 @@
 }
 \cs_new_protected_nopar:Npn \CDRBlock_setup_tags: {
   \CDR_tag_keys_inherit:nn { __local } { __tags }
-  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
     \CDR_tag_get:cN { tags } \l_CDR_clist
     \clist_if_empty:NF \l_CDR_clist {
