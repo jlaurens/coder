@@ -1,0 +1,168 @@
+% !TeX program=lualatex
+%\directlua{
+%  tex.set_synctex_tag(421)
+%}
+\def\test{\directlua{tex.set_synctex_tag(421)}}
+\test
+\directlua{print('421=',tex.get_synctex_tag())}
+\bye
+\directlua{tex.set_synctex_tag(421)}
+\directlua{print('421=',tex.get_synctex_tag())}
+\bye
+
+\def\test{\directlua{tex.set_synctex_tag(421)}}
+\test
+\directlua{print('421=',tex.get_synctex_tag())}
+\directlua{tex.set_synctex_tag(421)}
+\directlua{print('421=',tex.get_synctex_tag())}
+\def\test#1{\directlua{#1}}
+\test{tex.set_synctex_tag(123)}
+\directlua{print('123=',tex.get_synctex_tag())}
+\def\test#1{\directlua{tex.set_synctex_tag(#1)}}
+\test{666}
+\directlua{print('666=',tex.get_synctex_tag())}
+\def\whatever{\directlua{}}
+\whatever
+\directlua{print('421=',tex.get_synctex_tag())}
+\bye
+
+\let\test\directlua
+\test{
+  tex.set_synctex_line(123);
+  tex.set_synctex_tag(421);
+  print('**** DIRECT LINE=', 123, tex.get_synctex_line());
+  print('**** DIRECT TAG=', 421, tex.get_synctex_tag());
+}
+\directlua{
+  print('**** DIRECT LINE=', 123, tex.get_synctex_line());
+  print('**** DIRECT TAG=', 421, tex.get_synctex_tag());
+}
+\directlua{
+  tex.set_synctex_line(123);
+  tex.set_synctex_tag(421);
+  print('**** DIRECT LINE=', 123, tex.get_synctex_line());
+  print('**** DIRECT TAG=', 421, tex.get_synctex_tag());
+}
+\test{
+  print('**** DIRECT LINE=', 123, tex.get_synctex_line());
+  print('**** DIRECT TAG=', 421, tex.get_synctex_tag());
+}
+
+
+\bye
+
+\documentclass{article}
+\directlua{
+  tex.set_synctex_tag(421);
+}
+\directlua{
+  print('**** TAG', tex.get_synctex_tag());
+}
+\ExplSyntaxOn
+\exp_args:Ne \directlua {
+  tex.set_synctex_tag(123);
+  print('****~TAG', tex.get_synctex_tag());
+}
+\ExplSyntaxOff
+\directlua{
+  print('**** TAG', tex.get_synctex_tag());
+}
+\begin{document}
+X
+\end{document}
+
+\documentclass{article}
+
+\directlua{
+  tex.set_synctex_mode(1)
+  tex.set_synctex_tag(421);
+  tex.set_synctex_line(123);
+  print('**** DIRECT TAG=', 421, tex.get_synctex_tag());
+  print('**** DIRECT LINE=', 123, tex.get_synctex_line());
+}
+\directlua{
+  print('**** DIRECT TAG=', 421, tex.get_synctex_tag());
+  print('**** DIRECT LINE=', 123, tex.get_synctex_line());
+}
+\ExplSyntaxOn
+\lua_now:n {
+  tex.set_synctex_line(123000);
+  tex.set_synctex_tag(421000);
+  print('****~L3~TAG=', 421000, tex.get_synctex_tag());
+  print('****~L3~LINE=', 123000, tex.get_synctex_line());
+}
+\lua_now:n {
+  print('****~L3~TAG=', 421000, tex.get_synctex_tag());
+  print('****~L3~LINE=', 123000, tex.get_synctex_line());
+}
+\begin{document}
+X
+\end{document}
+
+\documentclass{article}
+\usepackage{coder}
+\begin{document}
+X\\
+\ExplSyntaxOn
+\def\TEST#1{%
+  \TESTA {} {#1} {}%
+}
+
+\def\TESTA#1#2#3{%
+  \hbox to \hsize {%
+    \hbox to \linewidth {%
+      #2
+      \hss
+    }%
+  }%
+}
+
+
+\directlua {
+  My_synctex_tag = tex.get_synctex_tag();
+  My_synctex_line = tex.inputlineno+2;
+  tex.set_synctex_mode(1)
+}
+
+\TEST { 33 }\\
+
+\def\TESTA#1#2#3{%
+  \hbox to \hsize {%
+\lua_now:n {
+  tex.set_synctex_tag(My_synctex_tag);
+  tex.set_synctex_line(My_synctex_line);
+  print('**** LINE_BOX_TAG=', tex.get_synctex_tag(), My_synctex_tag);
+  print('**** LINE_BOX_LINE=', tex.get_synctex_line(), My_synctex_line);
+}%
+\lua_now:n {
+  print('**** LINE_BOX_TAG=', tex.get_synctex_tag(), My_synctex_tag);
+  print('**** LINE_BOX_LINE=', tex.get_synctex_line(), My_synctex_line);
+}%
+    \hbox to \linewidth {%
+      #2 -> 33%
+      \hss
+    }%
+  }%
+}
+\TEST{48}\\
+\input{Sandbox1}\\
+\def\TESTA#1#2#3{%
+  \hbox to \hsize {%
+\directlua {
+  tex.set_synctex_tag(My_synctex_tag);
+  tex.set_synctex_line(My_synctex_line);
+  print('**** LINE_BOX_TAG=', tex.get_synctex_tag(), My_synctex_tag);
+  print('**** LINE_BOX_LINE=', tex.get_synctex_line(), My_synctex_line);
+}%
+\directlua {
+  print('**** LINE_BOX_TAG=', tex.get_synctex_tag(), My_synctex_tag);
+  print('**** LINE_BOX_LINE=', tex.get_synctex_line(), My_synctex_line);
+}%
+    \hbox to \linewidth {%
+      #2 -> 33%
+      \hss
+    }%
+  }%
+}%
+\input{Sandbox1}\\
+\end{document}

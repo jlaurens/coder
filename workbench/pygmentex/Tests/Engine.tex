@@ -9,66 +9,80 @@
 
 \CDRCode[pygments=true,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
 
-%\begin{CDRBlock}[tags=WHAT,numbersep=2cm]
-%1
-%2
-%3
-%\end{CDRBlock}
+\begin{CDRBlock}[tags=WHAT,numbersep=2cm]
+1
+2
+3
+\end{CDRBlock}
 
-%\ExplSyntaxOn
-%\group_begin:
-%\makeatletter
-%
-%\ExplSyntaxOff
-%
-%\newtcolorbox{codebox}[1]{
-%  colback=white!5!white,
-%  colframe=white!75!black,
-%  title=#1,
-%  box align=top
+\ExplSyntaxOn
+\group_begin:
+\makeatletter
+
+\ExplSyntaxOff
+
+\newtcolorbox{codebox}[1]{
+  colback=white!5!white,
+  colframe=white!75!black,
+  title=#1,
+  box align=top
+}
+
+
+\CDRBlockEngineNew{mdframed}{}{}
+
+\typeout{------------------================-------------------}
+
+\begin{CDRBlock}[pygments=false]
+1
+2
+3
+\end{CDRBlock}
+\begin{CDRBlock}[pygments=true]
+1
+2
+3
+\end{CDRBlock}
+
+\begin{enumerate}
+  \item Lorem.
+  \item \mbox{}
+  \begin{codebox}{Swap}
+    \begin{Verbatim}
+   Hello.
+   \end{Verbatim}
+  \end{codebox}
+  \item Epsum.
+\end{enumerate}
+
+
+\begin{codebox}{Swap}
+\begin{CDRBlock}[numbersep=1cm]
+1
+2
+3
+\end{CDRBlock}
+\end{codebox}
+
+\CDRBlockEngineNew{codebox}{\begin{codebox}{Swap}}{\end{codebox}}
+\begin{CDRBlock}[engine=codebox,numbersep=1cm]
+1
+2
+3
+\end{CDRBlock}
+
+%\newcommand\pygmented@mdframed@additional@options{%
+%  leftmargin=\pygmented@leftmargin,%
+%  frametitlerule=true,%
+%  \ifcsname pygmented@opt@colback\endcsname
+%    backgroundcolor=\pygmented@opt@colback,%
+%  \fi
 %}
-%
-%
-%\CDRBlockEngineNew{mdframed}{}{}
-%
-%\typeout{------------------================-------------------}
-%
-%\begin{CDRBlock}[pygments=false]
-%1
-%2
-%3
-%\end{CDRBlock}
-%\begin{CDRBlock}[pygments=true]
-%1
-%2
-%3
-%\end{CDRBlock}
-%
-%%\begin{enumerate}
-%%  \item Lorem.
-%%  \item \mbox{}
-%%  \begin{codebox}{Swap}
-%%    \begin{Verbatim}
-%%   Hello.
-%%   \end{Verbatim}
-%%  \end{codebox}
-%%  \item Epsum.
-%%\end{enumerate}
-%%
-%%
-%%%  \begin{codebox}{Swap}
-%%\begin{CDRBlock}[numbersep=1cm]
-%%1
-%%2
-%%3
-%%\end{CDRBlock}
-%%%  \end{codebox}
-%
-%
-%\ExplSyntaxOn
-%\makeatother
-%\group_end:
-%\ExplSyntaxOff
+
+\ExplSyntaxOn
+\makeatother
+\group_end:
+\ExplSyntaxOff
 
 
 \subsection{In progress}
@@ -77,388 +91,6 @@
 \group_begin:
 \makeatletter
 
-\cs_undefine:N \CDR@Line
-
-\cs_set:Npn \CDR@Line {
-\CDR@Debug {STEP0, \the\inputlineno}
-  \peek_meaning_ignore_spaces:NTF [%]
-  { \CDR_line:nnn } { 
-    \PackageError { code } { Missing~`['%]
-    ~at~first~\CDR@Line~call }
-  }
-}
-
-\cs_undefine:N \CDR_line:nnn
-\cs_new:Npn \CDR_line:nnn [ #1 ] #2 {
-  \keys_set:nn { CDR@Line } { #1 }
-  \CDR_int_set:cn { __ } { 0 }
-\CDR@Debug{****** NUMBERING:\CDR_tag_get:c { numbers } }
-  \CDR_if_number_on:TF {
-    \CDR_tag_if_eq:cnTF { firstnumber } { last } {
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \clist_map_break:n {
-          \CDR_int_set:cc { __start } { ##1 }
-\CDR@Debug {START: ##1=\CDR_int_use:c { ##1 } }
-        }
-      }
-    } {
-      \CDR_tag_if_eq:cnTF { firstnumber } { auto } {
-        \CDR_int_set:cn { __start } { 1 }
-      } {
-        \CDR_int_set:cn { __start } { \CDR_tag_get:c { firstnumber } }
-      }
-    }
-%    \end{MacroCode}
-% Make |__last| absolute only after defining the |\CDR_if_number_single...| conditionals.
-%    \begin{MacroCode}
-    \CDR_set_conditional:Nn \CDR_if_number_single: {
-      \CDR_int_compare_p:cNn { __last } = 1
-    }
-\CDR@Debug{****** TEST: \CDR_if_number_single:TF { SINGLE } { MULTI } }
-    \CDR_int_add:cn { __last } { \CDR_int:c { __start } - 1 }
-    \CDR_int_set:cn { __step } { \CDR_tag_get:c { stepnumber } }
-\CDR@Debug {CDR_line:nnn:START/STEP/LAST=\CDR_int_use:c { __start }/\CDR_int_use:c { __step } /\CDR_int_use:c { __last }, #1}
-%    \end{MacroCode}
-% \begin{function}[EXP,pTF]{\CDR_if_visible_at_index:n}
-% \begin{syntax}
-% \cs{CDR_if_visible_at_index:nTF} \Arg{relative line number} \Arg{true code} \Arg{false code}
-% \end{syntax}
-% The \metatt{relative line number} is the first braced token after |\CDR@Line| in the
-% various colored |...pyg.tex| files.
-% Execute \metatt{true code} if the \metatt{relative line number} is visible, \metatt{false code} otherwise.
-% The \metatt{relative line number} visibility depends on the value relative to first number and the step.
-% This is relavant only when line numbering is enabled.
-% Some setup are made for line numbering, in particular the |\CDR_if_visible_at_index:n...|.
-% family is set here.
-% \end{function}
-%    \begin{MacroCode}
-\CDR@Debug {CDR_line:nnn:1}
-    \CDR_int_compare:cNnTF { __step } < 2 {
-      \CDR_int_set:cn { __step } { 1 }
-\CDR@Debug {CDR_line:nnn:11}
-      \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 } 
-      }
-\CDR@Debug {CDR_line:nnn:11}
-      \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 }
-      }
-\CDR@Debug {CDR_line:nnn:11}
-    } {
-      \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 } 
-      }
-      \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
-        \int_compare_p:nNn {
-          ( ##1 + \CDR_int:c { __start } - 1 )
-          / \CDR_int:c { __step }  * \CDR_int:c { __step }
-          - \CDR_int:c { __start } + 1
-        } = { ##1 }
-        && \CDR_if_visible_at_index_p:n { ##1 }
-      }
-    }
-\CDR@Debug {CDR_line:nnn:1}
-%    \end{MacroCode}
-%    \begin{MacroCode}
-    \CDR_set_conditional:Nn \CDR_if_no_number: {
-      \CDR_int_compare_p:cNn { __start } > {
-        \CDR_int:c { __last } / \CDR_int:c { __step } * \CDR_int:c { __step }
-      }
-    }
-    \cs_set:Npn \CDR@Line ##1 {
-      \CDR_int_set:cn { __ } { ##1 + \CDR_int:c { __start } - #2 }
-      \CDR@@Line
-    }
-    \CDR_int_set:cn { __ } { \CDR_int:c { __start } + 1 - #2 }
-  } {
-\CDR@Debug {NUMBER~OFF}
-    \cs_set:Npn \CDR@Line ##1 {
-      \CDR@@Line
-    }
-  }
-\CDR@Debug {STEP_S, \CDR_int_use:c {__step}, \CDR_int_use:c {__last} }
-%    \end{MacroCode}
-% Convenient method to branch whether one line number will be displayed or not,
-% considering the stepping.
-% When numbering is on, each code chunk must have at least one number.
-% One solution is to allways display the first one but it is not satisfying
-% when lines are numbered stepwise, moreover when the tags should be displayed.
-%    \begin{MacroCode}
-\CDR@Debug {
-  STEP:CDR_line_?_?:n
-  / \CDR_tags_if_already:TF TF
-  / \CDR_tag_get:c { show~tags }
-  / \CDR_tag_get:c { numbers }
-}
-  \tl_clear:N \l_CDR_tl
-  \CDR_tags_if_already:TF {
-    \tl_put_right:Nn \l_CDR_tl { _N }
-  } {
-    \exp_args:Nx
-    \str_case:nnF { \CDR_tag_get:c { show~tags } } {
-      { left  } { \tl_put_right:Nn \l_CDR_tl { _L } }
-      { right } { \tl_put_right:Nn \l_CDR_tl { _R } }
-      { none  } { \tl_put_right:Nn \l_CDR_tl { _N } }
-      { numbers } { \tl_put_right:Nn \l_CDR_tl { _S } }
-      { mirror  } { \tl_put_right:Nn \l_CDR_tl { _O } }
-    } { \PackageError
-          { coder }
-          { Unknown~show~tags~options~:~ \CDR_tag_get:c { show~tags } }
-    }
-  }
-%    \end{MacroCode}
-% By default, the next line is displayed with no tag, but the real content may
-% change to save space.
-%    \begin{MacroCode}
-  \exp_args:Nx
-  \str_case:nnF { \CDR_tag_get:c { numbers } } {
-    { left  } {
-      \tl_put_right:Nn \l_CDR_tl { _L }
-      \cs_set:Npn \CDR@@Line { \CDR_line_box_L:n }
-    }
-    { right } {
-      \tl_put_right:Nn \l_CDR_tl { _R }
-      \cs_set:Npn \CDR@@Line { \CDR_line_box_R:n }
-    }
-    { none  } {
-      \tl_put_right:Nn \l_CDR_tl { _N }
-      \cs_set:Npn \CDR@@Line { \CDR_line_box_N:n }    
-    }
-  } { \PackageError
-        { coder }
-        { Unknown~numbers~options~:~ \CDR_tag_get:c { numbers } }
-  }
-\CDR@Debug {BRANCH:CDR_line \l_CDR_tl :n}
-  \use:c { CDR_line \l_CDR_tl :n }  
-}
-
-\tl_new:N \l_CDR_vrb_tl
-\seq_new:N \l_CDR_vrb_seq
-
-\def\FVB@CDRBlockX {
-  \@bsphack
-  \exp_args:NV \CDRBlock_preflight:n \FV@KeyValues
-  \begingroup
-  \seq_clear:N \l_CDR_vrb_seq
-  \cs_set_protected_nopar:Npn \FV@ProcessLine ##1 {%
-    \seq_put_right:Nn \l_CDR_vrb_seq { ##1 }
-  }%
-  \FV@Scan
-}
-\def\FVE@CDRBlockX {%
-  \CDRBlock_setup:
-  \CDR_if_no_export:F {
-    \seq_map_inline:Nn \l_CDR_vrb_seq {
-      \tl_set:Nn \l_CDR_tl { ##1 }
-      \lua_now:n { CDR:record_line('l_CDR_tl') }
-    }
-  }
-  \CDRBlock_engine_begin:
-  \CDR_if_pygments:TF {
-    \CDRBlock@Pyg
-  } {
-    \CDRBlock@FV
-  }
-  \CDRBlock_engine_end:
-  \CDRBlock_teardown:
-  \endgroup
-  \@esphack
-}
-
-\cs_undefine:N \CDRBlock@FV
-
-\cs_new:Npn \CDRBlock@FV {
-\CDR@Debug {DEBUG.Block.FV}
-%  \tl_clear:N \FV@KeyValues
-%  \cs_set:Npn \CDR:nn ##1 ##2 {
-%\CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}
-%    \fvset{ ##1 = { ##2 }, }
-%  }
-%  \clist_map_inline:Nn \c_CDRBlock@FV_clist {
-%    \exp_args:Nnf
-%    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
-%  }
-  \FV@UseKeyValues
-  \FV@UseVerbatim {
-    \CDR_tag_get:c { format }
-    \CDR_if_no_export:T {
-      \CDR_tag_get:c { no~export~format }
-    }
-    \tl_set:Nx \l_CDR_tl { [ last=%]
-      \seq_count:N \l_CDR_vrb_seq %[
-    ] }
-    \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
-      \exp_last_unbraced:NV \CDR@Line \l_CDR_tl { ##1 } { ##2 }
-      \tl_clear:N \l_CDR_tl
-    }
-    \tl_clear:N \FV@ProcessLine
-  }
-  \CDR_if_number_on:T {
-    \CDR_int_compare:cNnTF { __ } > 0 {
-      \CDR_int_set:cn { __ } {
-        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
-      }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gadd:cc { ##1 } { __ }
-      }
-    } {
-      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gset:cc { ##1 } { __ }
-\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
-      }
-    }
-  }
-}
-
-\cs_new_protected_nopar:Npn \CDRBlock_setup: {
-  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
-    \prg_return_true:
-  }
-  \CDR_tag_keys_set:nn { __block } { __initialize }
-%    \end{MacroCode}
-% Read and catch the key value arguments,
-% except the ones related to \pkg{fancyvrb}.
-% Then build the dynamic keys matching
-% \metatt{engine name}| engine options| for appropriate
-% engine names.
-%    \begin{MacroCode}
-  \CDR_tag_keys_inherit:nn { __local } {
-    __block, __pygments.block, default.block,
-    __pygments, default
-  }
-  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \FV@KeyValues
- \CDR_tag_provide_from_kv:V \FV@KeyValues
-  \CDR_tag_keys_set_known:nVN { __local }\FV@KeyValues \FV@KeyValues
- \CDR@Debug{CDRBlock.KV1:\l_CDR_kv_clist}
-%    \end{MacroCode}
-% Now |\FV@KeyValues| is meant to contains only keys
-% related to \pkg{fancyvrb} but we still need to filter them out.
-% If the display engine is not the default one, we catch any key related
-% to framing. Anyways, we catch keys related to numbering because
-% line numbering is completely performed by \pkg{\jobname}.
-%    \begin{MacroCode}
-  \CDR_tag_keys_inherit:nn { __local } {
-    \CDR_tag_if_eq:cnF { engine } { default } {
-      __fancyvrb.frame,
-    },
-    __fancyvrb.number,
-  }
-  \CDR_tag_keys_set_known:nVN { __local }\FV@KeyValues \FV@KeyValues
-%    \end{MacroCode}
-% These keys are read without removing them
-% later and eventually forwarded to \pkg{fancyvrb}
-% through its natural |\FV@UseKeyValues| mechanism.
-%    \begin{MacroCode}  
-  \CDR_tag_keys_inherit:nn { __local } {
-    __fancyvrb.block,
-    __fancyvrb,
-  }
-  \CDR_tag_keys_set_known:nVN { __local } \FV@KeyValues \l_CDR_kv_clist
-  \CDRBlock_setup_tags:
-  \lua_now:n {
-    CDR:hilight_block_setup('g_CDR_tags_clist')
-  }
-  \CDR_set_conditional:Nn \CDR_if_pygments:
-    { \CDR_tag_if_truthy_p:c { pygments } }
-  \CDR_set_conditional:Nn \CDR_if_no_export:
-    { \CDR_tag_if_truthy_p:c { no~export } }
-  \CDR_set_conditional:Nn \CDR_if_dry_numbers:
-    { \CDR_tag_if_truthy_p:c { dry~numbers } }
-  \CDR_set_conditional:Nn \CDR_if_number_on:
-    { ! \CDR_tag_if_eq_p:cn { numbers } { none } }
-  \CDR_set_conditional:Nn \CDR_tags_if_already: {
-    \CDR_tag_if_truthy_p:c { only~top } &&
-    \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
-  }
-  \CDR_if_number_on:T {
-    \clist_map_inline:Nn \g_CDR_tags_clist {
-      \CDR_int_if_exist:cF { ##1 } {
-        \CDR_int_new:cn { ##1 } { 1 }
-      }
-    }
-  }
-}
-
-
-\cs_new_protected_nopar:Npn \CDRBlock_teardown: {
-  \CDR_if_dry_numbers:F {
-    \tl_set:Nx \l_CDR_tl { \seq_count:N \l_CDR_vrb_seq }
-    \clist_map_inline:Nn \g_CDR_tags_clist {
-      \CDR_int_gadd:cn { ##1 } { \l_CDR_tl }
-    }    
-  }
-  \lua_now:n {
-    CDR:hilight_block_teardown()
-  }
-}
-
-\cs_set:Npn \CDRBlock@Pyg {
-\CDR@Debug {DEBUG.CDRBlock:PYGMENTS}
-  \CDR_tag_get:cN {lang} \l_CDR_tl
-  \lua_now:n { CDR:hilight_set_var('lang') }
-  \CDR_tag_get:cN {cache} \l_CDR_tl
-  \lua_now:n { CDR:hilight_set_var('cache') }
-  \CDR_tag_get:cN {debug} \l_CDR_tl
-  \lua_now:n { CDR:hilight_set_var('debug') }
-  \CDR_tag_get:cN {texcomments} \l_CDR_tl
-  \lua_now:n { CDR:hilight_set_var('texcomments') }
-  \CDR_tag_get:cN {escapeinside} \l_CDR_tl
-  \lua_now:n { CDR:hilight_set_var('escapeinside') }
-  \CDR_tag_get:cN {mathescape} \l_CDR_tl
-  \lua_now:n { CDR:hilight_set_var('mathescape') }
-  \CDR_tag_get:cN {style} \l_CDR_tl
-  \lua_now:n { CDR:hilight_set_var('style') }
-  \CDR@StyleIfExist { \l_CDR_tl } { } {
-    \lua_now:n { CDR:hilight_source(true, false) }
-    \input { \l_CDR_pyg_sty_tl }
-  }
-  \CDR@StyleUseTag
-%  \CDR_tag_get:c { format }
-%  \cs_set:Npn \CDR:nn ##1 ##2 {
-%\CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}
-%    \fvset{ ##1 = ##2, }
-%  }
-%  \clist_map_inline:Nn \c_CDRBlock@Pyg_clist {
-%    \exp_args:Nnx
-%    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
-%  }
-  \CDR@DefineSp
-  \lua_now:n { CDR:hilight_source(false, true) }
-  \fvset{ commandchars=\\\{\} }
-  \FV@UseVerbatim {
-    \CDR_tag_get:c { format }
-    \CDR_if_no_export:T {
-      \CDR_tag_get:c { no~export~format }
-    }
-    \makeatletter
-    \input{ \l_CDR_pyg_tex_tl }
-    \makeatother
-    \def \FV@ProcessLine {}
-  }
-  \CDR_if_number_on:T {
-    \CDR_int_add:cn { __last } { 1 }
-    \clist_map_inline:Nn \g_CDR_tags_clist {
-      \CDR_int_gset:cc { ##1 } { __last }
-\CDR@Debug {DEBUG.CDRBlock.LAST: ##1 -> \CDR_int_use:c { ##1 } }
-    }
-  }
-}
-
-%\ExplSyntaxOn
-%\file_get:nnNTF {sansnom-3.tex} {\cctab_select:N \c_str_cctab} \l_tmpa_str {SUCCESS} {FAILURE}
-%\l_tmpa_str
-%\\
-%\ior_open:NnTF \g_tmpa_ior {sansnom-3.tex} {
-%\ior_str_map_inline:Nn \g_tmpa_ior {
-%#1\\
-%}
-%\ior_close:N \g_tmpa_ior
-%} {FAILED}
-%\ExplSyntaxOff
-
-
-\DefineVerbatimEnvironment{CDRBlockX}{CDRBlockX}{}
 
 \ExplSyntaxOff
 
@@ -477,17 +109,26 @@
 
 \CDRSet{tags=WHAT}
 
-\begin{CDRBlockX}[frame=lines,rulecolor=\color{red!20!yellow}]
+\begin{CDRBlock}[
+  frame=lines,
+  rulecolor=\color{red!20!yellow}
+]
 def function foo(x):
   '''Square function'''
   return x ** x
-\end{CDRBlockX}
+\end{CDRBlock}
 
-\begin{CDRBlockX}[pygments=false,frame=lines,rulecolor=\color{red!20!yellow}]
+\begin{CDRBlock}[pygments=false,frame=lines,rulecolor=\color{red!20!yellow}]
 def function foo(x):
   '''Square function'''
   return x ** x
-\end{CDRBlockX}
+\end{CDRBlock}
+
+\begin{CDRBlock}
+def function foo(x):
+  '''Square function'''
+  return x ** x
+\end{CDRBlock}
 
 
 \ExplSyntaxOn
