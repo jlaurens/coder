@@ -3,20 +3,28 @@
 Tests of \cs{CDR_tag_boolean_set:n}
 
 \ExplSyntaxOn
+\group_begin:
 \CDR_tag_keys_define:nn { CDR_tag_boolean_set:n } {
   numberblanklines .code:n = \CDR_tag_boolean_set:n { #1 },
+  numberblanklines .default:n = true,
 }
 \CDR_tag_keys_set:nn { CDR_tag_boolean_set:n } {
   numberblanklines,
 }
-\tl_if_eq:xnF { \CDR_tag_get:cc { CDR_tag_boolean_set:n } { numberblanklines } } { true } { FAIL 76\\ }
+\CDR_test:cncn { CDR_tag_boolean_set:n } { tl } { numberblanklines } { true }
+
 \CDR_tag_keys_set:nn { CDR_tag_boolean_set:n } {
   numberblanklines = false,
 }
-\tl_if_eq:xnF { \CDR_tag_get:cc { CDR_tag_boolean_set:n } { numberblanklines } } { false } { FAIL 80\\ }
+\CDR_test:cncn { CDR_tag_boolean_set:n } { tl } { numberblanklines } { false }
+
 \CDR_tag_keys_set:nn { CDR_tag_boolean_set:n } {
   numberblanklines = true,
 }
-\tl_if_eq:xnF { \CDR_tag_get:cc { CDR_tag_boolean_set:n } { numberblanklines } } { true } { FAIL 84\\ }
+\CDR_test:cncn { CDR_tag_boolean_set:n } { tl } { numberblanklines } { true }
 
+\CDR_test:
+
+\group_end:
 \ExplSyntaxOff
+

@@ -76,15 +76,23 @@ THIS_IS_VOID=\CDR_tag_get:cc { A } { B }\\
 %}
 
 
+\CDR_tag_keys_define:nn { C } { c .code:n = \typeout{c=#1} }
 \CDR_tag_keys_inherit:nn { child } { C }
+
 \CDR_tag_keys_set:nn { child } { c=c }
+
+\CDR_tag_keys_define:nn { A } { a .tl_set:N = \l_tmpa_tl }
+\CDR_tag_keys_define:nn { B } { b .tl_set:N = \l_tmpb_tl }
 
 \CDR_tag_keys_inherit:nn { child } { A, B }
 
 \CDR_tag_keys_set:nn { child } { a=a, b=b }
 
 
-\tl_if_eq:xnF { \l_tmpa_tl } { a } { FAIL \CurrentFile 38\\ }
-\tl_if_eq:xnF { \l_tmpb_tl } { b } { FAIL \CurrentFile 39\\ }
+\tl_if_eq:xnF { \l_tmpa_tl } { a } { \CDR_register_fail: }
+\tl_if_eq:xnF { \l_tmpb_tl } { b } { \CDR_register_fail: }
+
+\CDR_test:
+
 \group_end:
 \ExplSyntaxOff

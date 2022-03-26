@@ -37,35 +37,50 @@
 \fp_set:Nn \l_CDR_test_fp { 1 }
 
 
+%    \end{macrocode}
+% \begin{function}{\CDR_register_fail:}
+% \begin{syntax}
+% \cs{CDR_register_fail:}
+% \end{syntax}
+% Stores the current line and file to be processed by |\CDR_test:|
+% \end{function}
+%    \begin{macrocode}
+\cs_new:Npn \CDR_register_fail: {
+      \seq_put_right:Nn \l_CDR_fail_seq {\CDR@TEST:nn}
+      \seq_put_right:Nx \l_CDR_fail_seq {\CurrentFile}
+      \seq_put_right:Nn \l_CDR_fail_seq {\q_mark}
+      \seq_put_right:Nx \l_CDR_fail_seq {\the\inputlineno}
+      \seq_put_right:Nn \l_CDR_fail_seq {\q_stop}
+}
 \cs_new:Npn \CDR_assert_tl_empty:n #1 {
   \tl_if_empty:nF { #1 } {
     \fp_add:Nn \l_CDR_fail_fp { \l_CDR_test_fp }
-    \seq_put_right:Nn \l_CDR_fail_seq {\CDR@TEST:nn}
-    \seq_put_right:Nx \l_CDR_fail_seq {\CurrentFile}
-    \seq_put_right:Nn \l_CDR_fail_seq {\q_mark}
-    \seq_put_right:Nx \l_CDR_fail_seq {\the\inputlineno}
-    \seq_put_right:Nn \l_CDR_fail_seq {\q_stop}
+    \CDR_register_fail:
   }
   \fp_set:Nn \l_CDR_test_fp {  2 * \l_CDR_test_fp }
 }
 
+%    \end{macrocode}
+%
+% \begin{function}{\CDR_test:cncn}
+% \begin{syntax}
+% \cs{CDR_test:cncn} \Arg{tag name} \Arg{type} \Arg{key} \Arg{value}
+% \end{syntax}
+% \end{function}
+%    \begin{macrocode}
 \cs_new:Npn \CDR_test:cncn #1 #2 #3 #4 {
   \use:c{#2_if_eq:xnF}
     { \CDR_tag_get:cc { #1 } { #3 } }
     { #4 }
     {
       \fp_add:Nn \l_CDR_fail_fp { \l_CDR_test_fp }
-      \seq_put_right:Nn \l_CDR_fail_seq {\CDR@TEST:nn}
-      \seq_put_right:Nx \l_CDR_fail_seq {\CurrentFile}
-      \seq_put_right:Nn \l_CDR_fail_seq {\q_mark}
-      \seq_put_right:Nx \l_CDR_fail_seq {\the\inputlineno}
-      \seq_put_right:Nn \l_CDR_fail_seq {\q_stop}
+      \CDR_register_fail:
    }
   \fp_set:Nn \l_CDR_test_fp {  2 * \l_CDR_test_fp }
 }
 
 \cs_set:Npn \CDR@TEST:nn #1 \q_mark #2 \q_stop {
-  FAILED:~file~#1~at~line~#2\\
+  \textbf{\color{red!50!black}FAILED:}~file~#1~at~line~#2\\
 }
 
 \prg_generate_conditional_variant:Nnn \skip_if_eq:nn { x } { p, T, F, TF }
