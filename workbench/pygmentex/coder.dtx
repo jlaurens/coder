@@ -1555,6 +1555,7 @@ class FVOpts(BaseOpts):
   xleftmargin = '0pt'
   xrightmargin = '0pt'
   hfuzz = '2pt'
+  vspace = r'\topsep'
   samepage = False
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
@@ -3312,12 +3313,6 @@ if __name__ == '__main__':
   post~processor .code:n = \CDR_tag_set:,
   post~processor .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed parskip]^^A
-% the value of the \cs{parskip} in code blocks,
-%    \begin{MacroCode}[OK]
-  parskip .code:n = \CDR_tag_set:,
-  parskip .value_required:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed default engine options=\meta{default engine options}]^^A
 % to specify the corresponding options,
 %    \begin{MacroCode}[OK]
@@ -3346,7 +3341,6 @@ if __name__ == '__main__':
     cache = true,
     debug = false,
     post~processor = ,
-    parskip = \the\parskip,
     default~engine~options = ,
     default~options = ,
   },
@@ -3499,13 +3493,6 @@ if __name__ == '__main__':
   use~margin .code:n = \CDR_tag_boolean_set:x { #1 },
   use~margin .default:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed blockskip]^^A
-% the separation with the surrounding text, above and below.
-% Initially |\topsep|.
-%    \begin{MacroCode}[OK]
-  blockskip .code:n = \CDR_tag_set:,
-  blockskip .value_required:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed __initialize]^^A
 % Initialization.
 %    \begin{MacroCode}[OK]
@@ -3521,7 +3508,6 @@ if __name__ == '__main__':
     tags~format = {
       \bfseries
     },
-    blockskip = \topsep,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -3814,6 +3800,12 @@ if __name__ == '__main__':
   hfuzz .code:n = \CDR_tag_set:, 
   hfuzz .value_required:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed vspace=\metatt{dimension}]^^A
+% the amount of vertical space added to |\parskip| before and after blocks.
+%    \begin{MacroCode}[OK]
+  vspace .code:n = \CDR_tag_set:,
+  vspace .value_required:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed samepage{[=true$\vert$false]}]^^A
 % in very special circumstances, we may want to make sure that a verbatim environment
 % is not broken, even if it does not fit on the current page.
@@ -3834,6 +3826,7 @@ if __name__ == '__main__':
     xleftmargin = 0pt,
     xrightmargin = 0pt,
     hfuzz = 2pt,
+    vspace = \topset,
     samepage = false,
   },
   __initialize .value_forbidden:n = true,
@@ -5300,15 +5293,6 @@ if __name__ == '__main__':
     \input { \l_CDR_pyg_sty_tl }
   }
   \CDR@StyleUseTag
-%  \CDR_tag_get:c { format }
-%  \cs_set:Npn \CDR:nn ##1 ##2 {
-%\CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}
-%    \fvset{ ##1 = ##2, }
-%  }
-%  \clist_map_inline:Nn \c_CDRBlock@Pyg_clist {
-%    \exp_args:Nnx
-%    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
-%  }
   \CDR@DefineSp
   \lua_now:n { CDR:hilight_source(false, true) }
   \fvset{ commandchars=\\\{\} }
@@ -5329,50 +5313,6 @@ if __name__ == '__main__':
 \CDR@Debug {DEBUG.CDRBlock.LAST: ##1 -> \CDR_int_use:c { ##1 } }
     }
   }
-}
-%    \end{MacroCode}
-%
-% \begin{variable}{\c_CDRBlock@Pyg_clist}
-% \end{variable}
-%    \begin{MacroCode}
-\clist_const:Nn \c_CDRBlock@Pyg_clist {
-% __fancyvrb:
-  formatcom,% = ,
-  fontfamily,% = tt,
-  fontsize,% = auto,
-  fontseries,% = auto,
-  fontshape,% = auto,
-  showspaces,% = false,
-  showtabs,% = false,
-  obeytabs,% = false,
-  tabsize,% = 2,
-  defineactive,% = ,
-  reflabel,% = ,
-% __fancyvrb.frame:
-  frame,% = none,
-  framerule,% = 0.4pt,
-  framesep,% = \fboxsep,
-  rulecolor,% = black,
-  fillcolor,% = ,
-  label,% = ,
-  labelposition,% = none,% auto?
-% __fancyvrb.block:
-%  commentchar,% = ,
-%  gobble,% = 0,
-  baselinestretch,% = auto,
-  resetmargins,% = true,
-  xleftmargin,% = 0pt,
-  xrightmargin,% = 0pt,
-  hfuzz,% = 2pt,
-  samepage,% = false,
-  % __fancyvrb.number
-%  numbers,% = left,
-%  numbersep,% = 1ex,
-%  firstnumber,% = auto,
-%  stepnumber,% = 1,
-%  numberblanklines,% = true,
-%  firstline,% = ,
-%  lastline,% = ,
 }
 %    \end{MacroCode}
 %
@@ -5871,15 +5811,6 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \cs_new_protected:Npn \CDRBlock@FV {
 \CDR@Debug {DEBUG.Block.FV}
-%  \tl_clear:N \FV@KeyValues
-%  \cs_set:Npn \CDR:nn ##1 ##2 {
-%\CDR@Debug{Debug.CDRBlock.FV.KEYS:\tl_to_str:n{##1}->\tl_to_str:n{##2}}
-%    \fvset{ ##1 = { ##2 }, }
-%  }
-%  \clist_map_inline:Nn \c_CDRBlock@FV_clist {
-%    \exp_args:Nnf
-%    \CDR:nn { ##1 } { \CDR_tag_get:c { ##1 } }
-%  }
   \FV@UseKeyValues
   \FV@UseVerbatim {
     \CDR_tag_get:c { format }
@@ -5911,50 +5842,6 @@ if __name__ == '__main__':
       }
     }
   }
-}
-%    \end{MacroCode}
-%
-% \begin{variable}{\c_CDRBlock@FV_clist}
-% \end{variable}
-%    \begin{MacroCode}
-\clist_const:Nn \c_CDRBlock@FV_clist {
-% __fancyvrb:
-  formatcom,% = ,
-  fontfamily,% = tt,
-  fontsize,% = auto,
-  fontseries,% = auto,
-  fontshape,% = auto,
-  showspaces,% = false,
-  showtabs,% = false,
-  obeytabs,% = false,
-  tabsize,% = 2,
-  defineactive,% = ,
-  reflabel,% = ,
-% __fancyvrb.frame:
-  frame,% = none,
-  framerule,% = 0.4pt,
-  framesep,% = \fboxsep,
-  rulecolor,% = black,
-  fillcolor,% = ,
-  label,% = ,
-  labelposition,% = none,% auto?
-% __fancyvrb.block:
-%  commentchar,% = ,
-  gobble,% = 0,
-  baselinestretch,% = auto,
-  resetmargins,% = true,
-  xleftmargin,% = 0pt,
-  xrightmargin,% = 0pt,
-  hfuzz,% = 2pt,
-  samepage,% = false,
-% __fancyvrb.number
-  numbers,% = none,
-  numbersep,% = 1ex,
-  firstnumber,% = auto,
-  stepnumber,% = 1,
-  numberblanklines,% = true,
-  firstline,% = ,
-  lastline,% = ,
 }
 %    \end{MacroCode}
 %
@@ -6190,8 +6077,11 @@ if __name__ == '__main__':
 
 %    \end{MacroCode}  
 %
-
+% Input a configuration file named \texttt{\jobname.cfg}, if any.
 %    \begin{MacroCode}
+\AtBeginDocument{
+  \InputIfFileExists{coder.cfg}{}{}
+}
 %</sty>
 %    \end{MacroCode}
 % \end{implementation}

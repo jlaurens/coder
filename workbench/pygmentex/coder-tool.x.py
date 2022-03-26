@@ -105,6 +105,7 @@ class FVOpts(BaseOpts):
   xleftmargin = '0pt'
   xrightmargin = '0pt'
   hfuzz = '2pt'
+  vspace = r'\topsep'
   samepage = False
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
