@@ -4101,16 +4101,16 @@ if __name__ == '__main__':
     __fancyvrb, __fancyvrb.frame, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
     \CDR_tag_keys_set_known:nN { ##1 } \l_CDR_kv_clist
-\CDR@Debug{ Debug.CDRSet.1:##1/\l_CDR_kv_clist/ }
+\CDR@Debug{ \string\CDRSet.1:##1/\l_CDR_kv_clist/ }
   }
   \CDR_tag_keys_set_known:nN { .. } \l_CDR_kv_clist
-\CDR@Debug{ Debug.CDRSet.2:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
+\CDR@Debug{ \string\CDRSet.2:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
-\CDR@Debug{ Debug.CDRSet.2a:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }  
+\CDR@Debug{ \string\CDRSet.2a:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }  
   \CDR_tag_keys_set_known:nN { .. } \l_CDR_kv_clist
-\CDR@Debug{ Debug.CDRSet.3:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
+\CDR@Debug{ \string\CDRSet.3:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
   \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
-\CDR@Debug{ Debug.CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
+\CDR@Debug{ \string\CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
   \keys_define:nn { CDR@Set@tags } {
     tags .code:n = {
       \clist_set:Nn \g_CDR_tags_clist { ##1 }
@@ -5053,6 +5053,18 @@ if __name__ == '__main__':
 % items and feed |\FV@KeyValues| with them in the |aftersave| handler.
 % \end{function}
 %    \begin{MacroCode}[OK]
+\cs_new:Npn \CDRCode_formatting_prep: {
+  \frenchspacing
+  \FV@BaseLineStretch
+  \FV@FontSize
+  \FV@FontFamily
+  \FV@FontSeries
+  \FV@FontShape
+  \selectfont
+  \FV@DefineWhiteSpace
+  \FancyVerbDefineActive
+  \FancyVerbFormatCom
+}
 \cs_new_protected_nopar:Npn \CDRCode:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
     \cs_set:Npn \CDR@StyleUseTag {
@@ -5075,7 +5087,7 @@ if __name__ == '__main__':
         \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
         \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
         \FV@UseKeyValues
-        \FV@FormattingPrep
+        \CDRCode_formatting_prep:
         \CDR@DefinePygSp
         \CDR_tag_get:c { format }
         \CDR@CodeEngineApply {
@@ -5093,9 +5105,9 @@ if __name__ == '__main__':
             CDR.synctex_line = tex.inputlineno;
             tex.set_synctex_mode(1)
           }
-          \CDR_tag_if_truthy:cT { mbox } { \mbox } {
+          %\CDR_tag_if_truthy:cT { mbox } { \mbox } {
             \input { \l_CDR_pyg_tex_tl }\ignorespaces
-          }  
+          %}  
           \lua_now:n {
             tex.set_synctex_mode(0)
           }
@@ -5119,7 +5131,7 @@ if __name__ == '__main__':
           \CDR_tag_if_truthy:cT { mbox } { \mbox } {
             \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
             \FV@UseKeyValues
-            \FV@FormattingPrep
+            \CDRCode_formatting_prep:
             \FV@SV@CDR@Code
           }
         }

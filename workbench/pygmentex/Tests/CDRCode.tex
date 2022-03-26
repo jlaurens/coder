@@ -107,6 +107,114 @@ YYY
 
 \ExplSyntaxOn
 \group_begin:
+\makeatletter
+\cs_undefine:N \CDRCode:n
+%    \end{MacroCode}
+% \begin{function}{\CDRCode:n}
+% \begin{syntax}
+% \cs{CDRCode:n} \meta{delimiter}
+% \end{syntax}
+% Main utility used by |\CDRCode|.
+% The main tricky part is that we must collect the \metatt{key[=value]}
+% items and feed |\FV@KeyValues| with them in the |aftersave| handler.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\expandafter\ifx\csname selectfont\endcsname\relax
+  \typeout{****************~SELECT~FONT}
+\else
+  \typeout{****************~NO~SELECT~FONT}
+\fi
+\cs_new_protected_nopar:Npn \CDRCode:n #1 {
+  \CDR_tag_if_truthy:cTF {pygments} {
+    \cs_set:Npn \CDR@StyleUseTag {
+      \CDR@StyleUse { \CDR_tag_get:c { style } }
+      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
+    }
+    \DefineShortVerb { #1 }
+    \SaveVerb [
+      aftersave = {
+        \exp_args:Nx \UndefineShortVerb { #1 }
+        \lua_now:n { CDR:hilight_code_setup() }
+        \CDR_tag_get:cN {lang} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('lang') }
+        \CDR_tag_get:cN {cache} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('cache') }
+        \CDR_tag_get:cN {debug} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('debug') }
+        \CDR_tag_get:cN {style} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('style') }
+        \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
+        \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
+\CDR@Debug{1}
+        \FV@UseKeyValues
+\CDR@Debug{2}
+        \frenchspacing
+        \FV@BaseLineStretch
+        \FV@FontSize
+        \FV@FontFamily
+        \FV@FontSeries
+        \FV@FontShape
+        \selectfont
+        \FV@DefineWhiteSpace
+        \FancyVerbDefineActive
+        \FancyVerbFormatCom
+\CDR@Debug{3}
+        \CDR@DefinePygSp
+        \CDR_tag_get:c { format }
+        \CDR@CodeEngineApply {
+          \CDR@StyleIfExist { \CDR_tag_get:c { style } } {
+            \CDR@StyleUseTag
+            \lua_now:n { CDR:hilight_source(false, true) }        
+          } {
+            \lua_now:n { CDR:hilight_source(true, true) }
+            \input { \l_CDR_pyg_sty_tl }
+            \CDR@StyleUseTag
+          }
+          \makeatletter
+          \lua_now:n {
+            CDR.synctex_tag = tex.get_synctex_tag();
+            CDR.synctex_line = tex.inputlineno;
+            tex.set_synctex_mode(1)
+          }
+          %\CDR_tag_if_truthy:cT { mbox } { \mbox } {
+\CDR@Debug{4,\l_CDR_pyg_tex_tl}
+            \input { \l_CDR_pyg_tex_tl }\ignorespaces
+\CDR@Debug{4}
+          %}  
+          \lua_now:n {
+            tex.set_synctex_mode(0)
+          }
+          \makeatother
+        }
+        \group_end:
+
+      }
+    ] { CDR@Source } #1
+  } {
+    \DefineShortVerb { #1 }
+    \SaveVerb [
+      aftersave = {
+        \UndefineShortVerb { #1 }
+        \cs_set_eq:NN \CDR@FormattingPrep \FV@FormattingPrep
+        \cs_set:Npn \FV@FormattingPrep {
+          \CDR@FormattingPrep
+          \CDR_tag_get:c { format }
+        }
+        \CDR@CodeEngineApply {
+          \CDR_tag_if_truthy:cT { mbox } { \mbox } {
+            \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
+            \FV@UseKeyValues
+            \FV@FormattingPrep
+            \FV@SV@CDR@Code
+          }
+        }
+        \group_end:
+      }
+    ] { CDR@Code } #1
+  }
+}
+\def\CDR@Debug#1{\typeout{****~DEBUG:~#1}}
+\makeatother
 \ExplSyntaxOff
 
 \CDRSet{cache=false,debug=true}
@@ -118,9 +226,9 @@ B\\
 \CDRSet{pygments=true}
 A\\
 \CDRCode|<fontsize=\Large>|\\
+\end{document}
 B\\
 \CDRCode[fontsize=\Large]|<fontsize=\Large>|\\
-
 \CDRCode!<ABC DEF>!\\
 1\\
 \CDRCode[fontfamily=menlo]!<fontfamily=menlo>!\\
@@ -218,6 +326,7 @@ style autumn  AB CD=\CDRCode[tag=X]|AB CD\textbf{AB}| et la suite\\
 style default AB CD=\CDRCode[tag=Y]|AB CD\textbf{AB}| et la suite\\
 style default AB CD=\CDRCode[engine=efbox, efbox engine options={hidealllines,backgroundcolor=red}, engine options={backgroundcolor=yellow}]|AB CD\textbf{AB}| et la suite\\
 style default AB CD=\CDRCode[format=\color{blue}]|AB CD\textbf{AB}| et la suite\\
+
 \ExplSyntaxOn
 \group_end:
 \ExplSyntaxOff
