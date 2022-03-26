@@ -425,6 +425,7 @@
   \PackageError
     { coder }
     { Conditional~not~available }
+    { Internal~error:~report~bug }
 }
 \cs_new:Npn \CDR_process_record: {}
 \cs_set:Npn \CDR_tag_module:n #1 {
@@ -656,6 +657,14 @@
 \AtBeginDocument{
   \CDR_tag_keys_set:nn { __tags } { __initialize }
 }
+\CDR_tag_keys_define:nn { __no_tags } {
+  tags .code:n = {
+    \PackageError
+      { coder }
+      { Key~`tags'~is~forbidden~for~engines }
+      { See~the~coder~manual }
+  }
+}
 \CDR_tag_keys_define:nn { __engine } {
   engine .code:n = \CDR_tag_set:,
   engine .value_required:n = true,
@@ -666,6 +675,14 @@
 }
 \AtBeginDocument{
   \CDR_tag_keys_set:nn { __engine } { __initialize }
+}
+\CDR_tag_keys_define:nn { __no_engine } {
+  engine .code:n = {
+    \PackageError
+      { coder }
+      { Key~`engine'~is~forbidden~for~engines }
+      { See~the~coder~manual }
+  }
 }
 \CDR_tag_keys_define:nn { default.block } {
   tags~format .code:n = \CDR_tag_set:,
@@ -1117,6 +1134,11 @@
       { coder }
       { The~engine~cannot~be~void. }
   } {
+    \group_begin:
+    \CDR_local_inherit:n { __no_tag, __no_engine }
+    \CDR_local_set:n { #2 }
+    \group_end:
+    \cs_set:cpn { \CDRCode_options:c { #1 } } { \exp_not:n { #2 } }
     \cs_new:cpn { \CDRCode_engine:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
       #3
@@ -1133,6 +1155,11 @@
       \use_none:n
   } {
     \cs_if_exist:cTF { \CDRCode_engine:c { #1 } } {
+      \group_begin:
+      \CDR_local_inherit:n { __no_tag, __no_engine }
+      \CDR_local_set:n { #2 }
+      \group_end:
+      \cs_set:cpn { \CDRCode_options:c { #1 } } { \exp_not:n { #2 } }
       \cs_set:cpn { \CDRCode_engine:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
         #3
@@ -1150,7 +1177,7 @@
     \PackageError
       { coder }
       { \CDR_tag_get:c { engine }~code~engine~unknown,~replaced~by~`default' }
-      {See~\CDRCodeEngineNew~in~the~coder~manual}
+      { See~\CDRCodeEngineNew~in~the~coder~manual }
     \CDR_tag_set:cn { engine } { default }
   }
   \CDR_tag_get:c { format }
@@ -1161,22 +1188,35 @@
   }
 }
 \NewDocumentCommand \CDRBlockEngineNew { mO{}m } {
+  \group_begin:
+  \CDR_local_inherit:n { __no_tag, __no_engine }
+  \CDR_local_set:n { #2 }
+  \group_end:
   \cs_set:cpn { \CDRBlock_options:c { #1 } } { \exp_not:n { #2 } }
-  \NewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { m } {
+  \NewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { } {
     \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
     #3
   }
 }
-\NewDocumentCommand \CDRBlockEngineRenew { mm } {
+\NewDocumentCommand \CDRBlockEngineRenew { mO{}m } {
   \tl_if_empty:nTF { #1 } {
-    \PackageWarning
+    \PackageError
       { coder }
       { The~engine~cannot~be~void. }
+      { See~\string\CDRBlockEngineNew~in~the~coder~manual }
       \use_none:n
   } {
-    \RenewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { m } {
-      \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
-      #2
+    \cs_if_exist:cTF { \CDRBlock_engine:c { #1 } } {
+      \cs_set:cpn { \CDRBlock_options:c { #1 } } { \exp_not:n { #2 } }
+      \RenewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { } {
+        \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
+        #3
+      }
+    } {
+      \PackageError
+        { coder }
+        { No~block~engine~#1.}
+        { See~\string\CDRBlockEngineNew~in~the~coder~manual }
     }
   }
 }
@@ -1317,8 +1357,9 @@
     \prg_return_false:
   }
   \clist_set:Nn \FV@KeyValues { #1 }
+  \CDRCode_setup_tags_and_engine:
   \CDR_local_inherit:n {
-    __code, __engine, default.code, __pygments, default,
+    __code, default.code, __pygments, default,
   }
   \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_provide_from_kv:V \FV@KeyValues
@@ -1327,11 +1368,32 @@
     __fancyvrb,
   }
   \CDR_local_set:V \FV@KeyValues
-  \CDR_get_inherit:cf { __local } {
-    \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-    __code, __engine, default.code, __pygments, default, __fancyvrb,
-  }
   \CDRCode:n
+}
+\cs_new_protected_nopar:Npn \CDRCode_setup_tags_and_engine: {
+  \CDR_local_inherit:n { __tags }
+  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_tag_if_exist_here:ccT { __local } { tags } {
+    \CDR_tag_get:cN { tags } \l_CDR_clist
+    \clist_if_empty:NF \l_CDR_clist {
+      \clist_gset_eq:NN \g_CDR_tags_clist \l_CDR_clist
+    }
+  }
+  \clist_if_empty:NT \g_CDR_tags_clist {
+    \PackageWarning
+      { coder }
+      { No~(default)~tags~provided. }
+  }
+\CDR@Debug {CDRCode_setup_tags_and_engine:\space\g_CDR_tags_clist}
+  \CDR_get_inherit:cf { __local } {
+    \g_CDR_tags_clist,
+    __tags, __engine, __code, default.code, __pygments, default,
+  }
+  \CDR_local_inherit:n { __engine }
+  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_tag_get:cNT { engine } \l_CDR_tl {
+    \clist_put_left:Nx \FV@KeyValues { \CDRCode_options_use:V \l_CDR_tl }
+  }
 }
 \cs_set:Npn \CDRCode:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
@@ -1821,8 +1883,11 @@
 \CDR@Debug {\string\CDR@Line}
   \peek_meaning_ignore_spaces:NTF [%]
   { \CDR_line:nnn } {
-    \PackageError { code } { Missing~`['%]
-    ~at~first~\string\CDR@Line~call }
+    \PackageError
+      { coder }
+      { Missing~`['%]
+        ~at~first~\string\CDR@Line~call }
+      { See~the~coder~developper~manual }
   }
 }
 \keys_define:nn { CDR@Line } {
@@ -1909,6 +1974,7 @@
     } { \PackageError
           { coder }
           { Unknown~show~tags~options~:~ \CDR_tag_get:c { show~tags } }
+          { See~the~coder~manual }
     }
   }
   \exp_args:Nx
@@ -1928,6 +1994,7 @@
   } { \PackageError
         { coder }
         { Unknown~numbers~options~:~ \CDR_tag_get:c { numbers } }
+        { See~the~coder~manual }
   }
 \CDR@Debug {BRANCH:CDR_line \l_CDR_tl :n}
   \use:c { CDR_line \l_CDR_tl :n }
