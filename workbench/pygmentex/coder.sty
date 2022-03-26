@@ -389,14 +389,14 @@
 \cs_new:Npn \CDR_tag_parent_seq:c #1 {
   l_CDR:parent.tag @ #1 _seq
 }
-\cs_new:Npn \CDR_tag_inherit:cn #1 #2 {
+\cs_new:Npn \CDR_get_inherit:cn #1 #2 {
   \seq_set_from_clist:cn { \CDR_tag_parent_seq:c { #1 } } { #2 }
   \seq_remove_duplicates:c \l_CDR_tl
   \seq_remove_all:cn \l_CDR_tl {}
   \seq_put_right:cn \l_CDR_tl { \q_no_value }
 }
-\cs_new:Npn \CDR_tag_inherit:cf {
-  \exp_args:Nnf \CDR_tag_inherit:cn
+\cs_new:Npn \CDR_get_inherit:cf {
+  \exp_args:Nnf \CDR_get_inherit:cn
 }
 \cs_new:Npn \CDR_tag_parents:c #1 {
   \seq_map_inline:cn { \CDR_tag_parent_seq:c { #1 } } {
@@ -1035,6 +1035,7 @@
         { Missing~export~key~`tags' }
     }
   }
+  \ignorespaces
 }
 \AddToHook { enddocument / end } {
   \seq_map_inline:Nn \g_CDR_export_seq {
@@ -1329,7 +1330,7 @@
     __fancyvrb,
   }
   \CDR_local_set:V \FV@KeyValues
-  \CDR_tag_inherit:cf { __local } {
+  \CDR_get_inherit:cf { __local } {
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, __engine, default.code, __pygments, default, __fancyvrb,
   }
@@ -2070,7 +2071,7 @@
       { No~(default)~tags~provided. }
   }
 \CDR@Debug {CDRBlock_setup_tags:\space\g_CDR_tags_clist}
-  \CDR_tag_inherit:cf { __local } {
+  \CDR_get_inherit:cf { __local } {
     \g_CDR_tags_clist,
     __block, __tags, __engine, default.block, __pygments.block,
     __fancyvrb.block __fancyvrb.frame, __fancyvrb.number,

@@ -2779,22 +2779,22 @@ if __name__ == '__main__':
   l_CDR:parent.tag @ #1 _seq
 }
 %    \end{MacroCode}
-% \begin{function}{\CDR_tag_inherit:cn, \CDR_tag_inherit:cf}
+% \begin{function}{\CDR_get_inherit:cn, \CDR_get_inherit:cf}
 % \begin{syntax}
-% \cs{CDR_tag_inherit:cn} \Arg{child name} \Arg{parent names comma list}
+% \cs{CDR_get_inherit:cn} \Arg{child name} \Arg{parent names comma list}
 % \end{syntax}
 % Set the parents of \metatt{child name} to the
 % given list.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_tag_inherit:cn #1 #2 {
+\cs_new:Npn \CDR_get_inherit:cn #1 #2 {
   \seq_set_from_clist:cn { \CDR_tag_parent_seq:c { #1 } } { #2 }
   \seq_remove_duplicates:c \l_CDR_tl
   \seq_remove_all:cn \l_CDR_tl {}
   \seq_put_right:cn \l_CDR_tl { \q_no_value }
 }
-\cs_new:Npn \CDR_tag_inherit:cf {
-  \exp_args:Nnf \CDR_tag_inherit:cn
+\cs_new:Npn \CDR_get_inherit:cf {
+  \exp_args:Nnf \CDR_get_inherit:cn
 }
 \cs_new:Npn \CDR_tag_parents:c #1 {
   \seq_map_inline:cn { \CDR_tag_parent_seq:c { #1 } } {
@@ -4929,7 +4929,7 @@ if __name__ == '__main__':
     __fancyvrb,
   }
   \CDR_local_set:V \FV@KeyValues  
-  \CDR_tag_inherit:cf { __local } {
+  \CDR_get_inherit:cf { __local } {
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
     __code, __engine, default.code, __pygments, default, __fancyvrb,
   }
@@ -6053,7 +6053,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % Setup the inheritance tree for the |\CDR_tag_get:...| related functions.
 %    \begin{MacroCode}
-  \CDR_tag_inherit:cf { __local } {
+  \CDR_get_inherit:cf { __local } {
     \g_CDR_tags_clist,
     __block, __tags, __engine, default.block, __pygments.block,
     __fancyvrb.block __fancyvrb.frame, __fancyvrb.number,

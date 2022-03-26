@@ -64,14 +64,14 @@ Path=\l_CDR_tl\\
 Path=\l_CDR_tl\\
 \ExplSyntaxOff
 
-\section{Sandbox}
-\makeatletter\ExplSyntaxOn
-\def\CDR@Debug { \use_none:n }
-\ExplSyntaxOff\makeatother
-%\input{Tests/Sandbox}
-\input{Tests/Engine}
-
-\end{document}
+%\section{Sandbox}
+%\makeatletter\ExplSyntaxOn
+%\def\CDR@Debug { \use_none:n }
+%\ExplSyntaxOff\makeatother
+%%\input{Tests/Sandbox}
+%\input{Tests/Engine}
+%
+%\end{document}
 
 \section{Testing the tag mechanism}
 \makeatletter\ExplSyntaxOn
@@ -112,6 +112,12 @@ Path=\l_CDR_tl\\
 \def\CDR@Debug { \use_none:n }
 \ExplSyntaxOff\makeatother
 \input{Tests/CDRCode}
+
+\section{\texttt{CDRBlock}}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/CDRBlock}
 
 \section{\texttt{cache}}
 \makeatletter\ExplSyntaxOn
