@@ -615,8 +615,6 @@
   debug .default:n = true,
   post~processor .code:n = \CDR_tag_set:,
   post~processor .value_required:n = true,
-  parskip .code:n = \CDR_tag_set:,
-  parskip .value_required:n = true,
   default~engine~options .code:n = \CDR_tag_set:,
   default~engine~options .value_required:n = true,
   default~options .code:n = \CDR_tag_set:,
@@ -626,7 +624,6 @@
     cache = true,
     debug = false,
     post~processor = ,
-    parskip = \the\parskip,
     default~engine~options = ,
     default~options = ,
   },
@@ -683,8 +680,6 @@
   only~top .default:n = true,
   use~margin .code:n = \CDR_tag_boolean_set:x { #1 },
   use~margin .default:n = true,
-  blockskip .code:n = \CDR_tag_set:,
-  blockskip .value_required:n = true,
   __initialize .meta:n = {
     show~tags = numbers,
     only~top = true,
@@ -697,7 +692,6 @@
     tags~format = {
       \bfseries
     },
-    blockskip = \topsep,
   },
   __initialize .value_forbidden:n = true,
 }
@@ -795,6 +789,8 @@
   resetmargins .default:n = true,
   hfuzz .code:n = \CDR_tag_set:,
   hfuzz .value_required:n = true,
+  vspace .code:n = \CDR_tag_set:,
+  vspace .value_required:n = true,
   samepage .code:n = \CDR_tag_boolean_set:x { #1 },
   samepage .default:n = true,
   __initialize .meta:n = {
@@ -805,6 +801,7 @@
     xleftmargin = 0pt,
     xrightmargin = 0pt,
     hfuzz = 2pt,
+    vspace = \topset,
     samepage = false,
   },
   __initialize .value_forbidden:n = true,
@@ -1578,33 +1575,6 @@
     }
   }
 }
-\clist_const:Nn \c_CDRBlock@Pyg_clist {
-  formatcom,% = ,
-  fontfamily,% = tt,
-  fontsize,% = auto,
-  fontseries,% = auto,
-  fontshape,% = auto,
-  showspaces,% = false,
-  showtabs,% = false,
-  obeytabs,% = false,
-  tabsize,% = 2,
-  defineactive,% = ,
-  reflabel,% = ,
-  frame,% = none,
-  framerule,% = 0.4pt,
-  framesep,% = \fboxsep,
-  rulecolor,% = black,
-  fillcolor,% = ,
-  label,% = ,
-  labelposition,% = none,% auto?
-  baselinestretch,% = auto,
-  resetmargins,% = true,
-  xleftmargin,% = 0pt,
-  xrightmargin,% = 0pt,
-  hfuzz,% = 2pt,
-  samepage,% = false,
-  % __fancyvrb.number
-}
 \cs_new:Npn \CDR@NumberFormat {
   \CDR_tag_get:c { numbers~format }
 }
@@ -1996,40 +1966,6 @@
     }
   }
 }
-\clist_const:Nn \c_CDRBlock@FV_clist {
-  formatcom,% = ,
-  fontfamily,% = tt,
-  fontsize,% = auto,
-  fontseries,% = auto,
-  fontshape,% = auto,
-  showspaces,% = false,
-  showtabs,% = false,
-  obeytabs,% = false,
-  tabsize,% = 2,
-  defineactive,% = ,
-  reflabel,% = ,
-  frame,% = none,
-  framerule,% = 0.4pt,
-  framesep,% = \fboxsep,
-  rulecolor,% = black,
-  fillcolor,% = ,
-  label,% = ,
-  labelposition,% = none,% auto?
-  gobble,% = 0,
-  baselinestretch,% = auto,
-  resetmargins,% = true,
-  xleftmargin,% = 0pt,
-  xrightmargin,% = 0pt,
-  hfuzz,% = 2pt,
-  samepage,% = false,
-  numbers,% = none,
-  numbersep,% = 1ex,
-  firstnumber,% = auto,
-  stepnumber,% = 1,
-  numberblanklines,% = true,
-  firstline,% = ,
-  lastline,% = ,
-}
 \cs_new:Npn \CDR_set_conditional:Nn #1 #2 {
   \bool_if:nTF { #2 } {
     \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_true: }
@@ -2145,4 +2081,6 @@
 
 \ExplSyntaxOff
 
-
+\AtBeginDocument{
+  \InputIfFileExists{coder.cfg}{}{}
+}
