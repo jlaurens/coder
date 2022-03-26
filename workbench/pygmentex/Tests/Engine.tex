@@ -54,8 +54,7 @@
   \end{codebox}
   \item Epsum.
 \end{enumerate}
-
-
+abcde
 \begin{codebox}{Swap}
 \begin{CDRBlock}[numbersep=1cm]
 1
@@ -63,9 +62,9 @@
 3
 \end{CDRBlock}
 \end{codebox}
-
-\CDRBlockEngineNew{codebox}{\begin{codebox}{Swap}}{\end{codebox}}
-\begin{CDRBlock}[engine=codebox,numbersep=1cm]
+abcde
+\CDRBlockEngineNew{codebox}[formatcom=\color{magenta},numbersep=1cm]{\begin{codebox}{Swap}}{\end{codebox}}
+\begin{CDRBlock}[engine=codebox]
 1
 2
 3
@@ -86,29 +85,29 @@
 
 
 \subsection{In progress}
-
+abcde
+\begin{Verbatim}
+ABCDE
+\end{Verbatim}
+abcde%
 \ExplSyntaxOn
 \group_begin:
 \makeatletter
-
-
 \ExplSyntaxOff
-
 \newtcolorbox{codebox}[1]{
   colback=white!5!white,
   colframe=white!75!black,
   title=#1,
   box align=top
-}
+}%
 \noindent
-\def\CDR@Debug{\typeout}
+\def\CDR@Debug{\typeout}%
 \CDRSet{
   lang=python
 }
-\typeout{------------------================-------------------}
-
+\typeout{------------------================-------------------}%
 \CDRSet{tags=WHAT}
-
+abcde
 \begin{CDRBlock}[
   frame=lines,
   rulecolor=\color{red!20!yellow}
@@ -117,19 +116,20 @@ def function foo(x):
   '''Square function'''
   return x ** x
 \end{CDRBlock}
-
+\noindent
+abcde
 \begin{CDRBlock}[pygments=false,frame=lines,rulecolor=\color{red!20!yellow}]
 def function foo(x):
   '''Square function'''
   return x ** x
 \end{CDRBlock}
-
+abcde
 \begin{CDRBlock}
 def function foo(x):
   '''Square function'''
   return x ** x
 \end{CDRBlock}
-
+abcde
 
 \ExplSyntaxOn
 \makeatother

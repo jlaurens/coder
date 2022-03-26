@@ -3084,8 +3084,9 @@ if __name__ == '__main__':
       \CDR_tag_keys_if_exist:nnF { } { ##1 } {
         \CDR_tag_keys_inherit:nn { ##1 } {
           __pygments, __pygments.block,
-          default.block, default.code, default, __tags,
-          __fancyvrb, __fancyvrb.block, __fancyvrb.frame, __fancyvrb.number, __fancyvrb.all,
+          default.block, default.code, default, __tags, __engine,
+          __fancyvrb, __fancyvrb.block, __fancyvrb.frame,
+          __fancyvrb.number, __fancyvrb.all,
         }
         \CDR_tag_keys_define:nn { } {
           ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ####1 },
@@ -3317,22 +3318,25 @@ if __name__ == '__main__':
   parskip .code:n = \CDR_tag_set:,
   parskip .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed engine=\meta{engine name}]^^A
-% to specify the engine used to display inline code or blocks.
-% Initially |default|.
-%    \begin{MacroCode}[OK]
-  engine .code:n = \CDR_tag_set:,
-  engine .value_required:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed default engine options=\meta{default engine options}]^^A
 % to specify the corresponding options,
 %    \begin{MacroCode}[OK]
   default~engine~options .code:n = \CDR_tag_set:,
   default~engine~options .value_required:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed default options=\meta{default options}]^^A
+% to specify the \pkg{\jobname} options that should apply
+% when the default engine is selected.setup_tags
+%    \begin{MacroCode}[OK]
+  default~options .code:n = \CDR_tag_set:,
+  default~options .value_required:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed \meta{engine name} engine options=\meta{engine options}]^^A
 % to specify the options
 % for the named engine,
+% \itemtt[\CDRCheckRed \meta{engine name} options=\meta{\pkg{\jobname} options}]^^A
+% to specify the \pkg{\jobname} options that should apply
+% when the named engine is selected.
 % \itemtt[\CDRCheckRed __initialize]^^A
 % to initialize storage properly. We cannot use |.initial:n| actions
 % because the |\l_keys_path_str| is not set up properly.
@@ -3343,8 +3347,8 @@ if __name__ == '__main__':
     debug = false,
     post~processor = ,
     parskip = \the\parskip,
-    engine = default,
     default~engine~options = ,
+    default~options = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -3383,6 +3387,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %
 % \subsubsection{\texttt{__tags} \pkg{l3keys} module}
+% The only purpose is to catch only the |tags| key very early.
 %    \begin{MacroCode}[OK]
 \CDR_tag_keys_define:nn { __tags } {
 %    \end{MacroCode}
@@ -3416,6 +3421,37 @@ if __name__ == '__main__':
 }
 \AtBeginDocument{
   \CDR_tag_keys_set:nn { __tags } { __initialize }
+}
+%    \end{MacroCode}
+%
+% \subsubsection{\texttt{__engine} \pkg{l3keys} module}
+% The only purpose is to catch only the |engine| key very early,
+% just after the |tags| key.
+%    \begin{MacroCode}[OK]
+\CDR_tag_keys_define:nn { __engine } {
+%    \end{MacroCode}
+% Known keys include:
+% \begin{description}
+% \itemtt[\CDRCheckRed engine=\meta{engine name}]^^A
+% to specify the engine used to display inline code or blocks.
+% Initially |default|.
+%    \begin{MacroCode}[OK]
+  engine .code:n = \CDR_tag_set:,
+  engine .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed __initialize]^^A
+% Initialization.
+%    \begin{MacroCode}[OK]
+  __initialize .meta:n = {
+    engine = default,
+  },
+  __initialize .value_forbidden:n = true,
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[OK]
+}
+\AtBeginDocument{
+  \CDR_tag_keys_set:nn { __engine } { __initialize }
 }
 %    \end{MacroCode}
 %
@@ -4025,7 +4061,7 @@ if __name__ == '__main__':
   \keys_set_known:nnnN { CDR@Set } { #1 } { CDR@Set } \l_CDR_kv_clist
   \clist_map_inline:nn {
     __pygments, __pygments.block,
-    __tags, default.block, default.code, default,
+    __tags, __engine, default.block, default.code, default,
     __fancyvrb, __fancyvrb.frame, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
     \CDR_tag_keys_set_known:nN { ##1 } \l_CDR_kv_clist
@@ -4046,6 +4082,7 @@ if __name__ == '__main__':
     },
   }
   \keys_set_known:nn { CDR@Set@tags } { #1 }
+  \ignorespaces
 }
 %    \end{MacroCode}
 %
@@ -4319,6 +4356,7 @@ if __name__ == '__main__':
         { Missing~export~key~`tags' }
     }
   }
+  \ignorespaces
 }
 %    \end{MacroCode}
 %
@@ -4403,7 +4441,7 @@ if __name__ == '__main__':
 %
 % \begin{function}[EXP]{\CDRCode_engine:c, \CDRCode_engine:V, \CDRBlock_engine:c, \CDRBlock_engine:V}
 % \begin{syntax}
-% \cs{CDRCodeengine:c} \Arg{engine name}
+% \cs{CDRCode_engine:c} \Arg{engine name}
 % \cs{CDRBlock_engine:c} \Arg{engine name}
 % \end{syntax}
 % |\CDRCode_engine:c| builds a command sequence name
@@ -4426,15 +4464,15 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}[EXP]{\CDRCode_engine:c, \CDRCode_engine:V, \CDRBlock_engine:c, \CDRBlock_engine:V}
+% \begin{function}[EXP]{\CDRCode_options:c, \CDRCode_options:V, \CDRBlock_options:c, \CDRBlock_options:V}
 % \begin{syntax}
-% \cs{CDRCodeengine:c} \Arg{engine name}
-% \cs{CDRBlock_engine:c} \Arg{engine name}
+% \cs{CDRCode_options:c} \Arg{engine name}
+% \cs{CDRBlock_options:c} \Arg{engine name}
 % \end{syntax}
-% |\CDRCode_engine:c| builds a command sequence name
-% based on \metatt{engine name}.
-% |\CDRBlock_engine:c| builds an environment name
-% based on \metatt{engine name}.
+% |\CDRCode_options:c| builds a command sequence name
+% based on \metatt{engine name} used to store the comma list of key value options.
+% |\CDRBlock_options:c| builds a command sequence name
+% based on \metatt{engine name} used to store the comma list of key value options.
 %\end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDRCode_options:c #1 {
@@ -4448,6 +4486,35 @@ if __name__ == '__main__':
 }
 \cs_new:Npn \CDRBlock_options:V {
   \exp_args:NV \CDRBlock_options:c
+}
+%    \end{MacroCode}
+%
+% \begin{function}[EXP]{\CDRCode_options_use:c, \CDRCode_options_use:V, \CDRBlock_options_use:c, \CDRBlock_options_use:V}
+% \begin{syntax}
+% \cs{CDRCode_options_use:c} \Arg{engine name}
+% \cs{CDRBlock_options_use:c} \Arg{engine name}
+% \end{syntax}
+% |\CDRCode_options_use:c| builds a command sequence name
+% based on \metatt{engine name} and use it.
+% |\CDRBlock_options:c| builds a command sequence name
+% based on \metatt{engine name} and use it.
+%\end{function}
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDRCode_options_use:c #1 {
+  \CDRCode_if_options:cT { #1 } {
+    \use:c { \CDRCode_options:c { #1 } }
+  }
+}
+\cs_new:Npn \CDRBlock_options_use:c #1 {
+  \CDRBlock_if_options:cT { #1 } {
+    \use:c { \CDRBlock_options:c { #1 } }
+  }
+}
+\cs_new:Npn \CDRCode_options_use:V {
+  \exp_args:NV \CDRCode_options_use:c
+}
+\cs_new:Npn \CDRBlock_options_use:V {
+  \exp_args:NV \CDRBlock_options_use:c
 }
 %    \end{MacroCode}
 %
@@ -4481,7 +4548,7 @@ if __name__ == '__main__':
 % and the second argument as |#2|, which is the colored code.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\NewDocumentCommand \CDRCodeEngineNew { mm } {
+\NewDocumentCommand \CDRCodeEngineNew { mO{}m } {
   \exp_args:Nx
   \tl_if_empty:nTF { #1 } {
     \PackageWarning
@@ -4490,14 +4557,14 @@ if __name__ == '__main__':
   } {
     \cs_new:cpn { \CDRCode_engine:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
-      #2
+      #3
     }
     \ignorespaces
   }
 }
 %    \end{MacroCode}
 %    \begin{MacroCode}[OK]
-\NewDocumentCommand \CDRCodeEngineRenew { mm } {
+\NewDocumentCommand \CDRCodeEngineRenew { mO{}m } {
   \exp_args:Nx
   \tl_if_empty:nTF { #1 } {
     \PackageWarning
@@ -4508,7 +4575,7 @@ if __name__ == '__main__':
     \cs_if_exist:cTF { \CDRCode_engine:c { #1 } } {
       \cs_set:cpn { \CDRCode_engine:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
-        #2
+        #3
       }
     } {
       \PackageWarning
@@ -4529,7 +4596,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new_protected:Npn \CDR@CodeEngineApply {
-  \CDR_if_code_engine:cF { \CDR_tag_get:c { engine } } {
+  \CDRCode_if_engine:cF { \CDR_tag_get:c { engine } } {
     \PackageError
       { coder }
       { \CDR_tag_get:c { engine }~code~engine~unknown,~replaced~by~`default' }
@@ -4561,7 +4628,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRBlockEngineNew { mO{}m } {
-  \cs_set:cpn { \CDRBlock_options:c { #1 } } { #2 }
+  \cs_set:cpn { \CDRBlock_options:c { #1 } } { \exp_not:n { #2 } }
   \NewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { m } {
     \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
     #3
@@ -4584,10 +4651,10 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRBlock_engine_begin:, \CDR@BlockEngineEnd}
+% \begin{function}{\CDRBlock_engine_begin:, \CDR@Block_engine_end:}
 % \begin{syntax}
-% \cs{CDR@BlockEngineBegin}
-% \cs{CDR@BlockEngineEnd}
+% \cs{CDRBlock_engine_begin:}
+% \cs{CDRBlock_engine_end:}
 % \end{syntax}
 % After some checking, begin the engine display environment with the proper options.
 % The second command closes the environment.
@@ -4595,7 +4662,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRBlock_engine_begin: {
-  \CDR_if_block_engine:cF { \CDR_tag_get:c { engine } } {
+  \CDRBlock_if_engine:cF { \CDR_tag_get:c { engine } } {
     \PackageError
       { coder }
       { \CDR_tag_get:c { engine }~block~engine~unknown,~replaced~by~`default' }
@@ -4615,23 +4682,23 @@ if __name__ == '__main__':
 %
 % \subsection{Conditionals}
 %
-% \begin{function}[EXP,TF]{\CDR_if_code_engine:c}
+% \begin{function}[EXP,TF]{\CDRCode_if_engine:c}
 % \begin{syntax}
-% \cs{CDR_if_code_engine:cTF} \Arg{engine name} \Arg{true code} \Arg{false code}
+% \cs{CDRCode_if_engine:cTF} \Arg{engine name} \Arg{true code} \Arg{false code}
 % \end{syntax}
 % If there exists a code engine with the given \metatt{engine name},
 % execute \metatt{true code}.
 % Otherwise, execute \metatt{false code}.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\prg_new_conditional:Nnn \CDR_if_code_engine:c { p, T, F, TF } {
+\prg_new_conditional:Nnn \CDRCode_if_engine:c { p, T, F, TF } {
   \cs_if_exist:cTF { \CDRCode_engine:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
-\prg_new_conditional:Nnn \CDR_if_code_engine:V { p, T, F, TF } {
+\prg_new_conditional:Nnn \CDRCode_if_engine:V { p, T, F, TF } {
   \cs_if_exist:cTF { \CDRCode_engine:V #1 } {
     \prg_return_true:
   } {
@@ -4639,23 +4706,71 @@ if __name__ == '__main__':
   }
 }
 %    \end{MacroCode}
-% \begin{function}[EXP,TF]{\CDR_if_block_engine:c}
+% \begin{function}[EXP,TF]{\CDRBlock_if_engine:c}
 % \begin{syntax}
-% \cs{CDR_if_block_engine:c} \Arg{engine name} \Arg{true code} \Arg{false code}
+% \cs{CDRBlock_if_engine:c} \Arg{engine name} \Arg{true code} \Arg{false code}
 % \end{syntax}
 % If there exists a block engine with the given \metatt{engine name},
 % execute \metatt{true code}, otherwise, execute \metatt{false code}.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\prg_new_conditional:Nnn \CDR_if_block_engine:c { p, T, F, TF } {
+\prg_new_conditional:Nnn \CDRBlock_if_engine:c { p, T, F, TF } {
   \cs_if_exist:cTF { \CDRBlock_engine:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
   }
 }
-\prg_new_conditional:Nnn \CDR_if_block_engine:V { p, T, F, TF } {
+\prg_new_conditional:Nnn \CDRBlock_if_engine:V { p, T, F, TF } {
   \cs_if_exist:cTF { \CDRBlock_engine:V #1 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+%
+% \begin{function}[EXP,TF]{\CDRCode_if_options:c}
+% \begin{syntax}
+% \cs{CDRCode_if_options:cTF} \Arg{engine name} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% If there exists a code options with the given \metatt{engine name},
+% execute \metatt{true code}.
+% Otherwise, execute \metatt{false code}.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\prg_new_conditional:Nnn \CDRCode_if_options:c { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDRCode_options:c { #1 } } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+\prg_new_conditional:Nnn \CDRCode_if_options:V { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDRCode_options:V #1 } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+%    \end{MacroCode}
+% \begin{function}[EXP,TF]{\CDRBlock_if_options:c}
+% \begin{syntax}
+% \cs{CDRBlock_if_options:c} \Arg{engine name} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% If there exists a block options with the given \metatt{engine name},
+% execute \metatt{true code}, otherwise, execute \metatt{false code}.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\prg_new_conditional:Nnn \CDRBlock_if_options:c { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDRBlock_options:c { #1 } } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+\prg_new_conditional:Nnn \CDRBlock_if_options:V { p, T, F, TF } {
+  \cs_if_exist:cTF { \CDRBlock_options:V #1 } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -4805,7 +4920,7 @@ if __name__ == '__main__':
   }
   \clist_set:Nn \FV@KeyValues { #1 }
   \CDR_local_inherit:n {
-    __code, default.code, __pygments, default,
+    __code, __engine, default.code, __pygments, default,
   }
   \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_provide_from_kv:V \FV@KeyValues
@@ -4816,7 +4931,7 @@ if __name__ == '__main__':
   \CDR_local_set:V \FV@KeyValues  
   \CDR_tag_inherit:cf { __local } {
     \tl_if_empty:NF \l_CDR_tag_tl { \l_CDR_tag_tl, }
-    __code, default.code, __pygments, default, __fancyvrb,
+    __code, __engine, default.code, __pygments, default, __fancyvrb,
   }
   \CDRCode:n
 }
@@ -5080,7 +5195,7 @@ if __name__ == '__main__':
 % \metatt{engine name}| engine options| for appropriate
 % engine names.
 %    \begin{MacroCode}
-  \CDRBlock_setup_tags:
+  \CDRBlock_setup_tags_and_engine:
   \CDR_local_inherit:n {
     __block, __pygments.block, default.block,
     __pygments, default
@@ -5912,7 +6027,7 @@ if __name__ == '__main__':
   }
 }
 %    \end{MacroCode}
-% \begin{function}{\CDRBlock_setup_tags:}
+% \begin{function}{\CDRBlock_setup_tags_and_engine:}
 % Utility to setup the tags and the tag inheritance tree.
 % When not provided explicitly with the |tags=...| user interface,
 % a code chunk will have the list of tags stored in |\g_CDR_tags_clist|
@@ -5920,7 +6035,7 @@ if __name__ == '__main__':
 % At least one tag must be provided, either implicitly or explicitly.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new_protected_nopar:Npn \CDRBlock_setup_tags: {
+\cs_new_protected_nopar:Npn \CDRBlock_setup_tags_and_engine: {
   \CDR_local_inherit:n { __tags }
   \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
@@ -5940,7 +6055,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
   \CDR_tag_inherit:cf { __local } {
     \g_CDR_tags_clist,
-    __block, __tags, default.block, __pygments.block,
+    __block, __tags, __engine, default.block, __pygments.block,
     __fancyvrb.block __fancyvrb.frame, __fancyvrb.number,
     __pygments, default, __fancyvrb,
   }
@@ -5951,6 +6066,14 @@ if __name__ == '__main__':
     \CDR_int_if_exist:cF { ##1 } {
       \CDR_int_new:cn { ##1 } { 1 }
     }
+  }
+%    \end{MacroCode}
+% Now setup the engine options if any.
+%    \begin{MacroCode}
+  \CDR_local_inherit:n { __engine }
+  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_tag_get:cNT { engine } \l_CDR_tl {
+    \clist_put_left:Nx \FV@KeyValues { \CDRBlock_options_use:V \l_CDR_tl }
   }
 }
 %    \end{MacroCode}
