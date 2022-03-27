@@ -5402,7 +5402,7 @@ if __name__ == '__main__':
 % and use \pkg{fancyvrb} once more to display the colored code.
 % \end{function}
 %    \begin{MacroCode}
-\cs_set_protected:Npn \CDRBlock@Pyg {
+\cs_new_protected:Npn \CDRBlock@Pyg {
 \CDR@Debug {\string\CDRBlock@Pyg/\the\inputlineno}
   \CDR_tag_get:cN {lang} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('lang') }
@@ -5801,6 +5801,7 @@ if __name__ == '__main__':
   \keys_set:nn { CDR@Line } { #1 }
   \CDR_int_set:cn { __ } { 0 }
   \CDR_if_number_on:TF {
+    \CDR_int_set:cn { __start } { 1 }
     \CDR_tag_if_eq:cnTF { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
@@ -5809,9 +5810,7 @@ if __name__ == '__main__':
         }
       }
     } {
-      \CDR_tag_if_eq:cnTF { firstnumber } { auto } {
-        \CDR_int_set:cn { __start } { 1 }
-      } {
+      \CDR_tag_if_eq:cnF { firstnumber } { auto } {
         \CDR_int_set:cn { __start } { \CDR_tag_get:c { firstnumber } }
       }
     }
@@ -5839,18 +5838,16 @@ if __name__ == '__main__':
 % family is set here.
 % \end{function}
 %    \begin{MacroCode}
+    \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
+      ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1
+      }
+    }
     \CDR_int_compare:cNnTF { __step } < 2 {
       \CDR_int_set:cn { __step } { 1 }
-      \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 } 
-      }
       \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
         ! \CDR_int_compare_p:cNn { __last } < { ##1 }
       }
     } {
-      \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 } 
-      }
       \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
         \int_compare_p:nNn {
           ( ##1 + \CDR_int:c { __start } - 1 )

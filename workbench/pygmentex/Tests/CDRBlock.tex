@@ -1,11 +1,11 @@
 % !TeX program=lualatex
 % !TeX root=../coder_test.tex
 \noindent
-\makeatletter
 
 
 %\def \CDR@Debug { \typeout }
 
+\subsection{No pygments}
 
 \bgroup
 
@@ -35,13 +35,9 @@ ESSAI
 
 \ExplSyntaxOn
 \makeatletter
-
 \cs_new:Npn \CDR_hilight_record:n #1 {
 }
-
-
 %\def\CDR@Debug { \typeout }
-
 \makeatother
 \ExplSyntaxOff
 
@@ -92,6 +88,23 @@ local f = function(arg)
 end
 \end{CDRBlock}
 
+\begin{CDRBlock}[%
+  tags=,
+  fontfamily=menlo,
+  fontsize=\Large,
+  pygments=false,
+  lang=lua,
+  numbers=right,
+  frame=lines,
+  format=\color{green},
+  debug=true,
+  showspaces
+]
+local f = function(arg)
+  return arg ** arg
+end
+\end{CDRBlock}
+
 \CDRSet{  tags=,
   fontfamily=menlo,
   fontsize=\Large,
@@ -112,6 +125,7 @@ end
 
 \CDRSet{
   stepnumber=5,
+  cache = true,
 }
 \begin{CDRBlock}
 local f = function(arg)
@@ -123,8 +137,15 @@ local f = function(arg)
 end
 \end{CDRBlock}
 
+\egroup
+\subsection{Pygments}
+\bgroup
 
 \typeout {IN PROGRESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS}
+
+\input{coder_test.pygd/default.pyg.sty}
+
+\typeout{STEP1}
 
 \ExplSyntaxOn
 \makeatletter
@@ -145,6 +166,8 @@ end
 \CDR@Debug{ABCDE}
 \cs_set:Npn \FVE@CDRBlock {%
 \CDR@Debug{ \string \FVE@CDRBlock }
+\input{coder_test.pygd/default.pyg.sty}
+\CDR@Debug{ STEP~3 }
   \CDRBlock_setup:
   \CDR_if_no_export:F {
     \seq_map_inline:Nn \l_CDR_vrb_seq {
@@ -170,11 +193,66 @@ end
 
 \CDR@Debug{ABCDEF}
 
+\cs_set_protected:Npn \CDRBlock@Pyg {
+\CDR@Debug {\string\CDRBlock@Pyg/\the\inputlineno}
+  \CDR_tag_get:cN {lang} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('lang') }
+  \CDR_tag_get:cN {cache} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('cache') }
+  \CDR_tag_get:cN {debug} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('debug') }
+  \CDR_tag_get:cN {texcomments} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('texcomments') }
+  \CDR_tag_get:cN {escapeinside} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('escapeinside') }
+  \CDR_tag_get:cN {mathescape} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('mathescape') }
+  \CDR_tag_get:cN {style} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('style') }
+  \fvset{ commandchars=\\\{\} }
+  \CDR@StyleIfExist { \l_CDR_tl } { } {
+    \lua_now:n { CDR:hilight_source(true, false) }
+    \input { \l_CDR_pyg_sty_tl }
+  }
+  \CDR@StyleUseTag
+  \CDR@DefinePygSp
+  \lua_now:n { CDR:hilight_source(false, true) }
+  \FV@UseVerbatim {
+    \CDR_tag_get:c { format }
+    \CDR_if_no_export:T {
+      \CDR_tag_get:c { no~export~format }
+    }
+    \makeatletter
+    \input{ \l_CDR_pyg_tex_tl }
+    \makeatother
+    \def \FV@ProcessLine {}
+  }
+  \CDR_if_number_on:T {
+    \CDR_int_add:cn { __last } { 1 }
+    \clist_map_inline:Nn \g_CDR_tags_clist {
+      \CDR_int_gset:cc { ##1 } { __last }
+\CDR@Debug {DEBUG.CDRBlock.LAST: ##1 -> \CDR_int_use:c { ##1 } }
+    }
+  }
+}
 \makeatother
 \ExplSyntaxOff
+\typeout {IN PROGRESS *************************$}
 
 Next should not be void
 \CDRSet{cache=false}
+\begin{CDRBlock}[
+  tags=,
+  pygments=true,
+  lang=python,
+  numbers=left,
+]
+def foo(arg):
+  return arg ** arg
+\end{CDRBlock}
+
+\end{document}
+
 \begin{CDRBlock}[
   tags=,
   fontfamily=menlo,
