@@ -6,7 +6,6 @@
 
 
 \CDRCode[pygments=false,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
-
 \CDRCode[pygments=true,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
 
 \begin{CDRBlock}[tags=WHAT,numbersep=2cm]
@@ -63,8 +62,8 @@ abcde
 \end{CDRBlock}
 \end{codebox}
 abcde
-\CDRBlockEngineNew{codebox}[formatcom=\color{magenta},numbersep=1cm]{\begin{codebox}{Swap}}{\end{codebox}}
-\begin{CDRBlock}[engine=codebox]
+\CDRBlockEngineNew{codebox}[formatcom=\color{magenta},numbersep=1cm]{\begin{codebox}{\CDRGetOption{label}}}{\end{codebox}}
+\begin{CDRBlock}[engine=codebox,label=SWAP]
 1
 2
 3
