@@ -1,9 +1,10 @@
 % !TeX program=lualatex
 % !TeX root=../coder_test.tex
 
-
+\def \CDR@Debug #1 {
+  \typeout{**** Debug #1}
+}
 \subsection{Code}
-
 
 \CDRCode[pygments=false,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
 \CDRCode[pygments=true,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
@@ -14,11 +15,24 @@
 3
 \end{CDRBlock}
 
-\ExplSyntaxOn
-\group_begin:
-\makeatletter
+\typeout{------------------================-------------------}
 
-\ExplSyntaxOff
+\begin{CDRBlock}[pygments=false]
+def function(x):
+  '''Square'''
+  return x * x
+\end{CDRBlock}
+\begin{CDRBlock}[pygments=true,lang=python]
+def function(x):
+  '''Square'''
+  return x * x
+\end{CDRBlock}
+
+\begin{CDRBlock}[pygments=true,lang=python]
+def function(x):
+  '''Square'''
+  return x * x
+\end{CDRBlock}
 
 \newtcolorbox{codebox}[1]{
   colback=white!5!white,
@@ -27,21 +41,7 @@
   box align=top
 }
 
-
-\CDRBlockEngineNew{mdframed}{}{}
-
-\typeout{------------------================-------------------}
-
-\begin{CDRBlock}[pygments=false]
-1
-2
-3
-\end{CDRBlock}
-\begin{CDRBlock}[pygments=true]
-1
-2
-3
-\end{CDRBlock}
+\subsection{POC}
 
 \begin{enumerate}
   \item Lorem.
@@ -61,13 +61,209 @@ abcde
 3
 \end{CDRBlock}
 \end{codebox}
+\subsubsection{POC A}
+\bgroup
 abcde
-\CDRBlockEngineNew{codebox}[formatcom=\color{magenta},numbersep=1cm]{\begin{codebox}{\CDRGetOption{label}}}{\end{codebox}}
-\begin{CDRBlock}[engine=codebox,label=SWAP]
-1
-2
-3
+\makeatletter
+\def\FVB@POCCodeBoxA {
+%  \codebox{POC}
+  \@bsphack
+  \FV@VerbatimBegin
+  \FV@Scan
+}
+\def\FVE@POCCodeBoxA {
+  \FV@VerbatimEnd
+  \@esphack
+%  \endcodebox
+}
+\DefineVerbatimEnvironment{POCCodeBoxA}{POCCodeBoxA}{}
+\makeatother
+\begin{codebox}{POC A}
+\begin{POCCodeBoxA}
+def function(x):
+  '''Square'''
+  return x * x
+\end{POCCodeBoxA}
+\end{codebox}
+abcde
+\begin{POCCodeBoxA}
+def function(x):
+  '''Square'''
+  return x * x
+\end{POCCodeBoxA}
+abcde
+\egroup
+\subsubsection{POC B}
+\bgroup
+abcde
+\makeatletter
+\begin{luacode}
+  function CDR:vrb_reset()
+    print('RESET')
+    self.vrb = {}
+  end
+  function CDR:vrb_record()
+    local t = token.get_macro('FV@Line')
+    print('RECORDING', t)
+    self.vrb[\string#self.vrb + 1] = t
+  end
+  function CDR:vrb_retrieve()
+    for _,l in ipairs(self.vrb) do
+      tex.print([[\string\CDR@Line\string{]]..l..[[\string}]])
+    end
+  end
+\end{luacode}
+\ExplSyntaxOn
+\def\CDR@Line#1{\CDR_line_box:nnn { } {#1} { } }
+\def\FVB@POCCodeBoxB {
+  \@bsphack
+  \group_begin:
+  \directlua{CDR:vrb_reset()}
+  \cs_set:Npn \FV@ProcessLine ##1 {
+    \directlua{CDR.vrb_record(CDR)}
+  }
+  \FV@Scan
+}
+\def\FVE@POCCodeBoxB {
+  \codebox{POC B}
+  \fvset{commandchars=\\\{\}}
+  \FV@VerbatimBegin
+  \makeatletter
+  \directlua{CDR.vrb_retrieve(CDR)}
+  \makeatother
+  \cs_set_eq:NN \FV@ProcessLine \use:n
+  \FV@VerbatimEnd
+  \endcodebox
+  \group_end:
+  \@esphack
+}
+\ExplSyntaxOff
+\DefineVerbatimEnvironment{POCCodeBoxB}{POCCodeBoxB}{}
+\makeatother
+\begin{POCCodeBoxB}
+def function(x):
+  '''Square'''
+  return x * x
+\end{POCCodeBoxB}
+abcde
+\egroup
+\subsubsection{DEBUG}
+\typeout{************ DEBUG}
+\bgroup
+\ExplSyntaxOn
+\makeatletter
+%    \begin{MacroCode}
+\cs_new:Npn \FVB@CDRBlockPOC {
+\CDR@Debug{\string\FVB@CDRBlockPOC}
+  \@bsphack
+  \exp_args:NV \CDRBlock_preflight:n \FV@KeyValues
+  \begingroup
+  \lua_now:n {
+    CDR.synctex_tag = tex.get_synctex_tag();
+    CDR.synctex_line = tex.inputlineno;
+    tex.set_synctex_mode(1)
+  }
+  \seq_clear:N \l_CDR_vrb_seq
+  \cs_set_protected_nopar:Npn \FV@ProcessLine ##1 {
+    \seq_put_right:Nn \l_CDR_vrb_seq { ##1 }
+  }
+  \FV@Scan
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\FVE@CDRBlock}
+% \pkg{fancyvrb} helper to end the |CDRBlock| environment.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \FVE@CDRBlockPOC {%
+  \CDRBlock_setup:
+  \CDR_if_no_export:F {
+    \seq_map_inline:Nn \l_CDR_vrb_seq {
+      \tl_set:Nn \l_CDR_tl { ##1 }
+      \lua_now:n { CDR:record_line('l_CDR_tl') }
+    }
+  }
+  \codebox{DEBUG}
+%  \CDRBlock_engine_begin:
+  \CDR_if_pygments:TF {
+    \CDRBlock@Pyg
+  } {
+    \CDRBlock@FV
+  }
+  \lua_now:n {
+    tex.set_synctex_mode(0);
+    CDR.synctex_line = 0;
+  }
+  \endcodebox
+%  \CDRBlock_engine_end:
+  \CDRBlock_teardown:
+  \endgroup
+  \@esphack\noindent
+}
+\DefineVerbatimEnvironment{CDRBlockPOC}{CDRBlockPOC}{}
+\cs_set:Npn \CDRBlock_engine_begin: {
+\typeout{\string\CDRBlock_engine_begin:}
+%  \CDRBlock_if_engine:cF { \CDR_tag_get:c { engine } } {
+%    \PackageError
+%      { coder }
+%      { \CDR_tag_get:c { engine }~block~engine~unknown,~replaced~by~`default' }
+%      {See~\CDRBlockEngineNew~in~the~coder~manual}
+%    \CDR_tag_set:cn { engine } { default }
+%  }
+%  \exp_args:Nnx
+%  \use:c { \CDRBlock_engine:c \CDR_tag_get:c { engine } } {
+%    \CDR_tag_get:c { \CDR_tag_get:c { engine }~engine~options },
+%    \CDR_tag_get:c { engine~options },
+%  }
+  \codebox{DEBUG}
+}
+\cs_set:Npn \CDRBlock_engine_end: {
+  \endcodebox
+}
+\makeatother
+\ExplSyntaxOff
+abcde
+\CDRBlockEngineNew{codebox}
+[formatcom=\color{magenta},numbersep=1cm]{\codebox{\CDRGetOption{label}}}{\endcodebox}
+\ExplSyntaxOn
+\bgroup
+\tl_set:Nn \l_CDR_tl { codebox}
+\tl_set:Nx \l_CDR_tl { \CDRBlock_options_use:V \l_CDR_tl }
+\typeout{****}
+\typeout{\l_CDR_tl}
+\egroup
+\ExplSyntaxOff
+
+\typeout{********** STEP}
+\begin{CDRBlockPOC}[pygments=true,engine=codebox]
+def function(x):
+  '''Square'''
+  return x * x
+\end{CDRBlockPOC}
+abcde
+\typeout{********** STEP}
+\begin{CDRBlockPOC}[pygments=true]
+def function(x):
+  '''Square'''
+  return x * x
+\end{CDRBlockPOC}
+abcde
+\egroup
+
+\begin{CDRBlock}[pygments=true,engine=codebox,label=SWAP,lang=python]
+def function(x):
+  '''Square'''
+  return x * x
 \end{CDRBlock}
+abcde
+\begin{CDRBlock}[pygments=false,engine=codebox,label=SWAP]
+def function(x):
+  '''Square'''
+  return x * x
+\end{CDRBlock}
+
+\end{document}
+
 
 %\newcommand\pygmented@mdframed@additional@options{%
 %  leftmargin=\pygmented@leftmargin,%
@@ -77,11 +273,7 @@ abcde
 %  \fi
 %}
 
-\ExplSyntaxOn
 \makeatother
-\group_end:
-\ExplSyntaxOff
-
 
 \subsection{In progress}
 abcde
@@ -113,20 +305,20 @@ abcde
 ]
 def function foo(x):
   '''Square function'''
-  return x ** x
+  return x * x
 \end{CDRBlock}
 \noindent
 abcde
 \begin{CDRBlock}[pygments=false,frame=lines,rulecolor=\color{red!20!yellow}]
 def function foo(x):
   '''Square function'''
-  return x ** x
+  return x * x
 \end{CDRBlock}
 abcde
 \begin{CDRBlock}
 def function foo(x):
   '''Square function'''
-  return x ** x
+  return x * x
 \end{CDRBlock}
 abcde
 

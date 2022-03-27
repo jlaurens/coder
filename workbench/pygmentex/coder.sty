@@ -1355,7 +1355,8 @@
     \prg_return_false:
   }
   \clist_set:Nn \l_CDR_kv_clist { #1 }
-  \CDRCode_setup_tags_and_engine:N \l_CDR_kv_clist
+  \CDRCode_setup_tags:N \l_CDR_kv_clist
+  \CDRCode_setup_engine:N \l_CDR_kv_clist
   \CDR_local_inherit:n {
     __code, default.code, __pygments, default,
   }
@@ -1368,7 +1369,8 @@
   \CDR_local_set:V \l_CDR_kv_clist
   \CDRCode:n
 }
-\cs_new_protected_nopar:Npn \CDRCode_setup_tags_and_engine:N #1 {
+\cs_new_protected_nopar:Npn \CDRCode_setup_tags:N #1 {
+\CDR@Debug{\string \CDRCode_setup_tags:N, \string #1 }
   \CDR_local_inherit:n { __tags }
   \CDR_local_set_known:N #1
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
@@ -1382,11 +1384,14 @@
       { coder }
       { No~(default)~tags~provided. }
   }
-\CDR@Debug {CDRCode_setup_tags_and_engine:\space\g_CDR_tags_clist}
+\CDR@Debug {CDRCode_setup_tags:N\space\g_CDR_tags_clist}
   \CDR_get_inherit:cf { __local } {
     \g_CDR_tags_clist,
     __tags, __engine, __code, default.code, __pygments, default,
   }
+}
+\cs_new_protected_nopar:Npn \CDRCode_setup_engine:N #1 {
+\CDR@Debug{\string \CDRCode_setup_engine:N, \string #1}
   \CDR_local_inherit:n { __engine }
   \CDR_local_set_known:N #1
   \CDR_tag_get:cNT { engine } \l_CDR_tl {
@@ -1515,7 +1520,7 @@
   }
   \FV@Scan
 }
-\cs_new:Npn \FVE@CDRBlock {%
+\cs_new:Npn \FVE@CDRBlock {
   \CDRBlock_setup:
   \CDR_if_no_export:F {
     \seq_map_inline:Nn \l_CDR_vrb_seq {
@@ -1533,10 +1538,10 @@
     tex.set_synctex_mode(0);
     CDR.synctex_line = 0;
   }
+  \@esphack
   \CDRBlock_engine_end:
   \CDRBlock_teardown:
   \endgroup
-  \@esphack
 }
 \DefineVerbatimEnvironment{CDRBlock}{CDRBlock}{}
 \cs_new_protected_nopar:Npn \CDRBlock_setup: {
@@ -1545,7 +1550,8 @@
     \prg_return_true:
   }
   \CDR_tag_keys_set:nn { __block } { __initialize }
-  \CDRBlock_setup_tags_and_engine:N \FV@KeyValues
+  \CDRBlock_setup_tags:N \FV@KeyValues
+  \CDRBlock_setup_engine:N \FV@KeyValues
   \CDR_local_inherit:n {
     __block, __pygments.block, default.block,
     __pygments, default
@@ -1553,7 +1559,7 @@
   \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_provide_from_kv:V \FV@KeyValues
   \CDR_local_set_known:N \FV@KeyValues
- \CDR@Debug{CDRBlock.KV1:\l_CDR_kv_clist}
+ \CDR@Debug{\string \CDRBlock_setup:.KV1:\l_CDR_kv_clist}
   \CDR_local_inherit:n {
     \CDR_tag_if_eq:cnF { engine } { default } {
       __fancyvrb.frame,
@@ -1870,7 +1876,7 @@
       \hss
       \FV@RightListFrame
     }
-    #3
+    #3\hss X
   }
   \ignorespaces
 }
@@ -2065,8 +2071,8 @@
     \prg_return_false:
   }
 }
-\cs_new_protected_nopar:Npn \CDRBlock_setup_tags_and_engine:N #1 {
-\CDR@Debug{ \string \CDRBlock_setup_tags_and_engine:N, #1 }
+\cs_new_protected_nopar:Npn \CDRBlock_setup_tags:N #1 {
+\CDR@Debug{ \string \CDRBlock_setup_tags:N, \string #1 }
   \CDR_local_inherit:n { __tags }
   \CDR_local_set_known:N #1
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
@@ -2080,7 +2086,7 @@
       { coder }
       { No~(default)~tags~provided. }
   }
-\CDR@Debug {CDRBlock_setup_tags_and_engine:\space\g_CDR_tags_clist}
+\CDR@Debug {CDRBlock_setup_tags:N\space\g_CDR_tags_clist}
   \CDR_get_inherit:cf { __local } {
     \g_CDR_tags_clist,
     __block, __tags, __engine, default.block, __pygments.block,
@@ -2092,6 +2098,9 @@
       \CDR_int_new:cn { ##1 } { 1 }
     }
   }
+}
+\cs_new_protected_nopar:Npn \CDRBlock_setup_engine:N #1 {
+\CDR@Debug{ \string \CDRBlock_setup_engine:N, \string #1 }
   \CDR_local_inherit:n { __engine }
   \CDR_local_set_known:N #1
   \CDR_tag_get:cNT { engine } \l_CDR_tl {
