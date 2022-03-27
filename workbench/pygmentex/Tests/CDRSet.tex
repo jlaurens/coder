@@ -11,14 +11,12 @@ Tests of \cs{CDRSet}
 \ExplSyntaxOff
 
 \CDRSet{
-  engine = falbala,
   default engine options=DEFAULT,
   falbala engine options=FALBALA,
 }
 
 \ExplSyntaxOn
 
-\CDR_test:cncn { __engine } { tl } { engine } { falbala }
 \CDR_test:cncn { default } { tl } { default~engine~options } { DEFAULT }
 \CDR_test:cncn { default } { tl } { falbala~engine~options } { FALBALA }
 \CDR_test:
@@ -42,15 +40,12 @@ Tests of \cs{CDRSet}
 \ExplSyntaxOff
 
 \CDRSet {
-  tag/default/post processor=ABCD,
   tag/default/engine = falbala,
   tag/default/default engine options=DEFAULT,
   tag/default/falbala engine options=FALBALA,
 }
 
 \ExplSyntaxOn
-\CDR_test:cncn { default } { tl } { post~processor } { ABCD }
-
 \CDR_test:cncn { default } { tl } { engine } { falbala }
 \CDR_test:cncn { default } { tl } { default~engine~options } { DEFAULT }
 \CDR_test:cncn { default } { tl } { falbala~engine~options } { FALBALA }
@@ -80,10 +75,10 @@ FALSE==
 \CDRSet{
   lang = A,
   pygments = B,
-  style=C,
-  commandprefix=D,
-  mathescape=false,
-  escapeinside=H,
+  style = C,
+  commandprefix = D,
+  mathescape = false,
+  escapeinside = H,
 }
 
 \CDR_test:cncn { __pygments } { tl } { lang } { A }
@@ -106,10 +101,10 @@ FALSE==
 \CDRSet{
   tag/<name>/lang = A,
   tag/<name>/pygments = B,
-  tag/<name>/style=C,
-  tag/<name>/commandprefix=D,
-  tag/<name>/mathescape=FAlsE,
-  tag/<name>/escapeinside=H,
+  tag/<name>/style = C,
+  tag/<name>/commandprefix = D,
+  tag/<name>/mathescape = FAlsE,
+  tag/<name>/escapeinside = H,
 }
 
 \CDR_test:cncn { <name> } { tl } { lang } { A }
@@ -189,14 +184,12 @@ FALSE==
 \group_begin:
 
 \CDRSet{
-    tags = A,
     show~tags = left,
     only~top = true,
     use~margin = false,
     tags~format = H,
 }
 
-\CDR_test:cncn { __tags } { tl } { tags } { A }
 \CDR_test:cncn { default.block } { tl } { show~tags } { left }
 \CDR_test:cncn { default.block } { tl } { only~top } { true }
 \CDR_test:cncn { default.block } { tl } { use~margin } { false }
@@ -214,6 +207,34 @@ FALSE==
 \def\CDR@Debug#1{
 \typeout{****~Debug~#1}
 }
+\RenewDocumentCommand \CDRSet { m } {
+\CDR@Debug{\string\CDRSet}
+  \CDR_set_preflight:n { #1 }
+  \keys_set_known:nnnN { CDR@Set } { #1 } { CDR@Set } \l_CDR_kv_clist
+  \clist_map_inline:nn {
+    __pygments, __pygments.block,
+    __tags, __engine, default.block, default.code, default,
+    __fancyvrb, __fancyvrb.frame, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
+  } {
+    \CDR_tag_keys_set_known:nVN { ##1 } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ \string\CDRSet.1:##1/\l_CDR_kv_clist/ }
+  }
+  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ \string\CDRSet.2:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
+\CDR@Debug{ \string\CDRSet.2a:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }  
+  \CDR_tag_keys_set_known:nVN { .. } \l_CDR_kv_clist \l_CDR_kv_clist
+\CDR@Debug{ \string\CDRSet.3:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
+  \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
+\CDR@Debug{ \string\CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
+  \keys_define:nn { CDR@Set@tags } {
+    tags .code:n = {
+      \clist_set:Nn \g_CDR_tags_clist { ##1 }
+      \clist_remove_duplicates:N \g_CDR_tags_clist
+    },
+  }
+  \keys_set_known:nn { CDR@Set@tags } { #1 }
+}
 
 \CDRSet{
     tag/<name>/tags = A,
@@ -221,7 +242,7 @@ FALSE==
     tag/<name>/only~top = true,
     tag/<name>/use~margin = false,
     tag/<name>/tags~format = H,
-    tag/<name>/vspace = 2.34\baselineskip,
+    tag/<name>/vspace = \topsep,
 }
 
 \CDR_test:cncn { <name> } { tl } { tags } { A }
@@ -229,11 +250,8 @@ FALSE==
 \CDR_test:cncn { <name> } { tl } { only~top } { true }
 \CDR_test:cncn { <name> } { tl } { use~margin } { false }
 \CDR_test:cncn { <name> } { tl } { tags~format } { H }
-\CDR_test:cncn { <name> } { skip } { vspace } { 2.34\baselineskip }
+\CDR_test:cncn { <name> } { skip } { vspace } { \topsep }
 \CDR_test:
-
-X\hspace{\CDR_tag_get:cc { <name> } { vspace }}X
-\exp_last_unbraced:Nx \hskip {\CDR_tag_get:cc { <name> } { vspace }}X
 
 \group_end:
 \ExplSyntaxOff
@@ -320,46 +338,13 @@ X\hspace{\CDR_tag_get:cc { <name> } { vspace }}X
 \CDRSet{
     commentchar = A,
     gobble = 0,
-    frame = none,
-    label = B,
-    labelposition = none,% auto?
-    numbers = left,
-    numbersep = \hspace{1ex},
-    firstnumber = auto,
-    stepnumber = 1,
-    numberblanklines = true,
-    firstline = C,
-    lastline = D,
     baselinestretch = auto,
     resetmargins = true,
     xleftmargin = 0pt,
     xrightmargin = 0pt,
     hfuzz = 2pt,
+    vspace = 2.34 \baselineskip,
     samepage = false,
-}
-\prop_set_from_keyval:Nn \l_CDR_test_prop {
-    numbers = left,
-    numbersep = \hspace{1ex},
-    firstnumber = auto,
-    stepnumber = 1,
-    numberblanklines = true,
-    firstline = C,
-    lastline = D,
-}
-\prop_map_inline:Nn \l_CDR_test_prop {
-  \CDR_test:cncn { __fancyvrb.number } { tl } { #1 } { #2 }
-}
-\prop_set_from_keyval:Nn \l_CDR_test_prop {
-    frame = none,
-    framerule = 0.4pt,
-    framesep = \fboxsep,
-    rulecolor = black,
-    fillcolor = ,
-    label = B,
-    labelposition = none,% auto?
-}
-\prop_map_inline:Nn \l_CDR_test_prop {
-  \CDR_test:cncn { __fancyvrb.frame } { tl } { #1 } { #2 }
 }
 \prop_set_from_keyval:Nn \l_CDR_test_prop {
     commentchar = A,
@@ -369,11 +354,78 @@ X\hspace{\CDR_tag_get:cc { <name> } { vspace }}X
     xleftmargin = 0pt,
     xrightmargin = 0pt,
     hfuzz = 2pt,
-    vspace = \topset,
+    vspace = 2.34 \baselineskip,
     samepage = false,
 }
 \prop_map_inline:Nn \l_CDR_test_prop {
   \CDR_test:cncn { __fancyvrb.block } { tl } { #1 } { #2 }
+}
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{__fancyvrb.frame}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    commentchar = A,
+    gobble = 0,
+    frame = none,
+    label = B,
+    labelposition = none,% auto?
+    numbers = left,
+    numbersep = \hspace{1ex},
+    firstnumber = auto,
+    stepnumber = 1,
+    numberblanklines = true,
+    firstline = C,
+    lastline = D,
+    baselinestretch = auto,
+    resetmargins = true,
+    xleftmargin = 0pt,
+    xrightmargin = 0pt,
+    hfuzz = 2pt,
+    samepage = false,
+}
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    frame = none,
+    label = B,
+    labelposition = none,% auto?
+}
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:cncn { __fancyvrb.frame } { tl } { #1 } { #2 }
+}
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{__fancyvrb.number}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    numbers = right,
+    numbersep = 1.23ex,
+    firstnumber = last,
+    stepnumber = 421,
+    numberblanklines = false,
+    firstline = first,
+    lastline = last,
+}
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    numbers = right,
+    numbersep = 1.23ex,
+    firstnumber = last,
+    stepnumber = 421,
+    numberblanklines = false,
+    firstline = first,
+    lastline = last,
+}
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:cncn { __fancyvrb.number } { tl } { #1 } { #2 }
 }
 \CDR_test:
 
@@ -406,7 +458,6 @@ X\hspace{\CDR_tag_get:cc { <name> } { vspace }}X
     tag/<name>/xleftmargin = 0pt,
     tag/<name>/xrightmargin = 0pt,
     tag/<name>/hfuzz = 2pt,
-    tag/<name>/vspace = \topsep,
     tag/<name>/samepage = false,
 }
 \prop_set_from_keyval:Nn \l_CDR_test_prop {
@@ -427,7 +478,6 @@ X\hspace{\CDR_tag_get:cc { <name> } { vspace }}X
     xleftmargin = 0pt,
     xrightmargin = 0pt,
     hfuzz = 2pt,
-    vspace = \topsep,
     samepage = false,
 }
 \prop_map_inline:Nn \l_CDR_test_prop {
@@ -472,6 +522,43 @@ X\hspace{\CDR_tag_get:cc { <name> } { vspace }}X
   }
 \prop_map_inline:Nn \l_CDR_test_prop {
   \CDR_test:cncn { <name> } { tl } { #1 } { #2 }
+}
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+
+\subsection{\CDRCmd{__tags}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    tags = A,
+  }
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    tags = A,
+  }
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:cncn { __tags } { tl } { #1 } { #2 }
+}
+\CDR_test:
+
+\group_end:
+\ExplSyntaxOff
+
+\subsection{\CDRCmd{__engine}}
+\ExplSyntaxOn
+\group_begin:
+
+\CDRSet{
+    engine = A,
+  }
+\prop_set_from_keyval:Nn \l_CDR_test_prop {
+    engine = A,
+  }
+\prop_map_inline:Nn \l_CDR_test_prop {
+  \CDR_test:cncn { __engine } { tl } { #1 } { #2 }
 }
 \CDR_test:
 

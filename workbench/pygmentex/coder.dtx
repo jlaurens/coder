@@ -1943,7 +1943,7 @@ if __name__ == '__main__':
 % \end{variable}
 %
 % \begin{variable}{\c_CDR_tag_get}
-% Root identifier for tag properties, used throughout the pakage.
+% Root identifier for tag properties, used throughout the package.
 % \vspace{1\baselineskip}
 %    \begin{MacroCode}[OK]
 \str_const:Nn \c_CDR_tag_get { CDR@tag@get }
@@ -5105,9 +5105,9 @@ if __name__ == '__main__':
             CDR.synctex_line = tex.inputlineno;
             tex.set_synctex_mode(1)
           }
-          %\CDR_tag_if_truthy:cT { mbox } { \mbox } {
+          \CDR_tag_if_truthy:cT { mbox } { \mbox } {
             \input { \l_CDR_pyg_tex_tl }\ignorespaces
-          %}  
+          }  
           \lua_now:n {
             tex.set_synctex_mode(0)
           }

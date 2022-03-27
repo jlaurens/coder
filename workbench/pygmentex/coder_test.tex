@@ -111,15 +111,15 @@ Path=\l_CDR_tl\\
 Path=\l_CDR_tl\\
 \ExplSyntaxOff
 
-%\section{Sandbox}
-%\makeatletter\ExplSyntaxOn
-%\def\CDR@Debug { \use_none:n }
-%\ExplSyntaxOff\makeatother
-%%\input{Tests/Sandbox}
-%%\input{Tests/Engine}
-%\input{Tests/CDRCode}
-%
-%\end{document}
+\section{Sandbox}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+%\input{Tests/Sandbox}
+%\input{Tests/Engine}
+\input{Tests/CDRBlock}
+
+\end{document}
 
 \section{Testing the tag mechanism}
 \makeatletter\ExplSyntaxOn
@@ -161,33 +161,33 @@ Path=\l_CDR_tl\\
 \ExplSyntaxOff\makeatother
 \input{Tests/CDRCode}
 
-%\section{\texttt{CDRBlock}}
-%\makeatletter\ExplSyntaxOn
-%\def\CDR@Debug { \use_none:n }
-%\ExplSyntaxOff\makeatother
-%\input{Tests/CDRBlock}
-%
-%\section{\texttt{cache}}
-%\makeatletter\ExplSyntaxOn
-%\def\CDR@Debug { \use_none:n }
-%\ExplSyntaxOff\makeatother
-%\input{Tests/cache}
-%
-%\section{\cs{CDRExport}}
-%\makeatletter\ExplSyntaxOn
-%\def\CDR@Debug { \use_none:n }
-%\ExplSyntaxOff\makeatother
-%\input{Tests/exportA}
-%\makeatletter\ExplSyntaxOn
-%\def\CDR@Debug { \use_none:n }
-%\ExplSyntaxOff\makeatother
-%\input{Tests/exportB,C,D}
-%
-%\section{Engine}
-%\makeatletter\ExplSyntaxOn
-%\def\CDR@Debug { \use_none:n }
-%\ExplSyntaxOff\makeatother
-%\input{Tests/Engine}
+\section{\texttt{CDRBlock}}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/CDRBlock}
+
+\section{\texttt{cache}}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/cache}
+
+\section{\cs{CDRExport}}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/exportA}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/exportB,C,D}
+
+\section{Engine}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/Engine}
 
 \end{document}
 

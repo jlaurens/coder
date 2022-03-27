@@ -9,6 +9,7 @@
 
 \bgroup
 
+
 %
 ESSAI
 \begin{Verbatim}
@@ -124,6 +125,54 @@ end
 
 
 \typeout {IN PROGRESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS}
+
+\ExplSyntaxOn
+\makeatletter
+\cs_set_protected_nopar:Npn \CDRBlock_teardown: {
+\CDR@Debug{\string\CDRBlock_teardown:}
+  \CDR_if_dry_numbers:F {
+    \tl_set:Nx \l_CDR_tl { \seq_count:N \l_CDR_vrb_seq }
+    \clist_map_inline:Nn \g_CDR_tags_clist {
+      \CDR_int_gadd:cn { ##1 } { \l_CDR_tl }
+    }    
+  }
+  \lua_now:n {
+    CDR:hilight_block_teardown()
+  }
+}
+\def\CDR@Debug #1 { \typeout{ ****~DEBUG~#1 } }
+
+\CDR@Debug{ABCDE}
+\cs_set:Npn \FVE@CDRBlock {%
+\CDR@Debug{ \string \FVE@CDRBlock }
+  \CDRBlock_setup:
+  \CDR_if_no_export:F {
+    \seq_map_inline:Nn \l_CDR_vrb_seq {
+      \tl_set:Nn \l_CDR_tl { ##1 }
+      \lua_now:n { CDR:record_line('l_CDR_tl') }
+    }
+  }
+  \CDRBlock_engine_begin:
+  \CDR_if_pygments:TF {
+    \CDRBlock@Pyg
+  } {
+    \CDRBlock@FV
+  }
+  \lua_now:n {
+    tex.set_synctex_mode(0);
+    CDR.synctex_line = 0;
+  }
+  \CDRBlock_engine_end:
+  \CDRBlock_teardown:
+  \endgroup
+  \@esphack
+}
+
+\CDR@Debug{ABCDEF}
+
+\makeatother
+\ExplSyntaxOff
+
 Next should not be void
 \CDRSet{cache=false}
 \begin{CDRBlock}[
@@ -240,7 +289,22 @@ C
 \subsubsection{\textsf{fancyvrb} multi tags}
 
 \bgroup
-
+\ExplSyntaxOn
+\makeatletter
+\cs_set_protected_nopar:Npn \CDRBlock_teardown: {
+\CDR@Debug{\string\CDRBlock_teardown:}
+  \CDR_if_dry_numbers:F {
+    \tl_set:Nx \l_CDR_tl { \seq_count:N \l_CDR_vrb_seq }
+    \clist_map_inline:Nn \g_CDR_tags_clist {
+      \CDR_int_gadd:cn { ##1 } { \l_CDR_tl }
+    }    
+  }
+  \lua_now:n {
+    CDR:hilight_block_teardown()
+  }
+}
+\makeatother
+\ExplSyntaxOff
 \CDRSet{pygments=false}
 
 \begin{CDRBlock} [
@@ -305,6 +369,8 @@ A=*7,B=10,C=11
 \ExplSyntaxOff
 
 \egroup
+
+\end{document}
 
 \subsubsection{\textsf{fancyvrb} properties}
 
