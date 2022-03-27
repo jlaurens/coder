@@ -3372,7 +3372,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % Known keys include:
 % \begin{description}
-% \itemtt[\CDRCheckRed __initialize]^^A
+% \itemtt[\CDRCheckRed mbox{[=true$\vert$false]}]^^A
 % When set to |true|, put the argument inside a \LaTeX{} |mbox| to prevent the code chunk to spread over different lines.
 % Initially |true|.
 %    \begin{MacroCode}[OK]
@@ -5104,14 +5104,12 @@ if __name__ == '__main__':
         \CDR@DefineSp
         \CDR_tag_get:c { format }
         \CDR@CodeEngineApply {
-          \CDR@StyleIfExist { \CDR_tag_get:c { style } } {
-            \CDR@StyleUseTag
-            \lua_now:n { CDR:hilight_source(false, true) }        
-          } {
-            \lua_now:n { CDR:hilight_source(true, true) }
+          \CDR@StyleIfExist { \CDR_tag_get:c { style } } { } {
+            \lua_now:n { CDR:hilight_source(true, false) }
             \input { \l_CDR_pyg_sty_tl }
-            \CDR@StyleUseTag
           }
+          \CDR@StyleUseTag
+          \lua_now:n { CDR:hilight_source(false, true) }        
           \makeatletter
           \lua_now:n {
             CDR.synctex_tag = tex.get_synctex_tag();
@@ -5140,7 +5138,7 @@ if __name__ == '__main__':
           \CDR@FormattingPrep
           \CDR_tag_get:c { format }
         }
-        \CDR@CodeEngineApply { \mbox {
+        \CDR@CodeEngineApply { \CDR_tag_if_truthy:cT { mbox } { \mbox } {
           \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
           \FV@UseKeyValues
           \FV@FormattingPrep
