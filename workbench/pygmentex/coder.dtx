@@ -5389,9 +5389,15 @@ if __name__ == '__main__':
   }
 }
 %    \end{MacroCode}
+% \begin{function}{\CDRBlock_teardown:}
+% \begin{syntax}
+% \cs{CDRBlock_teardown:}
+% \end{syntax}
+% Update the stored line numbers and send the |hilight_block_teardown| message to |CDR|.
+% \end{function}
 %    \begin{MacroCode}
 \cs_new_protected_nopar:Npn \CDRBlock_teardown: {
-  \CDR_if_dry_numbers:F {
+  \bool_if:nT { \CDR_if_number_on_p: && !\CDR_if_dry_numbers_p: } {
     \tl_set:Nx \l_CDR_tl { \seq_count:N \l_CDR_vrb_seq }
     \clist_map_inline:Nn \g_CDR_tags_clist {
       \CDR_int_gadd:cn { ##1 } { \l_CDR_tl }
@@ -5417,7 +5423,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_set_protected:Npn \CDRBlock@Pyg {
-\CDR@Debug {\string\CDRBlock@Pyg/\the\inputlineno}
+\CDR@Debug { \string\CDRBlock@Pyg / \the\inputlineno }
   \CDR_tag_get:cN {lang} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('lang') }
   \CDR_tag_get:cN {cache} \l_CDR_tl
@@ -5432,6 +5438,7 @@ if __name__ == '__main__':
   \lua_now:n { CDR:hilight_set_var('mathescape') }
   \CDR_tag_get:cN {style} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('style') }
+  \cctab_select:N \c_document_cctab
   \CDR@StyleIfExist { \l_CDR_tl } { } {
     \lua_now:n { CDR:hilight_source(true, false) }
     \input { \l_CDR_pyg_sty_tl }
@@ -5449,13 +5456,6 @@ if __name__ == '__main__':
     \input{ \l_CDR_pyg_tex_tl }\ignorespaces
     \makeatother
     \def \FV@ProcessLine {}
-  }
-  \CDR_if_number_on:T {
-    \CDR_int_add:cn { __last } { 1 }
-    \clist_map_inline:Nn \g_CDR_tags_clist {
-      \CDR_int_gset:cc { ##1 } { __last }
-\CDR@Debug {DEBUG.CDRBlock.LAST: ##1 -> \CDR_int_use:c { ##1 } }
-    }
   }
 }
 %    \end{MacroCode}
@@ -5814,8 +5814,9 @@ if __name__ == '__main__':
 \cs_new:Npn \CDR_line:nnn [ #1 ] #2 {
 \CDR@Debug {\string\CDR_line:nnn}
   \keys_set:nn { CDR@Line } { #1 }
-  \CDR_int_set:cn { __ } { 0 }
   \CDR_if_number_on:TF {
+    \CDR_int_set:cn { __ } { 1 }
+    \CDR_int_set:cn { __start } { 1 }
     \CDR_tag_if_eq:cnTF { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
@@ -5824,9 +5825,7 @@ if __name__ == '__main__':
         }
       }
     } {
-      \CDR_tag_if_eq:cnTF { firstnumber } { auto } {
-        \CDR_int_set:cn { __start } { 1 }
-      } {
+      \CDR_tag_if_eq:cnF { firstnumber } { auto } {
         \CDR_int_set:cn { __start } { \CDR_tag_get:c { firstnumber } }
       }
     }
@@ -5975,22 +5974,6 @@ if __name__ == '__main__':
       \tl_clear:N \l_CDR_tl
     }
     \tl_clear:N \FV@ProcessLine
-  }
-  \CDR_if_number_on:T {
-    \CDR_int_compare:cNnTF { __ } > 0 {
-      \CDR_int_set:cn { __ } {
-        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
-      }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gadd:cc { ##1 } { __ }
-      }
-    } {
-      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gset:cc { ##1 } { __ }
-\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
-      }
-    }
   }
 }
 %    \end{MacroCode}

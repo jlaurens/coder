@@ -19,6 +19,7 @@
 \ExplSyntaxOn
 \prop_new:N \l_CDR_test_prop
 \cs_new:Npn \cs #1 {\texttt{\textbackslash\tl_rescan:nn {\cctab_select:N \c_str_cctab} {#1}}}
+\cs_new:Npn \pkg { \textsf }
 \cs_new:Npn \CDRCmd #1 {\texttt{\tl_rescan:nn {\cctab_select:N \c_str_cctab} {#1}}}
 \cs_set:Nn \CDR_helper:n {
   \typeout{KEY:#1}
@@ -66,14 +67,15 @@ Path=\l_CDR_tl\\
 Path=\l_CDR_tl\\
 \ExplSyntaxOff
 
-%\section{Sandbox}
-%\makeatletter\ExplSyntaxOn
-%\def\CDR@Debug { \use_none:n }
-%\ExplSyntaxOff\makeatother
-%%\input{Tests/Sandbox}
+\section{Sandbox}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+%\input{Tests/Sandbox}
 %\input{Tests/Engine}
-%
-%\end{document}
+\input{Tests/numbering}
+
+\end{document}
 
 \section{Testing the tag mechanism}
 \makeatletter\ExplSyntaxOn
@@ -120,6 +122,12 @@ Path=\l_CDR_tl\\
 \def\CDR@Debug { \use_none:n }
 \ExplSyntaxOff\makeatother
 \input{Tests/CDRBlock}
+
+\section{\texttt{Numbering}}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/numbering}
 
 \section{\texttt{cache}}
 \makeatletter\ExplSyntaxOn

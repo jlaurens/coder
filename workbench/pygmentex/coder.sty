@@ -405,6 +405,12 @@
     }
   }
 }
+\cs_new:Npn \CDR_get_inherit:n {
+  \CDR_get_inherit:cn { __local }
+}
+\cs_new:Npn \CDR_get_inherit:f {
+  \CDR_get_inherit:cf { __local }
+}
 \AddToHook { begindocument/before } {
   \IfFileExists {./\jobname.aux} {} {
    \lua_now:n {CDR:cache_clean_all()}
@@ -539,12 +545,14 @@
       }
     }
   } {
-    \regex_match:NnT \c_CDR_engine_regex { #1 } {
+    \regex_match:NnTF \c_CDR_engine_regex { #1 } {
       \CDR_tag_keys_define:nn { default } {
         #1 .code:n = \CDR_tag_set:n { ##1 },
         #1 .value_required:n = true,
       }
 \CDR@Debug{\string\CDR_tag_provide:n.C:\CDR_tag_module:n { default } / #1 = ...}
+    } {
+\CDR@Debug{\string\CDR_tag_provide:n\space did~nothing~new.}
     }
   }
 }
@@ -634,7 +642,10 @@
   \CDR_tag_keys_set:nn { default } { __initialize }
 }
 \CDR_tag_keys_define:nn { default.code } {
+  mbox .code:n = \CDR_tag_boolean_set:x { #1 },
+  mbox .default:n = true,
   __initialize .meta:n = {
+    mbox = true,
   },
   __initialize .value_forbidden:n = true,
 }
@@ -1149,6 +1160,12 @@
     \ignorespaces
   }
 }
+\cs_new:Npn \CDR_forbidden_keys:n #1 {
+  \group_begin:
+  \CDR_local_inherit:n { __no_tags, __no_engine }
+  \CDR_local_set_known:nN { #1 } \l_CDR_kv_clist
+  \group_end:
+}
 \NewDocumentCommand \CDRCodeEngineRenew { mO{}m } {
   \exp_args:Nx
   \tl_if_empty:nTF { #1 } {
@@ -1302,7 +1319,7 @@
 \CDRBlockEngineNew {default} {
 } {
 }
-\cs_new:Npn \CDR@DefineSp {
+\cs_new:Npn \CDR@DefinePygSp {
   \CDR_tag_if_truthy:cTF { showspaces } {
     \cs_set:Npn \CDR@Sp {{\FancyVerbSpace}}
   } {
@@ -1385,7 +1402,7 @@
       { No~(default)~tags~provided. }
   }
 \CDR@Debug {CDRCode_setup_tags:N\space\g_CDR_tags_clist}
-  \CDR_get_inherit:cf { __local } {
+  \CDR_get_inherit:f {
     \g_CDR_tags_clist,
     __tags, __engine, __code, default.code, __pygments, default,
   }
@@ -1398,7 +1415,7 @@
     \clist_put_left:Nx #1 { \CDRCode_options_use:V \l_CDR_tl }
   }
 }
-\cs_set:Npn \CDRCode:n #1 {
+\cs_new_protected_nopar:Npn \CDRCode:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
     \cs_set:Npn \CDR@StyleUseTag {
       \CDR@StyleUse { \CDR_tag_get:c { style } }
@@ -1447,7 +1464,9 @@
             CDR.synctex_line = tex.inputlineno;
             tex.set_synctex_mode(1)
           }
-          \input { \l_CDR_pyg_tex_tl }\ignorespaces
+          \CDR_tag_if_truthy:cT { mbox } { \mbox } {
+            \input { \l_CDR_pyg_tex_tl }\ignorespaces
+          }
           \lua_now:n {
             tex.set_synctex_mode(0)
           }
@@ -1538,10 +1557,11 @@
     tex.set_synctex_mode(0);
     CDR.synctex_line = 0;
   }
-  \@esphack
   \CDRBlock_engine_end:
   \CDRBlock_teardown:
   \endgroup
+  \@esphack
+  \noindent
 }
 \DefineVerbatimEnvironment{CDRBlock}{CDRBlock}{}
 \cs_new_protected_nopar:Npn \CDRBlock_setup: {
@@ -1596,7 +1616,7 @@
   }
 }
 \cs_new_protected_nopar:Npn \CDRBlock_teardown: {
-  \CDR_if_dry_numbers:F {
+  \bool_if:nT { \CDR_if_number_on_p: && !\CDR_if_dry_numbers_p: } {
     \tl_set:Nx \l_CDR_tl { \seq_count:N \l_CDR_vrb_seq }
     \clist_map_inline:Nn \g_CDR_tags_clist {
       \CDR_int_gadd:cn { ##1 } { \l_CDR_tl }
@@ -1607,7 +1627,7 @@
   }
 }
 \cs_set_protected:Npn \CDRBlock@Pyg {
-\CDR@Debug {\string\CDRBlock@Pyg/\the\inputlineno}
+\CDR@Debug { \string\CDRBlock@Pyg / \the\inputlineno }
   \CDR_tag_get:cN {lang} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('lang') }
   \CDR_tag_get:cN {cache} \l_CDR_tl
@@ -1622,12 +1642,13 @@
   \lua_now:n { CDR:hilight_set_var('mathescape') }
   \CDR_tag_get:cN {style} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('style') }
+  \cctab_select:N \c_document_cctab
   \CDR@StyleIfExist { \l_CDR_tl } { } {
     \lua_now:n { CDR:hilight_source(true, false) }
     \input { \l_CDR_pyg_sty_tl }
   }
   \CDR@StyleUseTag
-  \CDR@DefineSp
+  \CDR@DefinePygSp
   \lua_now:n { CDR:hilight_source(false, true) }
   \fvset{ commandchars=\\\{\} }
   \FV@UseVerbatim {
@@ -1639,13 +1660,6 @@
     \input{ \l_CDR_pyg_tex_tl }\ignorespaces
     \makeatother
     \def \FV@ProcessLine {}
-  }
-  \CDR_if_number_on:T {
-    \CDR_int_add:cn { __last } { 1 }
-    \clist_map_inline:Nn \g_CDR_tags_clist {
-      \CDR_int_gset:cc { ##1 } { __last }
-\CDR@Debug {DEBUG.CDRBlock.LAST: ##1 -> \CDR_int_use:c { ##1 } }
-    }
   }
 }
 \cs_new:Npn \CDR@NumberFormat {
@@ -1908,8 +1922,9 @@
 \cs_new:Npn \CDR_line:nnn [ #1 ] #2 {
 \CDR@Debug {\string\CDR_line:nnn}
   \keys_set:nn { CDR@Line } { #1 }
-  \CDR_int_set:cn { __ } { 0 }
   \CDR_if_number_on:TF {
+    \CDR_int_set:cn { __ } { 1 }
+    \CDR_int_set:cn { __start } { 1 }
     \CDR_tag_if_eq:cnTF { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
@@ -1918,9 +1933,7 @@
         }
       }
     } {
-      \CDR_tag_if_eq:cnTF { firstnumber } { auto } {
-        \CDR_int_set:cn { __start } { 1 }
-      } {
+      \CDR_tag_if_eq:cnF { firstnumber } { auto } {
         \CDR_int_set:cn { __start } { \CDR_tag_get:c { firstnumber } }
       }
     }
@@ -2028,22 +2041,6 @@
     }
     \tl_clear:N \FV@ProcessLine
   }
-  \CDR_if_number_on:T {
-    \CDR_int_compare:cNnTF { __ } > 0 {
-      \CDR_int_set:cn { __ } {
-        \value{FancyVerbLine} - \CDR_int_use:c { __ } + 1
-      }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gadd:cc { ##1 } { __ }
-      }
-    } {
-      \CDR_int_set:cn { __ } { \value{FancyVerbLine} + 1 }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
-        \CDR_int_gset:cc { ##1 } { __ }
-\CDR@Debug { DEBUG.CDRBlock.FV.Last: ##1/\CDR_int_use:c { ##1 } }
-      }
-    }
-  }
 }
 \cs_new:Npn \CDR_set_conditional:Nn #1 #2 {
   \bool_if:nTF { #2 } {
@@ -2087,7 +2084,7 @@
       { No~(default)~tags~provided. }
   }
 \CDR@Debug {CDRBlock_setup_tags:N\space\g_CDR_tags_clist}
-  \CDR_get_inherit:cf { __local } {
+  \CDR_get_inherit:f {
     \g_CDR_tags_clist,
     __block, __tags, __engine, default.block, __pygments.block,
     __fancyvrb.block __fancyvrb.frame, __fancyvrb.number,
