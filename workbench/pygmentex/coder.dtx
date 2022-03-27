@@ -5494,7 +5494,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \cs_set:Npn \CDR_number_alt:n #1 {
   \use:c { CDRNumber 
-    \CDR_if_number_visible:nTF { #1 } { Main } { Other }
+    \CDR_if_number_main:nTF { #1 } { Main } { Other }
   } { #1 }
 }
 \cs_set:Npn \CDR_number_alt: {
@@ -5587,7 +5587,7 @@ if __name__ == '__main__':
       \CDR_info_N_L:n { \CDR@NumberMain }
     } { #1 } {}
   } {
-    \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+    \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
       \CDR_line_box_L:n { #1 }
     } {
       \CDR_line_box:nnn {
@@ -5649,7 +5649,7 @@ if __name__ == '__main__':
     \CDR_if_no_number:TF {
       \CDR_info_N_L:n { \CDR@NumberMain }
     } {
-      \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
         \CDR_info_N_L:n { \CDR_number_alt: }
       } {
         \CDR_info_N_L:n { \CDR@NumberMain }
@@ -5670,7 +5670,7 @@ if __name__ == '__main__':
       \CDR_info_N_R:n { \CDR@NumberMain }
     }
   } {
-    \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+    \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
       \CDR_line_box_R:n { #1 }
     } {
       \CDR_line_box:nnn {} { #1 } {
@@ -5688,7 +5688,7 @@ if __name__ == '__main__':
     \CDR_if_no_number:TF {
       \CDR_info_N_R:n { \CDR@NumberMain }
     } {
-      \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
         \CDR_info_N_R:n { \CDR_number_alt: }
       } {
         \CDR_info_N_R:n { \CDR@NumberMain }
@@ -5790,7 +5790,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \begin{function}{\CDR_line:nnn}
 % \begin{syntax}
-% \cs{CDR_line:nnn} \Arg{CDR@Line kv list} \Arg{line number} \Arg{line content}
+% \cs{CDR_line:nnn} \Arg{CDR@Line kv list} \Arg{line index} \Arg{line content}
 % \end{syntax}
 % This is the very first command called when typesetting.
 % Some setup are made for line numbering, in particular the |\CDR_if_visible_at_index:n...|
@@ -5798,6 +5798,7 @@ if __name__ == '__main__':
 % The first line must read |\CDR@Line[last=...]{1}{...}|,
 % be it input from any |...pyg.tex| files or directly,
 % like for \pkg{fancyvrb} usage.
+% The line index refers to the lines in the source, what is displayed is a line number.
 % \end{function}
 %    \begin{MacroCode}
 \keys_define:nn { CDR@Line } {
@@ -5808,7 +5809,10 @@ if __name__ == '__main__':
   \keys_set:nn { CDR@Line } { #1 }
   \CDR_if_number_on:TF {
     \CDR_int_set:cn { __ } { 1 }
-    \CDR_int_set:cn { __start } { 1 }
+%    \end{MacroCode}
+% Set the first line number.
+%    \begin{MacroCode}
+     \CDR_int_set:cn { __start } { 1 }
     \CDR_tag_if_eq:cnTF { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
@@ -5846,21 +5850,22 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
     \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-      ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 } 
+      \CDR_if_number_visible_p:n { ##1 + \CDR_int:c { __start } - (#2) } 
+    }
+    \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
+      ! \CDR_int_compare_p:cNn { __last } < { ##1 } 
     }
     \CDR_int_compare:cNnTF { __step } < 2 {
       \CDR_int_set:cn { __step } { 1 }
-      \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
-        \CDR_if_visible_at_index_p:n { ##1 }
+      \CDR_set_conditional_alt:Nn \CDR_if_number_main:n {
+        \CDR_if_number_visible_p:n { ##1 }
       }
     } {
-      \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
+      \CDR_set_conditional_alt:Nn \CDR_if_number_main:n {
         \int_compare_p:nNn {
-          ( ##1 + \CDR_int:c { __start } - 1 )
-          / \CDR_int:c { __step }  * \CDR_int:c { __step }
-          - \CDR_int:c { __start } + 1
+          ( ##1 ) / \CDR_int:c { __step }  * \CDR_int:c { __step }
         } = { ##1 }
-        && \CDR_if_visible_at_index_p:n { ##1 }
+        && \CDR_if_number_visible_p:n { ##1 }
       }
     }
 \CDR@Debug {CDR_line:nnn:1}
@@ -5873,10 +5878,10 @@ if __name__ == '__main__':
     }
     \cs_set:Npn \CDR@Line ##1 {
 \CDR@Debug {\string\CDR@Line(A), \the\inputlineno}
-      \CDR_int_set:cn { __ } { ##1 + \CDR_int:c { __start } - #2 }
+      \CDR_int_set:cn { __ } { ##1 + \CDR_int:c { __start } - (#2) }
       \CDR@@Line
     }
-    \CDR_int_set:cn { __ } { \CDR_int:c { __start } + 1 - #2 }
+    \CDR_int_set:cn { __ } { 1 + \CDR_int:c { __start } - (#2) }
   } {
 \CDR@Debug {NUMBER~OFF}
     \cs_set:Npn \CDR@Line ##1 {

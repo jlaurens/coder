@@ -1688,7 +1688,7 @@
 }
 \cs_set:Npn \CDR_number_alt:n #1 {
   \use:c { CDRNumber
-    \CDR_if_number_visible:nTF { #1 } { Main } { Other }
+    \CDR_if_number_main:nTF { #1 } { Main } { Other }
   } { #1 }
 }
 \cs_set:Npn \CDR_number_alt: {
@@ -1738,7 +1738,7 @@
       \CDR_info_N_L:n { \CDR@NumberMain }
     } { #1 } {}
   } {
-    \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+    \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
       \CDR_line_box_L:n { #1 }
     } {
       \CDR_line_box:nnn {
@@ -1800,7 +1800,7 @@
     \CDR_if_no_number:TF {
       \CDR_info_N_L:n { \CDR@NumberMain }
     } {
-      \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
         \CDR_info_N_L:n { \CDR_number_alt: }
       } {
         \CDR_info_N_L:n { \CDR@NumberMain }
@@ -1821,7 +1821,7 @@
       \CDR_info_N_R:n { \CDR@NumberMain }
     }
   } {
-    \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+    \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
       \CDR_line_box_R:n { #1 }
     } {
       \CDR_line_box:nnn {} { #1 } {
@@ -1839,7 +1839,7 @@
     \CDR_if_no_number:TF {
       \CDR_info_N_R:n { \CDR@NumberMain }
     } {
-      \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
         \CDR_info_N_R:n { \CDR_number_alt: }
       } {
         \CDR_info_N_R:n { \CDR@NumberMain }
@@ -1926,7 +1926,7 @@
   \keys_set:nn { CDR@Line } { #1 }
   \CDR_if_number_on:TF {
     \CDR_int_set:cn { __ } { 1 }
-    \CDR_int_set:cn { __start } { 1 }
+     \CDR_int_set:cn { __start } { 1 }
     \CDR_tag_if_eq:cnTF { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
@@ -1947,21 +1947,22 @@
     \CDR_int_set:cn { __step } { \CDR_tag_get:c { stepnumber } }
 \CDR@Debug {CDR_line:nnn:START/STEP/LAST=\CDR_int_use:c { __start }/\CDR_int_use:c { __step } /\CDR_int_use:c { __last }, #1}
     \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-      ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 }
+      \CDR_if_number_visible_p:n { ##1 + \CDR_int:c { __start } - (#2) }
+    }
+    \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
+      ! \CDR_int_compare_p:cNn { __last } < { ##1 }
     }
     \CDR_int_compare:cNnTF { __step } < 2 {
       \CDR_int_set:cn { __step } { 1 }
-      \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
-        \CDR_if_visible_at_index_p:n { ##1 }
+      \CDR_set_conditional_alt:Nn \CDR_if_number_main:n {
+        \CDR_if_number_visible_p:n { ##1 }
       }
     } {
-      \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
+      \CDR_set_conditional_alt:Nn \CDR_if_number_main:n {
         \int_compare_p:nNn {
-          ( ##1 + \CDR_int:c { __start } - 1 )
-          / \CDR_int:c { __step }  * \CDR_int:c { __step }
-          - \CDR_int:c { __start } + 1
+          ( ##1 ) / \CDR_int:c { __step }  * \CDR_int:c { __step }
         } = { ##1 }
-        && \CDR_if_visible_at_index_p:n { ##1 }
+        && \CDR_if_number_visible_p:n { ##1 }
       }
     }
 \CDR@Debug {CDR_line:nnn:1}
@@ -1972,10 +1973,10 @@
     }
     \cs_set:Npn \CDR@Line ##1 {
 \CDR@Debug {\string\CDR@Line(A), \the\inputlineno}
-      \CDR_int_set:cn { __ } { ##1 + \CDR_int:c { __start } - #2 }
+      \CDR_int_set:cn { __ } { ##1 + \CDR_int:c { __start } - (#2) }
       \CDR@@Line
     }
-    \CDR_int_set:cn { __ } { \CDR_int:c { __start } + 1 - #2 }
+    \CDR_int_set:cn { __ } { 1 + \CDR_int:c { __start } - (#2) }
   } {
 \CDR@Debug {NUMBER~OFF}
     \cs_set:Npn \CDR@Line ##1 {
