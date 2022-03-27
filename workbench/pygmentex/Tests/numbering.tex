@@ -230,3 +230,54 @@ D=*7,E=10,F=11
 \ExplSyntaxOff
 
 \egroup
+
+\subsection{Step}
+\bgroup
+\def\CDRNumberOther#1{\textcolor{magenta!25!white}{#1}\hspace{5mm}}
+\CDRSet{
+  tags=,
+  show tags=none,
+  numbers=left,
+}
+\begin{CDRBlock}[stepnumber=1]
+1
+2
+3
+4
+5
+6
+\end{CDRBlock}
+\begin{CDRBlock}[stepnumber=2]
+1
+2
+3
+4
+5
+6
+\end{CDRBlock}
+\begin{CDRBlock}[stepnumber=5]
+1
+2
+3
+4
+5
+6
+\end{CDRBlock}
+
+\egroup
+
+\subsection{Other}
+\bgroup
+\begin{minipage}{0.5\textwidth}
+\begin{CDRBlock}[stepnumber=5,show tags=right]
+1
+2
+3
+4
+5
+6
+\end{CDRBlock}
+
+\end{minipage}
+\egroup
+

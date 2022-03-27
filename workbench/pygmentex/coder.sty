@@ -1338,34 +1338,6 @@
   },
   __initialize .value_forbidden:n = true,
 }
-\cs_new:Npn \CDR_brace_if_contains_comma:n #1 {
-  \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
-}
-\cs_generate_variant:Nn \CDR_brace_if_contains_comma:n { V }
-\cs_new:Npn \CDRCodeformat: {
-  \frenchspacing
-  \CDR_tag_get:cN { baselinestretch } \l_CDR_tl
-  \str_if_eq:VnF \l_CDR_tl { auto } {
-    \exp_args:NNV
-    \def \baselinestretch \l_CDR_tl
-  }
-  \CDR_tag_get:cN { fontfamily } \l_CDR_tl
-  \str_if_eq:VnT \l_CDR_tl { tt } { \tl_set:Nn \l_CDR_tl { lmtt } }
-  \exp_args:NV
-  \fontfamily \l_CDR_tl
-  \clist_map_inline:nn { series, shape } {
-    \CDR_tag_get:cN { font##1 } \l_CDR_tl
-    \str_if_eq:VnF \l_CDR_tl { auto } {
-      \exp_args:NnV
-      \use:c { font##1 } \l_CDR_tl
-    }
-  }
-  \CDR_tag_get:cN { fontsize } \l_CDR_tl
-  \str_if_eq:VnF \l_CDR_tl { auto } {
-    \tl_use:N \l_CDR_tl
-  }
-  \selectfont
-}
 \NewDocumentCommand \CDRCode { O{} } {
   \group_begin:
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
@@ -1447,17 +1419,15 @@
         \FV@DefineWhiteSpace
         \FancyVerbDefineActive
         \FancyVerbFormatCom
-        \CDR@DefineSp
+        \CDR@DefinePygSp
         \CDR_tag_get:c { format }
         \CDR@CodeEngineApply {
-          \CDR@StyleIfExist { \CDR_tag_get:c { style } } {
-            \CDR@StyleUseTag
-            \lua_now:n { CDR:hilight_source(false, true) }
-          } {
-            \lua_now:n { CDR:hilight_source(true, true) }
+          \CDR@StyleIfExist { \CDR_tag_get:c { style } } { } {
+            \lua_now:n { CDR:hilight_source(true, false) }
             \input { \l_CDR_pyg_sty_tl }
-            \CDR@StyleUseTag
           }
+          \CDR@StyleUseTag
+          \lua_now:n { CDR:hilight_source(false, true) }
           \makeatletter
           \lua_now:n {
             CDR.synctex_tag = tex.get_synctex_tag();
@@ -1486,7 +1456,7 @@
           \CDR@FormattingPrep
           \CDR_tag_get:c { format }
         }
-        \CDR@CodeEngineApply { \mbox {
+        \CDR@CodeEngineApply { \CDR_tag_if_truthy:cT { mbox } { \mbox } {
           \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
           \FV@UseKeyValues
           \FV@FormattingPrep
@@ -1768,7 +1738,13 @@
       \CDR_info_N_L:n { \CDR@NumberMain }
     } { #1 } {}
   } {
-    \CDR_line_box_L:n { #1 }
+    \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_line_box_L:n { #1 }
+    } {
+      \CDR_line_box:nnn {
+        \CDR_info_N_L:n { \CDR@NumberMain }
+      } { #1 } {}
+    }
   }
 }
 
@@ -1824,7 +1800,11 @@
     \CDR_if_no_number:TF {
       \CDR_info_N_L:n { \CDR@NumberMain }
     } {
-      \CDR_info_N_L:n { \CDR_number_alt: }
+      \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+        \CDR_info_N_L:n { \CDR_number_alt: }
+      } {
+        \CDR_info_N_L:n { \CDR@NumberMain }
+      }
     }
   } { #1 } {
     \CDR_info_T_R:n { }
@@ -1834,9 +1814,21 @@
 \cs_set_eq:NN \CDR_line_S_L:n \CDR_line_L_L:n
 \cs_set_eq:NN \CDR_line_O_L:n \CDR_line_R_L:n
 
-\cs_new:Npn \CDR_line_N_R:n {
-\typeout {STEP:CDR_line_N_R:n}
-  \CDR_line_box_R:n
+\cs_new:Npn \CDR_line_N_R:n #1 {
+\CDR@Debug {STEP:CDR_line_N_R:n}
+  \CDR_if_no_number:TF {
+    \CDR_line_box:nnn {} { #1 } {
+      \CDR_info_N_R:n { \CDR@NumberMain }
+    }
+  } {
+    \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_line_box_R:n { #1 }
+    } {
+      \CDR_line_box:nnn {} { #1 } {
+        \CDR_info_N_R:n { \CDR@NumberMain }
+      }
+    }
+  }
 }
 
 \cs_new:Npn \CDR_line_L_R:n #1 {
@@ -1847,7 +1839,11 @@
     \CDR_if_no_number:TF {
       \CDR_info_N_R:n { \CDR@NumberMain }
     } {
-      \CDR_info_N_R:n { \CDR_number_alt: }
+      \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+        \CDR_info_N_R:n { \CDR_number_alt: }
+      } {
+        \CDR_info_N_R:n { \CDR@NumberMain }
+      }
     }
   }
 }
@@ -1883,14 +1879,20 @@
   }
   \hbox to \hsize {
     \kern \leftmargin
-    #1
+    {
+      \let\CDRIfLR\use_i:nn
+      #1
+    }
     \hbox to \linewidth {
       \FV@LeftListFrame
       #2
       \hss
       \FV@RightListFrame
     }
-    #3\hss X
+    {
+      \let\CDRIfLR\use_ii:nn
+      #3
+    }
   }
   \ignorespaces
 }
@@ -1944,18 +1946,15 @@
     \CDR_int_add:cn { __last } { \CDR_int:c { __start } - 1 }
     \CDR_int_set:cn { __step } { \CDR_tag_get:c { stepnumber } }
 \CDR@Debug {CDR_line:nnn:START/STEP/LAST=\CDR_int_use:c { __start }/\CDR_int_use:c { __step } /\CDR_int_use:c { __last }, #1}
+    \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
+      ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 }
+    }
     \CDR_int_compare:cNnTF { __step } < 2 {
       \CDR_int_set:cn { __step } { 1 }
-      \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 }
-      }
       \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 }
+        \CDR_if_visible_at_index_p:n { ##1 }
       }
     } {
-      \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 }
-      }
       \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
         \int_compare_p:nNn {
           ( ##1 + \CDR_int:c { __start } - 1 )

@@ -3507,7 +3507,6 @@ if __name__ == '__main__':
   tags~format .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed numbers format=\meta{format commands}]^^A
-%, where \meta{format} is used
 % the format used to display line numbers (mainly font, size and color).
 %    \begin{MacroCode}[OK]
   numbers~format .code:n = \CDR_tag_set:,
@@ -4949,45 +4948,6 @@ if __name__ == '__main__':
 %
 % \subsection{Implementation}
 %
-% \begin{function}{\CDRCodeformat:}
-% \begin{syntax}
-% \cs{CDRCodeformat:}
-% \end{syntax}
-% Private utility to setup the formatting.
-% \textcolor{red!75!black}{\bfseries OBSOLETE}.
-% \end{function}
-%    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_brace_if_contains_comma:n #1 {
-  \tl_if_in:nnTF { #1 } { , } { { #1 } } { #1 }
-}
-\cs_generate_variant:Nn \CDR_brace_if_contains_comma:n { V }
-\cs_new:Npn \CDRCodeformat: {
-  \frenchspacing
-  \CDR_tag_get:cN { baselinestretch } \l_CDR_tl
-  \str_if_eq:VnF \l_CDR_tl { auto } {
-    \exp_args:NNV
-    \def \baselinestretch \l_CDR_tl
-  }
-  \CDR_tag_get:cN { fontfamily } \l_CDR_tl
-  \str_if_eq:VnT \l_CDR_tl { tt } { \tl_set:Nn \l_CDR_tl { lmtt } }
-  \exp_args:NV
-  \fontfamily \l_CDR_tl
-  \clist_map_inline:nn { series, shape } {
-    \CDR_tag_get:cN { font##1 } \l_CDR_tl
-    \str_if_eq:VnF \l_CDR_tl { auto } {
-      \exp_args:NnV
-      \use:c { font##1 } \l_CDR_tl
-    }
-  }
-  \CDR_tag_get:cN { fontsize } \l_CDR_tl
-  \str_if_eq:VnF \l_CDR_tl { auto } {
-    \tl_use:N \l_CDR_tl
-  }
-  \selectfont
-%  \@noligs ?? this is in fancyvrb but does not work here as is
-}
-%    \end{MacroCode}
-%
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRCode { O{} } {
   \group_begin:
@@ -5101,7 +5061,7 @@ if __name__ == '__main__':
         \FV@DefineWhiteSpace
         \FancyVerbDefineActive
         \FancyVerbFormatCom
-        \CDR@DefineSp
+        \CDR@DefinePygSp
         \CDR_tag_get:c { format }
         \CDR@CodeEngineApply {
           \CDR@StyleIfExist { \CDR_tag_get:c { style } } { } {
@@ -5543,14 +5503,16 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRNumberMain, \CDRNumberOther}
+% \begin{function}{\CDRNumberMain, \CDRNumberOther, \CDRIfLR}
 % \begin{syntax}
 % \cs{CDRNumberMain}  \Arg{integer expression}
 % \cs{CDRNumberOther} \Arg{integer expression}
+% \cs{CDRIfLR} \Arg{left commands} \Arg{right commands}
 % \end{syntax}
 % This is used when typesseting line numbers.
 % The default |...Other| function just gobble one argument.
 % The \metatt{integer expression} is exactly what will be displayed.
+% The |\cs{CDRIfLR}| allows to format the numbers differently on the left and on the right.
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRNumberMain {
@@ -5625,7 +5587,13 @@ if __name__ == '__main__':
       \CDR_info_N_L:n { \CDR@NumberMain }
     } { #1 } {}
   } {
-    \CDR_line_box_L:n { #1 }
+    \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_line_box_L:n { #1 }
+    } {
+      \CDR_line_box:nnn {
+        \CDR_info_N_L:n { \CDR@NumberMain }
+      } { #1 } {}
+    }
   }
 }
 
@@ -5681,7 +5649,11 @@ if __name__ == '__main__':
     \CDR_if_no_number:TF {
       \CDR_info_N_L:n { \CDR@NumberMain }
     } {
-      \CDR_info_N_L:n { \CDR_number_alt: }
+      \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+        \CDR_info_N_L:n { \CDR_number_alt: }
+      } {
+        \CDR_info_N_L:n { \CDR@NumberMain }
+      }
     }
   } { #1 } {
     \CDR_info_T_R:n { }
@@ -5691,9 +5663,21 @@ if __name__ == '__main__':
 \cs_set_eq:NN \CDR_line_S_L:n \CDR_line_L_L:n
 \cs_set_eq:NN \CDR_line_O_L:n \CDR_line_R_L:n
 
-\cs_new:Npn \CDR_line_N_R:n {
-\typeout {STEP:CDR_line_N_R:n}
-  \CDR_line_box_R:n
+\cs_new:Npn \CDR_line_N_R:n #1 {
+\CDR@Debug {STEP:CDR_line_N_R:n}
+  \CDR_if_no_number:TF {
+    \CDR_line_box:nnn {} { #1 } {
+      \CDR_info_N_R:n { \CDR@NumberMain }
+    }
+  } {
+    \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_line_box_R:n { #1 }
+    } {
+      \CDR_line_box:nnn {} { #1 } {
+        \CDR_info_N_R:n { \CDR@NumberMain }
+      }
+    }
+  }
 }
 
 \cs_new:Npn \CDR_line_L_R:n #1 {
@@ -5704,7 +5688,11 @@ if __name__ == '__main__':
     \CDR_if_no_number:TF {
       \CDR_info_N_R:n { \CDR@NumberMain }
     } {
-      \CDR_info_N_R:n { \CDR_number_alt: }
+      \CDR_if_number_visible:nTF { \CDR_int:c { __ } + 1 } {
+        \CDR_info_N_R:n { \CDR_number_alt: }
+      } {
+        \CDR_info_N_R:n { \CDR@NumberMain }
+      }
     }
   }
 }
@@ -5755,14 +5743,20 @@ if __name__ == '__main__':
   }
   \hbox to \hsize {
     \kern \leftmargin
-    #1
+    {
+      \let\CDRIfLR\use_i:nn
+      #1
+    }
     \hbox to \linewidth {
       \FV@LeftListFrame
       #2
       \hss
       \FV@RightListFrame
     }
-    #3\hss X
+    {
+      \let\CDRIfLR\use_ii:nn
+      #3
+    }
   }
   \ignorespaces
 }
@@ -5851,18 +5845,15 @@ if __name__ == '__main__':
 % family is set here.
 % \end{function}
 %    \begin{MacroCode}
+    \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
+      ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 } 
+    }
     \CDR_int_compare:cNnTF { __step } < 2 {
       \CDR_int_set:cn { __step } { 1 }
-      \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 } 
-      }
       \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 }
+        \CDR_if_visible_at_index_p:n { ##1 }
       }
     } {
-      \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-        ! \CDR_int_compare_p:cNn { __last } < { ##1 + \CDR_int:c { __start } - 1 } 
-      }
       \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
         \int_compare_p:nNn {
           ( ##1 + \CDR_int:c { __start } - 1 )
