@@ -279,7 +279,7 @@ TSWLatexianTemp*
 *.lpz
 
 # Special
-workbench/*.pdf
+workbench/**/*.pdf
 workbench/inlinecode.hd
 workbench/inlinecode.ins
 workbench/inlinecode.sty

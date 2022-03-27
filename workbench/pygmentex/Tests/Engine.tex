@@ -9,11 +9,17 @@
 \CDRCode[pygments=false,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
 \CDRCode[pygments=true,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
 
-\begin{CDRBlock}[tags=WHAT,numbersep=2cm]
-1
-2
-3
-\end{CDRBlock}
+
+\CDRCode[formatcom=\color{magenta},pygments=false,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|\\
+\CDRCode[formatcom=\color{magenta},pygments=true,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
+
+\ExplSyntaxOn
+\makeatother
+\group_end:
+\ExplSyntaxOff
+\end{document}
+
+\subsection{Block}
 
 \typeout{------------------================-------------------}
 
@@ -50,6 +56,18 @@ def function(x):
     \begin{Verbatim}
    Hello.
    \end{Verbatim}
+  \end{codebox}
+  \item \mbox{}
+  \begin{codebox}{Swap}
+    \begin{CDRBlock}
+   Hello.
+   \end{CDRBlock}
+  \end{codebox}
+  \item \mbox{}
+  \begin{codebox}{Swap}
+    \begin{CDRBlock}[pygments=false]
+   Hello.
+   \end{CDRBlock}
   \end{codebox}
   \item Epsum.
 \end{enumerate}
