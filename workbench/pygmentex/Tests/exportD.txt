@@ -2,3 +2,29 @@ B,C,D:1
 D,B:3
 C,D:4
 D:7
+def function(x):
+  '''Square'''
+  return x * x
+def function(x):
+  '''Square'''
+  return x * x
+def function(x):
+  '''Square'''
+  return x * x
+   Hello.
+   Hello.
+1
+2
+3
+def function(x):
+  '''Square'''
+  return x * x
+def function(x):
+  '''Square'''
+  return x * x
+def function(x):
+  '''Square'''
+  return x * x
+def function(x):
+  '''Square'''
+  return x * x

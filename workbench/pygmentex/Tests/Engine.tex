@@ -13,12 +13,6 @@
 \CDRCode[formatcom=\color{magenta},pygments=false,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|\\
 \CDRCode[formatcom=\color{magenta},pygments=true,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
 
-\ExplSyntaxOn
-\makeatother
-\group_end:
-\ExplSyntaxOff
-\end{document}
-
 \subsection{Block}
 
 \typeout{------------------================-------------------}
@@ -266,7 +260,6 @@ def function(x):
   return x * x
 \end{CDRBlockPOC}
 abcde
-\egroup
 
 \begin{CDRBlock}[pygments=true,engine=codebox,label=SWAP,lang=python]
 def function(x):
@@ -280,9 +273,6 @@ def function(x):
   return x * x
 \end{CDRBlock}
 
-\end{document}
-
-
 %\newcommand\pygmented@mdframed@additional@options{%
 %  leftmargin=\pygmented@leftmargin,%
 %  frametitlerule=true,%
@@ -292,6 +282,7 @@ def function(x):
 %}
 
 \makeatother
+\egroup
 
 \subsection{In progress}
 abcde
@@ -303,12 +294,6 @@ abcde%
 \group_begin:
 \makeatletter
 \ExplSyntaxOff
-\newtcolorbox{codebox}[1]{
-  colback=white!5!white,
-  colframe=white!75!black,
-  title=#1,
-  box align=top
-}%
 \noindent
 \def\CDR@Debug{\typeout}%
 \CDRSet{
