@@ -2780,12 +2780,13 @@ if __name__ == '__main__':
   l_CDR:parent.tag @ #1 _seq
 }
 %    \end{MacroCode}
-% \begin{function}{\CDR_get_inherit:cn, \CDR_get_inherit:cf}
+% \begin{function}{\CDR_get_inherit:cn, \CDR_get_inherit:cf,\CDR_get_inherit:n, \CDR_get_inherit:f}
 % \begin{syntax}
 % \cs{CDR_get_inherit:cn} \Arg{child name} \Arg{parent names comma list}
 % \end{syntax}
 % Set the parents of \metatt{child name} to the
 % given list.
+% When the \metatt{child name} is not provided, it defaults to |__local|.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_get_inherit:cn #1 #2 {
@@ -2803,6 +2804,12 @@ if __name__ == '__main__':
       ##1,
     }
   }
+}
+\cs_new:Npn \CDR_get_inherit:n {
+  \CDR_get_inherit:cn { __local }
+}
+\cs_new:Npn \CDR_get_inherit:f {
+  \CDR_get_inherit:cf { __local }
 }
 %    \end{MacroCode}
 % \section{Cache management}
@@ -3114,12 +3121,14 @@ if __name__ == '__main__':
       }
     }
   } {
-    \regex_match:NnT \c_CDR_engine_regex { #1 } {
+    \regex_match:NnTF \c_CDR_engine_regex { #1 } {
       \CDR_tag_keys_define:nn { default } {
         #1 .code:n = \CDR_tag_set:n { ##1 },
         #1 .value_required:n = true,
       }
 \CDR@Debug{\string\CDR_tag_provide:n.C:\CDR_tag_module:n { default } / #1 = ...}
+    } {
+\CDR@Debug{\string\CDR_tag_provide:n\space did~nothing~new.}
     }
   }
 }
@@ -3356,8 +3365,7 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \subsubsection{\texttt{default.code }
-% \pkg{l3keys} module}
+% \subsubsection{\texttt{default.code} \pkg{l3keys} module}
 % Void for the moment.
 %    \begin{MacroCode}[OK]
 \CDR_tag_keys_define:nn { default.code } {
@@ -3365,10 +3373,18 @@ if __name__ == '__main__':
 % Known keys include:
 % \begin{description}
 % \itemtt[\CDRCheckRed __initialize]^^A
+% When set to |true|, put the argument inside a \LaTeX{} |mbox| to prevent the code chunk to spread over different lines.
+% Initially |true|.
+%    \begin{MacroCode}[OK]
+  mbox .code:n = \CDR_tag_boolean_set:x { #1 },
+  mbox .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed __initialize]^^A
 % to initialize storage properly. We cannot use |.initial:n| actions
 % because the |\l_keys_path_str| is not set up properly.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
+    mbox = true,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -3828,6 +3844,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed vspace=\metatt{dimension}]^^A
 % the amount of vertical space added to |\parskip| before and after blocks.
+% Initially |\topsep|.
 %    \begin{MacroCode}[OK]
   vspace .code:n = \CDR_tag_set:,
   vspace .value_required:n = true,
@@ -4555,6 +4572,7 @@ if __name__ == '__main__':
 % \end{function}
 %
 % \subsection{Implementation}
+%
 % \begin{function}{\CDRCodeEngineNew, \CDRCodeEngineRenew}
 % \begin{syntax}
 % \cs{CDRCodeEngineNew}  \Arg{engine name}\Arg{engine body}
@@ -4574,10 +4592,7 @@ if __name__ == '__main__':
       { coder }
       { The~engine~cannot~be~void. }
   } {
-    \group_begin:
-    \CDR_local_inherit:n { __no_tag, __no_engine }
-    \CDR_local_set:n { #2 }
-    \group_end:
+    \CDR_forbidden_keys:n { #2 }
     \cs_set:cpn { \CDRCode_options:c { #1 } } { \exp_not:n { #2 } }
     \cs_new:cpn { \CDRCode_engine:c {#1} } ##1 ##2 {
       \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
@@ -4585,6 +4600,23 @@ if __name__ == '__main__':
     }
     \ignorespaces
   }
+}
+%    \end{MacroCode}
+% \begin{function}{\CDR_forbidden_keys:n}
+% \begin{syntax}
+% \cs{CDR_forbidden_keys:n} \Arg{key[=value] items}
+% \end{syntax}
+% Raise an error if one of |tags| and |engine| keys is provided in
+% \metatt{key[=value] items}.
+% These keys are forbidden for the \pkg{\jobname} options associate to
+% an engine.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_forbidden_keys:n #1 {
+  \group_begin:
+  \CDR_local_inherit:n { __no_tags, __no_engine }
+  \CDR_local_set_known:nN { #1 } \l_CDR_kv_clist
+  \group_end:
 }
 %    \end{MacroCode}
 %    \begin{MacroCode}[OK]
@@ -4597,10 +4629,7 @@ if __name__ == '__main__':
       \use_none:n
   } {
     \cs_if_exist:cTF { \CDRCode_engine:c { #1 } } {
-      \group_begin:
-      \CDR_local_inherit:n { __no_tag, __no_engine }
-      \CDR_local_set:n { #2 }
-      \group_end:
+      \CDR_forbidden_keys:n { #2 }
       \cs_set:cpn { \CDRCode_options:c { #1 } } { \exp_not:n { #2 } }
       \cs_set:cpn { \CDRCode_engine:c { #1 } } ##1 ##2 {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
@@ -4652,17 +4681,14 @@ if __name__ == '__main__':
 % which is the value given to |CDRBlock| environment
 % for key \metatt{engine name}| engine options|.
 % Various options are available with the |\CDRGetOption| function.
-% \emph{Implementation detail}: the third argument is parsed by
+% \emph{Implementation detail}: the fourth argument is parsed by
 % |\NewDocumentEnvironment|.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRBlockEngineNew { mO{}m } {
-  \group_begin:
-  \CDR_local_inherit:n { __no_tag, __no_engine }
-  \CDR_local_set:n { #2 }
-  \group_end:
+  \CDR_forbidden_keys:n { #2 }
   \cs_set:cpn { \CDRBlock_options:c { #1 } } { \exp_not:n { #2 } }
-  \NewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { } {
+  \NewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { m } {
     \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
     #3
   }
@@ -4678,8 +4704,9 @@ if __name__ == '__main__':
       \use_none:n
   } {
     \cs_if_exist:cTF { \CDRBlock_engine:c { #1 } } {
+      \CDR_forbidden_keys:n { #2 }
       \cs_set:cpn { \CDRBlock_options:c { #1 } } { \exp_not:n { #2 } }
-      \RenewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { } {
+      \RenewDocumentEnvironment { \CDRBlock_engine:c { #1 } } { m } {
         \cs_set_eq:NN \CDRGetOption \CDR_tag_get:c
         #3
       }
@@ -4857,7 +4884,7 @@ if __name__ == '__main__':
 % |\FancyVerbSpace| base on |showspaces| value.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR@DefineSp {
+\cs_new:Npn \CDR@DefinePygSp {
   \CDR_tag_if_truthy:cTF { showspaces } {
     \cs_set:Npn \CDR@Sp {{\FancyVerbSpace}}
   } {
@@ -4960,18 +4987,18 @@ if __name__ == '__main__':
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_false:
   }
-  \clist_set:Nn \FV@KeyValues { #1 }
-  \CDRCode_setup_tags_and_engine:
+  \clist_set:Nn \l_CDR_kv_clist { #1 }
+  \CDRCode_setup_tags_and_engine:N \l_CDR_kv_clist
   \CDR_local_inherit:n {
     __code, default.code, __pygments, default,
   }
-  \CDR_local_set_known:N \FV@KeyValues
-  \CDR_tag_provide_from_kv:V \FV@KeyValues
-  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_local_set_known:N \l_CDR_kv_clist
+  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
+  \CDR_local_set_known:N \l_CDR_kv_clist
   \CDR_local_inherit:n {
     __fancyvrb,
   }
-  \CDR_local_set:V \FV@KeyValues  
+  \CDR_local_set:V \l_CDR_kv_clist  
   \CDRCode:n
 }
 %    \end{MacroCode}
@@ -4984,9 +5011,9 @@ if __name__ == '__main__':
 % At least one tag must be provided, either implicitly or explicitly.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new_protected_nopar:Npn \CDRCode_setup_tags_and_engine: {
+\cs_new_protected_nopar:Npn \CDRCode_setup_tags_and_engine:N #1 {
   \CDR_local_inherit:n { __tags }
-  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_local_set_known:N #1
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
     \CDR_tag_get:cN { tags } \l_CDR_clist
     \clist_if_empty:NF \l_CDR_clist {
@@ -5002,7 +5029,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % Setup the inheritance tree for the |\CDR_tag_get:...| related functions.
 %    \begin{MacroCode}
-  \CDR_get_inherit:cf { __local } {
+  \CDR_get_inherit:f {
     \g_CDR_tags_clist,
     __tags, __engine, __code, default.code, __pygments, default,
   }
@@ -5010,9 +5037,9 @@ if __name__ == '__main__':
 % Now setup the engine options if any.
 %    \begin{MacroCode}
   \CDR_local_inherit:n { __engine }
-  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_local_set_known:N #1
   \CDR_tag_get:cNT { engine } \l_CDR_tl {
-    \clist_put_left:Nx \FV@KeyValues { \CDRCode_options_use:V \l_CDR_tl }
+    \clist_put_left:Nx #1 { \CDRCode_options_use:V \l_CDR_tl }
   }
 }
 %    \end{MacroCode}
@@ -5022,9 +5049,11 @@ if __name__ == '__main__':
 % \cs{CDRCode:n} \meta{delimiter}
 % \end{syntax}
 % Main utility used by |\CDRCode|.
+% The main tricky part is that we must collect the \metatt{key[=value]}
+% items and feed |\FV@KeyValues| with them in the |aftersave| handler.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_set:Npn \CDRCode:n #1 {
+\cs_new_protected_nopar:Npn \CDRCode:n #1 {
   \CDR_tag_if_truthy:cTF {pygments} {
     \cs_set:Npn \CDR@StyleUseTag {
       \CDR@StyleUse { \CDR_tag_get:c { style } }
@@ -5044,14 +5073,10 @@ if __name__ == '__main__':
         \CDR_tag_get:cN {style} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('style') }
         \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
+        \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
         \FV@UseKeyValues
-        \frenchspacing
-        %  \FV@SetupFont Break
-        \FV@DefineWhiteSpace
-        \FancyVerbDefineActive
-        \FancyVerbFormatCom
-        \CDRCodeformat:
-        \CDR@DefineSp
+        \FV@FormattingPrep
+        \CDR@DefinePygSp
         \CDR_tag_get:c { format }
         \CDR@CodeEngineApply {
           \CDR@StyleIfExist { \CDR_tag_get:c { style } } {
@@ -5068,7 +5093,9 @@ if __name__ == '__main__':
             CDR.synctex_line = tex.inputlineno;
             tex.set_synctex_mode(1)
           }
-          \input { \l_CDR_pyg_tex_tl }\ignorespaces
+          \CDR_tag_if_truthy:cT { mbox } { \mbox } {
+            \input { \l_CDR_pyg_tex_tl }\ignorespaces
+          }  
           \lua_now:n {
             tex.set_synctex_mode(0)
           }
@@ -5088,11 +5115,14 @@ if __name__ == '__main__':
           \CDR@FormattingPrep
           \CDR_tag_get:c { format }
         }
-        \CDR@CodeEngineApply { \mbox {
-          \FV@UseKeyValues
-          \FV@FormattingPrep
-          \FV@SV@CDR@Code
-        } }
+        \CDR@CodeEngineApply {
+          \CDR_tag_if_truthy:cT { mbox } { \mbox } {
+            \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
+            \FV@UseKeyValues
+            \FV@FormattingPrep
+            \FV@SV@CDR@Code
+          }
+        }
         \group_end:
       }
     ] { CDR@Code } #1
@@ -5194,6 +5224,7 @@ if __name__ == '__main__':
   \cs_set_eq:cc { CDR@ListProcessLine@ #1 } { FV@ListProcessLine@ #1 }
 }
 %    \end{MacroCode}
+%
 % \begin{function}{\CDRBlock_preflight:n}
 % \begin{syntax}
 % \cs{CDRBlock_preflight:n} \Arg{CDR@Block kv list}
@@ -5275,7 +5306,7 @@ if __name__ == '__main__':
 % \metatt{engine name}| engine options| for appropriate
 % engine names.
 %    \begin{MacroCode}
-  \CDRBlock_setup_tags_and_engine:
+  \CDRBlock_setup_tags_and_engine:N \FV@KeyValues
   \CDR_local_inherit:n {
     __block, __pygments.block, default.block,
     __pygments, default
@@ -5380,7 +5411,7 @@ if __name__ == '__main__':
     \input { \l_CDR_pyg_sty_tl }
   }
   \CDR@StyleUseTag
-  \CDR@DefineSp
+  \CDR@DefinePygSp
   \lua_now:n { CDR:hilight_source(false, true) }
   \fvset{ commandchars=\\\{\} }
   \FV@UseVerbatim {
@@ -5708,7 +5739,7 @@ if __name__ == '__main__':
       \FV@RightListFrame
     }
     #3
-  }
+  }\ignorespaces
 }
 \cs_new:Npn \CDR_line_box_L:nn #1 #2 {
   \CDR_line_box:nnn { #1 } { #2 } {}
@@ -6007,7 +6038,10 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRBlock_setup_tags_and_engine:}
+% \begin{function}{\CDRBlock_setup_tags_and_engine:N}
+% \begin{syntax}
+% \cs{CDRBlock_setup_tags_and_engine:N} \Arg{clist var}
+% \end{syntax}
 % Utility to setup the tags and the tag inheritance tree.
 % When not provided explicitly with the |tags=...| user interface,
 % a code chunk will have the list of tags stored in |\g_CDR_tags_clist|
@@ -6015,9 +6049,9 @@ if __name__ == '__main__':
 % At least one tag must be provided, either implicitly or explicitly.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new_protected_nopar:Npn \CDRBlock_setup_tags_and_engine: {
+\cs_new_protected_nopar:Npn \CDRBlock_setup_tags_and_engine:N #1 {
   \CDR_local_inherit:n { __tags }
-  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_local_set_known:N #1
   \CDR_tag_if_exist_here:ccT { __local } { tags } {
     \CDR_tag_get:cN { tags } \l_CDR_clist
     \clist_if_empty:NF \l_CDR_clist {
@@ -6033,7 +6067,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % Setup the inheritance tree for the |\CDR_tag_get:...| related functions.
 %    \begin{MacroCode}
-  \CDR_get_inherit:cf { __local } {
+  \CDR_get_inherit:f {
     \g_CDR_tags_clist,
     __block, __tags, __engine, default.block, __pygments.block,
     __fancyvrb.block __fancyvrb.frame, __fancyvrb.number,
@@ -6051,9 +6085,9 @@ if __name__ == '__main__':
 % Now setup the engine options if any.
 %    \begin{MacroCode}
   \CDR_local_inherit:n { __engine }
-  \CDR_local_set_known:N \FV@KeyValues
+  \CDR_local_set_known:N #1
   \CDR_tag_get:cNT { engine } \l_CDR_tl {
-    \clist_put_left:Nx \FV@KeyValues { \CDRBlock_options_use:V \l_CDR_tl }
+    \clist_put_left:Nx #1 { \CDRBlock_options_use:V \l_CDR_tl }
   }
 }
 %    \end{MacroCode}

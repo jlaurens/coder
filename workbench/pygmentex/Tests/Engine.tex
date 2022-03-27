@@ -4,22 +4,91 @@
 
 \subsection{Code}
 
+\ExplSyntaxOn
+\group_begin:
+\makeatletter
 
-\CDRCode[pygments=false,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
+\cs_undefine:N \CDRCodeX
 
-\CDRCode[pygments=true,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
+\NewDocumentCommand \CDRCodeX { O{} } {
+\CDR@Debug{ \string \CDRCode / #1}
+  \CDRCode_preflight:n { #1 }
+  \group_begin:
+  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
+    \prg_return_false:
+  }
+  \CDRCode_setup_tags_and_engine:N \l_CDR_kv_clist
+\CDR@Debug{ \string \CDRCode:~ AFTER~SETUP~\FV@KeyValues}
+  \CDR_local_inherit:n {
+    __code, default.code, __pygments, default,
+  }
+  \CDR_local_set_known:nN { #1 } \l_CDR_kv_clist
+\CDR@Debug{ \string \CDRCode:~ BEFORE~PROVIDE~\FV@KeyValues}
+  \CDR_tag_provide_from_kv:V \FV@KeyValues
+  \CDR_local_set_known:N \FV@KeyValues
+\CDR@Debug{ \string \CDRCode:~ AFTER~PROVIDE~\FV@KeyValues}
+  \CDR_local_inherit:n {
+    __fancyvrb,
+  }
+  \CDR_local_set_known:VN \FV@KeyValues \l_CDR_kv_clist
+\CDR@Debug{ \string \CDRCode:~ \FV@KeyValues}
+  \CDRCode:n
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\CDRBlock_preflight:n}
+% \begin{syntax}
+% \cs{CDRBlock_preflight:n} \Arg{CDR@Block kv list}
+% \end{syntax}
+% This is a prefligh hook intended for testing.
+% The default implementation does nothing.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDRCode_preflight:n #1 { }
 
-\begin{CDRBlock}[tags=WHAT,numbersep=2cm]
-1
-2
-3
-\end{CDRBlock}
+\def \CDR@Debug #1 { \typeout { ****~DEBUG:~#1} }
+
+\ExplSyntaxOff
+
+
+\CDRCode[formatcom=\color{magenta},pygments=false,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|\\
+\CDRCode[formatcom=\color{magenta},pygments=true,showspaces,engine=efbox, engine options={linecolor = red}]|AB CDE|
+
+\ExplSyntaxOn
+\makeatother
+\group_end:
+\ExplSyntaxOff
+\end{document}
+
+\subsection{Block}
 
 \ExplSyntaxOn
 \group_begin:
 \makeatletter
 
+\cs_undefine:N \CDRBlock_engine_begin:
+
+\cs_new:Npn \CDRBlock_engine_begin: {
+  \CDRBlock_if_engine:cF { \CDR_tag_get:c { engine } } {
+    \PackageError
+      { coder }
+      { \CDR_tag_get:c { engine }~block~engine~unknown,~replaced~by~`default' }
+      {See~\CDRBlockEngineNew~in~the~coder~manual}
+    \CDR_tag_set:cn { engine } { default }
+  }
+  \exp_args:Nnx
+  \use:c { \CDRBlock_engine:c \CDR_tag_get:c { engine } } {
+    \CDR_tag_get:c { \CDR_tag_get:c { engine }~engine~options },
+    \CDR_tag_get:c { engine~options },
+  }
+}
+
 \ExplSyntaxOff
+\begin{CDRBlock}[tags=WHAT,numbersep=2cm]
+1
+2
+3
+\end{CDRBlock}
 
 \newtcolorbox{codebox}[1]{
   colback=white!5!white,
@@ -52,6 +121,18 @@
    Hello.
    \end{Verbatim}
   \end{codebox}
+  \item \mbox{}
+  \begin{codebox}{Swap}
+    \begin{CDRBlock}
+   Hello.
+   \end{CDRBlock}
+  \end{codebox}
+  \item \mbox{}
+  \begin{codebox}{Swap}
+    \begin{CDRBlock}[pygments=false]
+   Hello.
+   \end{CDRBlock}
+  \end{codebox}
   \item Epsum.
 \end{enumerate}
 abcde
@@ -63,7 +144,7 @@ abcde
 \end{CDRBlock}
 \end{codebox}
 abcde
-\CDRBlockEngineNew{codebox}[formatcom=\color{magenta},numbersep=1cm]{\begin{codebox}{Swap}}{\end{codebox}}
+\CDRBlockEngineNew{codebox}[formatcom=\color{magenta},numbersep=1cm]{\begin{codebox}{Swap}}{\leavevmode\end{codebox}}
 \begin{CDRBlock}[engine=codebox]
 1
 2
