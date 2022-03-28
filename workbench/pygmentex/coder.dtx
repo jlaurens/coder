@@ -155,7 +155,7 @@ and the derived files           \jobname.ins,
 %</sty>
 %<*driver,sty>
 \def\CDRFileDate{2022/02/07}
-\def\CDRFileVersion{2022/02/07}
+\def\CDRFileVersion{1.0a}
 %</driver,sty>
 %<*sty>
 \ProvidesExplPackage{coder}
@@ -181,7 +181,6 @@ and the derived files           \jobname.ins,
 } {
   \msg_fatal:nnn { coder } { :n } { Please~update~LaTeX.~Emergency~stop }
 }
-\lua_now:n { CDR = require("coder-util") }
 %</sty>
 %<*driver>
 \ExplSyntaxOff
@@ -697,17 +696,32 @@ local PYTHON_PATH = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
 % \CDRCheckRed Set manually the path of the |python| utility with the contents
 % of the \metatt{path var}.
 % If the given path does not point to a file or a link then an error is raised.
+% On return, print |true| or |false| in the \TeX{} stream to indicate whether
+% \pkg{pygments} is available.
 % \end{function}
 %    \begin{MacroCode}[OK]
 local function set_python_path(self, path_var)
-  local path = assert(token.get_macro(assert(path_var)))
-  if #path>0 then
-    local mode,_,__ = lfs.attributes(self.PYTHON_PATH,'mode')
+  local path, mode, _, __
+  if path_var then
+    path = assert(token.get_macro(path_var))
+    mode,_,__ = lfs.attributes(path,'mode')
+    print('**** CDR mode', mode)
     assert(mode == 'file' or mode == 'link')
   else
     path = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
   end
-  self.PYTHON_PATH = path  
+  self.PYTHON_PATH = path
+  print('**** CDR python path', self.PYTHON_PATH)
+  path = path:match("^(.+/)")..'pygmentize'
+  mode,_,__ = lfs.attributes(path,'mode')
+  print('**** CDR path, mode', path, mode)
+  if mode == 'file' or mode == 'link' then
+    self.PYGMENTIZE_PATH = path
+    tex.print('true')
+  else
+    self.PYGMENTIZE_PATH = ''
+    tex.print('false')
+  end
 end
 %    \end{MacroCode}
 %
@@ -1907,7 +1921,91 @@ if __name__ == '__main__':
 %<*sty>
 \makeatletter
 %    \end{MacroCode}
-% \section{Installation test}
+%
+% \section{Setup}
+%
+% \subsection{Utilities}
+%
+% \begin{function}{\CDR_set_conditional:Nn}
+% \begin{syntax}
+% \cs{CDR_set_conditional:Nn} \meta{core name} \Arg{condition}
+% \end{syntax}
+% Wrapper over |\prg_set_conditional:Nnn|.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_set_conditional:Nn #1 #2 {
+  \bool_if:nTF { #2 } {
+    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_true: }
+  } {
+    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_false: }
+  }
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\CDR_set_conditional_alt:Nn}
+% \begin{syntax}
+% \cs{CDR_set_conditional_alt:Nnnn} \meta{core name} \Arg{condition}
+% \end{syntax}
+% Wrapper over |\prg_set_conditional:Nnn|.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_set_conditional_alt:Nn #1 #2 {
+  \prg_set_conditional:Nnn #1 { p, T, F, TF } {
+    \bool_if:nTF { #2 } { \prg_return_true: } { \prg_return_false: }
+  }
+}
+%    \end{MacroCode}
+%
+% \begin{function}[EXP,pTF]
+%   {\CDR_has_pygments:}
+%   \begin{syntax}
+%     \cs{CDR_has_pygments:TF} \Arg{true code} \Arg{false code}
+%   \end{syntax}
+%   Execute \metatt{true code} when \pkg{pygments} is available,
+% \meta{false code} otherwise.
+% \emph{Implementation detail}: we define the conditionals and set
+% them afterwards.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
+  \PackageError { coder } { Internal~error(pygments~path) } { Please~report~error }
+}
+%    \end{MacroCode}
+%
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDR_pygments_setup:n #1 {
+  \CDR_set_conditional:Nn \CDR_has_pygments: {
+    \str_if_eq_p:nn { #1 } { true }
+  }
+}
+\lua_now:n { CDR = require("coder-util") }
+\exp_args:Nx \CDR_pygments_setup:n {
+  \lua_now:n { CDR:set_python_path() }
+}
+\cs_new:Npn \CDR_pygments_setup: {
+  \sys_get_shell:nnNTF {which~pygmentize} { \cc_select:N \c_str_cctab } \l_CDR_tl {
+    \tl_if_in:NnTF \l_CDR_tl { pygmentize } {
+      \prg_set_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
+        \prg_return_true:
+      }  
+    } {
+      \prg_set_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
+        \prg_return_false:
+      }  
+    }
+  } {
+    \typeout {Shell~escape~is~not~available}
+  }
+}
+%    \end{MacroCode}
+%
+
+
+
+
+
+
+
 %    \begin{MacroCode}
 \NewDocumentCommand \CDRTest {} {
   \sys_if_shell:TF {
@@ -3153,31 +3251,6 @@ if __name__ == '__main__':
 % They are made available at the end user level,
 % but may not be relevant when \pkg{pygments} is nor used.
 %
-% \subsubsection{Utilities}
-% \begin{function}[EXP,pTF]
-%   {\CDR_has_pygments:}
-%   \begin{syntax}
-%     \cs{CDR_has_pygments:TF} \Arg{true code} \Arg{false code}
-%   \end{syntax}
-%   Execute \metatt{true code} when \pkg{pygments} is available,
-% \meta{false code} otherwise.
-% \emph{Implementation detail}: we define the conditionals and set
-% them afterwards.
-%    \begin{MacroCode}[OK]
-\sys_get_shell:nnN {which~pygmentize} {} \l_CDR_tl
-\prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } { }  
-\tl_if_in:NnTF \l_CDR_tl { pygmentize } {
-  \prg_set_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
-    \prg_return_true:
-  }  
-} {
-  \prg_set_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
-    \prg_return_false:
-  }  
-}
-%    \end{MacroCode}
-% \end{function}
-%
 % \subsubsection{\texttt{__pygments }
 % \pkg{l3keys} module}
 %
@@ -4059,7 +4132,9 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
   python~path .code:n = {
     \str_set:Nn \l_CDR_str { #1 }
-    \lua_now:n { CDR:set_python_path('l_CDR_str') }
+    \exp_args:Nx \CDR_pygments_setup:n {
+      \lua_now:n { CDR:set_python_path('l_CDR_str') }
+    }
   },
 %    \end{MacroCode}
 % \end{description}
@@ -5031,7 +5106,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new_protected_nopar:Npn \CDRCode:n #1 {
-  \CDR_if_tag_truthy:cTF {pygments} {
+  \bool_if:nTF { \CDR_has_pygments_p: && \CDR_if_tag_truthy_p:c {pygments}} {
     \cs_set:Npn \CDR@StyleUseTag {
       \CDR@StyleUse { \CDR_tag_get:c { style } }
       \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
@@ -5326,7 +5401,7 @@ if __name__ == '__main__':
     CDR:hilight_block_setup('g_CDR_tags_clist')
   }
   \CDR_set_conditional:Nn \CDR_if_pygments:
-    { \CDR_if_tag_truthy_p:c { pygments } }
+    { \CDR_has_pygments_p: && \CDR_if_tag_truthy_p:c { pygments } }
   \CDR_set_conditional:Nn \CDR_if_no_export:
     { \CDR_if_tag_truthy_p:c { no~export } }
   \CDR_set_conditional:Nn \CDR_if_numbers_dry:
@@ -5993,36 +6068,6 @@ if __name__ == '__main__':
 % \subsubsection{Utilities}
 %
 % This is put aside for better clarity.
-%
-% \begin{function}{\CDR_set_conditional:Nn}
-% \begin{syntax}
-% \cs{CDR_set_conditional:Nn} \meta{core name} \Arg{condition}
-% \end{syntax}
-% Wrapper over |\prg_set_conditional:Nnn|.
-% \end{function}
-%    \begin{MacroCode}
-\cs_new:Npn \CDR_set_conditional:Nn #1 #2 {
-  \bool_if:nTF { #2 } {
-    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_true: }
-  } {
-    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_false: }
-  }
-}
-%    \end{MacroCode}
-%
-% \begin{function}{\CDR_set_conditional_alt:Nn}
-% \begin{syntax}
-% \cs{CDR_set_conditional_alt:Nnnn} \meta{core name} \Arg{condition}
-% \end{syntax}
-% Wrapper over |\prg_set_conditional:Nnn|.
-% \end{function}
-%    \begin{MacroCode}
-\cs_new:Npn \CDR_set_conditional_alt:Nn #1 #2 {
-  \prg_set_conditional:Nnn #1 { p, T, F, TF } {
-    \bool_if:nTF { #2 } { \prg_return_true: } { \prg_return_false: }
-  }
-}
-%    \end{MacroCode}
 %
 % \begin{function}{\CDR_if_middle_column:, \CDR_if_right_column:}
 % \begin{syntax}
