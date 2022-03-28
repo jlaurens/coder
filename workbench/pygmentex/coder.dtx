@@ -2008,19 +2008,14 @@ if __name__ == '__main__':
 
 %    \begin{MacroCode}
 \NewDocumentCommand \CDRTest {} {
-  \sys_if_shell:TF {
-    \CDR_has_pygments:F {
-      \msg_warning:nnn
-        { coder }
-        { :n }
-        { No~"pygmentize"~found. }
-    }
-  } {
-    \msg_warning:nnn
-      { coder }
-      { :n }
-      { No~unrestricted~shell~escape~for~"pygmentize".}
-  }
+  \par\noindent
+  Path~to~\textsf{python}:~\texttt{\directlua{tex.print(CDR.PYTHON_PATH)}}
+  \par\noindent
+  Path~to~\textsf{pygmentize}:~\texttt{\directlua{tex.print(CDR.PYGMENTIZE_PATH)}}
+  \par\noindent
+  \CDR_has_pygments:TF { Pygments~is~available } { Pygments~is~not~available
+}:~%\CDRCode[lang=tex]|\textit{text}|
+  \par\noindent
 }
 %    \end{MacroCode}
 % \section{Messages}
