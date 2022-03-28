@@ -4968,6 +4968,8 @@ if __name__ == '__main__':
     __fancyvrb,
   }
   \CDR_local_set:V \l_CDR_kv_clist  
+  \CDR_set_conditional:Nn \CDR_if_dry_tags:
+    { \CDR_if_tag_eq_p:cn { show~tags } { dry } }
   \CDRCode:n
 }
 %    \end{MacroCode}
