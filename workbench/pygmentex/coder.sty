@@ -32,7 +32,7 @@
 %% 
 
 \def\CDRFileDate{2022/02/07}
-\def\CDRFileVersion{2022/02/07}
+\def\CDRFileVersion{1.0a}
 \ProvidesExplPackage{coder}
   {\CDRFileDate}
   {\CDRFileVersion}
@@ -56,9 +56,48 @@
 } {
   \msg_fatal:nnn { coder } { :n } { Please~update~LaTeX.~Emergency~stop }
 }
-\lua_now:n { CDR = require("coder-util") }
 
 \makeatletter
+\cs_new:Npn \CDR_set_conditional:Nn #1 #2 {
+  \bool_if:nTF { #2 } {
+    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_true: }
+  } {
+    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_false: }
+  }
+}
+\cs_new:Npn \CDR_set_conditional_alt:Nn #1 #2 {
+  \prg_set_conditional:Nnn #1 { p, T, F, TF } {
+    \bool_if:nTF { #2 } { \prg_return_true: } { \prg_return_false: }
+  }
+}
+\prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
+  \PackageError { coder } { Internal~error(pygments~path) } { Please~report~error }
+}
+\cs_new:Npn \CDR_pygments_setup:n #1 {
+  \CDR_set_conditional:Nn \CDR_has_pygments: {
+    \str_if_eq_p:nn { #1 } { true }
+  }
+}
+\lua_now:n { CDR = require("coder-util") }
+\exp_args:Nx \CDR_pygments_setup:n {
+  \lua_now:n { CDR:set_python_path() }
+}
+\cs_new:Npn \CDR_pygments_setup: {
+  \sys_get_shell:nnNTF {which~pygmentize} { \cc_select:N \c_str_cctab } \l_CDR_tl {
+    \tl_if_in:NnTF \l_CDR_tl { pygmentize } {
+      \prg_set_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
+        \prg_return_true:
+      }
+    } {
+      \prg_set_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
+        \prg_return_false:
+      }
+    }
+  } {
+    \typeout {Shell~escape~is~not~available}
+  }
+}
+
 \NewDocumentCommand \CDRTest {} {
   \sys_if_shell:TF {
     \CDR_has_pygments:F {
@@ -568,17 +607,6 @@
   }
 }
 \cs_generate_variant:Nn \CDR_tag_provide_from_kv:n { V }
-\sys_get_shell:nnN {which~pygmentize} {} \l_CDR_tl
-\prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } { }
-\tl_if_in:NnTF \l_CDR_tl { pygmentize } {
-  \prg_set_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
-    \prg_return_true:
-  }
-} {
-  \prg_set_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
-    \prg_return_false:
-  }
-}
 \CDR_tag_keys_define:nn { __pygments } {
   lang .code:n = \CDR_tag_set:,
   lang .value_required:n = true,
@@ -906,7 +934,9 @@
   only~description .initial:n = false,
   python~path .code:n = {
     \str_set:Nn \l_CDR_str { #1 }
-    \lua_now:n { CDR:set_python_path('l_CDR_str') }
+    \exp_args:Nx \CDR_pygments_setup:n {
+      \lua_now:n { CDR:set_python_path('l_CDR_str') }
+    }
   },
 }
 \cs_new:Npn \CDR_set_preflight:n #1 { }
@@ -1389,7 +1419,7 @@
   }
 }
 \cs_new_protected_nopar:Npn \CDRCode:n #1 {
-  \CDR_if_tag_truthy:cTF {pygments} {
+  \bool_if:nTF { \CDR_has_pygments_p: && \CDR_if_tag_truthy_p:c {pygments}} {
     \cs_set:Npn \CDR@StyleUseTag {
       \CDR@StyleUse { \CDR_tag_get:c { style } }
       \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
@@ -1567,7 +1597,7 @@
     CDR:hilight_block_setup('g_CDR_tags_clist')
   }
   \CDR_set_conditional:Nn \CDR_if_pygments:
-    { \CDR_if_tag_truthy_p:c { pygments } }
+    { \CDR_has_pygments_p: && \CDR_if_tag_truthy_p:c { pygments } }
   \CDR_set_conditional:Nn \CDR_if_no_export:
     { \CDR_if_tag_truthy_p:c { no~export } }
   \CDR_set_conditional:Nn \CDR_if_numbers_dry:
@@ -2060,18 +2090,6 @@
       \exp_last_unbraced:NV \CDR@Line \l_CDR_tl { ##1 } { ##2 }
       \tl_clear:N \l_CDR_tl
     }
-  }
-}
-\cs_new:Npn \CDR_set_conditional:Nn #1 #2 {
-  \bool_if:nTF { #2 } {
-    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_true: }
-  } {
-    \prg_set_conditional:Nnn #1 { p, T, F, TF } { \prg_return_false: }
-  }
-}
-\cs_new:Npn \CDR_set_conditional_alt:Nn #1 #2 {
-  \prg_set_conditional:Nnn #1 { p, T, F, TF } {
-    \bool_if:nTF { #2 } { \prg_return_true: } { \prg_return_false: }
   }
 }
 \prg_set_conditional:Nnn \CDR_if_middle_column: { p, T, F, TF } { \prg_return_false: }

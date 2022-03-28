@@ -27,14 +27,27 @@ local json  = require('lualibs-util-jsn')
 local CDR_PY_PATH = kpse.find_file('coder-tool.py')
 local PYTHON_PATH = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
 local function set_python_path(self, path_var)
-  local path = assert(token.get_macro(assert(path_var)))
-  if #path>0 then
-    local mode,_,__ = lfs.attributes(self.PYTHON_PATH,'mode')
+  local path, mode, _, __
+  if path_var then
+    path = assert(token.get_macro(path_var))
+    mode,_,__ = lfs.attributes(path,'mode')
+    print('**** CDR mode', mode)
     assert(mode == 'file' or mode == 'link')
   else
     path = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
   end
   self.PYTHON_PATH = path
+  print('**** CDR python path', self.PYTHON_PATH)
+  path = path:match("^(.+/)")..'pygmentize'
+  mode,_,__ = lfs.attributes(path,'mode')
+  print('**** CDR path, mode', path, mode)
+  if mode == 'file' or mode == 'link' then
+    self.PYGMENTIZE_PATH = path
+    tex.print('true')
+  else
+    self.PYGMENTIZE_PATH = ''
+    tex.print('false')
+  end
 end
 local function is_truthy(s)
   return s == 'true'

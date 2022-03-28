@@ -64,26 +64,36 @@
 \author{Jérôme LAURENS}
 \maketitle
 
-\section{Have \textsf{pygments}?}
 \ExplSyntaxOn
-\sys_get_shell:nnN {which~pygmentize} {} \l_CDR_tl
-Path=\l_CDR_tl\\
-\CDR_has_pygments:TF { WITH~PYGMENTS } { WITHOUT~PYGMENTS }\\
-\sys_get_shell:nnN {which~python} {} \l_CDR_tl
-Path=\l_CDR_tl\\
+\RenewDocumentCommand\CDRTest {} {
+  \par\noindent
+  Path~to~\textsf{python}:~\texttt{\directlua{tex.print(CDR.PYTHON_PATH)}}
+  \par\noindent
+  Path~to~\textsf{pygmentize}:~\texttt{\directlua{tex.print(CDR.PYGMENTIZE_PATH)}}
+  \par\noindent
+  \CDR_has_pygments:TF { Pygments~is~available } { Pygments~is~not~available
+}:~%\CDRCode[lang=tex]|\textit{text}|
+  \par\noindent
+}
 \ExplSyntaxOff
 
-\section{Sandbox}
-\makeatletter\ExplSyntaxOn
-\def\CDR@Debug { \use_none:n }
-\ExplSyntaxOff\makeatother
-%\input{Tests/Sandbox}
-%\input{Tests/Engine}
-%\input{Tests/numbering}
-%\input{Tests/vspace}
-\input{Tests/label}
-
+\section{Have \textsf{pygments}?}
+\CDRTest
+\CDRSet{python path=/Users/jlaurens/opt/anaconda3/bin/python}
+\CDRTest
 \end{document}
+
+%\section{Sandbox}
+%\makeatletter\ExplSyntaxOn
+%\def\CDR@Debug { \use_none:n }
+%\ExplSyntaxOff\makeatother
+%%\input{Tests/Sandbox}
+%%\input{Tests/Engine}
+%%\input{Tests/numbering}
+%%\input{Tests/vspace}
+%\input{Tests/label}
+%
+%\end{document}
 
 \section{Testing the tag mechanism}
 \makeatletter\ExplSyntaxOn

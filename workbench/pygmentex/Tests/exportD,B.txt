@@ -41,6 +41,11 @@ def function(x):
 def function(x):
   '''Square'''
   return x * x
+ABCD
+1|\label{label.tex:1}|
+2|\label{label.tex:2}|
+3|\label{label.tex:3}|
+4|\label{label.tex:4}|
 A=*1,B=1,C=1
 A=2,B=*2,C=2
 A=2,B=*3,C=3
