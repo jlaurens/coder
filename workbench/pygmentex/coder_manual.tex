@@ -58,22 +58,35 @@ The colorized code is found in \MyMeta{file name}\verb|-colorized.pdf|%
 To test the installation for an editor, the next document should output a small diagnostic page.
 \CDRSet{numbers=none}
 \begin{center}
-\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{tabular}{p{0.295\linewidth}|p{0.695\linewidth}}
 \begin{minipage}[t]{0.9\linewidth}
 \begin{CDRBlock}[lang=tex]
-\begin{article}
+\documentclass{article}
 \RequirePackage{coder}
 \begin{document}
 \CDRTest
 \end{document}
-\end{article}
 \end{CDRBlock}
 \end{minipage}%
 \hspace{0.09\linewidth}
 &
-\hspace{0.09\linewidth}%
-\begin{minipage}[t]{0.8\linewidth}
-
+\begin{minipage}[t]{0.95\linewidth}
+An example of a bad installation:
+\par
+Path to \textsf{python}: \texttt{/usr/bin/python}
+\par
+Path to \textsf{pygmentize}: \texttt{}
+\par
+Pygments is not available
+\par\noindent
+An example of a good installation:
+\par
+Path to \textsf{python}: \texttt{/opt/anaconda3/bin/python}
+\par
+Path to \textsf{pygmentize}: \texttt{/opt/anaconda3/bin/pygmentize}
+\par\noindent
+Pygments is available
+\end{minipage}%
 \end{tabular}
 \end{center}
 
@@ -131,6 +144,7 @@ def factorial(n):
 \end{tabular}
 \end{center}
 The coloring is made by \pkg{pygments} using its built in style \verb|autumn| on the left and style \verb|trac| on the right. Line numbering may appear on both sides of the code, or may be hidden.
+%
 %
 \section{Miscellanées}
 \subsection{Cache}
