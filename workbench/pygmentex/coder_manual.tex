@@ -11,6 +11,7 @@
 \usepackage{coder}
 \usepackage{lipsum}
 \usepackage{luacode} % JL
+\usepackage{unicode-math}
 
 \ExplSyntaxOn
 
@@ -26,6 +27,13 @@
 }
 \cs_new:Npn \pkg { \textsf }
 
+\cs_new:Npn \MyOption #1 {
+  \texttt{#1}
+}
+\cs_new:Npn \MyMeta #1 {
+  {\normalfont$⟨${\itshape#1}$⟩$}
+}
+
 \ExplSyntaxOff
 
 \begin{document}
@@ -37,9 +45,29 @@ This package is part of any standard \LaTeX{} distribution. To use it in a docum
 \begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
 \RequirePackage{coder}
 \end{CDRBlock}
-In order to have syntaxe highlighting like above, you must have \pkg{pygments} installed (see \url{https://pygments.org} for that purpose) but this is not a requirement for the other package features.
-%
-\section{Example}
+and run Lua\LaTeX{}. In order to have syntaxe highlighting like above, you must have \pkg{pygments} installed (see \url{https://pygments.org} for that purpose) but this is not a requirement for the other features of the \pkg{coder} package. To test \pkg{pygments} installation, you can run from a terminal
+\\[0.25\baselineskip]
+\verb|pygmentize -O full -o |\MyMeta{file name}\verb|-colorized.tex |\MyMeta{file name}\verb|.tex|
+\\[0.25\baselineskip]
+followed by
+\\[0.25\baselineskip]
+\verb|latex |\MyMeta{file name}\verb|-colorized.tex|.
+\\[0.25\baselineskip]
+The colorized code is found in \MyMeta{file name}\verb|-colorized.pdf|%
+
+To test the installation for an editor, the next document should output a small diagnostic page.
+\CDRSet{numbers=none}
+\begin{CDRBlock}[lang=tex]
+\begin{article}
+\RequirePackage{coder}
+\begin{document}
+\CDRTest
+\end{document}
+\end{article}
+\end{CDRBlock}
+
+\section{Display code}
+\subsection{Example}
 To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while computing recursively the factorial of a number.
 \CDRSet{
   showspaces,
@@ -56,6 +84,13 @@ To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while
     numbers=left,
     show tags=mirror,
   },
+  tag/latex={
+    lang=tex,
+    style=default,
+    numbers=left,
+    show tags=none,
+    escapeinside=⟨⟩,
+  }
 }
 \begin{center}
 \begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
@@ -73,7 +108,7 @@ end
 \hspace{0.09\linewidth}
 &
 \hspace{0.09\linewidth}%
-\begin{minipage}[t]{0.9\linewidth}
+\begin{minipage}[t]{0.8\linewidth}
 \begin{CDRBlock}[tags=python]
 def factorial(n):
   '''Compute n!'''
@@ -84,18 +119,23 @@ def factorial(n):
 \end{minipage}%
 \end{tabular}
 \end{center}
-The coloring is made by \pkg{pygments} using its built in style \verb|autumn| on the left and style \verb|trac| on the right. Line numbering may appear on both sides of the code, or may be hidden. 
-\section{References}
-We can always refer to pages but line references are only available when \pkg{pygments} is used
+The coloring is made by \pkg{pygments} using its built in style \verb|autumn| on the left and style \verb|trac| on the right. Line numbering may appear on both sides of the code, or may be hidden.
+%
+\section{Miscellanées}
+\subsection{Cache}
+In order to save typesetting time, the \pkg{coder} package asks \pkg{pygments} to colorize code only when necessary. The already colorized code is cached in the folder \verb|foo.pygd| for main source file \verb|foo.tex|.
+With the option \verb|cache=false|, code colorization is computed on each run. If \pkg{pygments} is available, the cache folder is automatically emptied if there is no \verb|.aux| file.
+
+\section{Cross references}
+We can always refer to pages with the \MyOption{reflabel=\MyMeta{label name}}: 
 
 \begin{center}
 \begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
 \begin{minipage}[t]{0.9\linewidth}
 \begin{CDRBlock}[
-  style=default,
-  escapeinside=||,
+  tags=latex,
   reflabel=My,
-  lang=tex
+  escapeinside=||,
 ]
 \begin{|CDRBlock|}[reflabel=My]
 ...
@@ -105,13 +145,42 @@ We can always refer to pages but line references are only available when \pkg{py
 \hspace{0.09\linewidth}
 &
 \hspace{0.09\linewidth}%
-\begin{minipage}[t]{0.9\linewidth}
+\begin{minipage}[t]{0.8\linewidth}
 On the second typeset run, we have
-\CDRCode|\pageref{My}| = \pageref{My}.
+\CDRCode[tags=latex,cache=false]|\pageref{My}| = \pageref{My}.
 \end{minipage}%
 \end{tabular}
 \end{center}
-
+Line references are only available when \pkg{pygments} is used: \MyOption{escapeinside} is used to define 2 characters that will delimit some \LaTeX{} instructions to be executed, here \CDRCode[tags=latex]|\label{line.421}|.
+\begin{center}
+\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[tags=latex]
+\begin{⟨CDRBlock⟩}[
+  firstnumber=421,
+  escapeinside=||,
+]
+line 421|\label{line.421}|
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\hspace{0.09\linewidth}%
+\begin{minipage}[t]{0.8\linewidth}
+\begin{CDRBlock}[
+  tags=latex,
+  firstnumber=421,
+  escapeinside=||,
+]
+line 421|\label{line.421}|
+\end{CDRBlock}
+On the second typeset run, we have
+\CDRCode[tags=latex]|\ref*{line.421}| = \ref*{line.421}.
+However this does not play well with \pkg{hyperref} hence the starred command.
+\end{minipage}%
+\end{tabular}
+\end{center}
 
 \end{document}
 
