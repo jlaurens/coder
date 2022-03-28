@@ -1,0 +1,22 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+\noindent
+\subsection{page label}
+\bgroup
+\begin{CDRBlock}[reflabel=ABCD]
+ABCD
+\end{CDRBlock}
+Code page: \pageref{ABCD}. \ref{ABCD}
+\egroup
+%
+\subsection{line label}
+\begin{CDRBlock}[pygments=true,escapeinside=||]
+1|\label{label.tex:1}|
+2|\label{label.tex:2}|
+3|\label{label.tex:3}|
+4|\label{label.tex:4}|
+\end{CDRBlock}
+1=\ref{label.tex:1},
+2=\ref{label.tex:2},
+3=\ref{label.tex:3},
+4=\ref{label.tex:4},
