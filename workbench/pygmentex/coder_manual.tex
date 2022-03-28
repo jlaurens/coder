@@ -46,36 +46,44 @@ To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while
   showspaces,
   style=autumn,
   only top,
-  tag/lua/numbers=left,
-  tag/lua/lang=lua,
-  tag/python/numbers=right,
-  tag/python/lang=python,
-  tag/raw/pygments=false,
-  tag/raw={
+  tag/lua={
+    lang=lua,
     numbers=none,
-    show tags=none,
-    vspace=0pt,
+    show tags=left,
+  },
+  tag/python={
+    lang=python,
+    numbers=none,
+    show tags=right,
+  },
+  tag/raw={
+    pygments=false,
+    numbers=none,
+    show tags=dry,
   },
 }
 \begin{center}
-\begin{tabular}{p{0.4\linewidth}|p{0.4\linewidth}}
-\begin{CDRBlock}[tags=lua]
+\begin{tabular}{p{0.45\linewidth}|p{0.45\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[tags=lua,numbers=none]
 function fact(n)
 \end{CDRBlock}
-\vskip-2ex
-\begin{CDRBlock}[tags=raw]
+\begin{CDRBlock}[tags=raw, vspace=-0.5\baselineskip]
 <function body>
 \end{CDRBlock}
 \begin{CDRBlock}[tags=lua]
 end
 \end{CDRBlock}
+\end{minipage}
 &
+\begin{minipage}[t]{0.9\linewidth}
 \begin{CDRBlock}[tags=python]
 def fact(n):
 \end{CDRBlock}
-\begin{CDRBlock}[tags=raw]
+\begin{CDRBlock}[tags=raw, vspace=-0.5\baselineskip]
 <indented function body>
 \end{CDRBlock}
+\end{minipage}
 \end{tabular}
 \end{center}
 
