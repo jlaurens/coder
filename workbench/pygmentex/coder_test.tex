@@ -80,7 +80,8 @@ Path=\l_CDR_tl\\
 %\input{Tests/Sandbox}
 %\input{Tests/Engine}
 %\input{Tests/numbering}
-\input{Tests/vspace}
+%\input{Tests/vspace}
+\input{Tests/label}
 
 \end{document}
 
@@ -163,6 +164,12 @@ Path=\l_CDR_tl\\
 \def\CDR@Debug { \use_none:n }
 \ExplSyntaxOff\makeatother
 \input{Tests/Engine}
+
+\section{Page and line label}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/label}
 
 \end{document}
 

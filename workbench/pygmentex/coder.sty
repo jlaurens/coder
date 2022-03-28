@@ -1988,6 +1988,7 @@
 \CDR@Debug {\string\CDR@Line(A), \the\inputlineno}
       \CDR_int_set:cn { __i } { ##1 }
       \CDR_int_set:cn { __n } { ##1 + \CDR_int:c { __start } - (#2) }
+      \tl_set:Nx \@currentlabel { \CDR_int_use:c { __n } }
       {
         \advance\interlinepenalty\widowpenalty
         \bool_if:nT {
@@ -2001,6 +2002,7 @@
       \CDR@@Line
     }
     \CDR_int_set:cn { __n } { 1 + \CDR_int:c { __start } - (#2) }
+    \tl_set:Nx \@currentlabel { \CDR_int_use:c { __n } }
   } {
 \CDR@Debug {NUMBER~OFF}
     \cs_set:Npn \CDR@Line ##1 {
