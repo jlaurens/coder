@@ -1,102 +1,87 @@
 % !TeX program=lualatex
 
-\documentclass[10pt,a4paper]{article}
+\documentclass{article}
 
-%\usepackage[margin=13mm]{geometry}
-\usepackage[T1]{fontenc}
+\usepackage[a4paper]{geometry}
+\usepackage{fontspec}
 \usepackage{xcolor}
 \usepackage{hyperref}
-\usepackage[framemethod=tikz]{mdframed}
 \usepackage{tcolorbox}
 \usepackage{fancyvrb-ex}
-\usepackage{tikz}
-\usepackage{calc}
-%\usepackage{pygmentex}
 \usepackage{coder}
 \usepackage{lipsum}
-\DeclareCaptionType{pygcode}[Listagem][Lista de listagens]
-\captionsetup[pygcode]{position=top}
-
 \usepackage{luacode} % JL
 
-\fvset{gobble=0,showtabs,tabsize=1,frame=lines,framerule=1pt,numbers=left,fontsize=\scriptsize}
-
-\tcbuselibrary{skins,breakable}
-
-\definecolor{shadecolor}{rgb}{0.9,0.9,0.9}
-\definecolor{lightgreen}{rgb}{0.8,0.95,0.8}
-
-\newdimen\LineNumberWidth
-
-\begin{document}
-
-\title{Testing the Pygmen\TeX{} package}
-\author{José Romildo Malaquias}
-\maketitle
-
-\section{TEST}
-
 \ExplSyntaxOn
-\directlua{tex.print([[\tl_to_str:n{]]..NLN.INLINE_PY_PATH..[[}]])}\\
-\directlua{tex.print([[\tl_to_str:n{]]..NLN.jobname..[[}]])}\\
-\directlua{tex.print([[\tl_to_str:n{]]..NLN.dir_p..[[}]])}
+
+\cs_new:Npn \cs #1 {
+  \texttt{
+    \textbackslash
+    \tl_rescan:nn {
+      \cctab_select:N \c_str_cctab
+    } {
+      #1
+    }
+  }
+}
+\cs_new:Npn \pkg { \textsf }
+
 \ExplSyntaxOff
 
-%\section{The Pygmen\TeX{} package}
+\begin{document}
+\title{Manual of the \pkg{coder} package}
+\author{Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}}
+\maketitle
+\section{Installation}
+This package is part of any standard \LaTeX{} distribution. To use it in a document, put the next instruction in the preamble:
+\begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
+\RequirePackage{coder}
+\end{CDRBlock}
+In order to have syntaxe highlighting like above, you must have \pkg{pygments} installed (see \url{https://pygments.org} for that purpose) but this is not a requirement for the other package features.
 %
-%This document demonstrates how to use the Pygment\TeX{} package to
-%typeset code listings with \LaTeX{} and
-%Pygments\footnote{\url{http://pygments.org/}}.
-%
-%Pygments is a generic syntax highlighter for general use in all kinds of
-%software such as forum systems, wikis or other applications that need to
-%prettify source code.
-%
-%Pygmen\TeX{} provides an environment and two commands for typesetting code
-%listings in a \LaTeX{} document:
-%\begin{itemize}
-%  \item the \verb|pygmented| environment typesets its contents as a
-%  source code listing,
-%  \item the \verb|includepygmented| command typesets the contents of a
-%  file, including the result in the \LaTeX{} document, and
-%  \item the \verb|\pyginline| command typesets its contents, keeping the
-%  result in the same line.
-%\end{itemize}
-%They accept many options that allow the user to configure the listing in
-%many ways.
-%
-%Read the remaining of this document to have an idea of what the package
-%is capable of.
-%
-%\section{How to use the package}
-%
-%In order to use the package, start by putting
-%\begin{verbatim}
-%\usepackage{pygmentex}
-%\end{verbatim}
-%in the preamble of the document.
-%
-%Use the environment or commands mentioned previously to include source
-%code listings on your document.
-%
-%When compiling the document (with \texttt{pdflatex}, for instance), all
-%the source code listings in the document wil be collected and saved in a
-%temporary file with the extension \texttt{.snippets} in its name. Then
-%the auxiliary program \texttt{pygmentex} (a Python application
-%distributed with the Pygmen\TeX{} package) should be run taking this
-%file as input. It will produce another temporary file with the extension
-%\texttt{.pygmented}, containing \LaTeX{} code for the code listings
-%previously collected. The next time the document is compiled, they are
-%included to produce the final typeset document.
-%
-%The programming language of the listing code can be specified using the
-%\verb|lang| option.
-%
-%To get a list of all available languages, execute the following command
-%on the command line:
-%\begin{verbatim}
-%$ pygmentize -L lexers
-%\end{verbatim}
+\section{Example}
+To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while computing recursively the factorial of a number.
+\subsection{Declaring functions:}
+\CDRSet{
+  showspaces,
+  style=autumn,
+  only top,
+  tag/lua/numbers=left,
+  tag/lua/lang=lua,
+  tag/python/numbers=right,
+  tag/python/lang=python,
+  tag/raw/pygments=false,
+  tag/raw={
+    numbers=none,
+    show tags=none,
+    vspace=0pt,
+  },
+}
+\begin{center}
+\begin{tabular}{p{0.4\linewidth}|p{0.4\linewidth}}
+\begin{CDRBlock}[tags=lua]
+function fact(n)
+\end{CDRBlock}
+\vskip-2ex
+\begin{CDRBlock}[tags=raw]
+<function body>
+\end{CDRBlock}
+\begin{CDRBlock}[tags=lua]
+end
+\end{CDRBlock}
+&
+\begin{CDRBlock}[tags=python]
+def fact(n):
+\end{CDRBlock}
+\begin{CDRBlock}[tags=raw]
+<indented function body>
+\end{CDRBlock}
+\end{tabular}
+\end{center}
+
+\end{document}
+
+\title{}
 
 \section{First examples}
 %
