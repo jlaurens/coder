@@ -8,20 +8,6 @@
 \makeatletter
 \def\CDR@Debug#1{\typeout{**** DEBUG #1}}
 \ExplSyntaxOn
-\cs_set_protected_nopar:Npn \CDRBlock_teardown: {
-\CDR@Debug{ \string \CDRBlock_teardown: }
-  \bool_if:nT { \CDR_if_number_on_p: && !\CDR_if_dry_numbers_p: } {
-    \tl_set:Nx \l_CDR_tl { \seq_count:N \l_CDR_vrb_seq }
-    \clist_map_inline:Nn \g_CDR_tags_clist {
-\CDR@Debug{ BEFORE, ##1, \CDR_int_use:c { ##1 } }
-      \CDR_int_gadd:cn { ##1 } { \l_CDR_tl }
-\CDR@Debug{ AFTER, ##1, \CDR_int_use:c { ##1 } }
-    }    
-  }
-  \lua_now:n {
-    CDR:hilight_block_teardown()
-  }
-}
 \ExplSyntaxOff
 \makeatother
 
@@ -318,7 +304,49 @@ D=*7,E=10,F=11
 5
 6
 \end{CDRBlock}
-
 \end{minipage}
 \egroup
 
+\newpage
+\subsection{Only top}
+\bgroup
+\CDRSet{show tags = left, only top, firstnumber=last}
+\begin{CDRBlock}[tags=WHAT]
+WHAT
+\end{CDRBlock}
+\begin{CDRBlock}[tags=WHAT]
+WHAT
+\end{CDRBlock}
+\begin{CDRBlock}[tags=WHAT]
+NO WHAT
+\end{CDRBlock}
+\ExplSyntaxOn
+\def\DEBUG{~SHOW~TAGS=\CDR_tag_get:c{show~tags}}
+\string\g_CDR_tags_clist: \g_CDR_tags_clist\\
+\string\g_CDR_last_tags_clist: \g_CDR_last_tags_clist
+\ExplSyntaxOff
+\begin{CDRBlock}[tags = TAHW, show tags = dry, escapeinside=||]
+NO TAHW|\textcolor{red!66!black}{\bfseries\DEBUG}|
+\end{CDRBlock}
+\ExplSyntaxOn
+\string\g_CDR_tags_clist: \g_CDR_tags_clist\\
+\string\g_CDR_last_tags_clist: \g_CDR_last_tags_clist
+\ExplSyntaxOff
+\begin{CDRBlock}[tags=WHAT]
+NO WHAT
+\end{CDRBlock}
+\newpage
+\ExplSyntaxOn
+\string\g_CDR_tags_clist: \g_CDR_tags_clist\\
+\string\g_CDR_last_tags_clist: \g_CDR_last_tags_clist
+\ExplSyntaxOff
+\begin{CDRBlock}[tags = TAHW, show tags = dry]
+NO TAHW
+\end{CDRBlock}
+\begin{CDRBlock}[tags = WHAT]
+WHAT
+\end{CDRBlock}
+\begin{CDRBlock}[tags = ]
+NO WHAT
+\end{CDRBlock}
+\egroup

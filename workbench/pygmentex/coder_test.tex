@@ -51,6 +51,12 @@
 \newfontfamily\CDRVerbatimFont{TeX Gyre Cursor}[NFSSFamily=CDRVerbatimFont]
 \newfontfamily\CDRMenloFont{Menlo}[NFSSFamily=menlo]
 
+\newtcolorbox{codebox}[1]{
+  colback=white!5!white,
+  colframe=white!75!black,
+  title=#1,
+  box align=top
+}
 
 \begin{document}
 
@@ -67,15 +73,16 @@ Path=\l_CDR_tl\\
 Path=\l_CDR_tl\\
 \ExplSyntaxOff
 
-%\section{Sandbox}
-%\makeatletter\ExplSyntaxOn
-%\def\CDR@Debug { \use_none:n }
-%\ExplSyntaxOff\makeatother
-%%\input{Tests/Sandbox}
-%%\input{Tests/Engine}
+\section{Sandbox}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+%\input{Tests/Sandbox}
+%\input{Tests/Engine}
 %\input{Tests/numbering}
-%
-%\end{document}
+\input{Tests/vspace}
+
+\end{document}
 
 \section{Testing the tag mechanism}
 \makeatletter\ExplSyntaxOn
@@ -128,6 +135,12 @@ Path=\l_CDR_tl\\
 \def\CDR@Debug { \use_none:n }
 \ExplSyntaxOff\makeatother
 \input{Tests/numbering}
+
+\section{\texttt{Vertical space}}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/vspace}
 
 \section{\texttt{cache}}
 \makeatletter\ExplSyntaxOn

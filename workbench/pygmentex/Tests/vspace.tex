@@ -1,0 +1,316 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+\noindent
+\subsection{\pkg{fancyvrb}}
+\bgroup
+\makeatletter
+\def\CDR@Debug#1{\typeout{**** DEBUG #1}}
+\ExplSyntaxOn
+\ExplSyntaxOff
+\CDRSet{numbers=none,pygments=false}
+\makeatother
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{Verbatim}
+<code>
+\end{Verbatim}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{Verbatim}
+<code>
+\end{Verbatim}
+\begin{Verbatim}
+<code>
+\end{Verbatim}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\egroup
+%
+%
+\subsection{\pkg{coder} with \pkg{pygments}}
+\bgroup
+\makeatletter
+\def\CDR@Debug#1{\typeout{**** DEBUG #1}}
+\ExplSyntaxOn
+\ExplSyntaxOff
+\CDRSet{numbers=none,pygments=true}
+\makeatother
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{CDRBlock}
+<code>
+\end{CDRBlock}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{CDRBlock}
+<code>
+\end{CDRBlock}
+\begin{CDRBlock}
+<code>
+\end{CDRBlock}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\egroup
+%
+%
+\subsection{\pkg{coder} with no \pkg{pygments}}
+\bgroup
+\makeatletter
+\def\CDR@Debug#1{\typeout{**** DEBUG #1}}
+\ExplSyntaxOn
+\ExplSyntaxOff
+\CDRSet{numbers=none,pygments=false}
+\makeatother
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{CDRBlock}
+<code>
+\end{CDRBlock}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{CDRBlock}
+<code>
+\end{CDRBlock}
+\begin{CDRBlock}
+<code>
+\end{CDRBlock}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\egroup
+%
+%
+\subsection{\pkg{coder} test}
+\bgroup
+\makeatletter
+\ExplSyntaxOn
+\def\CDR@Debug#1{\typeout{**** DEBUG #1}}
+\cs_set:Npn \FVB@CDRBlockX {
+%  \FV@VerbatimBegin
+%    \FV@List\z@
+  \begingroup
+  \FV@VerbatimBegin
+  \cs_set_eq:NN \FV@ProcessLine \use_none:n
+
+  \def\FV@EndScanning{%
+    \hbox{ <some~code> }  
+    \edef\next{\noexpand\end{\FV@EnvironName}}%
+    \global\let\FV@EnvironName\relax
+    \next
+  }
+
+  \FV@Scan
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\FVE@CDRBlock}
+% \pkg{fancyvrb} helper to end the |CDRBlock| environment.
+% \end{function}
+%    \begin{MacroCode}
+\cs_set:Npn \FVE@CDRBlockX {
+  \cs_set_eq:NN \FV@ProcessLine \use_none:n
+  \FV@VerbatimEnd
+  \endgroup
+}
+\DefineVerbatimEnvironment{CDRBlockX}{CDRBlockX}{}
+\ExplSyntaxOff
+\CDRSet{numbers=none,pygments=false}
+\makeatother
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{CDRBlockX}
+<code>
+\end{CDRBlockX}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{CDRBlockX}[formatcom=\color{magenta}]
+<code>
+\end{CDRBlockX}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{codebox}{TEST}
+\begin{CDRBlockX}
+<code>
+\end{CDRBlockX}
+\end{codebox}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{codebox}{TEST \string\color\ before the block}
+\color{magenta}
+\begin{CDRBlockX}
+<code>
+\end{CDRBlockX}
+\end{codebox}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{codebox}{TEST formatcom}
+\begin{CDRBlockX}[formatcom=\color{magenta}]
+<code>
+\end{CDRBlockX}
+\end{codebox}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{CDRBlockX}
+<code>
+\end{CDRBlockX}
+\begin{CDRBlockX}
+<code>
+\end{CDRBlockX}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{codebox}{TEST formatcom}
+\begin{CDRBlock}[formatcom=\color{magenta}]
+<code>
+\end{CDRBlock}
+\end{codebox}
+\egroup
+%
+%
+\subsection{\pkg{coder} test RAW}
+\bgroup
+\def\MAGENTA{}
+\makeatletter
+\ExplSyntaxOn
+\def\CDR@Debug#1{\typeout{**** DEBUG #1}}
+\cs_set:Npn \FVB@RAW {
+%  \FV@VerbatimBegin
+%    \FV@List\z@
+  \begingroup
+%  \FV@UseKeyValues
+%  \FancyVerbFormatCom
+%%%%%  \FV@LeaveVMode
+  \if@noskipsec
+    \leavevmode
+  \else
+    \if@FV@ResetMargins\if@inlabel\leavevmode\fi\fi
+  \fi
+  \ifvmode\@noparlisttrue\else\@noparlistfalse\unskip\par\fi
+  
+  
+  
+%  \if@inlabel\else\setbox\@labels=\box\voidb@x\fi
+%  \FV@ListNesting{\z@}%{#1}%
+%  \FV@ListParameterHook
+%%%%%  \FV@ListVSpace
+%  \@topsepadd\topsep
+  \@topsepadd=\FancyVerbVspace
+  \if@noparlist\advance\@topsepadd\partopsep\fi
+  \if@inlabel
+    \vskip\parskip
+  \else
+    \if@nobreak
+      \vskip\parskip
+      \clubpenalty\@M
+    \else
+      \addpenalty\@beginparpenalty
+      \@topsep\@topsepadd
+      \advance\@topsep\parskip
+      \addvspace\@topsep
+    \fi
+  \fi
+  \global\@nobreakfalse
+  \global\@inlabelfalse
+  \global\@minipagefalse
+  \global\@newlistfalse
+  
+%  \FV@SetLineWidth
+%  \FV@InterLinePenalty
+%  \FV@CatCodes
+%%%%  \FV@FormattingPrep
+%  \global\FV@CodeLineNo\z@
+%  \frenchspacing             % Cancels special punctuation spacing.
+%  \FV@SetupFont              % See below.
+%  \FV@DefineWhiteSpace       % See below.
+%  \FancyVerbDefineActive
+  \MAGENTA
+
+
+%  \FV@ObeyTabsInit
+%  \FV@BeginListFrame
+
+
+
+  \cs_set_eq:NN \FV@ProcessLine \use_none:n
+  \def\FV@EndScanning{%
+    \hbox{ <some~code> }  
+    \edef\next{\noexpand\end{\FV@EnvironName}}%
+    \global\let\FV@EnvironName\relax
+    \next
+  }
+  \FV@Scan
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\FVE@CDRBlock}
+% \pkg{fancyvrb} helper to end the |CDRBlock| environment.
+% \end{function}
+%    \begin{MacroCode}
+\cs_set:Npn \FVE@RAW {  \endgroup
+}
+\DefineVerbatimEnvironment{RAW}{RAW}{}
+\ExplSyntaxOff
+\CDRSet{numbers=none,pygments=false}
+\makeatother
+\begin{codebox}{TEST no color}
+\begin{RAW}
+<code>
+\end{RAW}
+\end{codebox}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{codebox}{TEST \string\color\ before the block}
+\color{magenta}
+\begin{RAW}
+<code>
+\end{RAW}
+\end{codebox}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{codebox}{TEST MAGENTA}
+\def\MAGENTA{\color{magenta}}
+\begin{RAW}
+<code>
+\end{RAW}
+\end{codebox}
+\egroup
+%
+%
+%
+\subsection{\pkg{fancyvrb} test magenta}
+\bgroup
+\def\MAGENTA{}
+\makeatletter
+\ExplSyntaxOn
+\def\CDR@Debug#1{\typeout{**** DEBUG #1}}
+\cs_set:Npn \FVB@RAW {
+  \FV@VerbatimBegin
+  \MAGENTA
+%  \cs_set_eq:NN \FV@ProcessLine \use_none:n
+%  \def\FV@EndScanning{%
+%    \hbox{ <some~code> }  
+%    \edef\next{\noexpand\end{\FV@EnvironName}}%
+%    \global\let\FV@EnvironName\relax
+%    \next
+%  }
+  \FV@Scan
+}
+\cs_set:Npn \FVE@RAW {
+  \FV@VerbatimEnd
+}
+\DefineVerbatimEnvironment{RAW}{RAW}{}
+\ExplSyntaxOff
+\CDRSet{numbers=none,pygments=false}
+\makeatother
+\begin{codebox}{TEST no color}
+\begin{RAW}
+<code>
+\end{RAW}
+\end{codebox}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{codebox}{TEST \string\color\ before the block}
+\color{magenta}
+\begin{RAW}
+<code>
+\end{RAW}
+\end{codebox}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{codebox}{TEST MAGENTA}
+\def\MAGENTA{\color{magenta}}
+\begin{RAW}
+<code>
+\end{RAW}
+\end{codebox}
+ABCDEABCDEABCDEABCDEABCDEABCDE
+\begin{codebox}{TEST MAGENTA}
+\begin{Verbatim}[formatcom=\color{magenta}]
+<code>
+\end{Verbatim}
+\end{codebox}
+\begin{codebox}{TEST BOLD}
+\begin{Verbatim}[formatcom=\bfseries]
+<code>
+\end{Verbatim}
+\end{codebox}
+\egroup
+%
