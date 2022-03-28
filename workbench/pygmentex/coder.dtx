@@ -4968,8 +4968,6 @@ if __name__ == '__main__':
     __fancyvrb,
   }
   \CDR_local_set:V \l_CDR_kv_clist  
-  \CDR_set_conditional:Nn \CDR_if_dry_tags:
-    { \CDR_if_tag_eq_p:cn { show~tags } { dry } }
   \CDRCode:n
 }
 %    \end{MacroCode}
@@ -5088,9 +5086,6 @@ if __name__ == '__main__':
           \makeatother
         }
         \group_end:
-        \CDR_if_dry_tags:F {
-          \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
-        }
       }
     ] { CDR@Source } #1
   } {
@@ -5110,9 +5105,6 @@ if __name__ == '__main__':
           \FV@SV@CDR@Code
         } }
         \group_end:
-        \CDR_if_dry_tags:F {
-          \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
-        }
       }
     ] { CDR@Code } #1
   }

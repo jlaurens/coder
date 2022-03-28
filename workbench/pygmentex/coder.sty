@@ -1357,8 +1357,6 @@
     __fancyvrb,
   }
   \CDR_local_set:V \l_CDR_kv_clist
-  \CDR_set_conditional:Nn \CDR_if_dry_tags:
-    { \CDR_if_tag_eq_p:cn { show~tags } { dry } }
   \CDRCode:n
 }
 \cs_new_protected_nopar:Npn \CDRCode_tags_setup:N #1 {
@@ -1446,9 +1444,6 @@
           \makeatother
         }
         \group_end:
-        \CDR_if_dry_tags:F {
-          \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
-        }
       }
     ] { CDR@Source } #1
   } {
@@ -1468,9 +1463,6 @@
           \FV@SV@CDR@Code
         } }
         \group_end:
-        \CDR_if_dry_tags:F {
-          \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
-        }
       }
     ] { CDR@Code } #1
   }
