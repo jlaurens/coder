@@ -2137,7 +2137,8 @@ if __name__ == '__main__':
 % Generic and named line number counter.
 %    \begin{MacroCode}[OK]
 \CDR_int_new:cn { default } { 1 }
-\CDR_int_new:cn { __ } { 1 }
+\CDR_int_new:cn { __n } { 1 }
+\CDR_int_new:cn { __i } { 1 }
 \CDR_int_new:cn { __line } { 1 }
 %    \end{MacroCode}
 % \end{variable}
@@ -5262,6 +5263,7 @@ if __name__ == '__main__':
     }
   }
   \CDRBlock_engine_begin:
+  \tl_clear:N \FV@ListProcessLastLine
   \CDR_if_pygments:TF {
     \CDRBlock@Pyg
   } {
@@ -5421,7 +5423,6 @@ if __name__ == '__main__':
     \makeatletter
     \input{ \l_CDR_pyg_tex_tl }\ignorespaces
     \makeatother
-    \def \FV@ProcessLine {}
   }
 }
 %    \end{MacroCode}
@@ -5506,8 +5507,8 @@ if __name__ == '__main__':
   } { #1 }
 }
 \cs_set:Npn \CDR_number_alt: {
-\CDR@Debug{ALT: \CDR_int_use:c { __ } }
-  \CDR_number_alt:n { \CDR_int_use:c { __ } }
+\CDR@Debug{ALT: \CDR_int_use:c { __n } }
+  \CDR_number_alt:n { \CDR_int_use:c { __n } }
 }
 %    \end{MacroCode}
 %
@@ -5536,14 +5537,14 @@ if __name__ == '__main__':
 % \cs{CDR@NumberOther}
 % \end{syntax}
 % Respectively apply |\CDR@NumberMain| or |\CDR@NumberOther|
-% on |\CDR_int_use:c { __ }|
+% on |\CDR_int_use:c { __n }|
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR@NumberMain {
-		\CDRNumberMain { \CDR_int_use:c { __ } }
+		\CDRNumberMain { \CDR_int_use:c { __n } }
 }
 \cs_new:Npn \CDR@NumberOther {
-		\CDRNumberOther { \CDR_int_use:c { __ } }
+		\CDRNumberOther { \CDR_int_use:c { __n } }
 }
 %    \end{MacroCode}
 %
@@ -5595,7 +5596,7 @@ if __name__ == '__main__':
       \CDR_info_N_L:n { \CDR@NumberMain }
     } { #1 } {}
   } {
-    \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
+    \CDR_if_number_main:nTF { \CDR_int:c { __n } + 1 } {
       \CDR_line_box_L:n { #1 }
     } {
       \CDR_line_box:nnn {
@@ -5657,7 +5658,7 @@ if __name__ == '__main__':
     \CDR_if_no_number:TF {
       \CDR_info_N_L:n { \CDR@NumberMain }
     } {
-      \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_if_number_main:nTF { \CDR_int:c { __n } + 1 } {
         \CDR_info_N_L:n { \CDR_number_alt: }
       } {
         \CDR_info_N_L:n { \CDR@NumberMain }
@@ -5678,7 +5679,7 @@ if __name__ == '__main__':
       \CDR_info_N_R:n { \CDR@NumberMain }
     }
   } {
-    \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
+    \CDR_if_number_main:nTF { \CDR_int:c { __n } + 1 } {
       \CDR_line_box_R:n { #1 }
     } {
       \CDR_line_box:nnn {} { #1 } {
@@ -5696,7 +5697,7 @@ if __name__ == '__main__':
     \CDR_if_no_number:TF {
       \CDR_info_N_R:n { \CDR@NumberMain }
     } {
-      \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_if_number_main:nTF { \CDR_int:c { __n } + 1 } {
         \CDR_info_N_R:n { \CDR_number_alt: }
       } {
         \CDR_info_N_R:n { \CDR@NumberMain }
@@ -5746,8 +5747,9 @@ if __name__ == '__main__':
   \directlua {
     tex.set_synctex_tag( CDR.synctex_tag )
   }
+  
   \lua_now:e {
-    tex.set_synctex_line(CDR.synctex_line +( \CDR_int_use:c { __ }) - (\CDR_int_use:c { __start }) + 1 )
+    tex.set_synctex_line(CDR.synctex_line +( \CDR_int_use:c { __i }) )
   }
   \hbox to \hsize {
     \kern \leftmargin
@@ -5816,7 +5818,8 @@ if __name__ == '__main__':
 \CDR@Debug {\string\CDR_line:nnn}
   \keys_set:nn { CDR@Line } { #1 }
   \CDR_if_number_on:TF {
-    \CDR_int_set:cn { __ } { 1 }
+    \CDR_int_set:cn { __n } { 1 }
+    \CDR_int_set:cn { __i } { 1 }
 %    \end{MacroCode}
 % Set the first line number.
 %    \begin{MacroCode}
@@ -5886,10 +5889,21 @@ if __name__ == '__main__':
     }
     \cs_set:Npn \CDR@Line ##1 {
 \CDR@Debug {\string\CDR@Line(A), \the\inputlineno}
-      \CDR_int_set:cn { __ } { ##1 + \CDR_int:c { __start } - (#2) }
+      \CDR_int_set:cn { __i } { ##1 }
+      \CDR_int_set:cn { __n } { ##1 + \CDR_int:c { __start } - (#2) }
+      {
+        \advance\interlinepenalty\widowpenalty
+        \bool_if:nT {
+          \CDR_int_compare_p:cNn { __n } = { 2 }
+         || \CDR_int_compare_p:cNn { __n } = { \CDR_int:c { __last } }
+        } {
+          \advance\interlinepenalty\clubpenalty
+        }
+        \penalty\interlinepenalty
+      }
       \CDR@@Line
     }
-    \CDR_int_set:cn { __ } { 1 + \CDR_int:c { __start } - (#2) }
+    \CDR_int_set:cn { __n } { 1 + \CDR_int:c { __start } - (#2) }
   } {
 \CDR@Debug {NUMBER~OFF}
     \cs_set:Npn \CDR@Line ##1 {
@@ -5976,7 +5990,6 @@ if __name__ == '__main__':
       \exp_last_unbraced:NV \CDR@Line \l_CDR_tl { ##1 } { ##2 }
       \tl_clear:N \l_CDR_tl
     }
-    \tl_clear:N \FV@ProcessLine
   }
 }
 %    \end{MacroCode}

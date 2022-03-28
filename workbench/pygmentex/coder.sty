@@ -109,7 +109,8 @@
   \int_gset:cn { CDR@int.#1 } { #2 }
 }
 \CDR_int_new:cn { default } { 1 }
-\CDR_int_new:cn { __ } { 1 }
+\CDR_int_new:cn { __n } { 1 }
+\CDR_int_new:cn { __i } { 1 }
 \CDR_int_new:cn { __line } { 1 }
 \cs_new:Npn \CDR_int:c #1 {
   \use:c { CDR@int.#1 }
@@ -1523,6 +1524,7 @@
     }
   }
   \CDRBlock_engine_begin:
+  \tl_clear:N \FV@ListProcessLastLine
   \CDR_if_pygments:TF {
     \CDRBlock@Pyg
   } {
@@ -1639,7 +1641,6 @@
     \makeatletter
     \input{ \l_CDR_pyg_tex_tl }\ignorespaces
     \makeatother
-    \def \FV@ProcessLine {}
   }
 }
 \cs_new:Npn \CDR@NumberFormat {
@@ -1702,8 +1703,8 @@
   } { #1 }
 }
 \cs_set:Npn \CDR_number_alt: {
-\CDR@Debug{ALT: \CDR_int_use:c { __ } }
-  \CDR_number_alt:n { \CDR_int_use:c { __ } }
+\CDR@Debug{ALT: \CDR_int_use:c { __n } }
+  \CDR_number_alt:n { \CDR_int_use:c { __n } }
 }
 \cs_new:Npn \CDRNumberMain {
 }
@@ -1711,10 +1712,10 @@
 \use_none:n
 }
 \cs_new:Npn \CDR@NumberMain {
-\CDRNumberMain { \CDR_int_use:c { __ } }
+\CDRNumberMain { \CDR_int_use:c { __n } }
 }
 \cs_new:Npn \CDR@NumberOther {
-\CDRNumberOther { \CDR_int_use:c { __ } }
+\CDRNumberOther { \CDR_int_use:c { __n } }
 }
 \cs_new:Npn \CDR_line_N_N:n {
 \CDR@Debug {Debug.CDR_line_N_N:n}
@@ -1748,7 +1749,7 @@
       \CDR_info_N_L:n { \CDR@NumberMain }
     } { #1 } {}
   } {
-    \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
+    \CDR_if_number_main:nTF { \CDR_int:c { __n } + 1 } {
       \CDR_line_box_L:n { #1 }
     } {
       \CDR_line_box:nnn {
@@ -1810,7 +1811,7 @@
     \CDR_if_no_number:TF {
       \CDR_info_N_L:n { \CDR@NumberMain }
     } {
-      \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_if_number_main:nTF { \CDR_int:c { __n } + 1 } {
         \CDR_info_N_L:n { \CDR_number_alt: }
       } {
         \CDR_info_N_L:n { \CDR@NumberMain }
@@ -1831,7 +1832,7 @@
       \CDR_info_N_R:n { \CDR@NumberMain }
     }
   } {
-    \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
+    \CDR_if_number_main:nTF { \CDR_int:c { __n } + 1 } {
       \CDR_line_box_R:n { #1 }
     } {
       \CDR_line_box:nnn {} { #1 } {
@@ -1849,7 +1850,7 @@
     \CDR_if_no_number:TF {
       \CDR_info_N_R:n { \CDR@NumberMain }
     } {
-      \CDR_if_number_main:nTF { \CDR_int:c { __ } + 1 } {
+      \CDR_if_number_main:nTF { \CDR_int:c { __n } + 1 } {
         \CDR_info_N_R:n { \CDR_number_alt: }
       } {
         \CDR_info_N_R:n { \CDR@NumberMain }
@@ -1884,8 +1885,9 @@
   \directlua {
     tex.set_synctex_tag( CDR.synctex_tag )
   }
+
   \lua_now:e {
-    tex.set_synctex_line(CDR.synctex_line +( \CDR_int_use:c { __ }) - (\CDR_int_use:c { __start }) + 1 )
+    tex.set_synctex_line(CDR.synctex_line +( \CDR_int_use:c { __i }) )
   }
   \hbox to \hsize {
     \kern \leftmargin
@@ -1935,7 +1937,8 @@
 \CDR@Debug {\string\CDR_line:nnn}
   \keys_set:nn { CDR@Line } { #1 }
   \CDR_if_number_on:TF {
-    \CDR_int_set:cn { __ } { 1 }
+    \CDR_int_set:cn { __n } { 1 }
+    \CDR_int_set:cn { __i } { 1 }
      \CDR_int_set:cn { __start } { 1 }
     \CDR_if_tag_eq:cnTF { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
@@ -1983,10 +1986,21 @@
     }
     \cs_set:Npn \CDR@Line ##1 {
 \CDR@Debug {\string\CDR@Line(A), \the\inputlineno}
-      \CDR_int_set:cn { __ } { ##1 + \CDR_int:c { __start } - (#2) }
+      \CDR_int_set:cn { __i } { ##1 }
+      \CDR_int_set:cn { __n } { ##1 + \CDR_int:c { __start } - (#2) }
+      {
+        \advance\interlinepenalty\widowpenalty
+        \bool_if:nT {
+          \CDR_int_compare_p:cNn { __n } = { 2 }
+         || \CDR_int_compare_p:cNn { __n } = { \CDR_int:c { __last } }
+        } {
+          \advance\interlinepenalty\clubpenalty
+        }
+        \penalty\interlinepenalty
+      }
       \CDR@@Line
     }
-    \CDR_int_set:cn { __ } { 1 + \CDR_int:c { __start } - (#2) }
+    \CDR_int_set:cn { __n } { 1 + \CDR_int:c { __start } - (#2) }
   } {
 \CDR@Debug {NUMBER~OFF}
     \cs_set:Npn \CDR@Line ##1 {
@@ -2050,7 +2064,6 @@
       \exp_last_unbraced:NV \CDR@Line \l_CDR_tl { ##1 } { ##2 }
       \tl_clear:N \l_CDR_tl
     }
-    \tl_clear:N \FV@ProcessLine
   }
 }
 \cs_new:Npn \CDR_set_conditional:Nn #1 #2 {
