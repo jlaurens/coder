@@ -3480,7 +3480,7 @@ if __name__ == '__main__':
 % to export and display.
 %    \begin{MacroCode}
   tags .code:n = {
-    \clist_set:Nn \l_CDR_clist { #1 }
+    \clist_set:Nx \l_CDR_clist { #1 }
     \clist_remove_duplicates:N \l_CDR_clist
     \exp_args:NV
     \CDR_tag_set:n \l_CDR_clist
@@ -4182,7 +4182,7 @@ if __name__ == '__main__':
 \CDR@Debug{ Debug.CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
   \keys_define:nn { CDR@Set@tags } {
     tags .code:n = {
-      \clist_set:Nn \g_CDR_tags_clist { ##1 }
+      \clist_set:Nx \g_CDR_tags_clist { ##1 }
       \clist_remove_duplicates:N \g_CDR_tags_clist
     },
   }
@@ -4333,7 +4333,7 @@ if __name__ == '__main__':
 % Initially empty.
 %    \begin{MacroCode}[OK]
   tags .code:n = {
-    \clist_set:Nn \l_CDR_clist { #1 }
+    \clist_set:Nx \l_CDR_clist { #1 }
     \clist_remove_duplicates:N \l_CDR_clist
     \prop_put:NVV \l_CDR_export_prop \l_keys_key_str \l_CDR_clist
   },
