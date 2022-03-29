@@ -99,19 +99,14 @@
 }
 
 \NewDocumentCommand \CDRTest {} {
-  \sys_if_shell:TF {
-    \CDR_has_pygments:F {
-      \msg_warning:nnn
-        { coder }
-        { :n }
-        { No~"pygmentize"~found. }
-    }
-  } {
-    \msg_warning:nnn
-      { coder }
-      { :n }
-      { No~unrestricted~shell~escape~for~"pygmentize".}
-  }
+  \par\noindent
+  Path~to~\textsf{python}:~\texttt{\directlua{tex.print(CDR.PYTHON_PATH)}}
+  \par\noindent
+  Path~to~\textsf{pygmentize}:~\texttt{\directlua{tex.print(CDR.PYGMENTIZE_PATH)}}
+  \par\noindent
+  \CDR_has_pygments:TF { Pygments~is~available } { Pygments~is~not~available
+}:~%\CDRCode[lang=tex]|\textit{text}|
+  \par\noindent
 }
 \msg_new:nnn { coder } { unknown-choice } {
   #1~given~value~`#3'~not~in~#2
@@ -1435,6 +1430,10 @@
         \lua_now:n { CDR:hilight_set_var('cache') }
         \CDR_tag_get:cN {debug} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('debug') }
+        \CDR_tag_get:cN {escapeinside} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('escapeinside') }
+        \CDR_tag_get:cN {mathescape} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('mathescape') }
         \CDR_tag_get:cN {style} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('style') }
         \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }

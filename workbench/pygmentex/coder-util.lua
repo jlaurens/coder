@@ -273,6 +273,8 @@ local function hilight_code_setup(self)
       __cls__ = 'PygOpts',
       lang    = 'tex',
       style   = 'default',
+      mathescape   = false,
+      escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
@@ -423,7 +425,6 @@ return {
   _VERSION           = token.get_macro('fileversion'),
   date               = token.get_macro('filedate'),
   CDR_PY_PATH        = CDR_PY_PATH,
-  PYTHON_PATH        = PYTHON_PATH,
   set_python_path    = set_python_path,
   is_truthy          = is_truthy,
   escape             = escape,

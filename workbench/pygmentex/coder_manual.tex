@@ -39,6 +39,14 @@
 
 \ExplSyntaxOff
 
+\NewDocumentCommand \itemtt { o } {
+  \IfNoValueTF { #1 } {
+    \item
+  } {
+    \item[\ttfamily#1]
+  }
+}
+
 \begin{document}
 \title{Manual of the \pkg{coder} package}
 \author{Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}}
@@ -56,7 +64,7 @@ followed by
 \\[0.25\baselineskip]
 \verb|latex |\MyMeta{file name}\verb|-colorized.tex|.
 \\[0.25\baselineskip]
-The colorized code is found in \MyMeta{file name}\verb|-colorized.pdf|%
+The colorized code is then found in \MyMeta{file name}\verb|-colorized.pdf|%
 
 To test the installation for an editor, the next document should output a small diagnostic page.
 \CDRSet{numbers=none}
@@ -192,16 +200,46 @@ def factorial(n):
 %
 \subsection{\cs{CDRCode} command}
 Inserting code as inline text is possible with the command \cs{CDRCode} which syntax is
-\vskip0.25\baselineskip\noindent
-\CDRCode[tags=src]|\CDRCode[⟨\meta{key--value optional arguments}⟩]!\meta{inline code chunk}⟩!|
-\vskip0.25\baselineskip
+\begin{CDRBlock}[tags=src]
+\CDRCode[⟨\MyMeta{key--value optional arguments}⟩]?⟨\MyMeta{inline code chunk}⟩?
+\end{CDRBlock}
+Here the question mark \CDRCode|?| stands for quite any unicode character, one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course.
 
-. It is similar to \LaTeX{} \cs{verb} command, except that it accepts optional key--value arguments put into square brackets.
+\section{Export code with \cs{CDRExport}}
+\subsection{Usage}
+The syntax for the \cs{CDRExport} command is the following, where both \CDRCode|file| key must be provided with a non empty value,
+\begin{CDRBlock}[tags=src]
+\CDRExport{
+  file={⟨\MyMeta{output file path}⟩},
+  tags={⟨\MyMeta{tag}\textsubscript{1},\MyMeta{tag}\textsubscript{2},...⟩},
+}
+\end{CDRBlock}
+At the end of the typesetting process, all the code chunks with \MyMeta{tag}\textsubscript{1} like
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[tags={⟨\MyMeta{some tag},\MyMeta{tag}\textsubscript{1},\MyMeta{other tag},...⟩}]
+...
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+are collected in the order of the source, then all the code chunks with \MyMeta{tag}\textsubscript{2} are collected in turn,... Finally, the result is written to \MyMeta{output file path}.
 
-\subsection{Key--value options}
+If the \CDRCode|tags| list is void, no exportation takes place.
+\subsection{Options}
+\begin{description}
+\itemtt
+\end{description}
+%    lang = tex,
+%    preamble =,
+%    postamble =,
+%    raw = false,
+%    once = true,
 
+\end{document}
+\section{Key--value options and tags}
+
+Each time a code chunk is defined in a \CDRCode|CDRBlock| environment, it is recorded for further use.
+Unless 
 \subsection{About tags}
-To each code chunck is associate an ordered list of tags, so far we have seen the tags ``lua'' and ``python'' appearing in the previous examples opposite to the line numbers.
+To each code chunck is associate an ordered list of tags, so far we have seen the tags ``lua'' and ``python'' appearing in the first examples opposite to the line numbers.
 \section{Miscellanées}
 \subsection{Cache}
 In order to save typesetting time, the \pkg{coder} package asks \pkg{pygments} to colorize code only when necessary. The already colorized code is cached in the folder \verb|foo.pygd| for main source file \verb|foo.tex|.
