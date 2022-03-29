@@ -58,7 +58,7 @@ The colorized code is found in \MyMeta{file name}\verb|-colorized.pdf|%
 To test the installation for an editor, the next document should output a small diagnostic page.
 \CDRSet{numbers=none}
 \begin{center}
-\begin{tabular}{p{0.295\linewidth}|p{0.695\linewidth}}
+\begin{tabular}{p{0.355\linewidth}|p{0.635\linewidth}}
 \begin{minipage}[t]{0.9\linewidth}
 \begin{CDRBlock}[lang=tex]
 \documentclass{article}
@@ -143,9 +143,21 @@ def factorial(n):
 \end{minipage}%
 \end{tabular}
 \end{center}
-The coloring is made by \pkg{pygments} using its built in style \verb|autumn| on the left and style \verb|trac| on the right. Line numbering may appear on both sides of the code, or may be hidden.
+The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} on the left and style \texttt{trac} on the right. Line numbering may appear on both sides of the code, or may be hidden.
 %
-%
+\subsection{The \texttt{CDRBlock} environment}
+Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line containing literally \CDRCode[lang=tex]|\end{CDRBlock}|, any material before being ignored.
+
+\begin{CDRBlock}
+WHATEVER
+??? \end{CDRBlock}
+
+\subsection{\cs{CDRCode} command}
+
+\subsection{Key--value options}
+
+\subsection{About tags}
+To each code chunck is associate an ordered list of tags, so far we have seen the tags ``lua'' and ``python'' appearing in the previous examples opposite to the line numbers.
 \section{Miscellanées}
 \subsection{Cache}
 In order to save typesetting time, the \pkg{coder} package asks \pkg{pygments} to colorize code only when necessary. The already colorized code is cached in the folder \verb|foo.pygd| for main source file \verb|foo.tex|.
