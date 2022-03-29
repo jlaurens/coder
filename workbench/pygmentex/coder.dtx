@@ -682,13 +682,6 @@ local CDR_PY_PATH = kpse.find_file('coder-tool.py')
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{variable}{PYTHON_PATH}
-% Location of the |python| utility, defaults to 'python'.
-%    \begin{MacroCode}[OK]
-local PYTHON_PATH = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
-%    \end{MacroCode}
-% \end{variable}
-%
 % \begin{function}{set_python_path}
 % \begin{syntax}
 % CDR:set_python_path(\meta{path var})
@@ -725,20 +718,33 @@ local function set_python_path(self, path_var)
 end
 %    \end{MacroCode}
 %
+% \begin{variable}{JSON_boolean_true, JSON_boolean_false}
+% Special marker to encode booleans in |JSON| files.
+% These are table which |__cls__| field is either |BooleanTrue| or |BooleanFalse|.
+% \end{variable}
+%    \begin{MacroCode}
+local JSON_boolean_true = {
+  __cls__ = 'BooleanTrue',
+}
+local JSON_boolean_false = {
+  __cls__ = 'BooleanFalse',
+}
+%    \end{MacroCode}
+%
 % \begin{function}{is_truthy}
 % \begin{syntax}
-% if CDR.is_truthy(\meta{string}) then
+% if CDR.is_truthy(\meta{what}) then
 %   \meta{true code}
 % else
 %   \meta{false code}
 % end
 % \end{syntax}
-% Execute \metatt{true code} if \metatt{string} is the string ``true'',
+% Execute \metatt{true code} if \metatt{what} is |JSON_boolean_true| or the string ``true'',
 % \metatt{false code} otherwise.
 % \end{function}
 %    \begin{MacroCode}[OK]
 local function is_truthy(s)
-  return s == 'true'
+  return s == JSON_boolean_true or s == 'true'
 end
 %    \end{MacroCode}
 %
@@ -955,7 +961,11 @@ local function hilight_set(self, key, value)
       end
     end
   end
-  t[key] = value
+  if t[key] == JSON_boolean_true or t[key] == JSON_boolean_false then
+    t[key] = value == true and JSON_boolean_true or JSON_boolean_false
+  else
+    t[key] = value
+  end
 end
 
 local function hilight_set_var(self, key, var)
@@ -979,7 +989,7 @@ local function hilight_source(self, sty, src)
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
-  local inline = texopts.is_inline
+  local inline = self.is_truthy(texopts.is_inline)
   local use_cache = self.is_truthy(args.cache)
   local use_py = false
   local cmd = self.PYTHON_PATH..' '..self.CDR_PY_PATH
@@ -1066,7 +1076,6 @@ end
 %
 % \subsection{Code}
 %
-% \subsection{Code}
 % \begin{function}{hilight_code_setup}
 % \begin{syntax}
 % CDR:hilight_code_setup()
@@ -1080,19 +1089,19 @@ local function hilight_code_setup(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
     source  = '',
-    cache   = true,
-    debug   = false,
+    cache   = JSON_boolean_true,
+    debug   = JSON_boolean_false,
     pygopts = {
       __cls__ = 'PygOpts',
       lang    = 'tex',
       style   = 'default',
-      mathescape   = false,
+      mathescape   = JSON_boolean_false,
       escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
       tags    = '',
-      is_inline = true,
+      is_inline = JSON_boolean_true,
       pyg_sty_p = '',
     },
     fv_opts = {
@@ -1101,7 +1110,6 @@ local function hilight_code_setup(self)
   }
   self.hilight_json_written = false
 end
-
 %    \end{MacroCode}
 %
 % \subsection{Block}
@@ -1120,21 +1128,21 @@ local function hilight_block_setup(self, tags_clist_var)
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
-    cache   = false,
-    debug   = false,
+    cache   = JSON_boolean_false,
+    debug   = JSON_boolean_false,
     source  = nil,
     pygopts = {
       __cls__ = 'PygOpts',
       lang = 'tex',
       style = 'default',
-      texcomments  = false,
-      mathescape   = false,
+      texcomments  = JSON_boolean_false,
+      mathescape   = JSON_boolean_false,
       escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
       tags    = tags_clist,
-      is_inline = false,
+      is_inline = JSON_boolean_false,
       pyg_sty_p = '',
     },
     fv_opts = {
@@ -1474,22 +1482,10 @@ from pygments.util import ClassNotFound
 %  
 %    \begin{MacroCode}[OK]
 class BaseOpts(object):
-  @staticmethod
-  def ensure_bool(x):
-    if x == True or x == False: return x
-    x = x[0:1]
-    return x == 'T' or x == 't'
 %    \end{MacroCode}
 %    \begin{MacroCode}[OK]
   def __init__(self, d={}):
     for k, v in d.items():
-      if type(v) == str:
-        if v.lower() == 'true':
-          setattr(self, k, True)
-          continue
-        elif v.lower() == 'false':
-          setattr(self, k, False)
-          continue
       setattr(self, k, v)
 %    \end{MacroCode}
 %
@@ -1512,7 +1508,6 @@ class TeXOpts(BaseOpts):
 \makeatother'''
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
-    self.inline_p  = self.ensure_bool(self.is_inline)
     self.pyg_sty_p = Path(self.pyg_sty_p or '')
 %    \end{MacroCode}
 %
@@ -1536,11 +1531,8 @@ class PygOpts(BaseOpts):
   lang = 'tex'
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
-    self.linenos = self.ensure_bool(self.linenos)
     self.linenostart = abs(int(self.linenostart))
     self.linenostep  = abs(int(self.linenostep))
-    self.texcomments = self.ensure_bool(self.texcomments)
-    self.mathescape  = self.ensure_bool(self.mathescape)
 %    \end{MacroCode}
 %
 % \subsection{\texttt{FV}class}
@@ -1579,9 +1571,6 @@ class FVOpts(BaseOpts):
     if self.firstnumber != 'auto':
       self.firstnumber = abs(int(self.firstnumber))
     self.stepnumber = abs(int(self.stepnumber))
-    self.numberblanklines = self.ensure_bool(self.numberblanklines)
-    self.resetmargins  = self.ensure_bool(self.resetmargins)
-    self.samepage  = self.ensure_bool(self.samepage)
 %    \end{MacroCode}
 %
 % \subsection{\texttt{Arguments}class}
@@ -1618,6 +1607,10 @@ class Controller:
       return FVOpts(d)
     elif __cls__ == 'TeXOpts':
       return TeXOpts(d)
+    elif __cls__ == 'BooleanTrue':
+      return True
+    elif __cls__ == 'BooleanFalse':
+      return False
     else:
       return Arguments(d)
 %    \end{MacroCode}
