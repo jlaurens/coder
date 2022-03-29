@@ -1086,6 +1086,8 @@ local function hilight_code_setup(self)
       __cls__ = 'PygOpts',
       lang    = 'tex',
       style   = 'default',
+      mathescape   = false,
+      escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
@@ -1352,7 +1354,6 @@ return {
 % \item[Various paths],
 %    \begin{MacroCode}
   CDR_PY_PATH        = CDR_PY_PATH,
-  PYTHON_PATH        = PYTHON_PATH,
   set_python_path    = set_python_path,
 %    \end{MacroCode}
 % \itemtt[is_truthy]
@@ -5117,6 +5118,10 @@ if __name__ == '__main__':
         \lua_now:n { CDR:hilight_set_var('cache') }
         \CDR_tag_get:cN {debug} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('debug') }
+        \CDR_tag_get:cN {escapeinside} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('escapeinside') }
+        \CDR_tag_get:cN {mathescape} \l_CDR_tl
+        \lua_now:n { CDR:hilight_set_var('mathescape') }
         \CDR_tag_get:cN {style} \l_CDR_tl
         \lua_now:n { CDR:hilight_set_var('style') }
         \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
