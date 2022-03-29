@@ -13,6 +13,9 @@
 \usepackage{luacode} % JL
 \usepackage{unicode-math}
 
+\typeout{************** REMOVE!!}
+\CDRSet{python path=/Users/jlaurens/opt/anaconda3/bin/python}
+
 \ExplSyntaxOn
 
 \cs_new:Npn \cs #1 {
@@ -114,6 +117,13 @@ To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while
     numbers=left,
     show tags=none,
     escapeinside=⟨⟩,
+  },
+  tag/src={
+    lang=tex,
+    style=default,
+    numbers=none,
+    show tags=none,
+    escapeinside=⟨⟩,
   }
 }
 \begin{center}
@@ -146,13 +156,47 @@ def factorial(n):
 The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} on the left and style \texttt{trac} on the right. Line numbering may appear on both sides of the code, or may be hidden.
 %
 \subsection{The \texttt{CDRBlock} environment}
-Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line containing literally \CDRCode[lang=tex]|\end{CDRBlock}|, any material before being ignored.
-
-\begin{CDRBlock}
-WHATEVER
-??? \end{CDRBlock}
-
+Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line consisting literally of \CDRCode[lang=tex]|\end{CDRBlock}|, with no extra space.
+Optional key--value options are enclosed with square brackets. The opening bracket must follow the \CDRCode[lang=tex]|\begin{CDRBlock}| insruction, on the same line. For the previous example, the input was
+\begin{center}
+\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[tags=lua]
+function factorial(n)
+  --[[Compute n!]]
+  if n > 1 then
+    return n * factorial(n-1)
+  end
+  return 1
+end
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\hspace{0.09\linewidth}%
+\begin{minipage}[t]{0.8\linewidth}
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[tags=python]
+def factorial(n):
+  '''Compute n!'''
+  if n > 1:
+    return n * factorial(n-1)
+  return 1
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\end{minipage}%
+\end{tabular}
+\end{center}
+%
 \subsection{\cs{CDRCode} command}
+Inserting code as inline text is possible with the command \cs{CDRCode} which syntax is
+\vskip0.25\baselineskip\noindent
+\CDRCode[tags=src]|\CDRCode[⟨\meta{key--value optional arguments}⟩]!\meta{inline code chunk}⟩!|
+\vskip0.25\baselineskip
+
+. It is similar to \LaTeX{} \cs{verb} command, except that it accepts optional key--value arguments put into square brackets.
 
 \subsection{Key--value options}
 
