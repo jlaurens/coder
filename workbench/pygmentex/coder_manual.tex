@@ -6,12 +6,20 @@
 \usepackage{fontspec}
 \usepackage{xcolor}
 \usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    linkcolor={red!50!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+}
+\usepackage{float}
 \usepackage{tcolorbox}
 \usepackage{fancyvrb-ex}
 \usepackage{coder}
 \usepackage{lipsum}
 \usepackage{luacode} % JL
 \usepackage{unicode-math}
+\usepackage{multicol}
 
 \typeout{************** REMOVE!!}
 \CDRSet{python path=/Users/jlaurens/opt/anaconda3/bin/python}
@@ -33,9 +41,6 @@
 \cs_new:Npn \MyOption #1 {
   \texttt{#1}
 }
-\cs_new:Npn \MyMeta #1 {
-  {\normalfont$⟨${\itshape#1}$⟩$}
-}
 
 \ExplSyntaxOff
 
@@ -47,8 +52,16 @@
   }
 }
 
+\NewDocumentCommand \MyMeta {om} {%
+  {\normalfont$⟨${\itshape#2}$⟩$%
+  \IfValueT{#1}{\textsubscript{#1}}}%
+}
+\let\meta\MyMeta
+
+\def\CDRCheckRed {}
+
 \begin{document}
-\title{Manual of the \pkg{coder} package}
+\title{User manual for the \pkg{coder} package}
 \author{Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}}
 \maketitle
 \section{Installation}
@@ -134,6 +147,7 @@ To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while
     escapeinside=⟨⟩,
   }
 }
+\begin{figure}
 \begin{center}
 \begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
 \begin{minipage}[t]{0.9\linewidth}
@@ -161,11 +175,23 @@ def factorial(n):
 \end{minipage}%
 \end{tabular}
 \end{center}
+\caption{First example}
+\label{fig:First example}
+\end{figure}
 The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} on the left and style \texttt{trac} on the right. Line numbering may appear on both sides of the code, or may be hidden.
 %
+\subsection{\cs{CDRCode} command}
+Inserting code as inline text is possible with the command \CDRCode[tags=src]|\CDRCode| which syntax is
+\begin{CDRBlock}[tags=src]
+\CDRCode[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]?⟨\MyMeta{inline code chunk}⟩?
+\end{CDRBlock}
+Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course.
+
+The available options are collected in section \ref{sect:options} because they are shared.
 \subsection{The \texttt{CDRBlock} environment}
-Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line consisting literally of \CDRCode[lang=tex]|\end{CDRBlock}|, with no extra space.
-Optional key--value options are enclosed with square brackets. The opening bracket must follow the \CDRCode[lang=tex]|\begin{CDRBlock}| insruction, on the same line. For the previous example, the input was
+Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line literally consisting  of \CDRCode[lang=tex]|\end{CDRBlock}|, with no extra space.
+Optional key--value options are enclosed with square brackets. The opening bracket must follow the \CDRCode[lang=tex]|\begin{CDRBlock}| instruction, on the very same line. For the first examples of figure \ref{fig:First example}, the input was
+\begin{figure}[H]
 \begin{center}
 \begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
 \begin{minipage}[t]{0.9\linewidth}
@@ -197,17 +223,126 @@ def factorial(n):
 \end{minipage}%
 \end{tabular}
 \end{center}
+\caption{Source of figure \ref{fig:First example}}
+\end{figure}
 %
-\subsection{\cs{CDRCode} command}
-Inserting code as inline text is possible with the command \cs{CDRCode} which syntax is
+\section{Decorations}
+\subsection{Tags}
+For the \CDRCode|CDRBlock| environment, the \CDRCode|show tags| option allows to display the list of tags.
+The possible choices are
+\setlength{\columnsep}{1cm}
+\begin{multicols}{2}
+\CDRSet{
+  tag/dummy = {
+    frame=single,
+    resetmargins=true,
+  },
+}
 \begin{CDRBlock}[tags=src]
-\CDRCode[⟨\MyMeta{key--value optional arguments}⟩]?⟨\MyMeta{inline code chunk}⟩?
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  show tags=none,
+]
+...
+\end{⟨CDRBlock⟩}
 \end{CDRBlock}
-Here the question mark \CDRCode|?| stands for quite any unicode character, one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course.
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=none,
+]
+...
+\end{CDRBlock}
+
+\begin{description}
+\itemtt[\CDRCheckRed show tags=none]: no display
+\begin{CDRBlock}[
+  tags=none,
+  show tags=none,
+  numbers=none,
+  frame=single
+]
+no tags displayed
+\end{CDRBlock}
+\itemtt[\CDRCheckRed show tags=left] display on the left side of the code,
+\begin{CDRBlock}[
+  tags=left,
+  show tags=left,
+  numbers=none,
+  frame=single
+]
+a left tag on the left
+\end{CDRBlock}
+\itemtt[\CDRCheckRed show tags=right] display on the right side of the code,
+\begin{CDRBlock}[
+  tags=right,
+  show tags=right,
+  numbers=none,
+  frame=single
+]
+a right tag on the right
+\end{CDRBlock}
+\itemtt[\CDRCheckRed show tags=numbers] display if numbers are dispayed and on the same side,
+\begin{CDRBlock}[
+  tags = left,
+  show tags=numbers,
+  numbers=left,
+  frame=single
+]
+tags and number on the left
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags     = left,
+  show tags= numbers,
+  numbers  = left,
+  frame    = single,
+]
+tags and number on the right
+\end{CDRBlock}
+\itemtt[\CDRCheckRed show tags=mirror] display if numbers are dispayed and on the opposite side,
+\end{description}
+\end{multicols}
+OTHER
+\begin{description}
+\itemtt[\CDRCheckRed show tags=none]: no display
+\itemtt[\CDRCheckRed show tags=left] display on the left side of the code,
+\itemtt[\CDRCheckRed show tags=right] display on the right side of the code,
+\itemtt[\CDRCheckRed show tags=numbers] display if numbers are dispayed and on the same side,
+\itemtt[\CDRCheckRed show tags=mirror] display if numbers are dispayed and on the opposite side,
+\end{description}
+\subsection{Line numbering}
+Line numbering only makes sense for block code chunks.
+Number 
+\subsection{Framing}
+
+\subsection{Options}
+\label{sect:options}
+\subsubsection{Shared by \cs{CDRCode} and \texttt{CDrBlock} environment}
+\begin{description}
+\itemtt[\CDRCheckRed tags={\{\meta[1]{tag},\meta[2]{tag},...\}}]
+used for exportation, see section \ref{sect:exportation}, and also for styling, see section \ref{sect:styling}.
+Initially a void list. 
+\itemtt
+\end{description}
+%__tags, __engine, __pygments, default, 
+\subsubsection{Specific to \cs{CDRCode}}
+%    \g_CDR_tags_clist,
+%    __code, default.code,
+\begin{description}
+\itemtt
+\end{description}
+\subsubsection{Specific to \texttt{CDrBlock} environment}
+\begin{description}
+\itemtt
+\end{description}
+%    __block, default.block, __pygments.block,
+%    __fancyvrb.block __fancyvrb.frame, __fancyvrb.number, __fancyvrb,
+
+
 
 \section{Export code with \cs{CDRExport}}
+\label{sect:exportation}
 \subsection{Usage}
-The syntax for the \cs{CDRExport} command is the following, where both \CDRCode|file| key must be provided with a non empty value,
+The syntax for the \cs{CDRExport} command is the following, where the \CDRCode|file| key must be provided with a non empty value,
 \begin{CDRBlock}[tags=src]
 \CDRExport{
   file={⟨\MyMeta{output file path}⟩},
@@ -222,10 +357,26 @@ At the end of the typesetting process, all the code chunks with \MyMeta{tag}\tex
 \end{CDRBlock}
 are collected in the order of the source, then all the code chunks with \MyMeta{tag}\textsubscript{2} are collected in turn,... Finally, the result is written to \MyMeta{output file path}.
 
-If the \CDRCode|tags| list is void, no exportation takes place.
+If the \CDRCode|tags| list is void, no exportation takes place. This exportation list can contain macros.
 \subsection{Options}
 \begin{description}
-\itemtt
+\itemtt[lang=\MyMeta{language}]
+One of the languages \pkg{pygments} is aware of, the list of officially supported languages is available at \url{https://pygments.org/languages/}.
+Initially \CDRCode|tex|.
+Every subsequent code chunk which first tag is in the exportation list will have the same \CDRCode|lang| option, unil the next change. 
+\itemtt[preamble=\MyMeta{preamble text}]
+The \MyMeta{preamble text} is saved before the collected code chunks unless the \CDRCode|raw| option is set to \CDRCode|true|.
+Initially empty.
+the \MyMeta{postamble text} is saved after the code collected chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. Initially empty.
+\itemtt[raw{[=true$\vert$false]}]
+When \CDRCode|true|, a preamble and postamble will be added to all the collected code chunks. Initially |false|.
+\itemtt[once{[=true$\vert$false]}]
+Consider for example the exportation \CDRCode|tags| list
+\MyMeta{tag}\textsubscript{1},\MyMeta{tag}\textsubscript{2}.
+If a block code chunk has exactly the same tag list, then it should be exported when \MyMeta{tag}\textsubscript{1} codes are collected but also when \MyMeta{tag}\textsubscript{2} codes are collected.
+If the \CDRCode|once| option is set to \CDRCode|true|,
+such a code chunk will be only be exported the first time, and will be ignored afterwards.
+Initially |true|: export only once.
 \end{description}
 %    lang = tex,
 %    preamble =,
@@ -739,7 +890,7 @@ which names something. String literals in C looks like
 
 \begin{Example}
 This one
-\pyginline[lang=ocaml,font=\ttfamily\scriptsize,topline=false]:let x = [1;2;3] in length x:
+\pyginline[lang=ocaml,font=\ttfamily\scriptsize,topline=false] let x = [1;2;3] in length x:
 is an OCaml expression with local bindings. With OCaml one can do
 imperative, functional and object oriented programming.
 \end{Example}

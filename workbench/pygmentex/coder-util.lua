@@ -25,7 +25,6 @@ local lpeg  = require("lpeg")
 local P, Cg, Cp, V = lpeg.P, lpeg.Cg, lpeg.Cp, lpeg.V
 local json  = require('lualibs-util-jsn')
 local CDR_PY_PATH = kpse.find_file('coder-tool.py')
-local PYTHON_PATH = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
 local function set_python_path(self, path_var)
   local path, mode, _, __
   if path_var then
@@ -49,8 +48,14 @@ local function set_python_path(self, path_var)
     tex.print('false')
   end
 end
+local JSON_boolean_true = {
+  __cls__ = 'BooleanTrue',
+}
+local JSON_boolean_false = {
+  __cls__ = 'BooleanFalse',
+}
 local function is_truthy(s)
-  return s == 'true'
+  return s == JSON_boolean_true or s == 'true'
 end
 local function escape(s)
   s = s:gsub(' ','\\ ')
@@ -170,7 +175,11 @@ local function hilight_set(self, key, value)
       end
     end
   end
-  t[key] = value
+  if t[key] == JSON_boolean_true or t[key] == JSON_boolean_false then
+    t[key] = value == true and JSON_boolean_true or JSON_boolean_false
+  else
+    t[key] = value
+  end
 end
 
 local function hilight_set_var(self, key, var)
@@ -180,7 +189,7 @@ local function hilight_source(self, sty, src)
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
-  local inline = texopts.is_inline
+  local inline = self.is_truthy(texopts.is_inline)
   local use_cache = self.is_truthy(args.cache)
   local use_py = false
   local cmd = self.PYTHON_PATH..' '..self.CDR_PY_PATH
@@ -267,19 +276,19 @@ local function hilight_code_setup(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
     source  = '',
-    cache   = true,
-    debug   = false,
+    cache   = JSON_boolean_true,
+    debug   = JSON_boolean_false,
     pygopts = {
       __cls__ = 'PygOpts',
       lang    = 'tex',
       style   = 'default',
-      mathescape   = false,
+      mathescape   = JSON_boolean_false,
       escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
       tags    = '',
-      is_inline = true,
+      is_inline = JSON_boolean_true,
       pyg_sty_p = '',
     },
     fv_opts = {
@@ -288,28 +297,27 @@ local function hilight_code_setup(self)
   }
   self.hilight_json_written = false
 end
-
 local function hilight_block_setup(self, tags_clist_var)
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
   self['.tags clist'] = tags_clist
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
-    cache   = false,
-    debug   = false,
+    cache   = JSON_boolean_false,
+    debug   = JSON_boolean_false,
     source  = nil,
     pygopts = {
       __cls__ = 'PygOpts',
       lang = 'tex',
       style = 'default',
-      texcomments  = false,
-      mathescape   = false,
+      texcomments  = JSON_boolean_false,
+      mathescape   = JSON_boolean_false,
       escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
       tags    = tags_clist,
-      is_inline = false,
+      is_inline = JSON_boolean_false,
       pyg_sty_p = '',
     },
     fv_opts = {
