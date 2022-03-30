@@ -22,7 +22,7 @@ THIS_IS_VOID=\CDR_tag_get:cc { A } { B }\\
 
 \CDR_tag_set:ccn { A } { B } { OK }
 \str_set:Nx \l_keys_path_str {
-  \c_CDR_tag / a / b / c
+  \c_CDR_tags / a / b / c
 }
 \CDR_tag_set:n { OK }
 
@@ -52,8 +52,8 @@ THIS_IS_VOID=\CDR_tag_get:cc { A } { B }\\
 \CDR_tag_keys_define:nn { B } { b .code:n = \typeout{b=#1} }
 \CDR_tag_keys_set:nn { B } { b=b }
 
-\exp_args:Nf \keys_define:nn { CDR@Tags/tag } {
-  child .inherit:n = { CDR@Tags/tag/A, CDR@Tags/tag/B}
+\exp_args:Nf \keys_define:nn { CDR@Tag/tags } {
+  child .inherit:n = { CDR@Tag/tags/A, CDR@Tag/tags/B}
 }
 \CDR_tag_keys_set:nn { child } { a=a, b=b }
 

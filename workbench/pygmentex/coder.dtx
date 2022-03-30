@@ -698,22 +698,26 @@ local function set_python_path(self, path_var)
   if path_var then
     path = assert(token.get_macro(path_var))
     mode,_,__ = lfs.attributes(path,'mode')
-    print('**** CDR mode', mode)
-    assert(mode == 'file' or mode == 'link')
-  else
-    path = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
+    print('**** CDR mode', path, mode)
   end
-  self.PYTHON_PATH = path
-  print('**** CDR python path', self.PYTHON_PATH)
-  path = path:match("^(.+/)")..'pygmentize'
-  mode,_,__ = lfs.attributes(path,'mode')
-  print('**** CDR path, mode', path, mode)
+  if not mode then
+    path = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
+    mode,_,__ = lfs.attributes(path,'mode')
+    print('**** CDR mode', path, mode)
+  end
   if mode == 'file' or mode == 'link' then
-    self.PYGMENTIZE_PATH = path
-    tex.print('true')
+    self.PYTHON_PATH = path
+  	  print('**** CDR python path', self.PYTHON_PATH)
+	   path = path:match("^(.+/)")..'pygmentize'
+	   mode,_,__ = lfs.attributes(path,'mode')
+	   print('**** CDR path, mode', path, mode)
+    if mode == 'file' or mode == 'link' then
+	     tex.print('true')
+    else
+	     tex.print('false')
+    end
   else
-    self.PYGMENTIZE_PATH = ''
-    tex.print('false')
+    self.PYTHON_PATH = nil    
   end
 end
 %    \end{MacroCode}
@@ -986,6 +990,9 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function hilight_source(self, sty, src)
+  if not self.PYTHON_PATH then
+    return
+  end
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
@@ -1957,8 +1964,8 @@ if __name__ == '__main__':
 %   \end{syntax}
 %   Execute \metatt{true code} when \pkg{pygments} is available,
 % \meta{false code} otherwise.
-% \emph{Implementation detail}: we define the conditionals and set
-% them afterwards.
+% \emph{Implementation detail}: we define the conditionals to raise and set
+% them later by a call to |\CDR_pygments_setup:n|.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
@@ -1966,10 +1973,26 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
+% \begin{function} { \CDR_pygments_setup:n }
+%   \begin{syntax}
+%     \cs{CDR_pygments_setup:n} \Arg{boolean string}
+%   \end{syntax}
+% Set up the conditional set |\CDR_has_pygments...| according to \metatt{boolean string}. When this string is |true|, then \pkg{\jobname} has pygments, it has not otherwise.
+% \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_pygments_setup:n #1 {
-  \CDR_set_conditional:Nn \CDR_has_pygments: {
-    \str_if_eq_p:nn { #1 } { true }
+  \cs_undefine:N \CDR_has_pygments:T
+  \cs_undefine:N \CDR_has_pygments:F
+  \cs_undefine:N \CDR_has_pygments:TF
+  \cs_undefine:N \CDR_has_pygments_p:
+  \str_if_eq:nnTF { #1 } { true } {
+    \prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
+      \prg_return_true:
+    }
+  } {
+    \prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
+      \prg_return_false:
+    }
   }
 }
 \lua_now:n { CDR = require("coder-util") }
@@ -2019,13 +2042,13 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 % \section{Constants}
-% \begin{variable}{\c_CDR_tag,\c_CDR_Tags}
+% \begin{variable}{\c_CDR_tags,\c_CDR_Tag}
 % Paths of \pkg{L3keys} modules.\\
 % These are root path components used throughout the pakage.
 % The latter is a subpath of the former.
 %    \begin{MacroCode}[OK]
-\str_const:Nn \c_CDR_Tags { CDR@Tags }
-\str_const:Nx \c_CDR_tag { \c_CDR_Tags / tag }
+\str_const:Nn \c_CDR_Tag { CDR@Tag }
+\str_const:Nx \c_CDR_tags { \c_CDR_Tag / tags }
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -2453,7 +2476,7 @@ if __name__ == '__main__':
 % To parse a \pkg{l3keys} full key path.
 %    \begin{MacroCode}[OK]
 \tl_set:Nn \l_CDR_tl { /([^/]*)/(.*)$ } \use_none:n { $ }
-\tl_put_left:NV \l_CDR_tl \c_CDR_tag
+\tl_put_left:NV \l_CDR_tl \c_CDR_tags
 \tl_put_left:Nn \l_CDR_tl { ^ }
 \exp_args:NNV
 \regex_const:Nn \c_CDR_tag_regex \l_CDR_tl
@@ -2467,7 +2490,7 @@ if __name__ == '__main__':
 % The value is provided but not the \meta{dir} nor the \meta{relative key path},
 % both are guessed from |\l_keys_path_str|.
 % More precisely, |\l_keys_path_str| is expected to read something like
-% \cs{c_CDR_tag}|/|\metatt{tag name}|/|\metatt{relative key path},
+% \cs{c_CDR_tags}|/|\metatt{tag name}|/|\metatt{relative key path},
 % an error is raised on the contrary.
 % This is meant to be called from |\keys_define:nn| argument.
 % Implementation detail: the last argument is parsed by the last command.
@@ -2979,9 +3002,9 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
 \cs_set:Npn \CDR_tag_module:n #1 {
   \str_if_eq:nnTF { #1 } { .. } {
-    \c_CDR_Tags
+    \c_CDR_Tag
   } {
-    \tl_if_empty:nTF { #1 } { \c_CDR_Tags / tag } { \c_CDR_Tags / tag / #1 }
+    \tl_if_empty:nTF { #1 } { \c_CDR_tags } { \c_CDR_tags / #1 }
   }
 }
 %    \end{MacroCode}
