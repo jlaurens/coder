@@ -36,16 +36,16 @@ Tests of \cs{CDRSet}
 
 \ExplSyntaxOff
 
-\subsection{\texttt{tag/default}}
+\subsection{\texttt{tags/default}}
 \ExplSyntaxOn
 \group_begin:
 \ExplSyntaxOff
 
 \CDRSet {
-  tag/default/post processor=ABCD,
-  tag/default/engine = falbala,
-  tag/default/default engine options=DEFAULT,
-  tag/default/falbala engine options=FALBALA,
+  tags/default/post processor=ABCD,
+  tags/default/engine = falbala,
+  tags/default/default engine options=DEFAULT,
+  tags/default/falbala engine options=FALBALA,
 }
 
 \ExplSyntaxOn
@@ -97,19 +97,19 @@ FALSE==
 \group_end:
 \ExplSyntaxOff
 
-\subsection{\CDRCmd{tag/<name>:__pygments}}
+\subsection{\CDRCmd{tags/<name>:__pygments}}
 \ExplSyntaxOn
 \group_begin:
 %\makeatletter
 %\def\CDR@Debug{\typeout}
 %\makeatother
 \CDRSet{
-  tag/<name>/lang = A,
-  tag/<name>/pygments = B,
-  tag/<name>/style=C,
-  tag/<name>/commandprefix=D,
-  tag/<name>/mathescape=FAlsE,
-  tag/<name>/escapeinside=H,
+  tags/<name>/lang = A,
+  tags/<name>/pygments = B,
+  tags/<name>/style=C,
+  tags/<name>/commandprefix=D,
+  tags/<name>/mathescape=FAlsE,
+  tags/<name>/escapeinside=H,
 }
 
 \CDR_test:cncn { <name> } { tl } { lang } { A }
@@ -138,19 +138,19 @@ FALSE==
 \group_end:
 \ExplSyntaxOff
 
-\subsection{\CDRCmd{tag/<name>:__pygments.block}}
+\subsection{\CDRCmd{tags/<name>:__pygments.block}}
 
 \ExplSyntaxOn
 \group_begin:
 \ExplSyntaxOff
 
 \CDRSet{
-  tag/N/stepnumber = 5,
+  tags/N/stepnumber = 5,
 }
 
 \CDRSet{
-  tag/<name>/texcomments = A,
-  tag/<name>/texcomments = FALse,
+  tags/<name>/texcomments = A,
+  tags/<name>/texcomments = FALse,
 }
 
 \ExplSyntaxOn
@@ -172,7 +172,7 @@ FALSE==
 \group_end:
 \ExplSyntaxOff
 
-\subsection{\CDRCmd{tag/<name>:default.code}}
+\subsection{\CDRCmd{tags/<name>:default.code}}
 \ExplSyntaxOn
 \group_begin:
 
@@ -206,7 +206,7 @@ FALSE==
 \group_end:
 \ExplSyntaxOff
 
-\subsection{\CDRCmd{tag/<name>:default.block}}
+\subsection{\CDRCmd{tags/<name>:default.block}}
 
 \ExplSyntaxOn
 \group_begin:
@@ -216,12 +216,12 @@ FALSE==
 }
 
 \CDRSet{
-    tag/<name>/tags = A,
-    tag/<name>/show~tags = right,
-    tag/<name>/only~top = true,
-    tag/<name>/use~margin = false,
-    tag/<name>/tags~format = H,
-    tag/<name>/vspace = 2.34\baselineskip,
+    tags/<name>/tags = A,
+    tags/<name>/show~tags = right,
+    tags/<name>/only~top = true,
+    tags/<name>/use~margin = false,
+    tags/<name>/tags~format = H,
+    tags/<name>/vspace = 2.34\baselineskip,
 }
 
 \CDR_test:cncn { <name> } { tl } { tags } { A }
@@ -276,21 +276,21 @@ X\hspace{\CDR_tag_get:cc { <name> } { vspace }}X
 \group_end:
 \ExplSyntaxOff
 
-\subsection{\CDRCmd{tag/<name>:__fancyvrb}}
+\subsection{\CDRCmd{tags/<name>:__fancyvrb}}
 \ExplSyntaxOn
 \group_begin:
 
 \CDRSet{
-    tag/<name>/formatcom = A,
-    tag/<name>/fontfamily = B,
-    tag/<name>/fontsize = C,
-    tag/<name>/fontshape = D,
-    tag/<name>/showspaces = true,
-    tag/<name>/showtabs = false,
-    tag/<name>/obeytabs = true,
-    tag/<name>/tabsize = 4,
-    tag/<name>/defineactive = E,
-    tag/<name>/reflabel = F,
+    tags/<name>/formatcom = A,
+    tags/<name>/fontfamily = B,
+    tags/<name>/fontsize = C,
+    tags/<name>/fontshape = D,
+    tags/<name>/showspaces = true,
+    tags/<name>/showtabs = false,
+    tags/<name>/obeytabs = true,
+    tags/<name>/tabsize = 4,
+    tags/<name>/defineactive = E,
+    tags/<name>/reflabel = F,
 }
 
 \prop_set_from_keyval:Nn \l_CDR_test_prop {
@@ -380,7 +380,7 @@ X\hspace{\CDR_tag_get:cc { <name> } { vspace }}X
 \group_end:
 \ExplSyntaxOff
 
-\subsection{\CDRCmd{tag/<name>:__fancyvrb.block}}
+\subsection{\CDRCmd{tags/<name>:__fancyvrb.block}}
 \ExplSyntaxOn
 \group_begin:
 
@@ -389,25 +389,25 @@ X\hspace{\CDR_tag_get:cc { <name> } { vspace }}X
 \makeatother
 
 \CDRSet{
-    tag/<name>/commentchar = A,
-    tag/<name>/gobble = 0,
-    tag/<name>/frame = none,
-    tag/<name>/label = B,
-    tag/<name>/labelposition = none,% auto?
-    tag/<name>/numbers = left,
-    tag/<name>/numbersep = \hspace{1ex},
-    tag/<name>/firstnumber = auto,
-    tag/<name>/stepnumber = 1,
-    tag/<name>/numberblanklines = true,
-    tag/<name>/firstline = C,
-    tag/<name>/lastline = D,
-    tag/<name>/baselinestretch = auto,
-    tag/<name>/resetmargins = true,
-    tag/<name>/xleftmargin = 0pt,
-    tag/<name>/xrightmargin = 0pt,
-    tag/<name>/hfuzz = 2pt,
-    tag/<name>/vspace = \topsep,
-    tag/<name>/samepage = false,
+    tags/<name>/commentchar = A,
+    tags/<name>/gobble = 0,
+    tags/<name>/frame = none,
+    tags/<name>/label = B,
+    tags/<name>/labelposition = none,% auto?
+    tags/<name>/numbers = left,
+    tags/<name>/numbersep = \hspace{1ex},
+    tags/<name>/firstnumber = auto,
+    tags/<name>/stepnumber = 1,
+    tags/<name>/numberblanklines = true,
+    tags/<name>/firstline = C,
+    tags/<name>/lastline = D,
+    tags/<name>/baselinestretch = auto,
+    tags/<name>/resetmargins = true,
+    tags/<name>/xleftmargin = 0pt,
+    tags/<name>/xrightmargin = 0pt,
+    tags/<name>/hfuzz = 2pt,
+    tags/<name>/vspace = \topsep,
+    tags/<name>/samepage = false,
 }
 \prop_set_from_keyval:Nn \l_CDR_test_prop {
     commentchar = A,
@@ -458,13 +458,13 @@ X\hspace{\CDR_tag_get:cc { <name> } { vspace }}X
 \group_end:
 \ExplSyntaxOff
 
-\subsection{\CDRCmd{tag/<name>:__fancyvrb.all}}
+\subsection{\CDRCmd{tags/<name>:__fancyvrb.all}}
 \ExplSyntaxOn
 \group_begin:
 
 \CDRSet{
-    tag/<name>/commandchars = A,
-    tag/<name>/codes = B,
+    tags/<name>/commandchars = A,
+    tags/<name>/codes = B,
   }
 \prop_set_from_keyval:Nn \l_CDR_test_prop {
     commandchars = A,

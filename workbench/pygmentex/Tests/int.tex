@@ -92,10 +92,10 @@ Tests of \texttt{int}
 \int_new:N \l_CDR_int
 \int_set:Nn \l_CDR_int { 0 }
 \int_set:cn {l_CDR_int} { 0 }
-\int_if_exist:cTF {CDR@int.__} TF
+\int_if_exist:cTF {CDR@int.__n} TF
 
-\int_set:cn {CDR@int.__} { 0 }
-\CDR_int_set:cn { __ } { 0 }
+\int_set:cn {CDR@int.__n} { 0 }
+\CDR_int_set:cn { __n } { 0 }
 
 \clist_set:Nn \g_CDR_tags_clist { A, B, C }
 \clist_clear:N \l_CDR_kv_clist
@@ -105,7 +105,7 @@ Tests of \texttt{int}
           \CDR_int_if_exist:cF { ##1 } {
             \CDR_int_new:cn { ##1 } { 1 }
           }
-          \CDR_int_set:cc { __ } { ##1 }
+          \CDR_int_set:cc { __n } { ##1 }
           \clist_put_right:Nx \l_CDR_kv_clist {
             firstnumber = \CDR_int_use:c { ##1 }
           }
