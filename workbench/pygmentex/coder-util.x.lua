@@ -30,22 +30,26 @@ local function set_python_path(self, path_var)
   if path_var then
     path = assert(token.get_macro(path_var))
     mode,_,__ = lfs.attributes(path,'mode')
-    print('**** CDR mode', mode)
-    assert(mode == 'file' or mode == 'link')
-  else
-    path = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
+    print('**** CDR mode', path, mode)
   end
-  self.PYTHON_PATH = path
-  print('**** CDR python path', self.PYTHON_PATH)
-  path = path:match("^(.+/)")..'pygmentize'
-  mode,_,__ = lfs.attributes(path,'mode')
-  print('**** CDR path, mode', path, mode)
+  if not mode then
+    path = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
+    mode,_,__ = lfs.attributes(path,'mode')
+    print('**** CDR mode', path, mode)
+  end
   if mode == 'file' or mode == 'link' then
-    self.PYGMENTIZE_PATH = path
-    tex.print('true')
+    self.PYTHON_PATH = path
+     print('**** CDR python path', self.PYTHON_PATH)
+   path = path:match("^(.+/)")..'pygmentize'
+   mode,_,__ = lfs.attributes(path,'mode')
+   print('**** CDR path, mode', path, mode)
+    if mode == 'file' or mode == 'link' then
+     tex.print('true')
+    else
+     tex.print('false')
+    end
   else
-    self.PYGMENTIZE_PATH = ''
-    tex.print('false')
+    self.PYTHON_PATH = nil
   end
 end
 local JSON_boolean_true = {
@@ -186,6 +190,9 @@ local function hilight_set_var(self, key, var)
   self:hilight_set(key, assert(token.get_macro(var or 'l_CDR_tl')))
 end
 local function hilight_source(self, sty, src)
+  if not self.PYTHON_PATH then
+    return
+  end
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts

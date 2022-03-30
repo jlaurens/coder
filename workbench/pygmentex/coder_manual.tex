@@ -120,26 +120,26 @@ To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while
 \CDRSet{
   showspaces,
   only top,
-  tag/lua={
+  tags/lua={
     lang=lua,
     style=autumn,
     numbers=right,
     show tags=mirror,
   },
-  tag/python={
+  tags/python={
     lang=python,
     style=trac,
     numbers=left,
     show tags=mirror,
   },
-  tag/latex={
+  tags/latex={
     lang=tex,
     style=default,
     numbers=left,
     show tags=none,
     escapeinside=⟨⟩,
   },
-  tag/src={
+  tags/src={
     lang=tex,
     style=default,
     numbers=none,
@@ -229,89 +229,162 @@ def factorial(n):
 \section{Decorations}
 \subsection{Tags}
 For the \CDRCode|CDRBlock| environment, the \CDRCode|show tags| option allows to display the list of tags.
-The possible choices are
-\setlength{\columnsep}{1cm}
-\begin{multicols}{2}
+The possible choices are illustrated hereafter below each source.
+\setlength{\columnsep}{15mmm}
+\colorlet{CDROption}{magenta!66!black}
+\begin{multicols}{3}
 \CDRSet{
-  tag/dummy = {
+  tags/dummy = {
     frame=single,
     resetmargins=true,
   },
 }
+%
 \begin{CDRBlock}[tags=src]
 \begin{⟨CDRBlock⟩}[
   tags = dummy,
-  show tags=none,
+  ⟨\textcolor{CDROption}{\textbf{show tags=none}}⟩,
 ]
-...
+no tags
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
 \begin{CDRBlock}[
   tags = dummy,
   show tags=none,
+  frame=single,
 ]
-...
+no tags
 \end{CDRBlock}
-
-\begin{description}
-\itemtt[\CDRCheckRed show tags=none]: no display
-\begin{CDRBlock}[
-  tags=none,
-  show tags=none,
-  numbers=none,
-  frame=single
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=left}}⟩,
 ]
-no tags displayed
+tags on the left
+\end{⟨CDRBlock⟩}
 \end{CDRBlock}
-\itemtt[\CDRCheckRed show tags=left] display on the left side of the code,
 \begin{CDRBlock}[
-  tags=left,
+  tags = dummy,
   show tags=left,
-  numbers=none,
-  frame=single
+  frame=single,
 ]
-a left tag on the left
+tags on the left
 \end{CDRBlock}
-\itemtt[\CDRCheckRed show tags=right] display on the right side of the code,
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=right}}⟩,
+]
+tags on the right
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
 \begin{CDRBlock}[
-  tags=right,
+  tags = dummy,
   show tags=right,
-  numbers=none,
-  frame=single
+  frame=single,
 ]
-a right tag on the right
+tags on the right
 \end{CDRBlock}
-\itemtt[\CDRCheckRed show tags=numbers] display if numbers are dispayed and on the same side,
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=numbers}}⟩,
+]
+tags like numbers
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
 \begin{CDRBlock}[
-  tags = left,
+  tags = dummy,
   show tags=numbers,
   numbers=left,
-  frame=single
+  frame=single,
 ]
-tags and number on the left
+tags like numbers
+\end{CDRBlock}
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=numbers}}⟩,
+]
+tags like numbers
+\end{⟨CDRBlock⟩}
 \end{CDRBlock}
 \begin{CDRBlock}[
-  tags     = left,
-  show tags= numbers,
-  numbers  = left,
-  frame    = single,
+  tags = dummy,
+  show tags=numbers,
+  numbers=right,
+  frame=single,
 ]
-tags and number on the right
+tags like numbers
 \end{CDRBlock}
-\itemtt[\CDRCheckRed show tags=mirror] display if numbers are dispayed and on the opposite side,
-\end{description}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=mirror}}⟩,
+]
+tags in mirror
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=mirror,
+  numbers=left,
+  frame=single,
+]
+tags in mirror
+\end{CDRBlock}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=mirror}}⟩,
+]
+tags in mirror
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=mirror,
+  numbers=right,
+  frame=single,
+]
+tags in mirror
+\end{CDRBlock}
 \end{multicols}
-OTHER
-\begin{description}
-\itemtt[\CDRCheckRed show tags=none]: no display
-\itemtt[\CDRCheckRed show tags=left] display on the left side of the code,
-\itemtt[\CDRCheckRed show tags=right] display on the right side of the code,
-\itemtt[\CDRCheckRed show tags=numbers] display if numbers are dispayed and on the same side,
-\itemtt[\CDRCheckRed show tags=mirror] display if numbers are dispayed and on the opposite side,
-\end{description}
+%
 \subsection{Line numbering}
 Line numbering only makes sense for block code chunks.
-Number 
+Options are illustrated below each source.
+
+\begin{multicols}{3}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=mirror}}⟩,
+]
+tags in mirror
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=mirror,
+  numbers=right,
+  frame=single,
+]
+tags in mirror
+\end{CDRBlock}
+
+\end{multicols}
+
+
+
+\end{document}
+
 \subsection{Framing}
 
 \subsection{Options}

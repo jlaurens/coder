@@ -74,8 +74,18 @@
   \PackageError { coder } { Internal~error(pygments~path) } { Please~report~error }
 }
 \cs_new:Npn \CDR_pygments_setup:n #1 {
-  \CDR_set_conditional:Nn \CDR_has_pygments: {
-    \str_if_eq_p:nn { #1 } { true }
+  \cs_undefine:N \CDR_has_pygments:T
+  \cs_undefine:N \CDR_has_pygments:F
+  \cs_undefine:N \CDR_has_pygments:TF
+  \cs_undefine:N \CDR_has_pygments_p:
+  \str_if_eq:nnTF { #1 } { true } {
+    \prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
+      \prg_return_true:
+    }
+  } {
+    \prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
+      \prg_return_false:
+    }
   }
 }
 \lua_now:n { CDR = require("coder-util") }
@@ -111,8 +121,8 @@
 \msg_new:nnn { coder } { unknown-choice } {
   #1~given~value~`#3'~not~in~#2
 }
-\str_const:Nn \c_CDR_Tags { CDR@Tags }
-\str_const:Nx \c_CDR_tag { \c_CDR_Tags / tag }
+\str_const:Nn \c_CDR_Tag { CDR@Tag }
+\str_const:Nx \c_CDR_tags { \c_CDR_Tag / tags }
 \str_const:Nn \c_CDR_tag_get { CDR@tag@get }
 \cs_new:Npn \CDR@Debug { \use_none:n }
 \bool_new:N \l_CDR_bool
@@ -223,7 +233,7 @@
   \CDR_tag_set:ccn { #1 } { #2 } #3
 }
 \tl_set:Nn \l_CDR_tl { /([^/]*)/(.*)$ } \use_none:n { $ }
-\tl_put_left:NV \l_CDR_tl \c_CDR_tag
+\tl_put_left:NV \l_CDR_tl \c_CDR_tags
 \tl_put_left:Nn \l_CDR_tl { ^ }
 \exp_args:NNV
 \regex_const:Nn \c_CDR_tag_regex \l_CDR_tl
@@ -471,9 +481,9 @@
 \cs_new:Npn \CDR_process_record: {}
 \cs_set:Npn \CDR_tag_module:n #1 {
   \str_if_eq:nnTF { #1 } { .. } {
-    \c_CDR_Tags
+    \c_CDR_Tag
   } {
-    \tl_if_empty:nTF { #1 } { \c_CDR_Tags / tag } { \c_CDR_Tags / tag / #1 }
+    \tl_if_empty:nTF { #1 } { \c_CDR_tags } { \c_CDR_tags / #1 }
   }
 }
 \cs_new:Npn \CDR_tag_keys_define:nn #1 {
