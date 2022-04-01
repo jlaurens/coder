@@ -1076,8 +1076,35 @@ local function hilight_code_setup(self)
     }
   }
   self.hilight_json_written = false
+end
+%    \end{MacroCode}
+%
+% \begin{function}{save_synctex_state}
+% \begin{syntax}
+% CDR:save_synctex_state()
+% \end{syntax}
+% Save the Sync\TeX\ state.
+% \end{function}
+%    \begin{MacroCode}
+local function save_synctex_state(self)
   self.synctex_tag  = tex.get_synctex_tag();
   self.synctex_line = tex.inputlineno;
+  self.synctex_mode = tex.get_synctex_mode();
+  tex.set_synctex_mode(1)
+end
+%    \end{MacroCode}
+%
+% \begin{function}{restore_synctex_state}
+% \begin{syntax}
+% CDR:restore_synctex_state()
+% \end{syntax}
+% Save the Sync\TeX\ state.
+% \end{function}
+%    \begin{MacroCode}
+local function restore_synctex_state(self)
+  tex.force_synctex_tag(self.synctex_tag)
+  tex.force_synctex_line(self.synctex_line)
+  tex.set_synctex_mode(self.synctex_mode)
 end
 %    \end{MacroCode}
 %
@@ -1105,6 +1132,7 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function hilight_block_setup(self, tags_clist_var)
+  self:save_synctex_state()
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
   self['.tags clist'] = tags_clist
   self['.lines'] = {}
@@ -1175,6 +1203,7 @@ local function hilight_block_teardown(self)
       tt[#tt+1] = t
     end
   end
+  self:restore_synctex_state()
 end
 %    \end{MacroCode}
 %
@@ -1395,12 +1424,18 @@ return {
 %    \end{MacroCode}
 % \itemtt[hilight code]
 %    \begin{MacroCode}
-  hilight_code_setup = hilight_code_setup,
+  hilight_code_setup    = hilight_code_setup,
+  hilight_code_teardown = hilight_code_teardown,
 %    \end{MacroCode}
-% \itemtt[hilight_block_setup]
+% \itemtt[hilight block]
 %    \begin{MacroCode}
   hilight_block_setup    = hilight_block_setup,
   hilight_block_teardown = hilight_block_teardown,
+%    \end{MacroCode}
+% \itemtt[synctex state]
+%    \begin{MacroCode}
+  save_synctex_state    = save_synctex_state,
+  restore_synctex_state = restore_synctex_state,
 %    \end{MacroCode}
 % \itemtt[cache]
 %    \begin{MacroCode}
@@ -5322,11 +5357,6 @@ if __name__ == '__main__':
           \CDR@StyleUseTag
           \lua_now:n { CDR:hilight_source(false, true) }        
           \makeatletter
-          \lua_now:n {
-            CDR.synctex_tag = tex.get_synctex_tag();
-            CDR.synctex_line = tex.inputlineno;
-            tex.set_synctex_mode(1)
-          }
           \CDR_if_tag_truthy:cT { mbox } { \mbox } {
             \input { \l_CDR_pyg_tex_tl }\ignorespaces
           }  
