@@ -1,0 +1,64 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+
+\begin{CDRBlock}[texcomments=false, tags=A]
+The preamble is almost "% My funny preamble"
+2
+The postamble is almost "My funny postamble"
+\end{CDRBlock}
+
+\ExplSyntaxOn
+\CDRHash/\CDRPercent/\\
+\exp_args:NV \tl_to_str:n
+\CDRHash/\exp_args:NV \tl_to_str:n \CDRPercent/\\
+\ExplSyntaxOff
+
+
+\subsection{Two \texttt{\string\CDRExport} calls}
+\CDRExport{
+  file=./Tests/CDRExportAmble.test.txt,
+  postamble={\WHAT<\CDRPercent>\space My funny postamble},
+  tags=A,
+}
+\CDRExport{
+  file=./Tests/CDRExportAmble.test.txt,
+  preamble={<\CDRPercent> My funny <\today> \space preamble},
+  escapeinside=<>,
+}
+\subsection{Files}
+\CDRExport{
+  file=./Tests/CDRExportAmbleFile.test.txt,
+  tags=A,
+  preamble file=./Tests/CDRExportPreambleInput.txt,
+  postamble file=./Tests/CDRExportPostambleInput.txt,
+  escapeinside=<>,
+}
+\makeatletter
+\def\CDR@Debug#1{\typeout{**** #1}}
+\makeatother
+\ExplSyntaxOn
+\CDR_export_complete:
+\ExplSyntaxOff
+\subsection{\ttfamily ./Tests/CDRExportAmble.test.txt:}
+\ExplSyntaxOn
+\group_begin:
+\ttfamily
+\ior_open:Nn \l_CDR_ior { ./Tests/CDRExportAmble.test.txt }
+\ior_str_map_inline:Nn \l_CDR_ior {
+  \hbox to \hsize { #1 \hss}
+}
+\ior_close:N \l_CDR_ior
+\group_end:
+\ExplSyntaxOff
+\subsection{\ttfamily ./Tests/CDRExportAmbleFile.test.txt:}
+\ExplSyntaxOn
+\group_begin:
+\ttfamily
+\ior_open:Nn \l_CDR_ior { ./Tests/CDRExportAmbleFile.test.txt }
+\ior_str_map_inline:Nn \l_CDR_ior {
+  \hbox to \hsize { #1 \hss}
+}
+\ior_close:N \l_CDR_ior
+\group_end:
+\ExplSyntaxOff
+

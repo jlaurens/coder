@@ -144,15 +144,6 @@ and the derived files           \jobname.ins,
   \expandafter\endgroup
 \fi
 %</internal>
-%<*sty>
-%\RequirePackage[font=small,format=plain,labelfont=bf,up,textfont=it,up]{caption}
-%\RequirePackage{caption}
-%\RequirePackage[framemethod=tikz]{mdframed}
-
-%\DeclareCaptionType[within=chapter]{pygcode}[Listagem][Lista de listagens]
-%\DeclareCaptionType{pygcode}[Listagem][Lista de listagens]
-%\captionsetup[pygcode]{position=top}
-%</sty>
 %<*driver,sty>
 \def\CDRFileDate{2022/02/07}
 \def\CDRFileVersion{1.0a}
@@ -612,7 +603,7 @@ and the derived files           \jobname.ins,
 %        delimited by these 2 characters is read as LaTeX code and
 %        typeset accordingly. It has no effect in string literals. It has
 %        no effect in comments if |texcomments| or |mathescape| is
-%        set.
+%        set. The character cannot be a caret |^|.
 % Initially empty.
 % \itemtt[\CDRCheckInternal envname=\meta{name}]^^A
 % Allows you to pick an alternative environment name replacing |Verbatim|.
@@ -805,7 +796,7 @@ end
 % \end{variable}
 % \begin{variable}{json_p}
 % The path of the JSON file used to communicate with \CDRPy{},
-% in general \metatt{jobname}|.pygd/|\metatt{jobname}|.pyg.json|.
+% in general\\\metatt{jobname}|.pygd/|\metatt{jobname}|.pyg.json|.
 % \end{variable}
 %    \begin{MacroCode}[OK]
 local dir_p, json_p
@@ -816,22 +807,6 @@ if make_directory(dir_p) == nil then
   json_p = dir_p..jobname..'.pyg.json'
 else
   json_p = dir_p..'input.pyg.json'
-end
-%    \end{MacroCode}
-% \begin{function}{print_file_content}
-% \begin{syntax}
-% CDR.print_file_content(\meta{macro name})
-% \end{syntax}
-% The command named \metatt{macro name} contains the path to a file.
-% Read the content of that file and print the result to the \TeX{} stream.
-% \end{function}
-%    \begin{MacroCode}[OK]
-local function print_file_content(name)
-  local p = token.get_macro(name)
-  local fh = assert(io.open(p, 'r'))
-  local s = fh:read('a')
-  fh:close()
-  tex.print(s)
 end
 %    \end{MacroCode}
 % \begin{function}{safe_equals}
@@ -1093,6 +1068,7 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function hilight_code_setup(self)
+  self:save_synctex_state()
   self['.arguments'] = {
     __cls__ = 'Arguments',
     source  = '',
@@ -1119,6 +1095,48 @@ local function hilight_code_setup(self)
 end
 %    \end{MacroCode}
 %
+% \begin{function}{save_synctex_state}
+% \begin{syntax}
+% CDR:save_synctex_state()
+% \end{syntax}
+% Save the Sync\TeX\ state.
+% \end{function}
+%    \begin{MacroCode}
+local function save_synctex_state(self)
+  self.synctex_tag  = tex.get_synctex_tag();
+  self.synctex_line = tex.inputlineno;
+  self.synctex_mode = tex.get_synctex_mode();
+  tex.set_synctex_mode(1)
+end
+%    \end{MacroCode}
+%
+% \begin{function}{restore_synctex_state}
+% \begin{syntax}
+% CDR:restore_synctex_state()
+% \end{syntax}
+% Save the Sync\TeX\ state.
+% \end{function}
+%    \begin{MacroCode}
+local function restore_synctex_state(self)
+  tex.force_synctex_tag(self.synctex_tag)
+  tex.force_synctex_line(self.synctex_line)
+  tex.set_synctex_mode(self.synctex_mode)
+end
+%    \end{MacroCode}
+%
+% \begin{function}{hilight_code_teardown}
+% \begin{syntax}
+% CDR:hilight_code_teardown()
+% \end{syntax}
+% Restore the Sync\TeX\ state.
+% \end{function}
+%    \begin{MacroCode}
+local function hilight_code_teardown(self)
+  self:restore_synctex_state()
+end
+
+%    \end{MacroCode}
+%
 % \subsection{Block}
 %
 % \begin{function}{hilight_block_setup}
@@ -1130,6 +1148,7 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function hilight_block_setup(self, tags_clist_var)
+  self:save_synctex_state()
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
   self['.tags clist'] = tags_clist
   self['.lines'] = {}
@@ -1200,6 +1219,7 @@ local function hilight_block_teardown(self)
       tt[#tt+1] = t
     end
   end
+  self:restore_synctex_state()
 end
 %    \end{MacroCode}
 %
@@ -1220,12 +1240,16 @@ end
 %    \begin{MacroCode}[OK]
 local function export_file(self, file_name_var)
   self['.name'] = assert(token.get_macro(assert(file_name_var)))
-  self['.export'] = {}
+  self['.export'] = {
+    preamble = {},
+    postamble = {},
+  }
 end
 %    \end{MacroCode}
-% \begin{function}{export_file_info}
+% \begin{function}{export_file_info, append_file_info}
 % \begin{syntax}
 % CDR:export_file_info(\meta{key}, \meta{value name var})
+% CDR:append_file_info(\meta{key}, \meta{value name var})
 % \end{syntax}
 % This is called at export time.
 % \metatt{value name var} is the name of an \pkg{str} variable
@@ -1237,6 +1261,12 @@ local function export_file_info(self, key, value)
   value = assert(token.get_macro(assert(value)))
   export[key] = value
 end
+local function append_file_info(self, key, value)
+  local export = self['.export']
+  local t = export[key]
+  value = assert(token.get_macro(assert(value)))
+  t[#t+1] = value
+end
 %    \end{MacroCode}
 % \begin{function}{export_complete}
 % \begin{syntax}
@@ -1247,15 +1277,19 @@ end
 %    \begin{MacroCode}[OK]
 local function export_complete(self)
   local name    = self['.name']
+print('**** CDR NAME', name)
   local export  = self['.export']
   local records = self['.records']
-  local raw = export.raw == 'true'
+  local raw  = export.raw  == 'true'
+  local once = export.once == 'true'
+  local tags = export.tags
   local tt = {}
-  local s
+  local s, t, _
+print('**** CDR', tags, raw, once)
   if not raw then
     s = export.preamble
-    if s and #s>0  then
-      tt[#tt+1] = s
+    for _,t in ipairs(s) do
+      tt[#tt+1] = t
     end
   end
   for tag in string.gmatch(export.tags, '([^,]+)') do
@@ -1273,11 +1307,15 @@ local function export_complete(self)
   end
   if not raw then
     s = export.postamble
-    if s and #s>0  then
-      tt[#tt+1] = s
+    for _,t in ipairs(s) do
+      tt[#tt+1] = t
     end
   end
+print('**** CDR', name, #tt)
   if #tt>0 then
+    if #tt[#tt] > 0 then
+      tt[#tt+1] = ''
+    end
     local fh = assert(io.open(name,'w'))
     fh:write(table.concat(tt, '\n'))
     fh:close()
@@ -1402,12 +1440,18 @@ return {
 %    \end{MacroCode}
 % \itemtt[hilight code]
 %    \begin{MacroCode}
-  hilight_code_setup = hilight_code_setup,
+  hilight_code_setup    = hilight_code_setup,
+  hilight_code_teardown = hilight_code_teardown,
 %    \end{MacroCode}
-% \itemtt[hilight_block_setup]
+% \itemtt[hilight block]
 %    \begin{MacroCode}
   hilight_block_setup    = hilight_block_setup,
   hilight_block_teardown = hilight_block_teardown,
+%    \end{MacroCode}
+% \itemtt[synctex state]
+%    \begin{MacroCode}
+  save_synctex_state    = save_synctex_state,
+  restore_synctex_state = restore_synctex_state,
 %    \end{MacroCode}
 % \itemtt[cache]
 %    \begin{MacroCode}
@@ -1437,6 +1481,7 @@ return {
 %    \begin{MacroCode}
   export_file        = export_file,
   export_file_info   = export_file_info,
+  append_file_info   = append_file_info,
   export_complete    = export_complete,
 %    \end{MacroCode}
 % \end{description}
@@ -3209,7 +3254,7 @@ if __name__ == '__main__':
           __fancyvrb.number, __fancyvrb.all,
         }
         \CDR_tag_keys_define:nn { } {
-          ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ####1 },
+          ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ########1 },
           ##1 .value_required:n = true,
         }
 \CDR@Debug{\string\CDR_tag_provide:n \CDR_tag_module:n {##1} = ...}
@@ -3221,7 +3266,7 @@ if __name__ == '__main__':
             \l_CDR_tl {
           \exp_args:Nnf
           \CDR_tag_keys_define:nn { ##1 } {
-            \use:n { \l_CDR_tl } .code:n = \CDR_tag_set:n { ####1 },
+            \use:n { \l_CDR_tl } .code:n = \CDR_tag_set:n { ########1 },
           }
           \exp_args:Nnf
           \CDR_tag_keys_define:nn { ##1 } {
@@ -3844,7 +3889,7 @@ if __name__ == '__main__':
 %
 % Block specific options, except numbering.
 %    \begin{MacroCode}[OK]
-\regex_const:Nn \c_CDR_integer_regex { ^(+|-)?\d+$ } \use_none:n { $ }
+\regex_const:Nn \c_CDR_int_regex { ^(+|-)?\d+$ } \use_none:n { $ }
 \CDR_tag_keys_define:nn { __fancyvrb.block } {
 %    \end{MacroCode}
 % \begin{description}
@@ -3995,7 +4040,7 @@ if __name__ == '__main__':
 % Initially \texttt{auto}: numbering starts from 1.
 %    \begin{MacroCode}[OK]
   firstnumber .code:n = {
-    \regex_match:NnTF \c_CDR_integer_regex { #1 } {
+    \regex_match:NnTF \c_CDR_int_regex { #1 } {
       \CDR_tag_set:
     } {
       \str_case:nnF { #1 } {
@@ -4024,14 +4069,14 @@ if __name__ == '__main__':
   numberblanklines .code:n = \CDR_tag_boolean_set:x { #1 },
   numberblanklines .default:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed firstline=\meta{integer}]^^A
+% \itemtt[\CDRCheckRed firstline=\meta{integer}$\vert$\meta{regex}]^^A
 % first line to print.
 % Initially empty: all lines from the first are printed.
 %    \begin{MacroCode}[OK]
   firstline .code:n = \CDR_tag_set:,
   firstline .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed lastline=\meta{integer}]^^A
+% \itemtt[\CDRCheckRed lastline=\meta{integer}$\vert$\meta{regex}]^^A
 % last line to print.
 % Initially empty: all lines until the last one are printed.
 %    \begin{MacroCode}[OK]
@@ -4238,20 +4283,20 @@ if __name__ == '__main__':
 % \end{syntax}
 % Store \metatt{value}, which is further retrieved with the instruction
 % |\CDR_get_get:cc {|\metatt{file name}|}| \linebreak[3]|{|\metatt{relative key path}|}|.
-% All the affectations are made at the current \TeX{} group level.
+% All the affectations are made at the global \TeX{} group level.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new_protected:Npn \CDR_export_set:ccn #1 #2 #3 {
-  \cs_set:cpn { \CDR_export_get_path:cc { #1 } { #2 } } { \exp_not:n { #3 } }
+\cs_new_protected:Npn \CDR_export_gset:ccn #1 #2 #3 {
+  \cs_gset:cpn { \CDR_export_get_path:cc { #1 } { #2 } } { \exp_stop_f: #3 }
 }
-\cs_new_protected:Npn \CDR_export_set:Vcn #1 {
+\cs_new_protected:Npn \CDR_export_gset:Vcn #1 {
   \exp_args:NV
-  \CDR_export_set:ccn { #1 }
+  \CDR_export_gset:ccn { #1 }
 }
-\cs_new_protected:Npn \CDR_export_set:VcV #1 #2 #3 {
+\cs_new_protected:Npn \CDR_export_gset:VcV #1 #2 #3 {
   \exp_args:NnV
   \use:n {
-    \exp_args:NV \CDR_export_set:ccn #1 { #2 }
+    \exp_args:NV \CDR_export_gset:ccn #1 { #2 }
   } #3
 }
 %    \end{MacroCode}
@@ -4301,7 +4346,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
 \prg_new_protected_conditional:Nnn \CDR_export_get:ccN { T, F, TF } {
   \CDR_export_if_exist:ccTF { #1 } { #2 } {
-    \tl_set:Nx #3 { \CDR_export_get:cc { #1 } { #2 } }
+    \tl_set:Nf #3 { \CDR_export_get:cc { #1 } { #2 } }
     \prg_return_true:
   } {
     \prg_return_false:
@@ -4364,7 +4409,7 @@ if __name__ == '__main__':
   },
   lang .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed preamble]^^A
+% \itemtt[\CDRCheckRed preamble=\meta{preamble content}]^^A
 % the added preamble.
 % Initially empty.
 %    \begin{MacroCode}[OK]
@@ -4373,7 +4418,17 @@ if __name__ == '__main__':
   },
   preamble .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed postamble]^^A
+% \itemtt[\CDRCheckRed preamble file=\meta{preamble file path}]^^A
+% when provided, the preamble is the content of the file at the given path,
+% overriding the |preamble| option. |escapeinside| applies.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  preamble~file .code:n = {
+    \prop_put:NVn \l_CDR_export_prop \l_keys_key_str { #1 }
+  },
+  preamble~file .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed postamble=\meta{postamble content}]^^A
 % the added postamble.
 % Initially empty.
 %    \begin{MacroCode}[OK]
@@ -4381,6 +4436,28 @@ if __name__ == '__main__':
     \prop_put:NVn \l_CDR_export_prop \l_keys_key_str { #1 }
   },
   postamble .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed postamble file=\meta{postamble file path}]^^A
+% when provided, the postamble is the content of the file at the given path,
+% overriding the |postamble| option. |escapeinside| applies.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  postamble~file .code:n = {
+    \prop_put:NVn \l_CDR_export_prop \l_keys_key_str { #1 }
+  },
+  postamble~file .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed escapeinside=\meta{2 delimiters}]^^A
+% When provided, the text of the preamble or the postamble enclosed
+% between the delimiters is interpreted as \LaTeX{} instructions.
+% Quite any unicode character is permitted, except the caret |^|.
+% Useful to insert the current date.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  escapeinside .code:n = {
+    \prop_put:NVn \l_CDR_export_prop \l_keys_key_str { #1 }
+  },
+  escapeinside .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed raw{[=true$\vert$false]}]^^A
 % true to remove any additional material, false otherwise.
@@ -4405,25 +4482,10 @@ if __name__ == '__main__':
   },
 %    \end{MacroCode}
 % \itemtt[\CDRCheckGreen __initialize]^^A
-% Meta key to properly initialize all the variables.
+% Properly initialize the local property storage.
 %    \begin{MacroCode}[OK]
-  __initialize .meta:n = {
-    __initialize_prop = #1,
-    file =,
-    tags =,
-    lang = tex,
-    preamble =,
-    postamble =,
-    raw = false,
-    once = true,
-  },
+  __initialize .code:n = \prop_clear:N #1,
   __initialize .default:n = \l_CDR_export_prop,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckGreen __initialize_prop]^^A
-% Goody: properly initialize the local property storage.
-%    \begin{MacroCode}[OK]
-  __initialize_prop .code:n = \prop_clear:N #1,
-  __initialize_prop .value_required:n = true,
 %    \end{MacroCode}
 % \end{description}
 %    \begin{MacroCode}[OK]
@@ -4431,7 +4493,17 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % 
 % \subsection{Implementation}
+% \begin{variable}{\CDRPercent, \CDRHash}
+% To include a |%| or a |#| character in the preamble or the postamble below.
+% Must be escaped.
+% \end{variable}
 %    \begin{MacroCode}[OK]
+\str_set_eq:NN \CDRPercent \c_percent_str
+\str_set_eq:NN \CDRHash \c_hash_str
+%    \end{MacroCode}
+%    \begin{MacroCode}[OK]
+\str_set_eq:NN \CDRPercent \c_percent_str
+\str_set_eq:NN \CDRHash \c_hash_str
 \NewDocumentCommand \CDRExport { m } {
   \keys_set:nn { CDR@Export } { __initialize }
   \keys_set:nn { CDR@Export } { #1 }
@@ -4440,9 +4512,9 @@ if __name__ == '__main__':
       { coder }
       { Missing~export~key~`file' }
   } {
-    \CDR_export_set:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
+    \CDR_export_gset:VcV \l_CDR_file_tl { file } \l_CDR_file_tl
     \prop_map_inline:Nn \l_CDR_export_prop {
-      \CDR_export_set:Vcn \l_CDR_file_tl { ##1 } { ##2 }
+      \CDR_export_gset:Vcn \l_CDR_file_tl { ##1 } { ##2 }
     }
 %    \end{MacroCode}
 % The list of tags must not be empty, raise an error otherwise.
@@ -4450,12 +4522,8 @@ if __name__ == '__main__':
 % of forthcoming code blocks.
 %    \begin{MacroCode}[OK]
     \prop_get:NnNTF \l_CDR_export_prop { tags } \l_CDR_clist {
-      \tl_if_empty:NTF \l_CDR_clist {
-        \PackageWarning
-          { coder }
-          { Missing~export~key~`tags' }
-      } {
-        \clist_set_eq:NN \g_CDR_tags_clist \l_CDR_clist
+      \clist_set_eq:NN \g_CDR_tags_clist \l_CDR_clist
+      \clist_if_empty:NF \l_CDR_clist {
         \clist_remove_duplicates:N \g_CDR_tags_clist
         \clist_put_left:NV \g_CDR_all_tags_clist \l_CDR_clist
         \clist_remove_duplicates:N \g_CDR_all_tags_clist
@@ -4463,43 +4531,172 @@ if __name__ == '__main__':
 % If a |lang| is given, forwards the declaration
 % to all the code chunks tagged within |\g_CDR_tags_clist|.
 %    \begin{MacroCode}[OK]
-        \exp_args:NV
-        \CDR_export_get:ccNT \l_CDR_file_tl { lang } \l_CDR_tl {
+        \CDR_export_get:ccNT { \l_CDR_file_tl } { lang } \l_CDR_tl {
           \clist_map_inline:Nn \g_CDR_tags_clist {
             \CDR_tag_set:ccV { ##1 } { lang } \l_CDR_tl
           }
         }
       }
       \seq_put_left:NV \g_CDR_export_seq \l_CDR_file_tl
+      \seq_remove_duplicates:N \g_CDR_export_seq
     } {
-      \PackageWarning
-        { coder }
-        { Missing~export~key~`tags' }
+      \CDR_export_if_exist:ccF { \l_CDR_file_tl } { tags }  {
+        \PackageWarning
+          { coder }
+          { Missing~export~key~`tags' }
+      }
     }
   }
   \ignorespaces
 }
 %    \end{MacroCode}
+% \begin{variable}{\l_CDR_export_tl}
+% Scratch variable.
+%    \begin{MacroCode}[OK]
+\tl_new:N \l_CDR_export_tl
+%    \end{MacroCode}
+% \end{variable}
 %
 % Files are created at the end of the typesetting process.
+% We define a separate macro to be used for testing purposes.
 %    \begin{MacroCode}[OK]
-\AddToHook { enddocument / end } {
-  \seq_map_inline:Nn \g_CDR_export_seq {
-    \str_set:Nx \l_CDR_str { #1 }
-    \lua_now:n { CDR:export_file('l_CDR_str') }
-    \clist_map_inline:nn {
-      tags, raw, once, preamble, postamble
-    } {
-      \CDR_export_get:ccNT { #1 } { ##1 } \l_CDR_tl {
-        \exp_args:NNx
-        \str_set:Nn \l_CDR_str { \l_CDR_tl }
-        \lua_now:n {
-          CDR:export_file_info('##1','l_CDR_str')
+\cs_new:Npn \CDR_export_complete: {
+\CDR@Debug{\string\CDR_export_complete:}
+  \prg_set_conditional:Nnn \CDR_if_amblefile:nNn { T, F, TF } {
+    \CDR_export_get:ccNTF { ##1 } { ##3~file } ##2 {
+      \tl_if_empty:NTF ##2 {
+\CDR@Debug{\string\CDR_export_complete:~empty~file~option}
+        \prg_return_false:
+      } {
+        \exp_args:NV
+        \file_if_exist:nTF ##2 {
+          \prg_return_true:      
+        } {
+\CDR@Debug{\string\CDR_export_complete:~no~file~at~##2}
+          \prg_return_false:
         }
       }
+    } {
+\CDR@Debug{\string\CDR_export_complete:~no~option~'##1->##3~file' }
+      \prg_return_false:
     }
-    \lua_now:n { CDR:export_complete() }
   }
+  \prg_set_conditional:Nnn \CDR_export_if_tags:nN { T, F, TF } {
+    \CDR_export_get:ccNTF { ##1 } { tags } ##2 {
+      \tl_if_empty:NTF ##2 {
+        \prg_return_false:
+      } {
+        \prg_return_true:
+      }
+    } {
+      \prg_return_false:
+    }
+  }
+  \seq_map_inline:Nn \g_CDR_export_seq {
+\CDR@Debug{\string\CDR_export_complete:~FILE~##1}
+    \CDR_export_if_tags:nNTF { ##1 } \l_CDR_clist {
+      \str_set:Nx \l_CDR_str { ##1 }
+      \lua_now:n { CDR:export_file('l_CDR_str') }
+      \lua_now:n {
+        CDR:export_file_info('tags','l_CDR_clist')
+      }
+\CDR@Debug{\string\CDR_export_complete:~TAGS~\l_CDR_clist}
+      \clist_map_inline:nn { raw, once, } {
+        \CDR_export_get:ccNTF { ##1 } { ####1 } \l_CDR_export_tl {
+          \lua_now:n {
+            CDR:export_file_info('####1','l_CDR_export_tl')
+          }
+        } {
+          \CDR@Debug{\string\CDR_export_complete:~no~####1}
+        }
+      }
+      \tl_clear:N \l_CDR_regex
+      \CDR_export_get:ccNT { ##1 } { escapeinside } \l_CDR_tl {
+        \int_compare:nNnT { \tl_count:N \l_CDR_tl } = 2 {
+          \exp_args:NNx
+          \regex_set:Nn \l_CDR_regex {
+            [ \tl_item:Nn \l_CDR_tl 1 ]
+            ( .*? )
+            [ \tl_item:Nn \l_CDR_tl 2 ]
+          }
+        }
+      }
+%    \end{MacroCode}
+% Read preamble and postamble from file if any.
+%    \begin{MacroCode}[OK]
+      \clist_map_inline:nn { preamble, postamble, } {
+\CDR@Debug{\string\CDR_export_complete:~####1}
+        \CDR_if_amblefile:nNnTF { ##1 } \l_CDR_tl { ####1 } {
+\CDR@Debug{\string\CDR_export_complete:~file: \l_CDR_tl}
+          \exp_args:NNV
+          \ior_open:Nn \l_CDR_ior \l_CDR_tl
+          \tl_if_empty:NTF \l_CDR_regex {
+            \ior_str_map_inline:Nn \l_CDR_ior {
+              \l_set:Nn \l_CDR_export_tl { ########1 }
+              \lua_now:n {
+                CDR:append_file_info('####1','l_CDR_export_tl')
+              }
+            }
+          } {
+            \ior_str_map_inline:Nn \l_CDR_ior {
+              \regex_split:NnN \l_CDR_regex { ########1 } \l_CDR_seq
+              \seq_pop_left:NN \l_CDR_seq \l_CDR_export_tl
+              \bool_until_do:nn { \seq_if_empty_p:N \l_CDR_seq } {
+                \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
+                \exp_args:NnnV
+                \tl_set_rescan:Nnx \l_CDR_tl {
+                  \cctab_select:N \c_document_cctab
+                } \l_CDR_tl
+                \tl_put_right:Nx \l_CDR_export_tl { \l_CDR_tl }
+                \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
+                \tl_put_right:NV \l_CDR_export_tl \l_CDR_tl
+              }
+              \lua_now:n {
+                CDR:append_file_info('####1','l_CDR_export_tl')
+              }
+            }
+          }
+          \ior_close:N \l_CDR_ior
+        } {
+\CDR@Debug{\string\CDR_export_complete:~no~file}
+          \tl_if_empty:NTF \l_CDR_regex {
+            \CDR_export_get:ccNTF { ##1 } { ####1 } \l_CDR_export_tl {
+              \lua_now:n {
+                CDR:append_file_info('####1','l_CDR_export_tl')
+              }
+            } {
+\CDR@Debug{\string\CDR_export_complete:~no~'##1'->'####1' }
+            }
+          } {
+            \CDR_export_get:ccNTF { ##1 } { ####1 } \l_CDR_tl {
+              \exp_args:NNV
+              \regex_split:NnN \l_CDR_regex \l_CDR_tl \l_CDR_seq
+              \seq_pop_left:NN \l_CDR_seq \l_CDR_export_tl
+              \bool_until_do:nn { \seq_if_empty_p:N \l_CDR_seq } {
+                \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
+                \tl_put_right:Nx \l_CDR_export_tl { \l_CDR_tl }
+                \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
+                \tl_put_right:NV \l_CDR_export_tl \l_CDR_tl
+              }
+              \lua_now:n {
+                CDR:append_file_info('####1','l_CDR_export_tl')
+              }
+            } {
+\CDR@Debug{\string\CDR_export_complete:~no~'##1'->'####1' }
+            }
+          }
+        }
+      }
+      \lua_now:n { CDR:export_complete() }
+    } {
+      \typeout {\string\CDR_export_complete:~##1:~nothing~to~export}
+    }
+  }
+  \cs_set_eq:NN \CDR_export_complete: \prg_do_nothing:
+}
+
+\AddToHook { enddocument / end } {
+  \CDR_export_complete:
 }
 %    \end{MacroCode}
 %
@@ -5161,11 +5358,6 @@ if __name__ == '__main__':
           \CDR@StyleUseTag
           \lua_now:n { CDR:hilight_source(false, true) }        
           \makeatletter
-          \lua_now:n {
-            CDR.synctex_tag = tex.get_synctex_tag();
-            CDR.synctex_line = tex.inputlineno;
-            tex.set_synctex_mode(1)
-          }
           \CDR_if_tag_truthy:cT { mbox } { \mbox } {
             \input { \l_CDR_pyg_tex_tl }\ignorespaces
           }  
@@ -5268,8 +5460,9 @@ if __name__ == '__main__':
 %
 % \subsubsection{Storage}
 %
-% \begin{variable}{__start, __step, __last }
+% \begin{variable}{__start, __step, __last, __mini, __maxi }
 % For the line numbering, these are loop integer controls.
+% The lines displayed are in $⟦$|__mini|;|__maxi|$⟧$.
 % \begin{description}
 % \itemtt[__start] for the first index
 % \itemtt[__step] for the step, defaults to 1
@@ -5279,6 +5472,8 @@ if __name__ == '__main__':
 \CDR_int_new:cn { __start } { 0 }
 \CDR_int_new:cn { __step  } { 0 }
 \CDR_int_new:cn { __last  } { 0 }
+\CDR_int_new:cn { __mini  } { 0 }
+\CDR_int_new:cn { __maxi  } { 0 }
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -5337,12 +5532,72 @@ if __name__ == '__main__':
 % \pkg{fancyvrb} helper to end the |CDRBlock| environment.
 % \end{function}
 %    \begin{MacroCode}
+\regex_new:N \l_CDR_regex
 \cs_new:Npn \FVE@CDRBlock {
   \CDRBlock_setup:
+%    \end{MacroCode}
+% We export all the lines if requested except what was escaped to \LaTeX.
+% As we use regular expressions, we must take care of characters with a special
+% meaning. For that purpose we enclose between square brackets, this is why
+% the carret |^| is not allowed, as it would negate the class.
+%
+% If |texcomment| has been set and the language is not |tex|,
+% for each line, only the part before the first |%| will be exported.
+%
+% If |texcomment| has not been set, and |escapeinside| has been provided with
+% two characters, then what is inside the delimiter and the delimiters is not exported.
+%
+% Actually, no alternate possibility is offered.
+%    \begin{MacroCode}  
   \CDR_if_no_export:F {
-    \seq_map_inline:Nn \l_CDR_vrb_seq {
-      \tl_set:Nn \l_CDR_tl { ##1 }
-      \lua_now:n { CDR:record_line('l_CDR_tl') }
+    \CDR_if_tag_truthy:cTF { texcomments } {
+      \CDR_if_tag_eq:cnTF { lang } { tex } {
+        \seq_map_inline:Nn \l_CDR_vrb_seq {
+          \tl_set:Nn \l_CDR_tl { ##1 }
+          \lua_now:n { CDR:record_line('l_CDR_tl') }
+        }       
+      } {
+        \regex_set:Nx \l_CDR_regex { ^ (.*?) \c_percent_str }
+        \seq_map_inline:Nn \l_CDR_vrb_seq {
+          \regex_extract_once:NnNTF \l_CDR_regex { ##1 } \l_CDR_seq {
+            \tl_set:Nx \l_CDR_tl { \seq_item:Nn \l_CDR_seq { 1 } }
+          } {
+            \tl_set:Nn \l_CDR_tl { ##1 }
+          }
+          \lua_now:n { CDR:record_line('l_CDR_tl') }
+        }
+      }
+    } {
+      \CDR_tag_get:cN { escapeinside } \l_CDR_tl
+      \int_compare:nNnTF { \tl_count:N \l_CDR_tl } = 2 {
+        \regex_set:Nx \l_CDR_regex {
+          [ \tl_item:Nn \l_CDR_tl { 1 } ]
+          .*? [ \tl_item:Nn \l_CDR_tl { 2 } ]
+        }
+        \seq_map_inline:Nn \l_CDR_vrb_seq {
+          \regex_split:NnNTF \l_CDR_regex { ##1 } \l_CDR_seq
+          \tl_set:Nx \l_CDR_tl { \seq_use:Nn \l_CDR_seq {} }
+          \lua_now:n { CDR:record_line('l_CDR_tl') }
+        }
+      } {
+        \int_compare:nNnTF { \tl_count:N \l_CDR_tl } = 3 {
+          \regex_set:Nx \l_CDR_regex {
+            [ \tl_item:Nn \l_CDR_tl { 1 } ]
+            .*? [ \tl_item:Nn \l_CDR_tl { 2 } ]
+            (.*?) [ \tl_item:Nn \l_CDR_tl { 3 } ]
+          }
+          \seq_map_inline:Nn \l_CDR_vrb_seq {
+            \regex_split:NnNTF \l_CDR_regex { ##1 } \l_CDR_seq
+            \tl_set:Nx \l_CDR_tl { \seq_use:Nn \l_CDR_seq {} }
+            \lua_now:n { CDR:record_line('l_CDR_tl') }
+          }
+        } {
+          \seq_map_inline:Nn \l_CDR_vrb_seq {
+            \tl_set:Nn \l_CDR_tl { ##1 }
+            \lua_now:n { CDR:record_line('l_CDR_tl') }
+          }
+        }
+      }
     }
   }
   \CDRBlock_engine_begin:
@@ -6206,25 +6461,6 @@ if __name__ == '__main__':
 \bool_new:N \g_CDR_with_impl_bool
 %    \end{MacroCode}
 % \end{variable}
-%
-% \begin{function}{\CDRPreamble}
-% \begin{syntax}
-% \cs{CDRPreamble} \Arg{variable} \Arg{file name}
-% \end{syntax}
-% Store the content of \meta{file name} into the variable \meta{variable}.
-% This is currently unstable.
-% \end{function}
-%    \begin{MacroCode}
-\DeclareDocumentCommand \CDRPreamble { m m } {
-  \msg_info:nnn
-    { coder }
-    { :n }
-    { Reading~preamble~from~file~"#2". }
-  \tl_set:Nn \l_CDR_tl { #2 }
-  \exp_args:NNx
-  \tl_set:Nx #1 { \lua_now:n {CDR.print_file_content('l_CDR_tl')} }
-}
-%    \end{MacroCode}
 %
 % \section{Section separators}
 % \begin{function}{\CDRImplementation,\CDRFinale}

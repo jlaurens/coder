@@ -1,0 +1,23 @@
+% !TeX program=lualatex
+% !TeX root=../coder_test.tex
+
+\CDRExport{
+  file=Tests/exportFilter-comments.txt,
+  tags=A,
+  lang=tex
+}
+
+\begin{CDRBlock}
+1 % line 1
+2 % line 2 % and another comment
+3 % line 3
+\end{CDRBlock}
+
+\ExplSyntaxOn
+\CDRExport{
+  file=Tests/exportA2.txt,
+  tags=A,
+  preamble=\c_percent_str My funny preamble,
+  postamble=\c_percent_str My funny postamble,  
+}
+\ExplSyntaxOff
