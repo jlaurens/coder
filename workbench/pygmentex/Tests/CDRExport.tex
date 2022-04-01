@@ -5,8 +5,30 @@
 \ExplSyntaxOn
 \group_begin:
 
+
+\CDR_export_set:ccn { FILE } { KEY } { VALUE }
+\CDR_export_get:ccNTF { FILE } { KEY } \l_CDR_tl {
+  \exp_args:NV
+  \tl_if_eq:nnF \l_CDR_tl { VALUE } { FAILED: \exp_args:NV \tl_to_str:n \l_CDR_tl \\ }
+} {
+  FAILED: NO VALUE\\
+}
+\CDR_export_set:ccn { FILE } { KEY } { VALUE \c_percent_str }
+
+\CDR_export_get:ccNTF { FILE } { KEY } \l_CDR_tl {
+  unexpanded: \exp_args:NV \tl_to_str:n \l_CDR_tl \\
+  expanded: \exp_args:Nx \tl_to_str:n { \l_CDR_tl } \\
+  \tl_to_str:n { VALUE \c_percent_str }
+} {
+  FAILED: NO VALUE\\
+}
+\tl_set:Nn \l_CDR_tl { VALUE \c_percent_str }
+3: \exp_args:NV \tl_to_str:n \l_CDR_tl \\
+
+
 \cs_set:Npn \CDR_test:ccn #1 #2 #3 {
-  \tl_if_eq:xnF
+  \exp_args:Nx
+  \tl_if_eq:nnF
     { \CDR_export_get:cc { #1 } { #2 } }
     { #3 }
     { \fp_add:Nn \l_CDR_fail_fp { \l_CDR_test_fp } }
@@ -14,7 +36,7 @@
 }
 
 \CDRExport{
-    __initialize_prop,
+    __initialize_prop=\l_CDR_export_prop,
     file=A,
     tags={B,C,D},
     lang=pipo,
@@ -34,7 +56,8 @@
   \CDR_test:ccn { A } { #1 } { #2 }
 }
 \clist_map_inline:nn {B, C, D} {
-  \tl_if_eq:xnF
+  \exp_args:Nx
+  \tl_if_eq:nnF
     { \CDR_tag_get:cc { #1 } { lang } }
     { pipo }
     { \fp_add:Nn \l_CDR_fail_fp { \l_CDR_test_fp } }
