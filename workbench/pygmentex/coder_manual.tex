@@ -28,7 +28,360 @@
 
 \newdimen\LineNumberWidth
 
+\makeatletter
+\def\CDR@Debug#1{\typeout{**** DEBUG #1}}
+\makeatother
 \begin{document}
+\title{User manual for the \pkg{coder} package}
+\author{Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}}
+\maketitle
+\section{Installation}
+This package is part of any standard \LaTeX{} distribution. To use it in a document, put the next instruction in the preamble:
+\begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
+\RequirePackage{coder}
+\end{CDRBlock}
+and run Lua\LaTeX{}. In order to have syntaxe highlighting like above, you must have \pkg{pygments} installed (see \url{https://pygments.org} for that purpose) but this is not a requirement for the other features of the \pkg{coder} package. To test \pkg{pygments} installation, you can run from a terminal
+\\[0.25\baselineskip]
+\verb|pygmentize -O full -o |\MyMeta{file name}\verb|-colorized.tex |\MyMeta{file name}\verb|.tex|
+\\[0.25\baselineskip]
+followed by
+\\[0.25\baselineskip]
+\verb|latex |\MyMeta{file name}\verb|-colorized.tex|.
+\\[0.25\baselineskip]
+The colorized code is then found in \MyMeta{file name}\verb|-colorized.pdf|%
+
+To test the installation for an editor, the next document should output a small diagnostic page.
+\CDRSet{numbers=none}
+\begin{center}
+\begin{tabular}{p{0.355\linewidth}|p{0.635\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[lang=tex,tags=latex]
+\documentclass{article}
+\RequirePackage{coder}
+\begin{document}
+\CDRTest
+\end{document}
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\begin{minipage}[t]{0.95\linewidth}
+An example of a bad installation:
+\par
+Path to \textsf{python}: \texttt{/usr/bin/python}
+\par
+Path to \textsf{pygmentize}: \texttt{}
+\par
+Pygments is not available
+\par\noindent
+An example of a good installation:
+\par
+Path to \textsf{python}: \texttt{/opt/anaconda3/bin/python}
+\par
+Path to \textsf{pygmentize}: \texttt{/opt/anaconda3/bin/pygmentize}
+\par\noindent
+Pygments is available
+\end{minipage}%
+\end{tabular}
+\end{center}
+
+\section{Display code}
+\subsection{Example}
+To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while computing recursively the factorial of a number.
+\CDRSet{
+  showspaces,
+  only top,
+  tags/lua={
+    lang=lua,
+    style=autumn,
+    numbers=right,
+    show tags=mirror,
+  },
+  tags/python={
+    lang=python,
+    style=trac,
+    numbers=left,
+    show tags=mirror,
+  },
+  tags/latex={
+    lang=tex,
+    style=default,
+    numbers=left,
+    show tags=none,
+    escapeinside=⟨⟩,
+  },
+  tags/src={
+    lang=tex,
+    style=default,
+    numbers=none,
+    show tags=none,
+    escapeinside=⟨⟩,
+  }
+}
+\begin{figure}
+\begin{center}
+\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[tags=lua]
+function factorial(n)
+  --[[Compute n!]]
+  if n > 1 then
+    return n * factorial(n-1)
+  end
+  return 1
+end
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\hspace{0.09\linewidth}%
+\begin{minipage}[t]{0.8\linewidth}
+\begin{CDRBlock}[tags=python]
+def factorial(n):
+  '''Compute n!'''
+  if n > 1:
+    return n * factorial(n-1)
+  return 1
+\end{CDRBlock}
+\end{minipage}%
+\end{tabular}
+\end{center}
+\caption{First example}
+\label{fig:First example}
+\end{figure}
+The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} on the left and style \texttt{trac} on the right. Line numbering may appear on both sides of the code, or may be hidden.
+%
+\subsection{\cs{CDRCode} command}
+Inserting code as inline text is possible with the command \CDRCode[tags=src]|\CDRCode| which syntax is
+\begin{CDRBlock}[tags=src]
+\CDRCode[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]?⟨\MyMeta{inline code chunk}⟩?
+\end{CDRBlock}
+Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course.
+
+The available options are collected in section \ref{sect:options} because they are shared.
+\subsection{The \texttt{CDRBlock} environment}
+Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line literally consisting  of \CDRCode[lang=tex]|\end{CDRBlock}|, with no extra space.
+Optional key--value options are enclosed with square brackets. The opening bracket must follow the \CDRCode[lang=tex]|\begin{CDRBlock}| instruction, on the very same line. For the first examples of figure \ref{fig:First example}, the input was
+\begin{figure}[H]
+\begin{center}
+\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[tags=lua]
+function factorial(n)
+  --[[Compute n!]]
+  if n > 1 then
+    return n * factorial(n-1)
+  end
+  return 1
+end
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\hspace{0.09\linewidth}%
+\begin{minipage}[t]{0.8\linewidth}
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[tags=python]
+def factorial(n):
+  '''Compute n!'''
+  if n > 1:
+    return n * factorial(n-1)
+  return 1
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\end{minipage}%
+\end{tabular}
+\end{center}
+\caption{Source of figure \ref{fig:First example}}
+\end{figure}
+%
+\section{Decorations}
+\subsection{Tags}
+For the \CDRCode|CDRBlock| environment, the \CDRCode|show tags| option allows to display the list of tags.
+The possible choices are illustrated hereafter below each source.
+\setlength{\columnsep}{15mmm}
+\colorlet{CDROption}{magenta!66!black}
+\begin{multicols}{3}
+\CDRSet{
+  tags/dummy = {
+    frame=single,
+    resetmargins=true,
+  },
+}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=none}}⟩,
+]
+no tags
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=none,
+  frame=single,
+]
+no tags
+\end{CDRBlock}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=left}}⟩,
+]
+tags on the left
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=left,
+  frame=single,
+]
+tags on the left
+\end{CDRBlock}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=right}}⟩,
+]
+tags on the right
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=right,
+  frame=single,
+]
+tags on the right
+\end{CDRBlock}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=numbers}}⟩,
+]
+tags like numbers
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=numbers,
+  numbers=left,
+  frame=single,
+]
+tags like numbers
+\end{CDRBlock}
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=numbers}}⟩,
+]
+tags like numbers
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=numbers,
+  numbers=right,
+  frame=single,
+]
+tags like numbers
+\end{CDRBlock}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=mirror}}⟩,
+]
+tags in mirror
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=mirror,
+  numbers=left,
+  frame=single,
+]
+tags in mirror
+\end{CDRBlock}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=mirror}}⟩,
+]
+tags in mirror
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=mirror,
+  numbers=right,
+  frame=single,
+]
+tags in mirror
+\end{CDRBlock}
+\end{multicols}
+%
+\subsection{Line numbering}
+Line numbering only makes sense for block code chunks.
+Options are illustrated below each source.
+
+\begin{multicols}{3}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROption}{\textbf{show tags=mirror}}⟩,
+]
+tags in mirror
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=mirror,
+  numbers=right,
+  frame=single,
+]
+tags in mirror
+\end{CDRBlock}
+
+\end{multicols}
+
+
+
+\end{document}
+
+\subsection{Framing}
+
+\subsection{Options}
+\label{sect:options}
+\subsubsection{Shared by \cs{CDRCode} and \texttt{CDrBlock} environment}
+\begin{description}
+\itemtt[\CDRCheckRed tags={\{\meta[1]{tag},\meta[2]{tag},...\}}]
+used for exportation, see section \ref{sect:exportation}, and also for styling, see section \ref{sect:styling}.
+Initially a void list. 
+\itemtt
+\end{description}
+%__tags, __engine, __pygments, default, 
+\subsubsection{Specific to \cs{CDRCode}}
+%    \g_CDR_tags_clist,
+%    __code, default.code,
+\begin{description}
+\itemtt
+\end{description}
+\subsubsection{Specific to \texttt{CDrBlock} environment}
+\begin{description}
+\itemtt
+\end{description}
+%    __block, default.block, __pygments.block,
+%    __fancyvrb.block __fancyvrb.frame, __fancyvrb.number, __fancyvrb,
+
+
 
 \title{Testing the Pygmen\TeX{} package}
 \author{José Romildo Malaquias}

@@ -3233,7 +3233,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
 \regex_const:Nn \c_CDR_engine_regex { ^[^/]+\sengine\soptions$ } \use_none:n { $ }
 \cs_new_protected_nopar:Npn \CDR_tag_provide:n #1 {
-\CDR@Debug { \string\CDR_tag_provide:n: #1 }
+\CDR@Debug { \string\CDR_tag_provide:n~#1 }
   \exp_args:NNf
   \regex_extract_once:NnNTF \c_CDR_provide_regex {
     \CDR_tag_module:n { .. } / #1
@@ -3251,10 +3251,10 @@ if __name__ == '__main__':
           __fancyvrb.number, __fancyvrb.all,
         }
         \CDR_tag_keys_define:nn { } {
-          ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ########1 },
+          ##1 .code:n = \CDR_tag_keys_set:nn { ##1 } { ####1 },
           ##1 .value_required:n = true,
         }
-\CDR@Debug{\string\CDR_tag_provide:n \CDR_tag_module:n {##1} = ...}
+\CDR@Debug{\string\CDR_tag_provide:n~\CDR_tag_module:n {##1} = ...}
       }
       \exp_args:NnV
       \CDR_tag_keys_if_exist:nnF { ##1 } \l_CDR_tl {
@@ -3263,13 +3263,13 @@ if __name__ == '__main__':
             \l_CDR_tl {
           \exp_args:Nnf
           \CDR_tag_keys_define:nn { ##1 } {
-            \use:n { \l_CDR_tl } .code:n = \CDR_tag_set:n { ########1 },
+            \use:n { \l_CDR_tl } .code:n = \CDR_tag_set:n { ####1 },
           }
           \exp_args:Nnf
           \CDR_tag_keys_define:nn { ##1 } {
             \use:n { \l_CDR_tl } .value_required:n = true,
           }
-\CDR@Debug{\string\CDR_tag_provide:n: \CDR_tag_module:n { ##1 } / \l_CDR_tl = ...}
+\CDR@Debug{\string\CDR_tag_provide:n:~\CDR_tag_module:n { ##1 } / \l_CDR_tl = ...}
         }
       }
     }
@@ -3279,7 +3279,7 @@ if __name__ == '__main__':
         #1 .code:n = \CDR_tag_set:n { ##1 },
         #1 .value_required:n = true,
       }
-\CDR@Debug{\string\CDR_tag_provide:n.C:\CDR_tag_module:n { default } / #1 = ...}
+\CDR@Debug{\string\CDR_tag_provide:n~C:\CDR_tag_module:n { default } / #1 = ...}
     } {
 \CDR@Debug{\string\CDR_tag_provide:n\space did~nothing~new.}
     }
@@ -4230,16 +4230,16 @@ if __name__ == '__main__':
     __fancyvrb, __fancyvrb.frame, __fancyvrb.block, __fancyvrb.number, __fancyvrb.all
   } {
     \CDR_tag_keys_set_known:nN { ##1 } \l_CDR_kv_clist
-\CDR@Debug{ Debug.CDRSet.1:##1/\l_CDR_kv_clist/ }
+\CDR@Debug{\string\CDRSet.1:##1/\l_CDR_kv_clist/ }
   }
   \CDR_tag_keys_set_known:nN { .. } \l_CDR_kv_clist
-\CDR@Debug{ Debug.CDRSet.2:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
+\CDR@Debug{\string\CDRSet.2:\CDR_tag_module:n { .. }+\l_CDR_kv_clist/ }
   \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
-\CDR@Debug{ Debug.CDRSet.2a:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }  
+\CDR@Debug{\string\CDRSet.2a:\CDR_tag_module:n { .. }+\l_CDR_kv_clist/ }  
   \CDR_tag_keys_set_known:nN { .. } \l_CDR_kv_clist
-\CDR@Debug{ Debug.CDRSet.3:\CDR_tag_module:n { .. }//\l_CDR_kv_clist/ }
+\CDR@Debug{\string\CDRSet.3:\CDR_tag_module:n { .. }+\l_CDR_kv_clist/ }
   \CDR_tag_keys_set:nV { default } \l_CDR_kv_clist
-\CDR@Debug{ Debug.CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
+\CDR@Debug{\string\CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
   \keys_define:nn { CDR@Set@tags } {
     tags .code:n = {
       \clist_set:Nn \g_CDR_tags_clist { ##1 }
@@ -4612,8 +4612,7 @@ if __name__ == '__main__':
       \tl_clear:N \l_CDR_regex
       \CDR_export_get:ccNT { ##1 } { escapeinside } \l_CDR_tl {
         \int_compare:nNnT { \tl_count:N \l_CDR_tl } = 2 {
-          \exp_args:NNx
-          \regex_set:Nn \l_CDR_regex {
+          \regex_set:Nx \l_CDR_regex {
             [ \tl_item:Nn \l_CDR_tl 1 ]
             ( .*? )
             [ \tl_item:Nn \l_CDR_tl 2 ]
@@ -5018,6 +5017,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRBlock_engine_begin: {
+\CDR@Debug{\string\CDRBlock_engine_begin:}
   \CDRBlock_if_engine:cF { \CDR_tag_get:c { engine } } {
     \PackageError
       { coder }
@@ -5032,6 +5032,7 @@ if __name__ == '__main__':
   }
 }
 \cs_new:Npn \CDRBlock_engine_end: {
+\CDR@Debug{\string\CDRBlock_engine_end:}
   \use:c { end \CDRBlock_engine:c \CDR_tag_get:c { engine } }
 }
 %    \begin{MacroCode}
@@ -5532,6 +5533,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \regex_new:N \l_CDR_regex
+\cs_generate_variant:Nn \regex_set:Nn { Nx }
 \cs_new:Npn \FVE@CDRBlock {
   \CDRBlock_setup:
 %    \end{MacroCode}
@@ -5548,14 +5550,19 @@ if __name__ == '__main__':
 %
 % Actually, no alternate possibility is offered.
 %    \begin{MacroCode}  
+\CDR@Debug{\string\FVE@CDRBlock\space 1}
   \CDR_if_no_export:F {
+\CDR@Debug{\string\FVE@CDRBlock\space 11}
     \CDR_if_tag_truthy:cTF { texcomments } {
+\CDR@Debug{\string\FVE@CDRBlock\space 111}
       \CDR_if_tag_eq:cnTF { lang } { tex } {
+\CDR@Debug{\string\FVE@CDRBlock\space 1111}
         \seq_map_inline:Nn \l_CDR_vrb_seq {
           \tl_set:Nn \l_CDR_tl { ##1 }
           \lua_now:n { CDR:record_line('l_CDR_tl') }
         }       
       } {
+\CDR@Debug{\string\FVE@CDRBlock\space 1112}
         \regex_set:Nx \l_CDR_regex { ^ (.*?) \c_percent_str }
         \seq_map_inline:Nn \l_CDR_vrb_seq {
           \regex_extract_once:NnNTF \l_CDR_regex { ##1 } \l_CDR_seq {
@@ -5567,30 +5574,34 @@ if __name__ == '__main__':
         }
       }
     } {
+\CDR@Debug{\string\FVE@CDRBlock\space 112}
       \CDR_tag_get:cN { escapeinside } \l_CDR_tl
       \int_compare:nNnTF { \tl_count:N \l_CDR_tl } = 2 {
+\CDR@Debug{\string\FVE@CDRBlock\space 1121}
         \regex_set:Nx \l_CDR_regex {
           [ \tl_item:Nn \l_CDR_tl { 1 } ]
           .*? [ \tl_item:Nn \l_CDR_tl { 2 } ]
         }
         \seq_map_inline:Nn \l_CDR_vrb_seq {
-          \regex_split:NnNTF \l_CDR_regex { ##1 } \l_CDR_seq
+          \regex_split:NnN \l_CDR_regex { ##1 } \l_CDR_seq
           \tl_set:Nx \l_CDR_tl { \seq_use:Nn \l_CDR_seq {} }
           \lua_now:n { CDR:record_line('l_CDR_tl') }
         }
       } {
         \int_compare:nNnTF { \tl_count:N \l_CDR_tl } = 3 {
+\CDR@Debug{\string\FVE@CDRBlock\space 11221}
           \regex_set:Nx \l_CDR_regex {
             [ \tl_item:Nn \l_CDR_tl { 1 } ]
             .*? [ \tl_item:Nn \l_CDR_tl { 2 } ]
             (.*?) [ \tl_item:Nn \l_CDR_tl { 3 } ]
           }
           \seq_map_inline:Nn \l_CDR_vrb_seq {
-            \regex_split:NnNTF \l_CDR_regex { ##1 } \l_CDR_seq
+            \regex_split:NnN \l_CDR_regex { ##1 } \l_CDR_seq
             \tl_set:Nx \l_CDR_tl { \seq_use:Nn \l_CDR_seq {} }
             \lua_now:n { CDR:record_line('l_CDR_tl') }
           }
         } {
+\CDR@Debug{\string\FVE@CDRBlock\space 11222}
           \seq_map_inline:Nn \l_CDR_vrb_seq {
             \tl_set:Nn \l_CDR_tl { ##1 }
             \lua_now:n { CDR:record_line('l_CDR_tl') }
@@ -5599,6 +5610,7 @@ if __name__ == '__main__':
       }
     }
   }
+\CDR@Debug{\string\FVE@CDRBlock\space 2}
   \CDRBlock_engine_begin:
   \tl_clear:N \FV@ListProcessLastLine
   \CDR_if_pygments:TF {
@@ -5640,7 +5652,7 @@ if __name__ == '__main__':
   \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_provide_from_kv:V \FV@KeyValues
   \CDR_local_set_known:N \FV@KeyValues
- \CDR@Debug{\string \CDRBlock_setup:.KV1:\l_CDR_kv_clist}
+\CDR@Debug{\string \CDRBlock_setup:.KV1:\l_CDR_kv_clist}
 %    \end{MacroCode}
 % Now |\FV@KeyValues| is meant to contains only keys
 % related to \pkg{fancyvrb} but we still need to filter them out.
