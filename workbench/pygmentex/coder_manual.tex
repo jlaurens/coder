@@ -60,6 +60,9 @@
 
 \def\CDRCheckRed {}
 
+\makeatletter
+\def\CDR@Debug#1{\typeout{**** DEBUG #1}}
+\makeatother
 \begin{document}
 \title{User manual for the \pkg{coder} package}
 \author{Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}}
@@ -84,7 +87,7 @@ To test the installation for an editor, the next document should output a small 
 \begin{center}
 \begin{tabular}{p{0.355\linewidth}|p{0.635\linewidth}}
 \begin{minipage}[t]{0.9\linewidth}
-\begin{CDRBlock}[lang=tex]
+\begin{CDRBlock}[lang=tex,tags=latex]
 \documentclass{article}
 \RequirePackage{coder}
 \begin{document}
