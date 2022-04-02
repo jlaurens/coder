@@ -178,6 +178,7 @@ and the derived files           \jobname.ins,
 \documentclass{l3doc}
 \RequirePackage{fancyvrb}
 \RequirePackage{emoji}
+\RequirePackage{unicode-math}
 \EnableCrossrefs
 \CodelineIndex
 \RecordChanges
@@ -502,11 +503,11 @@ and the derived files           \jobname.ins,
 % \itemtt[\CDRCheckRed numberblanklines{[=true$\vert$false]}]^^A
 % to number or not the white lines (really empty or containing blank characters only).
 % Initially |true|: all lines are numbered.
-% \itemtt[\CDRCheckRed firstline=\meta{integer}]^^A
-% first line to print.
+% \itemtt[\CDRCheckRed firstline=\meta{integer}$\vert$\meta{regular expression}]^^A
+% first line to print, relative to the block.
 % Initially empty: all lines from the first are printed.
-% \itemtt[\CDRCheckRed lastline=\meta{integer}]^^A
-% last line to print.
+% \itemtt[\CDRCheckRed lastline=\meta{integer}$\vert$\meta{regular expression}]^^A
+% last line to print, relative to the block.
 % Initially empty: all lines until the last one are printed.
 % \itemtt[\CDRCheckRed baselinestretch=auto$\vert$\meta{dimension}]^^A
 % value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
@@ -3259,8 +3260,7 @@ if __name__ == '__main__':
       \exp_args:NnV
       \CDR_tag_keys_if_exist:nnF { ##1 } \l_CDR_tl {
         \exp_args:NNV
-        \regex_match:NnT \c_CDR_engine_regex
-            \l_CDR_tl {
+        \regex_match:NnT \c_CDR_engine_regex \l_CDR_tl {
           \exp_args:Nnf
           \CDR_tag_keys_define:nn { ##1 } {
             \use:n { \l_CDR_tl } .code:n = \CDR_tag_set:n { ####1 },
@@ -3644,9 +3644,9 @@ if __name__ == '__main__':
 % whether tags should be displayed.
 %    \begin{MacroCode}[OK]
   show~tags .choices:nn =
-    { none, left, right, numbers, mirror, dry }
+    { none, left, right, same, mirror, dry }
     { \CDR_tag_choices_set: },
-  show~tags .default:n = numbers,
+  show~tags .default:n = same,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed only top{[=true$\vert$false]}]^^A
 % to avoid chunk tags repetitions, if on the same page,
@@ -3666,7 +3666,7 @@ if __name__ == '__main__':
 % Initialization.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
-    show~tags = numbers,
+    show~tags = same,
     only~top = true,
     use~margin = true,
     numbers~format = {
@@ -4072,14 +4072,30 @@ if __name__ == '__main__':
 % first line to print.
 % Initially empty: all lines from the first are printed.
 %    \begin{MacroCode}[OK]
-  firstline .code:n = \CDR_tag_set:,
+  firstline .code:n = {
+    \regex_match:NnTF \c_CDR_int_regex { #1 } {
+      \CDR_tag_set:
+    } {
+      \tl_if_empty:nTF { #1 } {
+        \CDR_tag_set:
+      } {
+        \CDR_tag_set:n { \unexpanded { #1 } }
+      }
+    }
+  },
   firstline .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed lastline=\meta{integer}$\vert$\meta{regex}]^^A
 % last line to print.
 % Initially empty: all lines until the last one are printed.
 %    \begin{MacroCode}[OK]
-  lastline .code:n = \CDR_tag_set:,
+  lastline .code:n = {
+    \regex_match:NnTF \c_CDR_int_regex { #1 } {
+      \CDR_tag_set:n { #1 }
+    } {
+      \CDR_tag_set:n { \unexpanded { #1 } }
+    }
+  },
   lastline .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckGreen __initialize]^^A
@@ -5462,7 +5478,8 @@ if __name__ == '__main__':
 %
 % \begin{variable}{__start, __step, __last, __mini, __maxi }
 % For the line numbering, these are loop integer controls.
-% The lines displayed are in $⟦$|__mini|;|__maxi|$⟧$.
+% The lines displayed are in the range $⟦$|__mini|;|__maxi|$⟧$\CDRCheckRed,
+% relative to the \LaTeX\ source block where they are defined.
 % \begin{description}
 % \itemtt[__start] for the first index
 % \itemtt[__step] for the step, defaults to 1
@@ -5533,7 +5550,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \regex_new:N \l_CDR_regex
-\cs_generate_variant:Nn \regex_set:Nn { Nx }
+\cs_generate_variant:Nn \regex_set:Nn { Nx, NV }
 \cs_new:Npn \FVE@CDRBlock {
   \CDRBlock_setup:
 %    \end{MacroCode}
@@ -5610,6 +5627,51 @@ if __name__ == '__main__':
       }
     }
   }
+%    \end{MacroCode}
+% Line numbering is not delegated to \pkg{fancyvrb}, the main difficulty
+% is to manage the |__mini| and |__maxi| values because they can be defined either
+% explicitly by a number or implicitly by a regular expression.
+% Let us start by the minimum index.
+%    \begin{MacroCode}  
+  \CDR_int_set:cn { __mini } { 1 }
+  \CDR_tag_get:cNT { firstline } \l_CDR_tl {
+    \tl_if_empty:NF \l_CDR_tl {
+      \exp_args:NNV
+      \regex_match:NnTF \c_CDR_int_regex \l_CDR_tl {
+        \CDR_int_set:cn { __mini } { \l_CDR_tl }
+      } {
+        \regex_set:NV \l_CDR_regex \l_CDR_tl
+        \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
+          \regex_match:NnT \l_CDR_regex { ##2 } {
+            \CDR_int_set:cn { __mini } { ##1 }
+            \seq_map_break:
+          }
+        }
+      }
+    }
+  }
+%    \end{MacroCode}
+% Let us go now for the maximum index.
+%    \begin{MacroCode}  
+  \CDR_int_set:cn { __maxi } { \seq_count:N \l_CDR_vrb_seq }
+  \CDR_tag_get:cNT { lastline } \l_CDR_tl {
+    \tl_if_empty:NF \l_CDR_tl {
+      \exp_args:NNV
+      \regex_match:NnTF \c_CDR_int_regex \l_CDR_tl {
+        \CDR_int_set:cn { __maxi } { \l_CDR_tl }
+      } {
+        \regex_set:NV \l_CDR_regex \l_CDR_tl
+        \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
+          \CDR_int_compare:cNnF { __mini } > { ##1 } {
+            \regex_match:NnT \l_CDR_regex { ##2 } {
+              \CDR_int_set:cn { __maxi } { ##1 }
+              \seq_map_break:
+            }
+          }
+        }
+      }
+    }
+  }
 \CDR@Debug{\string\FVE@CDRBlock\space 2}
   \CDRBlock_engine_begin:
   \tl_clear:N \FV@ListProcessLastLine
@@ -5631,7 +5693,7 @@ if __name__ == '__main__':
 \DefineVerbatimEnvironment{CDRBlock}{CDRBlock}{}
 %    \begin{MacroCode}  
 \cs_new_protected_nopar:Npn \CDRBlock_setup: {
-\CDR@Debug { \string \CDRBlock_setup: , \FV@KeyValues }
+\CDR@Debug { \string \CDRBlock_setup: , \exp_args:NV \tl_to_str:n \FV@KeyValues }
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_true:
   }
@@ -5667,6 +5729,7 @@ if __name__ == '__main__':
     __fancyvrb.number,
   }
   \CDR_local_set_known:N \FV@KeyValues
+\CDR@Debug{\string \CDRBlock_setup:, \FV@KeyValues}
 %    \end{MacroCode}
 % These keys are read without removing them
 % later and eventually forwarded to \pkg{fancyvrb}
@@ -5933,8 +5996,8 @@ if __name__ == '__main__':
   \CDR_line_box_N:n
 }
 
-\cs_new:Npn \CDR_line_O_N:n {
-\CDR@Debug {STEP:CDR_line_O_N:n}
+\cs_new:Npn \CDR_line_M_N:n {
+\CDR@Debug {STEP:CDR_line_M_N:n}
   \CDR_line_box_N:n
 }
 
@@ -6019,7 +6082,7 @@ if __name__ == '__main__':
 }
 
 \cs_set_eq:NN \CDR_line_S_L:n \CDR_line_L_L:n
-\cs_set_eq:NN \CDR_line_O_L:n \CDR_line_R_L:n
+\cs_set_eq:NN \CDR_line_M_L:n \CDR_line_R_L:n
 
 \cs_new:Npn \CDR_line_N_R:n #1 {
 \CDR@Debug {STEP:CDR_line_N_R:n}
@@ -6056,7 +6119,7 @@ if __name__ == '__main__':
 }
 
 \cs_set_eq:NN \CDR_line_S_R:n \CDR_line_R_R:n
-\cs_set_eq:NN \CDR_line_O_R:n \CDR_line_L_R:n
+\cs_set_eq:NN \CDR_line_M_R:n \CDR_line_L_R:n
 
 
 \cs_new:Npn \CDR_line_box_N:n #1 {
@@ -6172,7 +6235,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % Set the first line number.
 %    \begin{MacroCode}
-     \CDR_int_set:cn { __start } { 1 }
+    \CDR_int_set:cn { __start } { 1 }
     \CDR_if_tag_eq:cnTF { firstnumber } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
@@ -6189,7 +6252,7 @@ if __name__ == '__main__':
 % Make |__last| absolute only after defining the |\CDR_if_number_single...| conditionals.
 %    \begin{MacroCode}
     \CDR_set_conditional:Nn \CDR_if_number_single: {
-      \CDR_int_compare_p:cNn { __last } = 1
+      \CDR_int_compare_p:cNn { __mini } = { \CDR_int:c { __maxi } }
     }
 \CDR@Debug{****** TEST: \CDR_if_number_single:TF { SINGLE } { MULTI } }
     \CDR_int_add:cn { __last } { \CDR_int:c { __start } - 1 }
@@ -6237,29 +6300,45 @@ if __name__ == '__main__':
       }
     }
     \cs_set:Npn \CDR@Line ##1 {
-\CDR@Debug {\string\CDR@Line(A), \the\inputlineno}
-      \CDR_int_set:cn { __i } { ##1 }
-      \CDR_int_set:cn { __n } { ##1 + \CDR_int:c { __start } - (#2) }
-      \tl_set:Nx \@currentlabel { \CDR_int_use:c { __n } }
-      {
-        \advance\interlinepenalty\widowpenalty
-        \bool_if:nT {
-          \CDR_int_compare_p:cNn { __n } = { 2 }
-         || \CDR_int_compare_p:cNn { __n } = { \CDR_int:c { __last } }
+\CDR@Debug {\string\CDR@Line(A), ##1, \CDR_int_use:c{__mini}, \CDR_int_use:c{__maxi}}
+      \CDR_int_compare:cNnTF { __mini } > { ##1 } {
+        \use_none:nn
+      } {
+        \CDR_int_compare:cNnTF { __maxi } < { ##1 } {
+          \use_none:nn
         } {
-          \advance\interlinepenalty\clubpenalty
+          \CDR_int_set:cn { __i } { ##1 }
+          \CDR_int_set:cn { __n } { ##1 + \CDR_int:c { __start } - (#2) }
+          \tl_set:Nx \@currentlabel { \CDR_int_use:c { __n } }
+          {
+            \advance\interlinepenalty\widowpenalty
+            \bool_if:nT {
+              \CDR_int_compare_p:cNn { __n } = { \CDR_int:c { __mini } + 1 } ||
+              \CDR_int_compare_p:cNn { __n } = { \CDR_int:c { __maxi } }
+            } {
+              \advance\interlinepenalty\clubpenalty
+            }
+            \penalty\interlinepenalty
+          }
+          \CDR@@Line
         }
-        \penalty\interlinepenalty
       }
-      \CDR@@Line
     }
     \CDR_int_set:cn { __n } { 1 + \CDR_int:c { __start } - (#2) }
     \tl_set:Nx \@currentlabel { \CDR_int_use:c { __n } }
   } {
 \CDR@Debug {NUMBER~OFF}
     \cs_set:Npn \CDR@Line ##1 {
-\CDR@Debug {\string\CDR@Line(B), \the\inputlineno}
-      \CDR@@Line
+\CDR@Debug {\string\CDR@Line(B), ##1, \CDR_int_use:c{__mini}, \CDR_int_use:c{__maxi}}
+      \CDR_int_compare:cNnTF { __mini } > { ##1 } {
+        \use_none:nn
+      } {
+        \CDR_int_compare:cNnTF { __maxi } < { ##1 } {
+          \use_none:nn
+        } {
+          \CDR@@Line
+        }
+      }
     }
   }
 \CDR@Debug {STEP_S, \CDR_int_use:c {__step}, \CDR_int_use:c {__last} }
@@ -6280,8 +6359,8 @@ if __name__ == '__main__':
       { right } { \tl_put_right:Nn \l_CDR_tl { _R } }
       { none  } { \tl_put_right:Nn \l_CDR_tl { _N } }
       { dry   } { \tl_put_right:Nn \l_CDR_tl { _N } }
-      { numbers } { \tl_put_right:Nn \l_CDR_tl { _S } }
-      { mirror  } { \tl_put_right:Nn \l_CDR_tl { _O } }
+      { same  } { \tl_put_right:Nn \l_CDR_tl { _S } }
+      { mirror  } { \tl_put_right:Nn \l_CDR_tl { _M } }
     } { \PackageError
           { coder }
           { Unknown~show~tags~options~:~ \CDR_tag_get:c { show~tags } }
@@ -6312,7 +6391,15 @@ if __name__ == '__main__':
         { See~the~coder~manual }
   }
 \CDR@Debug {BRANCH:CDR_line \l_CDR_tl :n}
-  \use:c { CDR_line \l_CDR_tl :n }
+  \CDR_int_compare:cNnTF { __mini } > { 1 } {
+    \use_none:n
+  } {
+    \CDR_int_compare:cNnTF { __maxi } < { 1 } {
+      \use_none:n
+    } {
+      \use:c { CDR_line \l_CDR_tl :n }
+     }
+  }
 }
 %    \end{MacroCode}
 %
@@ -6374,7 +6461,7 @@ if __name__ == '__main__':
 \prg_set_conditional:Nnn \CDR_if_tags_visible:n { p, T, F, TF } {
   \bool_if:nTF {
     ( \CDR_if_tag_eq_p:cn { show~tags } { ##1 } ||
-      \CDR_if_tag_eq_p:cn { show~tags } { numbers } &&
+      \CDR_if_tag_eq_p:cn { show~tags } { same } &&
       \CDR_if_tag_eq_p:cn { numbers } { ##1 }
     ) && ! \CDR_if_already_tags_p:
   } {
