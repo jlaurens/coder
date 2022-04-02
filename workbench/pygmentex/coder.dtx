@@ -954,7 +954,7 @@ local function hilight_set(self, key, value)
     end
   end
   if t[key] == JSON_boolean_true or t[key] == JSON_boolean_false then
-    t[key] = value == true and JSON_boolean_true or JSON_boolean_false
+    t[key] = value == 'true' and JSON_boolean_true or JSON_boolean_false
   else
     t[key] = value
   end
