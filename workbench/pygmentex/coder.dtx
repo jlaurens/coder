@@ -714,20 +714,33 @@ local function set_python_path(self, path_var)
 end
 %    \end{MacroCode}
 %
+% \begin{variable}{JSON_boolean_true, JSON_boolean_false}
+% Special marker to encode booleans in |JSON| files.
+% These are table which |__cls__| field is either |BooleanTrue| or |BooleanFalse|.
+% \end{variable}
+%    \begin{MacroCode}
+local JSON_boolean_true = {
+  __cls__ = 'BooleanTrue',
+}
+local JSON_boolean_false = {
+  __cls__ = 'BooleanFalse',
+}
+%    \end{MacroCode}
+%
 % \begin{function}{is_truthy}
 % \begin{syntax}
-% if CDR.is_truthy(\meta{string}) then
+% if CDR.is_truthy(\meta{what}) then
 %   \meta{true code}
 % else
 %   \meta{false code}
 % end
 % \end{syntax}
-% Execute \metatt{true code} if \metatt{string} is the string ``true'',
+% Execute \metatt{true code} if \metatt{what} is |JSON_boolean_true| or the string ``true'',
 % \metatt{false code} otherwise.
 % \end{function}
 %    \begin{MacroCode}[OK]
 local function is_truthy(s)
-  return s == 'true'
+  return s == JSON_boolean_true or s == 'true'
 end
 %    \end{MacroCode}
 %
@@ -940,7 +953,11 @@ local function hilight_set(self, key, value)
       end
     end
   end
-  t[key] = value
+  if t[key] == JSON_boolean_true or t[key] == JSON_boolean_false then
+    t[key] = value == true and JSON_boolean_true or JSON_boolean_false
+  else
+    t[key] = value
+  end
 end
 
 local function hilight_set_var(self, key, var)
@@ -967,7 +984,7 @@ local function hilight_source(self, sty, src)
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
-  local inline = texopts.is_inline
+  local inline = self.is_truthy(texopts.is_inline)
   local use_cache = self.is_truthy(args.cache)
   local use_py = false
   local cmd = self.PYTHON_PATH..' '..self.CDR_PY_PATH
@@ -1053,6 +1070,7 @@ end
 %    \end{MacroCode}
 %
 % \subsection{Code}
+%
 % \begin{function}{hilight_code_setup}
 % \begin{syntax}
 % CDR:hilight_code_setup()
@@ -1067,19 +1085,19 @@ local function hilight_code_setup(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
     source  = '',
-    cache   = BooleanTrue,
-    debug   = BooleanFalse,
+    cache   = JSON_boolean_true,
+    debug   = JSON_boolean_false,
     pygopts = {
       __cls__ = 'PygOpts',
       lang    = 'tex',
       style   = 'default',
-      mathescape   = BooleanFalse,
+      mathescape   = JSON_boolean_false,
       escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
       tags    = '',
-      is_inline = BooleanTrue,
+      is_inline = JSON_boolean_true,
       pyg_sty_p = '',
     },
     fv_opts = {
@@ -1149,21 +1167,21 @@ local function hilight_block_setup(self, tags_clist_var)
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
-    cache   = BooleanFalse,
-    debug   = BooleanFalse,
+    cache   = JSON_boolean_false,
+    debug   = JSON_boolean_false,
     source  = nil,
     pygopts = {
       __cls__ = 'PygOpts',
       lang = 'tex',
       style = 'default',
-      texcomments  = BooleanFalse,
-      mathescape   = BooleanFalse,
+      texcomments  = JSON_boolean_false,
+      mathescape   = JSON_boolean_false,
       escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
       tags    = tags_clist,
-      is_inline = BooleanFalse,
+      is_inline = JSON_boolean_false,
       pyg_sty_p = '',
     },
     fv_opts = {
@@ -1533,22 +1551,10 @@ from pygments.util import ClassNotFound
 %  
 %    \begin{MacroCode}[OK]
 class BaseOpts(object):
-  @staticmethod
-  def ensure_bool(x):
-    if x == True or x == False: return x
-    x = x[0:1]
-    return x == 'T' or x == 't'
 %    \end{MacroCode}
 %    \begin{MacroCode}[OK]
   def __init__(self, d={}):
     for k, v in d.items():
-      if type(v) == str:
-        if v.lower() == 'true':
-          setattr(self, k, True)
-          continue
-        elif v.lower() == 'false':
-          setattr(self, k, False)
-          continue
       setattr(self, k, v)
 %    \end{MacroCode}
 %
@@ -1571,7 +1577,6 @@ class TeXOpts(BaseOpts):
 \makeatother'''
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
-    self.inline_p  = self.ensure_bool(self.is_inline)
     self.pyg_sty_p = Path(self.pyg_sty_p or '')
 %    \end{MacroCode}
 %
@@ -1595,11 +1600,8 @@ class PygOpts(BaseOpts):
   lang = 'tex'
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
-    self.linenos = self.ensure_bool(self.linenos)
     self.linenostart = abs(int(self.linenostart))
     self.linenostep  = abs(int(self.linenostep))
-    self.texcomments = self.ensure_bool(self.texcomments)
-    self.mathescape  = self.ensure_bool(self.mathescape)
 %    \end{MacroCode}
 %
 % \subsection{\texttt{FV}class}
@@ -1638,9 +1640,6 @@ class FVOpts(BaseOpts):
     if self.firstnumber != 'auto':
       self.firstnumber = abs(int(self.firstnumber))
     self.stepnumber = abs(int(self.stepnumber))
-    self.numberblanklines = self.ensure_bool(self.numberblanklines)
-    self.resetmargins  = self.ensure_bool(self.resetmargins)
-    self.samepage  = self.ensure_bool(self.samepage)
 %    \end{MacroCode}
 %
 % \subsection{\texttt{Arguments}class}
@@ -2079,21 +2078,23 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
+
+
+
+
+
+
+
 %    \begin{MacroCode}
 \NewDocumentCommand \CDRTest {} {
-  \sys_if_shell:TF {
-    \CDR_has_pygments:F {
-      \msg_warning:nnn
-        { coder }
-        { :n }
-        { No~"pygmentize"~found. }
-    }
-  } {
-    \msg_warning:nnn
-      { coder }
-      { :n }
-      { No~unrestricted~shell~escape~for~"pygmentize".}
-  }
+  \par\noindent
+  Path~to~\textsf{python}:~\texttt{\directlua{tex.print(CDR.PYTHON_PATH)}}
+  \par\noindent
+  Path~to~\textsf{pygmentize}:~\texttt{\directlua{tex.print(CDR.PYGMENTIZE_PATH)}}
+  \par\noindent
+  \CDR_has_pygments:TF { Pygments~is~available } { Pygments~is~not~available
+}:~%\CDRCode[lang=tex]|\textit{text}|
+  \par\noindent
 }
 %    \end{MacroCode}
 % \section{Messages}
@@ -3551,14 +3552,12 @@ if __name__ == '__main__':
 % Known keys include:
 % \begin{description}
 % \itemtt[\CDRCheckRed tags=\meta{comma list of tag names}]^^A
-% to enable/disable the display
-% of the code chunks tags.
+% to enable/disable the display of the code chunks tags, setup some style, export.
 % Initially |empty|.
-% \itemtt[\CDRCheckRed tags=\meta{tag name comma list}]^^A
 % to export and display.
 %    \begin{MacroCode}
   tags .code:n = {
-    \clist_set:Nn \l_CDR_clist { #1 }
+    \clist_set:Nx \l_CDR_clist { #1 }
     \clist_remove_duplicates:N \l_CDR_clist
     \exp_args:NV
     \CDR_tag_set:n \l_CDR_clist
@@ -4276,7 +4275,7 @@ if __name__ == '__main__':
 \CDR@Debug{\string\CDRSet.4:\CDR_tag_module:n { default } /\l_CDR_kv_clist/ }
   \keys_define:nn { CDR@Set@tags } {
     tags .code:n = {
-      \clist_set:Nn \g_CDR_tags_clist { ##1 }
+      \clist_set:Nx \g_CDR_tags_clist { ##1 }
       \clist_remove_duplicates:N \g_CDR_tags_clist
     },
   }
@@ -4427,7 +4426,7 @@ if __name__ == '__main__':
 % Initially empty.
 %    \begin{MacroCode}[OK]
   tags .code:n = {
-    \clist_set:Nn \l_CDR_clist { #1 }
+    \clist_set:Nx \l_CDR_clist { #1 }
     \clist_remove_duplicates:N \l_CDR_clist
     \prop_put:NVV \l_CDR_export_prop \l_keys_key_str \l_CDR_clist
   },

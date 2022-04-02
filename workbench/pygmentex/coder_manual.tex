@@ -1,32 +1,64 @@
 % !TeX program=lualatex
 
-\documentclass[10pt,a4paper]{article}
+\documentclass{article}
 
-%\usepackage[margin=13mm]{geometry}
-\usepackage[T1]{fontenc}
+\usepackage[a4paper]{geometry}
+\usepackage{fontspec}
 \usepackage{xcolor}
 \usepackage{hyperref}
-\usepackage[framemethod=tikz]{mdframed}
+\hypersetup{
+    colorlinks,
+    linkcolor={red!50!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+}
+\usepackage{float}
 \usepackage{tcolorbox}
 \usepackage{fancyvrb-ex}
-\usepackage{tikz}
-\usepackage{calc}
-%\usepackage{pygmentex}
 \usepackage{coder}
 \usepackage{lipsum}
-\DeclareCaptionType{pygcode}[Listagem][Lista de listagens]
-\captionsetup[pygcode]{position=top}
-
 \usepackage{luacode} % JL
+\usepackage{unicode-math}
+\usepackage{multicol}
 
-\fvset{gobble=0,showtabs,tabsize=1,frame=lines,framerule=1pt,numbers=left,fontsize=\scriptsize}
+\typeout{************** REMOVE!!}
+\CDRSet{python path=/Users/jlaurens/opt/anaconda3/bin/python}
 
-\tcbuselibrary{skins,breakable}
+\ExplSyntaxOn
 
-\definecolor{shadecolor}{rgb}{0.9,0.9,0.9}
-\definecolor{lightgreen}{rgb}{0.8,0.95,0.8}
+\cs_new:Npn \cs #1 {
+  \texttt{
+    \textbackslash
+    \tl_rescan:nn {
+      \cctab_select:N \c_str_cctab
+    } {
+      #1
+    }
+  }
+}
+\cs_new:Npn \pkg { \textsf }
 
-\newdimen\LineNumberWidth
+\cs_new:Npn \MyOption #1 {
+  \texttt{#1}
+}
+
+\ExplSyntaxOff
+
+\NewDocumentCommand \itemtt { o } {
+  \IfNoValueTF { #1 } {
+    \item
+  } {
+    \item[\ttfamily#1]
+  }
+}
+
+\NewDocumentCommand \MyMeta {om} {%
+  {\normalfont$⟨${\itshape#2}$⟩$%
+  \IfValueT{#1}{\textsubscript{#1}}}%
+}
+\let\meta\MyMeta
+
+\def\CDRCheckRed {}
 
 \makeatletter
 \def\CDR@Debug#1{\typeout{**** DEBUG #1}}
@@ -383,73 +415,122 @@ Initially a void list.
 
 
 
-\title{Testing the Pygmen\TeX{} package}
-\author{José Romildo Malaquias}
-\maketitle
+\section{Export code with \cs{CDRExport}}
+\label{sect:exportation}
+\subsection{Usage}
+The syntax for the \cs{CDRExport} command is the following, where the \CDRCode|file| key must be provided with a non empty value,
+\begin{CDRBlock}[tags=src]
+\CDRExport{
+  file={⟨\MyMeta{output file path}⟩},
+  tags={⟨\MyMeta{tag}\textsubscript{1},\MyMeta{tag}\textsubscript{2},...⟩},
+}
+\end{CDRBlock}
+At the end of the typesetting process, all the code chunks with \MyMeta{tag}\textsubscript{1} like
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[tags={⟨\MyMeta{some tag},\MyMeta{tag}\textsubscript{1},\MyMeta{other tag},...⟩}]
+...
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+are collected in the order of the source, then all the code chunks with \MyMeta{tag}\textsubscript{2} are collected in turn,... Finally, the result is written to \MyMeta{output file path}.
 
-\section{TEST}
+If the \CDRCode|tags| list is void, no exportation takes place. This exportation list can contain macros.
+\subsection{Options}
+\begin{description}
+\itemtt[lang=\MyMeta{language}]
+One of the languages \pkg{pygments} is aware of, the list of officially supported languages is available at \url{https://pygments.org/languages/}.
+Initially \CDRCode|tex|.
+Every subsequent code chunk which first tag is in the exportation list will have the same \CDRCode|lang| option, unil the next change. 
+\itemtt[preamble=\MyMeta{preamble text}]
+The \MyMeta{preamble text} is saved before the collected code chunks unless the \CDRCode|raw| option is set to \CDRCode|true|.
+Initially empty.
+the \MyMeta{postamble text} is saved after the code collected chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. Initially empty.
+\itemtt[raw{[=true$\vert$false]}]
+When \CDRCode|true|, a preamble and postamble will be added to all the collected code chunks. Initially |false|.
+\itemtt[once{[=true$\vert$false]}]
+Consider for example the exportation \CDRCode|tags| list
+\MyMeta{tag}\textsubscript{1},\MyMeta{tag}\textsubscript{2}.
+If a block code chunk has exactly the same tag list, then it should be exported when \MyMeta{tag}\textsubscript{1} codes are collected but also when \MyMeta{tag}\textsubscript{2} codes are collected.
+If the \CDRCode|once| option is set to \CDRCode|true|,
+such a code chunk will be only be exported the first time, and will be ignored afterwards.
+Initially |true|: export only once.
+\end{description}
+%    lang = tex,
+%    preamble =,
+%    postamble =,
+%    raw = false,
+%    once = true,
 
-\ExplSyntaxOn
-\directlua{tex.print([[\tl_to_str:n{]]..NLN.INLINE_PY_PATH..[[}]])}\\
-\directlua{tex.print([[\tl_to_str:n{]]..NLN.jobname..[[}]])}\\
-\directlua{tex.print([[\tl_to_str:n{]]..NLN.dir_p..[[}]])}
-\ExplSyntaxOff
+\end{document}
+\section{Key--value options and tags}
 
-%\section{The Pygmen\TeX{} package}
-%
-%This document demonstrates how to use the Pygment\TeX{} package to
-%typeset code listings with \LaTeX{} and
-%Pygments\footnote{\url{http://pygments.org/}}.
-%
-%Pygments is a generic syntax highlighter for general use in all kinds of
-%software such as forum systems, wikis or other applications that need to
-%prettify source code.
-%
-%Pygmen\TeX{} provides an environment and two commands for typesetting code
-%listings in a \LaTeX{} document:
-%\begin{itemize}
-%  \item the \verb|pygmented| environment typesets its contents as a
-%  source code listing,
-%  \item the \verb|includepygmented| command typesets the contents of a
-%  file, including the result in the \LaTeX{} document, and
-%  \item the \verb|\pyginline| command typesets its contents, keeping the
-%  result in the same line.
-%\end{itemize}
-%They accept many options that allow the user to configure the listing in
-%many ways.
-%
-%Read the remaining of this document to have an idea of what the package
-%is capable of.
-%
-%\section{How to use the package}
-%
-%In order to use the package, start by putting
-%\begin{verbatim}
-%\usepackage{pygmentex}
-%\end{verbatim}
-%in the preamble of the document.
-%
-%Use the environment or commands mentioned previously to include source
-%code listings on your document.
-%
-%When compiling the document (with \texttt{pdflatex}, for instance), all
-%the source code listings in the document wil be collected and saved in a
-%temporary file with the extension \texttt{.snippets} in its name. Then
-%the auxiliary program \texttt{pygmentex} (a Python application
-%distributed with the Pygmen\TeX{} package) should be run taking this
-%file as input. It will produce another temporary file with the extension
-%\texttt{.pygmented}, containing \LaTeX{} code for the code listings
-%previously collected. The next time the document is compiled, they are
-%included to produce the final typeset document.
-%
-%The programming language of the listing code can be specified using the
-%\verb|lang| option.
-%
-%To get a list of all available languages, execute the following command
-%on the command line:
-%\begin{verbatim}
-%$ pygmentize -L lexers
-%\end{verbatim}
+Each time a code chunk is defined in a \CDRCode|CDRBlock| environment, it is recorded for further use.
+Unless 
+\subsection{About tags}
+To each code chunck is associate an ordered list of tags, so far we have seen the tags ``lua'' and ``python'' appearing in the first examples opposite to the line numbers.
+\section{Miscellanées}
+\subsection{Cache}
+In order to save typesetting time, the \pkg{coder} package asks \pkg{pygments} to colorize code only when necessary. The already colorized code is cached in the folder \verb|foo.pygd| for main source file \verb|foo.tex|.
+With the option \verb|cache=false|, code colorization is computed on each run. If \pkg{pygments} is available, the cache folder is automatically emptied if there is no \verb|.aux| file.
+
+\section{Cross references}
+We can always refer to pages with the \MyOption{reflabel=\MyMeta{label name}}: 
+
+\begin{center}
+\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[
+  tags=latex,
+  reflabel=My,
+  escapeinside=||,
+]
+\begin{|CDRBlock|}[reflabel=My]
+...
+\end{|CDRBlock|}
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\hspace{0.09\linewidth}%
+\begin{minipage}[t]{0.8\linewidth}
+On the second typeset run, we have
+\CDRCode[tags=latex,cache=false]|\pageref{My}| = \pageref{My}.
+\end{minipage}%
+\end{tabular}
+\end{center}
+Line references are only available when \pkg{pygments} is used: \MyOption{escapeinside} is used to define 2 characters that will delimit some \LaTeX{} instructions to be executed, here \CDRCode[tags=latex]|\label{line.421}|.
+\begin{center}
+\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[tags=latex]
+\begin{⟨CDRBlock⟩}[
+  firstnumber=421,
+  escapeinside=||,
+]
+line 421|\label{line.421}|
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\hspace{0.09\linewidth}%
+\begin{minipage}[t]{0.8\linewidth}
+\begin{CDRBlock}[
+  tags=latex,
+  firstnumber=421,
+  escapeinside=||,
+]
+line 421|\label{line.421}|
+\end{CDRBlock}
+On the second typeset run, we have
+\CDRCode[tags=latex]|\ref*{line.421}| = \ref*{line.421}.
+However this does not play well with \pkg{hyperref} hence the starred command.
+\end{minipage}%
+\end{tabular}
+\end{center}
+
+\end{document}
+
+\title{}
 
 \section{First examples}
 %
@@ -885,7 +966,7 @@ which names something. String literals in C looks like
 
 \begin{Example}
 This one
-\pyginline[lang=ocaml,font=\ttfamily\scriptsize,topline=false]:let x = [1;2;3] in length x:
+\pyginline[lang=ocaml,font=\ttfamily\scriptsize,topline=false] let x = [1;2;3] in length x:
 is an OCaml expression with local bindings. With OCaml one can do
 imperative, functional and object oriented programming.
 \end{Example}

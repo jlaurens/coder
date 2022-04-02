@@ -25,19 +25,41 @@ local lpeg  = require("lpeg")
 local P, Cg, Cp, V = lpeg.P, lpeg.Cg, lpeg.Cp, lpeg.V
 local json  = require('lualibs-util-jsn')
 local CDR_PY_PATH = kpse.find_file('coder-tool.py')
-local PYTHON_PATH = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
 local function set_python_path(self, path_var)
-  local path = assert(token.get_macro(assert(path_var)))
-  if #path>0 then
-    local mode,_,__ = lfs.attributes(self.PYTHON_PATH,'mode')
-    assert(mode == 'file' or mode == 'link')
-  else
-    path = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
+  local path, mode, _, __
+  if path_var then
+    path = assert(token.get_macro(path_var))
+    mode,_,__ = lfs.attributes(path,'mode')
+    print('**** CDR mode', path, mode)
   end
-  self.PYTHON_PATH = path
+  if not mode then
+    path = io.popen([[which python]]):read('a'):match("^%s*(.-)%s*$")
+    mode,_,__ = lfs.attributes(path,'mode')
+    print('**** CDR mode', path, mode)
+  end
+  if mode == 'file' or mode == 'link' then
+    self.PYTHON_PATH = path
+     print('**** CDR python path', self.PYTHON_PATH)
+   path = path:match("^(.+/)")..'pygmentize'
+   mode,_,__ = lfs.attributes(path,'mode')
+   print('**** CDR path, mode', path, mode)
+    if mode == 'file' or mode == 'link' then
+     tex.print('true')
+    else
+     tex.print('false')
+    end
+  else
+    self.PYTHON_PATH = nil
+  end
 end
+local JSON_boolean_true = {
+  __cls__ = 'BooleanTrue',
+}
+local JSON_boolean_false = {
+  __cls__ = 'BooleanFalse',
+}
 local function is_truthy(s)
-  return s == 'true'
+  return s == JSON_boolean_true or s == 'true'
 end
 local function escape(s)
   s = s:gsub(' ','\\ ')
@@ -157,17 +179,24 @@ local function hilight_set(self, key, value)
       end
     end
   end
-  t[key] = value
+  if t[key] == JSON_boolean_true or t[key] == JSON_boolean_false then
+    t[key] = value == true and JSON_boolean_true or JSON_boolean_false
+  else
+    t[key] = value
+  end
 end
 
 local function hilight_set_var(self, key, var)
   self:hilight_set(key, assert(token.get_macro(var or 'l_CDR_tl')))
 end
 local function hilight_source(self, sty, src)
+  if not self.PYTHON_PATH then
+    return
+  end
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
-  local inline = texopts.is_inline
+  local inline = self.is_truthy(texopts.is_inline)
   local use_cache = self.is_truthy(args.cache)
   local use_py = false
   local cmd = self.PYTHON_PATH..' '..self.CDR_PY_PATH
@@ -254,17 +283,19 @@ local function hilight_code_setup(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
     source  = '',
-    cache   = true,
-    debug   = false,
+    cache   = JSON_boolean_true,
+    debug   = JSON_boolean_false,
     pygopts = {
       __cls__ = 'PygOpts',
       lang    = 'tex',
       style   = 'default',
+      mathescape   = JSON_boolean_false,
+      escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
       tags    = '',
-      is_inline = true,
+      is_inline = JSON_boolean_true,
       pyg_sty_p = '',
     },
     fv_opts = {
@@ -273,28 +304,27 @@ local function hilight_code_setup(self)
   }
   self.hilight_json_written = false
 end
-
 local function hilight_block_setup(self, tags_clist_var)
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
   self['.tags clist'] = tags_clist
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
-    cache   = false,
-    debug   = false,
+    cache   = JSON_boolean_false,
+    debug   = JSON_boolean_false,
     source  = nil,
     pygopts = {
       __cls__ = 'PygOpts',
       lang = 'tex',
       style = 'default',
-      texcomments  = false,
-      mathescape   = false,
+      texcomments  = JSON_boolean_false,
+      mathescape   = JSON_boolean_false,
       escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
       tags    = tags_clist,
-      is_inline = false,
+      is_inline = JSON_boolean_false,
       pyg_sty_p = '',
     },
     fv_opts = {
@@ -410,7 +440,6 @@ return {
   _VERSION           = token.get_macro('fileversion'),
   date               = token.get_macro('filedate'),
   CDR_PY_PATH        = CDR_PY_PATH,
-  PYTHON_PATH        = PYTHON_PATH,
   set_python_path    = set_python_path,
   is_truthy          = is_truthy,
   escape             = escape,

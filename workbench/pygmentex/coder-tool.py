@@ -34,20 +34,8 @@ from pygments.formatters.latex import LatexEmbeddedLexer, LatexFormatter
 from pygments.lexers import get_lexer_by_name
 from pygments.util import ClassNotFound
 class BaseOpts(object):
-  @staticmethod
-  def ensure_bool(x):
-    if x == True or x == False: return x
-    x = x[0:1]
-    return x == 'T' or x == 't'
   def __init__(self, d={}):
     for k, v in d.items():
-      if type(v) == str:
-        if v.lower() == 'true':
-          setattr(self, k, True)
-          continue
-        elif v.lower() == 'false':
-          setattr(self, k, False)
-          continue
       setattr(self, k, v)
 class TeXOpts(BaseOpts):
   tags      = ''
@@ -60,7 +48,6 @@ class TeXOpts(BaseOpts):
 \makeatother'''
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
-    self.inline_p  = self.ensure_bool(self.is_inline)
     self.pyg_sty_p = Path(self.pyg_sty_p or '')
 class PygOpts(BaseOpts):
   style = 'default'
@@ -76,11 +63,8 @@ class PygOpts(BaseOpts):
   lang = 'tex'
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
-    self.linenos = self.ensure_bool(self.linenos)
     self.linenostart = abs(int(self.linenostart))
     self.linenostep  = abs(int(self.linenostep))
-    self.texcomments = self.ensure_bool(self.texcomments)
-    self.mathescape  = self.ensure_bool(self.mathescape)
 class FVOpts(BaseOpts):
   gobble = 0
   tabsize = 4
@@ -114,9 +98,6 @@ class FVOpts(BaseOpts):
     if self.firstnumber != 'auto':
       self.firstnumber = abs(int(self.firstnumber))
     self.stepnumber = abs(int(self.stepnumber))
-    self.numberblanklines = self.ensure_bool(self.numberblanklines)
-    self.resetmargins  = self.ensure_bool(self.resetmargins)
-    self.samepage  = self.ensure_bool(self.samepage)
 class Arguments(BaseOpts):
   cache  = False
   debug  = False
@@ -137,6 +118,10 @@ class Controller:
       return FVOpts(d)
     elif __cls__ == 'TeXOpts':
       return TeXOpts(d)
+    elif __cls__ == 'BooleanTrue':
+      return True
+    elif __cls__ == 'BooleanFalse':
+      return False
     else:
       return Arguments(d)
   @staticmethod
