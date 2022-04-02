@@ -900,12 +900,24 @@ local function load_exec_output(self, s)
 end
 %    \end{MacroCode}
 %
-% \section{Properties}
-% This is one of the channels from \CDRSty{} to \CDRLua{}.
+% \section{Variables}
+% 
+% \begin{variable}{BooleanTrue, BooleanFalse}
+% Boolean variables.
+% \end{variable}
+%    \begin{MacroCode}
+local BooleanTrue = {
+  __cls__ = 'BooleanTrue'
+}
+local BooleanFalse = {
+  __cls__ = 'BooleanFalse'
+}
+%    \end{MacroCode}
 %
 % \section{Hiligting}
 %
 % \subsection{Common}
+%
 % \begin{function}{hilight_set}
 % \begin{syntax}
 % CDR:hilight_set(...)
@@ -1041,8 +1053,6 @@ end
 %    \end{MacroCode}
 %
 % \subsection{Code}
-%
-% \subsection{Code}
 % \begin{function}{hilight_code_setup}
 % \begin{syntax}
 % CDR:hilight_code_setup()
@@ -1057,19 +1067,19 @@ local function hilight_code_setup(self)
   self['.arguments'] = {
     __cls__ = 'Arguments',
     source  = '',
-    cache   = true,
-    debug   = false,
+    cache   = BooleanTrue,
+    debug   = BooleanFalse,
     pygopts = {
       __cls__ = 'PygOpts',
       lang    = 'tex',
       style   = 'default',
-      mathescape   = false,
+      mathescape   = BooleanFalse,
       escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
       tags    = '',
-      is_inline = true,
+      is_inline = BooleanTrue,
       pyg_sty_p = '',
     },
     fv_opts = {
@@ -1139,21 +1149,21 @@ local function hilight_block_setup(self, tags_clist_var)
   self['.lines'] = {}
   self['.arguments'] = {
     __cls__ = 'Arguments',
-    cache   = false,
-    debug   = false,
+    cache   = BooleanFalse,
+    debug   = BooleanFalse,
     source  = nil,
     pygopts = {
       __cls__ = 'PygOpts',
       lang = 'tex',
       style = 'default',
-      texcomments  = false,
-      mathescape   = false,
+      texcomments  = BooleanFalse,
+      mathescape   = BooleanFalse,
       escapeinside = '',
     },
     texopts = {
       __cls__ = 'TeXOpts',
       tags    = tags_clist,
-      is_inline = false,
+      is_inline = BooleanFalse,
       pyg_sty_p = '',
     },
     fv_opts = {
@@ -1244,7 +1254,11 @@ end
 local function export_file_info(self, key, value)
   local export = self['.export']
   value = assert(token.get_macro(assert(value)))
-  export[key] = value
+  if export[key] == BooleanTrue or export[key] == BooleanFalse then
+    export[key] = (value == 'true') and BooleanTrue or BooleanFalse
+  else
+    export[key] = value
+  end
 end
 local function append_file_info(self, key, value)
   local export = self['.export']
@@ -1663,6 +1677,10 @@ class Controller:
       return FVOpts(d)
     elif __cls__ == 'TeXOpts':
       return TeXOpts(d)
+    elif __cls__ == 'BooleanTrue':
+      return True
+    elif __cls__ == 'BooleanFalse':
+      return False
     else:
       return Arguments(d)
 %    \end{MacroCode}
