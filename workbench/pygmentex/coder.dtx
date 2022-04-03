@@ -178,7 +178,8 @@ and the derived files           \jobname.ins,
 \documentclass{l3doc}
 \RequirePackage{fancyvrb}
 \RequirePackage{emoji}
-\RequirePackage{unicode-math}
+%\RequirePackage{unicode-math}
+%\setmathfont{Latin Modern Math}
 \EnableCrossrefs
 \CodelineIndex
 \RecordChanges
@@ -628,19 +629,6 @@ and the derived files           \jobname.ins,
 %   and |<placeholder:line>| should be replaced by the hilighted line code
 %   provided by \pkg{pygments}.
 %   They should not include a trailing newline char.
-%   The \meta{type} is used to describe the line more precisely.
-% \begin{description}
-% \itemtt[\CDRCheckRed First]
-%   When the block consists of more than one line.
-%   If the tag information is required or new, display only the tag.
-%   Display the number if required, otherwise.
-% \itemtt[\CDRCheckRed Second]
-%   If the first line did not, display the line number, but only when required.
-% \itemtt[\CDRCheckRed Black]
-%   for numbered lines,
-% \itemtt[\CDRCheckRed White]
-%   for unnumbered lines,
-% \end{description}
 %
 % \part{\CDRLua{} implementation}
 % \section{Usage}
@@ -678,7 +666,7 @@ local CDR_PY_PATH = kpse.find_file('coder-tool.py')
 % \begin{syntax}
 % CDR:set_python_path(\meta{path var})
 % \end{syntax}
-% \CDRCheckRed Set manually the path of the |python| utility with the contents
+% \CDRCheckRed Manually set the path of the |python| utility with the contents
 % of the \metatt{path var}.
 % If the given path does not point to a file or a link then an error is raised.
 % On return, print |true| or |false| in the \TeX{} stream to indicate whether
@@ -729,7 +717,7 @@ local JSON_boolean_false = {
 %
 % \begin{function}{is_truthy}
 % \begin{syntax}
-% if CDR.is_truthy(\meta{what}) then
+% if is_truthy(\meta{what}) then
 %   \meta{true code}
 % else
 %   \meta{false code}
@@ -737,6 +725,7 @@ local JSON_boolean_false = {
 % \end{syntax}
 % Execute \metatt{true code} if \metatt{what} is |JSON_boolean_true| or the string ``true'',
 % \metatt{false code} otherwise.
+% Upvalue for the clients.
 % \end{function}
 %    \begin{MacroCode}[OK]
 local function is_truthy(s)
@@ -984,8 +973,8 @@ local function hilight_source(self, sty, src)
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
-  local inline = self.is_truthy(texopts.is_inline)
-  local use_cache = self.is_truthy(args.cache)
+  local inline = is_truthy(texopts.is_inline)
+  local use_cache = is_truthy(args.cache)
   local use_py = false
   local cmd = self.PYTHON_PATH..' '..self.CDR_PY_PATH
   local debug = args.debug
@@ -1209,6 +1198,44 @@ local function record_line(self, line_variable_name)
 end
 %    \end{MacroCode}
 %
+% \begin{function}{escape_inside}
+% \begin{syntax}
+% escape_inside(\meta{text}, \meta{delimiters})
+% \end{syntax}
+% Return a copy of \meta{text} where what was escaped is remove, including the delimiters.
+% \meta{text} needs not be a line.
+% Private function (upvalue)
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function escape_inside (text, delimiters)
+  local i = 1
+  local t = {}
+  local r
+  if delimiters:len() == 2 then
+    r = '(.-)['..delimiters:sub(1,1)..'].-['
+      ..delimiters:sub(2,2)..']()'
+    for a, next_i in text:gmatch(r) do
+      t[#t+1] = a
+      i = next_i
+    end
+  elseif delimiters:len() == 3 then
+    r = '(.-)['..delimiters:sub(1,1)..'].-['
+      ..delimiters:sub(2,2)..'](.-)['
+      ..delimiters:sub(3,3)..']()'
+    for a, b, next_i in text:gmatch(r) do
+      t[#t+1] = a
+      t[#t+1] = b
+      i = next_i
+    end
+  end
+  if i > 1 then
+    t[#t+1] = text:sub(i,-1)
+    return table.concat(t,'')    
+  end
+  return text
+end
+%    \end{MacroCode}
+%
 % \begin{function}{hilight_block_teardown}
 % \begin{syntax}
 % CDR:hilight_block_teardown()
@@ -1220,11 +1247,22 @@ end
 local function hilight_block_teardown(self)
   local ll = assert(self['.lines'])
   if #ll > 0 then
+    local args = self['.arguments']
+    local t, code
+    if is_truthy(args.pygopts.texcomments) then
+      t = {}
+      for _,l in ipairs(ll) do
+        t[#t+1] = l:gsub('(.-)%?','%1')
+      end
+      code = table.concat(t,'\n')
+    else
+      code = escape_inside(table.concat(ll,'\n'),args.pygopts.escapeinside)
+    end
     local records = self['.records'] or {}
     self['.records'] = records
-    local t = {
+    t = {
       already = {},
-      code = table.concat(ll,'\n')
+      code = code
     }
     for tag in self['.tags clist']:gmatch('([^,]+)') do
       local tt = records[tag] or {}
@@ -2305,12 +2343,30 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 % \end{function}
-% \begin{variable}{default, __, __line}
+% \begin{variable}{default}
 % Generic and named line number counter.
 %    \begin{MacroCode}[OK]
 \CDR_int_new:cn { default } { 1 }
+%    \end{MacroCode}
+% \end{variable}
+%
+% \begin{variable}{__n}
+% Generic and named line number counter.
+%    \begin{MacroCode}[OK]
 \CDR_int_new:cn { __n } { 1 }
+%    \end{MacroCode}
+% \end{variable}
+%
+% \begin{variable}{__i}
+% Generic and named line number counter.
+%    \begin{MacroCode}[OK]
 \CDR_int_new:cn { __i } { 1 }
+%    \end{MacroCode}
+% \end{variable}
+%
+% \begin{variable}{__line}
+% Generic and named line number counter.
+%    \begin{MacroCode}[OK]
 \CDR_int_new:cn { __line } { 1 }
 %    \end{MacroCode}
 % \end{variable}
@@ -5586,62 +5642,9 @@ if __name__ == '__main__':
 %    \begin{MacroCode}  
 \CDR@Debug{\string\FVE@CDRBlock\space 1}
   \CDR_if_no_export:F {
-\CDR@Debug{\string\FVE@CDRBlock\space 11}
-    \CDR_if_tag_truthy:cTF { texcomments } {
-\CDR@Debug{\string\FVE@CDRBlock\space 111}
-      \CDR_if_tag_eq:cnTF { lang } { tex } {
-\CDR@Debug{\string\FVE@CDRBlock\space 1111}
-        \seq_map_inline:Nn \l_CDR_vrb_seq {
-          \tl_set:Nn \l_CDR_tl { ##1 }
-          \lua_now:n { CDR:record_line('l_CDR_tl') }
-        }       
-      } {
-\CDR@Debug{\string\FVE@CDRBlock\space 1112}
-        \regex_set:Nx \l_CDR_regex { ^ (.*?) \c_percent_str }
-        \seq_map_inline:Nn \l_CDR_vrb_seq {
-          \regex_extract_once:NnNTF \l_CDR_regex { ##1 } \l_CDR_seq {
-            \tl_set:Nx \l_CDR_tl { \seq_item:Nn \l_CDR_seq { 1 } }
-          } {
-            \tl_set:Nn \l_CDR_tl { ##1 }
-          }
-          \lua_now:n { CDR:record_line('l_CDR_tl') }
-        }
-      }
-    } {
-\CDR@Debug{\string\FVE@CDRBlock\space 112}
-      \CDR_tag_get:cN { escapeinside } \l_CDR_tl
-      \int_compare:nNnTF { \tl_count:N \l_CDR_tl } = 2 {
-\CDR@Debug{\string\FVE@CDRBlock\space 1121}
-        \regex_set:Nx \l_CDR_regex {
-          [ \tl_item:Nn \l_CDR_tl { 1 } ]
-          .*? [ \tl_item:Nn \l_CDR_tl { 2 } ]
-        }
-        \seq_map_inline:Nn \l_CDR_vrb_seq {
-          \regex_split:NnN \l_CDR_regex { ##1 } \l_CDR_seq
-          \tl_set:Nx \l_CDR_tl { \seq_use:Nn \l_CDR_seq {} }
-          \lua_now:n { CDR:record_line('l_CDR_tl') }
-        }
-      } {
-        \int_compare:nNnTF { \tl_count:N \l_CDR_tl } = 3 {
-\CDR@Debug{\string\FVE@CDRBlock\space 11221}
-          \regex_set:Nx \l_CDR_regex {
-            [ \tl_item:Nn \l_CDR_tl { 1 } ]
-            .*? [ \tl_item:Nn \l_CDR_tl { 2 } ]
-            (.*?) [ \tl_item:Nn \l_CDR_tl { 3 } ]
-          }
-          \seq_map_inline:Nn \l_CDR_vrb_seq {
-            \regex_split:NnN \l_CDR_regex { ##1 } \l_CDR_seq
-            \tl_set:Nx \l_CDR_tl { \seq_use:Nn \l_CDR_seq {} }
-            \lua_now:n { CDR:record_line('l_CDR_tl') }
-          }
-        } {
-\CDR@Debug{\string\FVE@CDRBlock\space 11222}
-          \seq_map_inline:Nn \l_CDR_vrb_seq {
-            \tl_set:Nn \l_CDR_tl { ##1 }
-            \lua_now:n { CDR:record_line('l_CDR_tl') }
-          }
-        }
-      }
+    \seq_map_inline:Nn \l_CDR_vrb_seq {
+      \tl_set:Nn \l_CDR_tl { ##1 }
+      \lua_now:n { CDR:record_line('l_CDR_tl') }
     }
   }
 %    \end{MacroCode}
@@ -6430,6 +6433,7 @@ if __name__ == '__main__':
 % \end{syntax}
 % \end{function}
 %    \begin{MacroCode}
+\tl_new:N \l_CDR_delimiters_tl
 \cs_new_protected:Npn \CDRBlock@FV {
 \CDR@Debug {DEBUG.Block.FV}
   \FV@UseKeyValues
@@ -6441,9 +6445,75 @@ if __name__ == '__main__':
     \tl_set:Nx \l_CDR_tl { [ last=%]
       \seq_count:N \l_CDR_vrb_seq %[
     ] }
-    \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
-      \exp_last_unbraced:NV \CDR@Line \l_CDR_tl { ##1 } { ##2 }
-      \tl_clear:N \l_CDR_tl
+\CDR@Debug{\string\CDRBlock@FV\space 11}
+    \CDR_if_tag_truthy:cTF { texcomments } {
+\CDR@Debug{\string\CDRBlock@FV\space 111}
+      \CDR_if_tag_eq:cnTF { lang } { tex } {
+\CDR@Debug{\string\CDRBlock@FV\space 1111}
+        \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
+          \exp_last_unbraced:NV \CDR@Line \l_CDR_tl { ##1 } { ##2 }
+          \tl_clear:N \l_CDR_tl
+        }
+      } {
+\CDR@Debug{\string\CDRBlock@FV\space 1112}
+        \regex_set:Nx \l_CDR_regex { ^ (.*?) ( \c_percent_str .* ) }
+        \cs_set:Npn \l_CDR_tl \CDR:nnn ##1 ##2 ##3 {
+          \exp_last_unbraced:NV \CDR@Line \l_CDR_tl
+            { ##1 }
+            { ##2 \CDR@@Comment { ##3 } }
+          \tl_clear:N \l_CDR_tl
+        }
+        \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
+          \regex_extract_once:NnNTF \l_CDR_regex { ##2 } \l_CDR_seq {
+            \exp_args:Nnff
+            \CDR:nnn { ##1 }
+              { \seq_item:Nn \l_CDR_seq 1 }
+              { \seq_item:Nn \l_CDR_seq 2 }
+          } {
+            \exp_last_unbraced:NV \CDR@Line \l_CDR_tl { ##1 } { ##2 }
+            \tl_clear:N \l_CDR_tl
+          }
+        }
+      }
+    } {
+\CDR@Debug{\string\CDRBlock@FV\space 112}
+      \CDR_tag_get:cN { escapeinside } \l_CDR_delimiters_tl
+      \int_compare:nNnTF { \tl_count:N \l_CDR_delimiters_tl } = 2 {
+\CDR@Debug{\string\CDRBlock@FV\space 1121}
+        \regex_set:Nx \l_CDR_regex {
+          [ \tl_item:Nn \l_CDR_delimiters_tl { 1 } ]
+          (.*?) [ \tl_item:Nn \l_CDR_delimiters_tl { 2 } ]
+        }
+        \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
+          \regex_split:NnN \l_CDR_regex { ##2 } \l_CDR_seq
+          \exp_last_unbraced:NV \CDR@Line \l_CDR_tl
+            { ##1 }
+            { \seq_use:Nn \l_CDR_seq {} }
+          \tl_clear:N \l_CDR_tl
+        }
+      } {
+        \int_compare:nNnTF { \tl_count:N \l_CDR_delimiters_tl } = 3 {
+\CDR@Debug{\string\CDRBlock@FV\space 11221}
+          \regex_set:Nx \l_CDR_regex {
+            [ \tl_item:Nn \l_CDR_delimiters_tl { 1 } ]
+            (.*?) [ \tl_item:Nn \l_CDR_delimiters_tl { 2 } ]
+            .*? [ \tl_item:Nn \l_CDR_delimiters_tl { 3 } ]
+          }
+          \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
+            \regex_split:NnN \l_CDR_regex { ##2 } \l_CDR_seq
+            \exp_last_unbraced:NV \CDR@Line \l_CDR_tl
+              { ##1 }
+              { \seq_use:Nn \l_CDR_seq {} }
+            \tl_clear:N \l_CDR_tl
+          }
+        } {
+\CDR@Debug{\string\CDRBlock@FV\space 11222}
+          \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
+            \exp_last_unbraced:NV \CDR@Line \l_CDR_tl { ##1 } { ##2 }
+            \tl_clear:N \l_CDR_tl
+          }
+        }
+      }
     }
   }
 }
