@@ -188,6 +188,8 @@ Inserting code as inline text is possible with the command \CDRCode[tags=src]|\C
 \begin{CDRBlock}[tags=src]
 \CDRCode[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]?⟨\MyMeta{inline code chunk}⟩?
 \end{CDRBlock}
+\end{document}
+
 Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course.
 
 The available options are collected in section \ref{sect:options} because they are shared.
@@ -294,14 +296,14 @@ tags on the right
 \begin{CDRBlock}[tags=src]
 \begin{⟨CDRBlock⟩}[
   tags = dummy,
-  ⟨\textcolor{CDROption}{\textbf{show tags=numbers}}⟩,
+  ⟨\textcolor{CDROption}{\textbf{show tags=same}}⟩,
 ]
 tags like numbers
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
 \begin{CDRBlock}[
   tags = dummy,
-  show tags=numbers,
+  show tags=same,
   numbers=left,
   frame=single,
 ]
@@ -310,14 +312,14 @@ tags like numbers
 \begin{CDRBlock}[tags=src]
 \begin{⟨CDRBlock⟩}[
   tags = dummy,
-  ⟨\textcolor{CDROption}{\textbf{show tags=numbers}}⟩,
+  ⟨\textcolor{CDROption}{\textbf{show tags=same}}⟩,
 ]
 tags like numbers
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
 \begin{CDRBlock}[
   tags = dummy,
-  show tags=numbers,
+  show tags=same,
   numbers=right,
   frame=single,
 ]
