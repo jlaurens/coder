@@ -5691,7 +5691,11 @@ if __name__ == '__main__':
     \tl_if_empty:NF \l_CDR_tl {
       \exp_args:NNV
       \regex_match:NnTF \c_CDR_int_regex \l_CDR_tl {
-        \CDR_int_set:cn { __mini } { \l_CDR_tl }
+        \int_compare:nNnTF { \l_CDR_tl } > 0 {
+          \CDR_int_set:cn { __mini } { \l_CDR_tl }
+        } {
+          \CDR_int_set:cn { __mini } { \seq_count:N \l_CDR_vrb_seq + \l_CDR_tl }
+        }
       } {
         \regex_set:NV \l_CDR_regex \l_CDR_tl
         \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
@@ -5711,7 +5715,11 @@ if __name__ == '__main__':
     \tl_if_empty:NF \l_CDR_tl {
       \exp_args:NNV
       \regex_match:NnTF \c_CDR_int_regex \l_CDR_tl {
-        \CDR_int_set:cn { __maxi } { \l_CDR_tl }
+        \int_compare:nNnTF { \l_CDR_tl } > 0 {
+          \CDR_int_set:cn { __maxi } { \l_CDR_tl }
+        } {
+          \CDR_int_set:cn { __maxi } { \seq_count:N \l_CDR_vrb_seq + \l_CDR_tl }
+        }
       } {
         \regex_set:NV \l_CDR_regex \l_CDR_tl
         \seq_map_indexed_inline:Nn \l_CDR_vrb_seq {
