@@ -5543,11 +5543,17 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
   no~export~format .code:n = \CDR_tag_set:,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed dry~numbers{[=true$\vert$false]}]^^A
+% \itemtt[\CDRCheckRed dry numbers{[=true$\vert$false]}]^^A
 % Initially |false|.
 %    \begin{MacroCode}[OK]
   dry~numbers .code:n = \CDR_tag_boolean_set:x { #1 },
   dry~numbers .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed no top space{[=true$\vert$false]}]^^A
+% Initially |false|.
+%    \begin{MacroCode}[OK]
+  no~top~space .code:n = \CDR_tag_boolean_set:x { #1 },
+  no~top~space .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed test{[=true$\vert$false]}]^^A
 % whether the chunk is a test,
@@ -5570,6 +5576,7 @@ if __name__ == '__main__':
     no~export = false,
     no~export~format = ,
     dry~numbers = false,
+    no~top~space = false,
     test = false,
     engine~options = ,
   },
@@ -5736,6 +5743,33 @@ if __name__ == '__main__':
         }
       }
     }
+  }
+%    \end{MacroCode}
+% This is a patch to remove an extra space at the top.
+%    \begin{MacroCode}
+  \cs_set:Npn \FV@ListVSpace {%
+%  \@topsepadd\topsep
+    \@topsepadd=\FancyVerbVspace
+    \if@noparlist\advance\@topsepadd\partopsep\fi
+    \if@inlabel
+      \vskip\parskip
+    \else
+      \if@nobreak
+        \vskip\parskip
+        \clubpenalty\@M
+      \else
+        \CDR_if_tag_truthy:cF { no~top~space } {
+          \addpenalty\@beginparpenalty
+          \@topsep\@topsepadd
+          \advance\@topsep\parskip
+          \addvspace\@topsep
+        }
+      \fi
+    \fi
+    \global\@nobreakfalse
+    \global\@inlabelfalse
+    \global\@minipagefalse
+    \global\@newlistfalse
   }
 \CDR@Debug{\string\FVE@CDRBlock\space 2}
   \CDRBlock_engine_begin:
