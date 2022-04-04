@@ -3030,13 +3030,15 @@ if __name__ == '__main__':
 % Set the parents of \metatt{child name} to the
 % given list.
 % When the \metatt{child name} is not provided, it defaults to |__local|.
+% Implementation detail: uses |\l_CDR_tl|.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_get_inherit:cn #1 #2 {
-  \seq_set_from_clist:cn { \CDR_tag_parent_seq:c { #1 } } { #2 }
-  \seq_remove_duplicates:c \l_CDR_tl
-  \seq_remove_all:cn \l_CDR_tl {}
-  \seq_put_right:cn \l_CDR_tl { \q_no_value }
+  \tl_set:Nx \l_CDR_tl { \CDR_tag_parent_seq:c { #1 } }
+  \seq_set_from_clist:cn { \l_CDR_tl } { #2 }
+  \seq_remove_duplicates:c { \l_CDR_tl }
+  \seq_remove_all:cn { \l_CDR_tl } {}
+  \seq_put_right:cn { \l_CDR_tl } { \q_no_value }
 }
 \cs_new:Npn \CDR_get_inherit:cf {
   \exp_args:Nnf \CDR_get_inherit:cn
@@ -5635,6 +5637,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \FVB@CDRBlock {
+\CDR@Debug{STEP:\exp_args:NV \tl_to_str:n \l_CDR_tl}
   \@bsphack
   \exp_args:NV \CDRBlock_preflight:n \FV@KeyValues
   \begingroup
@@ -5646,11 +5649,17 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
+% \begin{variable}{\l_CDR_regex}
+% Scratch variable to hold a regular expression.
+% \end{variable}
+%    \begin{MacroCode}
+\regex_new:N \l_CDR_regex
+%    \end{MacroCode}
+%
 % \begin{function}{\FVE@CDRBlock}
 % \pkg{fancyvrb} helper to end the |CDRBlock| environment.
 % \end{function}
 %    \begin{MacroCode}
-\regex_new:N \l_CDR_regex
 \cs_generate_variant:Nn \regex_set:Nn { Nx, NV }
 \cs_new:Npn \FVE@CDRBlock {
   \CDRBlock_setup:
