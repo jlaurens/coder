@@ -489,6 +489,8 @@ This engine named \CDRCode|efbox| was declared by next command
 \end{CDRBlock}
 with \CDRCode|efbox| as \MyMeta{engine name},
 and \CDRCode[tags=src]|\efbox[#1]{#2}| as \MyMeta{engine instructions}. It can be used to define a custom display engine as well.
+
+There is an engine named \CDRCode[tags=src]|default| which is always available and used by default. \CDRCode[tags=src]|\CDRCodeEngineRenew| will be used to redefine engines, with a similar syntax.
 %
 \subsubsection{Block code}
 If the \pkg{tcolorbox} package is loaded,
@@ -531,8 +533,10 @@ This engine named \CDRCode|tcbox| was declared by next command
 }
 \end{CDRBlock}
 with \CDRCode|tcbox| as \MyMeta{engine name},
-\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \MyMeta{begin engine instructions} and
-\CDRCode[tags=src]|\end{tcolorbox}| as \MyMeta{end engine instructions}. It can be used to define a custom display engine as well.
+\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \MyMeta{begin engine instructions} and as \MyMeta{end engine instructions}
+\CDRCode[tags=src]|\end{tcolorbox}|. This command is availale to define a custom display engine as well.
+
+There is an engine named \CDRCode[tags=src]|default| which is always available and used by default. \CDRCode[tags=src]|\CDRBlockEngineRenew| will be used to redefine engines, with a similar syntax.
 %
 \begin{center}
 \setlength{\arraycolsep}{0pt}
@@ -559,10 +563,48 @@ Verbatim line.
 Verbatim line.
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
-
 \end{tabular}
 \end{center}
- \end{document}      
+
+\section{Filtering}
+\begin{center}
+\setlength{\arraycolsep}{0pt}
+\begin{tabular}{p{0.495\columnwidth}p{0.495\columnwidth}}
+One can choose to display only some lines:
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  firstline=2,
+  lastline=4,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output reads
+\begin{CDRBlock}[
+  firstline=2,
+  lastline=-1,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{CDRBlock}
+&
+Non positive integers would count from the last line: \CDRCode[tags=src]|lastline=-3| and \CDRCode[tags=src]|lastline=-1| would give the same output (notice that line numbering is 1 based).
+
+Moreover, the option \CDRCode[tags=src]|firstline=2|
+can be replaced by \CDRCode[tags=src]|firstline=L.*2| which means: from the first line that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"| according to \LaTeX3 \url{interface3.pdf}.
+
+Similarly, the option \CDRCode[tags=src]|lastline=4|
+can be replaced by \CDRCode[tags=src]|lastline=L.*4| which means: up to the first line, from the line found above, that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|.
+\end{tabular}
+\end{center}
+\end{document}      
 
 %
 \subsection{Options}
