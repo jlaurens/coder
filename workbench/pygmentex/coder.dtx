@@ -1126,6 +1126,19 @@ local function synctex_state_restore(self)
 end
 %    \end{MacroCode}
 %
+% \begin{function}{synctex_target_set}
+% \begin{syntax}
+% CDR:synctex_state_set(\meta{line number})
+% \end{syntax}
+% Save the Sync\TeX\ state.
+% \end{function}
+%    \begin{MacroCode}
+local function synctex_target_set(self, line_number)
+  tex.force_synctex_tag( CDR.synctex_tag )
+  tex.force_synctex_line(CDR.synctex_line + line_number )
+end
+%    \end{MacroCode}
+%
 % \begin{function}{hilight_code_teardown}
 % \begin{syntax}
 % CDR:hilight_code_teardown()
@@ -1503,10 +1516,11 @@ return {
   hilight_block_setup    = hilight_block_setup,
   hilight_block_teardown = hilight_block_teardown,
 %    \end{MacroCode}
-% \itemtt[synctex state]
+% \itemtt[synctex]
 %    \begin{MacroCode}
   synctex_state_save    = synctex_state_save,
   synctex_state_restore = synctex_state_restore,
+  synctex_target_set    = synctex_target_set,
 %    \end{MacroCode}
 % \itemtt[cache]
 %    \begin{MacroCode}
@@ -4700,11 +4714,19 @@ if __name__ == '__main__':
       }
       \tl_clear:N \l_CDR_regex
       \CDR_export_get:ccNT { ##1 } { escapeinside } \l_CDR_tl {
-        \int_compare:nNnT { \tl_count:N \l_CDR_tl } = 2 {
+        \int_compare:nNnTF { \tl_count:N \l_CDR_tl } = 1 {
           \regex_set:Nx \l_CDR_regex {
             [ \tl_item:Nn \l_CDR_tl 1 ]
             ( .*? )
-            [ \tl_item:Nn \l_CDR_tl 2 ]
+            [ \tl_item:Nn \l_CDR_tl 1 ]
+          }
+        } {
+          \int_compare:nNnT { \tl_count:N \l_CDR_tl } > 1 {
+            \regex_set:Nx \l_CDR_regex {
+              [ \tl_item:Nn \l_CDR_tl 1 ]
+              ( .*? )
+              [ \tl_item:Nn \l_CDR_tl 2 ]
+            }
           }
         }
       }
@@ -5249,6 +5271,17 @@ if __name__ == '__main__':
 %
 % \subsection{\pkg{tcolorbox} related engine}
 % If the \pkg{tcolorbox} is loaded, related code and block engines are available.
+%    \begin{MacroCode}
+\AtBeginDocument {
+  \@ifpackageloaded{tcolorbox} {
+    \CDRBlockEngineNew {tcbox} {
+      \begin{tcolorbox}[#1]
+    } {
+      \end{tcolorbox}
+    }
+  } {}
+}
+%    \end{MacroCode}
 % 
 % \section{\cs{CDRCode} function}
 %
@@ -5791,14 +5824,40 @@ if __name__ == '__main__':
 % \cs{CDRBlock_teardown:}
 % \end{syntax}
 % Update the stored line numbers and send the |hilight_block_teardown| message to |CDR|.
+% In general, line numbers are updated such that people reading the whole document
+% can have the impression that the numbering flow is continuous.
+% If numbering was off or |dry|, no number update is performed.
 % \end{function}
 %    \begin{MacroCode}
 \cs_new_protected_nopar:Npn \CDRBlock_teardown: {
+\CDR@Debug{ \string \CDRBlock_teardown: }
   \bool_if:nT { \CDR_if_number_on_p: && !\CDR_if_numbers_dry_p: } {
-    \tl_set:Nx \l_CDR_tl { \seq_count:N \l_CDR_vrb_seq }
-    \clist_map_inline:Nn \g_CDR_tags_clist {
-      \CDR_int_gadd:cn { ##1 } { \l_CDR_tl }
-    }    
+\CDR@Debug{ \string \CDRBlock_teardown: ~UPDATE}
+    \CDR_if_tag_eq:cnTF { firstnumber } { last } {
+\CDR@Debug{ \string \CDRBlock_teardown:~CONTINUOUS }
+      \CDR_int_set:cn { __n } {
+        \seq_count:N \l_CDR_vrb_seq
+      }
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_int_gadd:cc { ##1 } { __n }
+        \CDR@Debug{NEXT~LINE~##1:~\CDR_int_use:c { ##1 } }
+      }
+    } {
+\CDR@Debug{ \string \CDRBlock_teardown:~NORMAL }
+      \CDR_if_tag_eq:cnTF { firstnumber } { auto } {
+        \CDR_int_set:cn { __n } {
+          1 + \seq_count:N \l_CDR_vrb_seq
+        }
+      } {
+        \CDR_int_set:cn { __n } {
+          \CDR_tag_get:c { firstnumber } + \seq_count:N \l_CDR_vrb_seq
+        }
+      }
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \CDR_int_gset:cc { ##1 } { __n }
+        \CDR@Debug{NEXT~LINE~##1:~\CDR_int_use:c { ##1 } }
+      }
+    }
   }
   \lua_now:n {
     CDR:hilight_block_teardown()
@@ -5957,9 +6016,10 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRNumberMain {
+  \use:n
 }
 \cs_new:Npn \CDRNumberOther {
-		\use_none:n
+  \use_none:n
 }
 %    \end{MacroCode}
 %
@@ -5973,10 +6033,10 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR@NumberMain {
-		\CDRNumberMain { \CDR_int_use:c { __n } }
+  \CDRNumberMain { \CDR_int_use:c { __n } }
 }
 \cs_new:Npn \CDR@NumberOther {
-		\CDRNumberOther { \CDR_int_use:c { __n } }
+  \CDRNumberOther { \CDR_int_use:c { __n } }
 }
 %    \end{MacroCode}
 %
@@ -6176,12 +6236,8 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_line_box:nnn #1 #2 #3 {
 \CDR@Debug {\string\CDR_line_box:nnn/\tl_to_str:n{#1}/.../\tl_to_str:n{#3}/}
-  \directlua {
-    tex.set_synctex_tag( CDR.synctex_tag )
-  }
-  
   \lua_now:e {
-    tex.set_synctex_line(CDR.synctex_line +( \CDR_int_use:c { __i }) )
+    CDR:synctex_target_set( \CDR_int_use:c { __i } )
   }
   \hbox to \hsize {
     \kern \leftmargin
