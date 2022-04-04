@@ -20,6 +20,8 @@
 \usepackage{luacode} % JL
 \usepackage{unicode-math}
 \usepackage{multicol}
+\usepackage{efbox}
+\usepackage{mboxfill}
 
 \typeout{************** REMOVE!!}
 \CDRSet{python path=/Users/jlaurens/opt/anaconda3/bin/python}
@@ -188,7 +190,6 @@ Inserting code as inline text is possible with the command \CDRCode[tags=src]|\C
 \begin{CDRBlock}[tags=src]
 \CDRCode[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]?⟨\MyMeta{inline code chunk}⟩?
 \end{CDRBlock}
-\end{document}
 
 Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course.
 
@@ -235,7 +236,7 @@ def factorial(n):
 \subsection{Tags}
 For the \CDRCode|CDRBlock| environment, the \CDRCode|show tags| option allows to display the list of tags.
 The possible choices are illustrated hereafter below each source.
-\setlength{\columnsep}{15mmm}
+\setlength{\columnsep}{15mm}
 \colorlet{CDROption}{magenta!66!black}
 \begin{multicols}{3}
 \CDRSet{
@@ -362,39 +363,211 @@ tags in mirror
 \end{multicols}
 %
 \subsection{Line numbering}
-Line numbering only makes sense for block code chunks.
-Options are illustrated below each source.
-
-\begin{multicols}{3}
+Line numbering only makes sense for blocks of code.
+Options are illustrated below, to the right of each source.
+\begin{center}
+\setlength{\arraycolsep}{0pt}
+\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
 %
 \begin{CDRBlock}[tags=src]
 \begin{⟨CDRBlock⟩}[
-  tags = dummy,
-  ⟨\textcolor{CDROption}{\textbf{show tags=mirror}}⟩,
+  tags=X,
+  show tags=none,
+  numbers=left,
+  ⟨\textcolor{CDROption}{\textbf{firstnumber=10}}⟩,
+  ⟨\textcolor{CDROption}{\textbf{stepnumber=3}}⟩,
 ]
-tags in mirror
+...
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
+&
 \begin{CDRBlock}[
-  tags = dummy,
-  show tags=mirror,
-  numbers=right,
-  frame=single,
+  tags=X,
+  show tags=none,
+  numbers=left,
+  firstnumber=10,
+  stepnumber=3,
 ]
-tags in mirror
+line 1 numbered 10
+line 2
+line 3 numbered 12
+line 4
+line 5
+line 6 numbered 15
+line 7
+line 8
+line 9 numbered 18
+\end{CDRBlock}
+&
+\end{tabular}
+\end{center}
+Blocks with the same leftmost tag can be numbered continuously with option \CDRCode[tags=src]|firstnumber=last|, the next one starting just after the previous has stopped.
+\begin{center}
+\setlength{\arraycolsep}{0pt}
+\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
+%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags=X,
+  show tags=none,
+  numbers=left,
+  ⟨\textcolor{CDROption}{\textbf{firstnumber=last}}⟩,
+  ⟨\textcolor{CDROption}{\textbf{stepnumber=4}}⟩,
+]
+...
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+&
+\RenewDocumentCommand\CDRNumberMain{m}{%
+  \color{CDROption}\bfseries#1
+  \color{.!25!white}\makebox[4mm]{\mboxfill[0.75mm]{.}}%
+}
+\RenewDocumentCommand\CDRNumberOther{m}{%
+  \color{lightgray}#1%
+}
+\begin{CDRBlock}[
+  tags=X,
+  show tags=none,
+  numbers=left,
+  firstnumber=last,
+  stepnumber=4,
+]
+line 1
+line 2 numbered 20
+line 3
+line 4
+line 5
+line 6 numbered 24
+line 7
+line 8
+line 9
+\end{CDRBlock}
+&
+\end{tabular}
+\end{center}
+%
+Above, the intermediate line numbers were displayed by redefining the command \CDRCode[tags=src]|\CDRNumberOther| that defaults to no operation:
+\begin{CDRBlock}[tags=src]
+\RenewDocumentCommand\CDRNumberOther{m}{%
+  \color{lightgray}#1%
+}
+\end{CDRBlock}
+Similarly, the command \CDRCode[tags=src]|\CDRNumberMain| to display the main line numbers has been redefined with the help of the \pkg{mboxfill} package:
+\begin{CDRBlock}[tags=src]
+\RenewDocumentCommand\CDRNumberMain{m}{%
+  \color{⟨\MyMeta{color}⟩}\bfseries#1
+  \color{.!25!white}\makebox[4mm]{\mboxfill[0.75mm]{.}}%
+}
+\end{CDRBlock}
+\subsection{Frames}
+%
+\subsubsection{Inline code}
+When the \pkg{efbox} package is loaded, inline code can be framed by adding the option \CDRCode|engine=efbox|: \CDRCode[
+  engine=efbox,
+  efbox engine options={
+    backgroundcolor=magenta!5!white,
+    linecolor=magenta!80!black,
+    linewidth=5\fboxrule,
+  }
+] |\textbf{ABCDE}|.
+It is possible to pass any option of the \pkg{efbox} package with the key \CDRCode[mbox=false]|efbox engine options|, here is the source of the previous magenta box
+\begin{CDRBlock}[tags=src]
+\CDRCode[
+  ⟨\textcolor{CDROption}{\textbf{engine}}⟩=efbox,
+  ⟨\textcolor{CDROption}{\textbf{efbox engine options}}⟩={
+    backgroundcolor=magenta!5!white,
+    linecolor=magenta!80!black,
+    linewidth=5\fboxrule,
+  }
+] |\textbf{ABCDE}|
+\end{CDRBlock}
+This engine named \CDRCode|efbox| was declared by next command
+\begin{CDRBlock}[tags=src]
+\CDRCodeEngineNew {⟨\MyMeta{engine name}⟩} {
+  ⟨\MyMeta{engine instructions}⟩
+}
+\end{CDRBlock}
+with \CDRCode|efbox| as \MyMeta{engine name},
+and \CDRCode[tags=src]|\efbox[#1]{#2}| as \MyMeta{engine instructions}. It can be used to define a custom display engine as well.
+%
+\subsubsection{Block code}
+If the \pkg{tcolorbox} package is loaded,
+then blocks of code can be framed by adding the option \CDRCode|engine=tcbox|
+\begin{CDRBlock}[
+  label=Example,
+  engine=tcbox,
+  tcbox engine options={
+    colback=magenta!5!white,
+    colframe=magenta!80!black,
+    boxrule=5\fboxrule,
+    fonttitle=\sffamily\bfseries,
+    title=\CDRGetOption{label},
+  },
+]
+\textbf{ABCDE}
+\end{CDRBlock}
+It is possible to pass any option of the \pkg{tcolorbox} package with the key \CDRCode[mbox=false,tags=src]|tcbox engine options|, here is the source of the magenta box above
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  ⟨\textcolor{CDROption}{\textbf{label}}⟩=Example,
+  ⟨\textcolor{CDROption}{\textbf{engine}}⟩=tcbox,
+  ⟨\textcolor{CDROption}{\textbf{tcbox engine options}}⟩={
+    colback=magenta!5!white,
+    colframe=magenta!80!black,
+    boxrule=5\fboxrule,
+    fontupper=\sffamily\bfseries,
+    title=\CDRGetOption{⟨\textcolor{CDROption}{\textbf{label}}⟩},
+  },
+]
+\textbf{ABCDE}
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+This engine named \CDRCode|tcbox| was declared by next command
+\begin{CDRBlock}[tags=src]
+\CDRBlockEngineNew {⟨\MyMeta{engine name}⟩} {
+  ⟨\MyMeta{begin engine instructions}⟩
+} {
+  ⟨\MyMeta{end engine instructions}⟩
+}
+\end{CDRBlock}
+with \CDRCode|tcbox| as \MyMeta{engine name},
+\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \MyMeta{begin engine instructions} and
+\CDRCode[tags=src]|\end{tcolorbox}| as \MyMeta{end engine instructions}. It can be used to define a custom display engine as well.
+%
+\begin{center}
+\setlength{\arraycolsep}{0pt}
+\begin{tabular}{p{0.495\columnwidth}p{0.495\columnwidth}}
+The \pkg{coder} package also supports \pkg{fancyvrb} options to display frames, here is an example from the \pkg{fancyvrb} documentation:
+\begin{CDRBlock}[
+  frame=single,
+  framerule=1mm,
+  framesep=3mm,
+  rulecolor=\color{red},
+  fillcolor=\color{yellow}
+]
+Verbatim line.
+\end{CDRBlock}
+&
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  frame=single,
+  framerule=1mm,
+  framesep=3mm,
+  rulecolor=\color{red},
+  fillcolor=\color{yellow}
+]
+Verbatim line.
+\end{⟨CDRBlock⟩}
 \end{CDRBlock}
 
-\end{multicols}
+\end{tabular}
+\end{center}
+ \end{document}      
 
-
-
-\end{document}
-
-\subsection{Framing}
-
+%
 \subsection{Options}
 \label{sect:options}
-\subsubsection{Shared by \cs{CDRCode} and \texttt{CDrBlock} environment}
+\subsubsection{Shared by \cs{CDRCode} and \texttt{CDRBlock} environment}
 \begin{description}
 \itemtt[\CDRCheckRed tags={\{\meta[1]{tag},\meta[2]{tag},...\}}]
 used for exportation, see section \ref{sect:exportation}, and also for styling, see section \ref{sect:styling}.
@@ -408,7 +581,7 @@ Initially a void list.
 \begin{description}
 \itemtt
 \end{description}
-\subsubsection{Specific to \texttt{CDrBlock} environment}
+\subsubsection{Specific to \texttt{CDRBlock} environment}
 \begin{description}
 \itemtt
 \end{description}
@@ -424,16 +597,16 @@ The syntax for the \cs{CDRExport} command is the following, where the \CDRCode|f
 \begin{CDRBlock}[tags=src]
 \CDRExport{
   file={⟨\MyMeta{output file path}⟩},
-  tags={⟨\MyMeta{tag}\textsubscript{1},\MyMeta{tag}\textsubscript{2},...⟩},
+  tags={⟨{\color{CDROption}\MyMeta[1]{tag}},\MyMeta[2]{tag},...⟩},
 }
 \end{CDRBlock}
-At the end of the typesetting process, all the code chunks with \MyMeta{tag}\textsubscript{1} like
+At the end of the typesetting process, all the code chunks with {\color{CDROption}\MyMeta[1]{tag}} like
 \begin{CDRBlock}[tags=src]
-\begin{⟨CDRBlock⟩}[tags={⟨\MyMeta{some tag},\MyMeta{tag}\textsubscript{1},\MyMeta{other tag},...⟩}]
+\begin{⟨CDRBlock⟩}[tags={⟨\MyMeta{some tag},{\color{CDROption}\MyMeta[1]{tag}},\MyMeta{other tag},...⟩}]
 ...
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
-are collected in the order of the source, then all the code chunks with \MyMeta{tag}\textsubscript{2} are collected in turn,... Finally, the result is written to \MyMeta{output file path}.
+are collected in the order of the source, then all the code chunks with \MyMeta[2]{tag} are collected in turn,... Finally, the result is written to \MyMeta{output file path}.
 
 If the \CDRCode|tags| list is void, no exportation takes place. This exportation list can contain macros.
 \subsection{Options}
@@ -442,19 +615,28 @@ If the \CDRCode|tags| list is void, no exportation takes place. This exportation
 One of the languages \pkg{pygments} is aware of, the list of officially supported languages is available at \url{https://pygments.org/languages/}.
 Initially \CDRCode|tex|.
 Every subsequent code chunk which first tag is in the exportation list will have the same \CDRCode|lang| option, unil the next change. 
-\itemtt[preamble=\MyMeta{preamble text}]
-The \MyMeta{preamble text} is saved before the collected code chunks unless the \CDRCode|raw| option is set to \CDRCode|true|.
+\itemtt[preamble=\MyMeta{preamble text}, preamble file=\MyMeta{preamble file path}]
+The \MyMeta{preamble text} is saved before the collected code chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \MyMeta{preamble file path}
+is given, then the \MyMeta{preamble text} is taken from the file instead.
 Initially empty.
-the \MyMeta{postamble text} is saved after the code collected chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. Initially empty.
+\itemtt[postamble=\MyMeta{postamble text}, postamble file=\MyMeta{postamble file path}]
+the \MyMeta{postamble text} is saved after the code collected chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \MyMeta{preamble file path}
+is given, then the \MyMeta{preamble text} is taken from the file instead. Initially empty.
+\itemtt[escapeinside=\MyMeta{delimiters}]
+the preamble and the postamble can contain \LaTeX\ macros enclosed between the delimiters,
+these will be executed before exprtation.
+Not any command is suitable here, macros containing text, \CDRCode|\date| may be convenient here.
+When the \MyMeta{delimiters} is void, no escaping occurs.
+When \MyMeta{delimiters} contains only one character, it is used both as opening and closing delimiter. When it contains at leat two characers, the first one is used as opening delimiter, the second one as closing delimiter.
 \itemtt[raw{[=true$\vert$false]}]
-When \CDRCode|true|, a preamble and postamble will be added to all the collected code chunks. Initially |false|.
+When \CDRCode|true|, a preamble and postamble will be added to all the collected code chunks. Initially \CDRCode|false|.
 \itemtt[once{[=true$\vert$false]}]
 Consider for example the exportation \CDRCode|tags| list
-\MyMeta{tag}\textsubscript{1},\MyMeta{tag}\textsubscript{2}.
-If a block code chunk has exactly the same tag list, then it should be exported when \MyMeta{tag}\textsubscript{1} codes are collected but also when \MyMeta{tag}\textsubscript{2} codes are collected.
+\MyMeta[1]{tag},\MyMeta[2]{tag}.
+If a block code chunk has exactly the same tag list, then it should be exported when \MyMeta[1]{tag} codes are collected but also when \MyMeta[2]{tag} codes are collected.
 If the \CDRCode|once| option is set to \CDRCode|true|,
 such a code chunk will be only be exported the first time, and will be ignored afterwards.
-Initially |true|: export only once.
+Initially \CDRCode|true|: export only once.
 \end{description}
 %    lang = tex,
 %    preamble =,

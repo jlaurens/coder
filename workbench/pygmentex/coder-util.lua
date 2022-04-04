@@ -100,13 +100,6 @@ if make_directory(dir_p) == nil then
 else
   json_p = dir_p..'input.pyg.json'
 end
-local function print_file_content(name)
-  local p = token.get_macro(name)
-  local fh = assert(io.open(p, 'r'))
-  local s = fh:read('a')
-  fh:close()
-  tex.print(s)
-end
 local eq_pattern = P({ Cp() * P('=')^1 * Cp() + P(1) * V(1) })
 local function safe_equals(s)
   local i, j = 0, 0
@@ -166,6 +159,12 @@ local function load_exec_output(self, s)
     end
   end
 end
+local BooleanTrue = {
+  __cls__ = 'BooleanTrue'
+}
+local BooleanFalse = {
+  __cls__ = 'BooleanFalse'
+}
 local function hilight_set(self, key, value)
   local args = self['.arguments']
   local t = args
@@ -180,7 +179,7 @@ local function hilight_set(self, key, value)
     end
   end
   if t[key] == JSON_boolean_true or t[key] == JSON_boolean_false then
-    t[key] = value == true and JSON_boolean_true or JSON_boolean_false
+    t[key] = value == 'true' and JSON_boolean_true or JSON_boolean_false
   else
     t[key] = value
   end
@@ -196,8 +195,8 @@ local function hilight_source(self, sty, src)
   local args = self['.arguments']
   local texopts = args.texopts
   local pygopts = args.pygopts
-  local inline = self.is_truthy(texopts.is_inline)
-  local use_cache = self.is_truthy(args.cache)
+  local inline = is_truthy(texopts.is_inline)
+  local use_cache = is_truthy(args.cache)
   local use_py = false
   local cmd = self.PYTHON_PATH..' '..self.CDR_PY_PATH
   local debug = args.debug
@@ -280,6 +279,7 @@ local function hilight_source(self, sty, src)
   )
 end
 local function hilight_code_setup(self)
+  self:synctex_state_save()
   self['.arguments'] = {
     __cls__ = 'Arguments',
     source  = '',
@@ -304,7 +304,27 @@ local function hilight_code_setup(self)
   }
   self.hilight_json_written = false
 end
+local function synctex_state_save(self)
+  self.synctex_tag  = tex.get_synctex_tag();
+  self.synctex_line = tex.inputlineno;
+  self.synctex_mode = tex.get_synctex_mode();
+  tex.set_synctex_mode(1)
+end
+local function synctex_state_restore(self)
+  tex.force_synctex_tag(self.synctex_tag)
+  tex.force_synctex_line(self.synctex_line)
+  tex.set_synctex_mode(self.synctex_mode)
+end
+local function synctex_target_set(self, line_number)
+  tex.force_synctex_tag( CDR.synctex_tag )
+  tex.force_synctex_line(CDR.synctex_line + line_number )
+end
+local function hilight_code_teardown(self)
+  self:synctex_state_restore()
+end
+
 local function hilight_block_setup(self, tags_clist_var)
+  self:synctex_state_save()
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
   self['.tags clist'] = tags_clist
   self['.lines'] = {}
@@ -340,14 +360,52 @@ local function record_line(self, line_variable_name)
   local ll = assert(self['.lines'])
   ll[#ll+1] = line
 end
+local function escape_inside (text, delimiters)
+  local i = 1
+  local t = {}
+  local r
+  if delimiters:len() == 2 then
+    r = '(.-)['..delimiters:sub(1,1)..'].-['
+      ..delimiters:sub(2,2)..']()'
+    for a, next_i in text:gmatch(r) do
+      t[#t+1] = a
+      i = next_i
+    end
+  elseif delimiters:len() == 3 then
+    r = '(.-)['..delimiters:sub(1,1)..'].-['
+      ..delimiters:sub(2,2)..'](.-)['
+      ..delimiters:sub(3,3)..']()'
+    for a, b, next_i in text:gmatch(r) do
+      t[#t+1] = a
+      t[#t+1] = b
+      i = next_i
+    end
+  end
+  if i > 1 then
+    t[#t+1] = text:sub(i,-1)
+    return table.concat(t,'')
+  end
+  return text
+end
 local function hilight_block_teardown(self)
   local ll = assert(self['.lines'])
   if #ll > 0 then
+    local args = self['.arguments']
+    local t, code
+    if is_truthy(args.pygopts.texcomments) then
+      t = {}
+      for _,l in ipairs(ll) do
+        t[#t+1] = l:gsub('(.-)%?','%1')
+      end
+      code = table.concat(t,'\n')
+    else
+      code = escape_inside(table.concat(ll,'\n'),args.pygopts.escapeinside)
+    end
     local records = self['.records'] or {}
     self['.records'] = records
-    local t = {
+    t = {
       already = {},
-      code = table.concat(ll,'\n')
+      code = code
     }
     for tag in self['.tags clist']:gmatch('([^,]+)') do
       local tt = records[tag] or {}
@@ -355,27 +413,45 @@ local function hilight_block_teardown(self)
       tt[#tt+1] = t
     end
   end
+  self:synctex_state_restore()
 end
 local function export_file(self, file_name_var)
   self['.name'] = assert(token.get_macro(assert(file_name_var)))
-  self['.export'] = {}
+  self['.export'] = {
+    preamble = {},
+    postamble = {},
+  }
 end
 local function export_file_info(self, key, value)
   local export = self['.export']
   value = assert(token.get_macro(assert(value)))
-  export[key] = value
+  if export[key] == BooleanTrue or export[key] == BooleanFalse then
+    export[key] = (value == 'true') and BooleanTrue or BooleanFalse
+  else
+    export[key] = value
+  end
+end
+local function append_file_info(self, key, value)
+  local export = self['.export']
+  local t = export[key]
+  value = assert(token.get_macro(assert(value)))
+  t[#t+1] = value
 end
 local function export_complete(self)
   local name    = self['.name']
+print('**** CDR NAME', name)
   local export  = self['.export']
   local records = self['.records']
-  local raw = export.raw == 'true'
+  local raw  = export.raw  == 'true'
+  local once = export.once == 'true'
+  local tags = export.tags
   local tt = {}
-  local s
+  local s, t, _
+print('**** CDR', tags, raw, once)
   if not raw then
     s = export.preamble
-    if s and #s>0  then
-      tt[#tt+1] = s
+    for _,t in ipairs(s) do
+      tt[#tt+1] = t
     end
   end
   for tag in string.gmatch(export.tags, '([^,]+)') do
@@ -393,11 +469,15 @@ local function export_complete(self)
   end
   if not raw then
     s = export.postamble
-    if s and #s>0  then
-      tt[#tt+1] = s
+    for _,t in ipairs(s) do
+      tt[#tt+1] = t
     end
   end
+print('**** CDR', name, #tt)
   if #tt>0 then
+    if #tt[#tt] > 0 then
+      tt[#tt+1] = ''
+    end
     local fh = assert(io.open(name,'w'))
     fh:write(table.concat(tt, '\n'))
     fh:close()
@@ -450,9 +530,13 @@ return {
   hilight_set        = hilight_set,
   hilight_set_var    = hilight_set_var,
   hilight_source     = hilight_source,
-  hilight_code_setup = hilight_code_setup,
+  hilight_code_setup    = hilight_code_setup,
+  hilight_code_teardown = hilight_code_teardown,
   hilight_block_setup    = hilight_block_setup,
   hilight_block_teardown = hilight_block_teardown,
+  synctex_state_save    = synctex_state_save,
+  synctex_state_restore = synctex_state_restore,
+  synctex_target_set    = synctex_target_set,
   cache_clean_all    = cache_clean_all,
   cache_record       = cache_record,
   cache_clean_unused = cache_clean_unused,
@@ -466,5 +550,6 @@ return {
   json_p             = json_p,
   export_file        = export_file,
   export_file_info   = export_file_info,
+  append_file_info   = append_file_info,
   export_complete    = export_complete,
 }
