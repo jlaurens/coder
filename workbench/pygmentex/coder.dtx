@@ -5638,11 +5638,6 @@ if __name__ == '__main__':
   \@bsphack
   \exp_args:NV \CDRBlock_preflight:n \FV@KeyValues
   \begingroup
-  \lua_now:n {
-    CDR.synctex_tag = tex.get_synctex_tag();
-    CDR.synctex_line = tex.inputlineno;
-    tex.set_synctex_mode(1)
-  }
   \seq_clear:N \l_CDR_vrb_seq
   \cs_set_protected_nopar:Npn \FV@ProcessLine ##1 {
     \seq_put_right:Nn \l_CDR_vrb_seq { ##1 }
