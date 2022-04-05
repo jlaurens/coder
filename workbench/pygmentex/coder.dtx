@@ -3638,11 +3638,25 @@ if __name__ == '__main__':
   },
   tags .value_required:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed default tags=\meta{comma list of tag names}]^^A
+% to enable/disable the display of the code chunks tags, setup some style, export.
+% Initially |empty|.
+% to export and display.
+%    \begin{MacroCode}
+  default~tags .code:n = {
+    \clist_set:Nx \l_CDR_clist { #1 }
+    \clist_remove_duplicates:N \l_CDR_clist
+    \exp_args:NV
+    \CDR_tag_set:n \l_CDR_clist
+  },
+  default~tags .value_required:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed __initialize]^^A
 % Initialization.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
     tags = ,
+    default~tags = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -4625,7 +4639,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % The list of tags must not be empty, raise an error otherwise.
 % Records the list in |\g_CDR_tags_clist|, it will be the default list
-% of forthcoming code blocks.
+% of forthcoming code blocks if the |default tags| is not set.
 %    \begin{MacroCode}[OK]
     \prop_get:NnNTF \l_CDR_export_prop { tags } \l_CDR_clist {
       \clist_set_eq:NN \g_CDR_tags_clist \l_CDR_clist
@@ -5405,9 +5419,12 @@ if __name__ == '__main__':
     }
   }
   \clist_if_empty:NT \g_CDR_tags_clist {
-    \PackageWarning
-      { coder }
-      { No~(default)~tags~provided. }
+    \CDR_tag_get:cN { default~tags } \g_CDR_tags_clist
+    \clist_if_empty:NT \g_CDR_tags_clist {
+      \PackageWarning
+        { coder }
+        { No~default~tags~provided. }
+    }
   }
 \CDR@Debug {CDRCode_tags_setup:N\space\g_CDR_tags_clist}
 %    \end{MacroCode}
@@ -6674,9 +6691,11 @@ if __name__ == '__main__':
     }
   }
   \clist_if_empty:NT \g_CDR_tags_clist {
-    \PackageWarning
-      { coder }
-      { No~(default)~tags~provided. }
+    \CDR_tag_get:cN { defaulft~tags } \g_CDR_tags_clist {
+      \PackageWarning
+        { coder }
+        { No~default~tags~provided. }
+    }
   }
 \CDR@Debug {CDRBlock_tags_setup:N\space\g_CDR_tags_clist}
 %    \end{MacroCode}
