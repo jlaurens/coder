@@ -56,7 +56,7 @@
 }
 
 \NewDocumentCommand \MyMeta {om} {%
-  {\normalfont$⟨${\itshape#2}$⟩$%
+  {\normalfont$⟨${\itshape#2}$\,⟩$%
   \IfValueT{#1}{\textsubscript{#1}}}%
 }
 \let\meta\MyMeta
@@ -68,6 +68,15 @@
 \author{Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}}
 \maketitle
 \section{Installation}
+%\CDRCodeSave{UNIK}|\textbf{WIKI}|
+%
+%\subsection{The \CDRCodeUse[style=autumn]{UNIK} command}
+%\subsection{The \CDRCodeUse[style=default]{UNIK} command}
+%\subsection{The \string\CDRSet\ command}
+%
+%\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 This package is part of any standard \LaTeX{} distribution. To use it in a document, put the next instruction in the preamble:
 \begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
 \RequirePackage{coder}
@@ -142,7 +151,7 @@ To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while
     show tags=none,
     escapeinside=⟨⟩,
   },
-  tags/src={
+  tags/src|options={
     lang=tex,
     style=default,
     numbers=none,
@@ -194,7 +203,16 @@ Inserting code as inline text is possible with the command \CDRCode[tags=src]|\C
 \CDRCode[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]?⟨\MyMeta{inline code chunk}⟩?
 \end{CDRBlock}
 
-Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course.
+Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course. Similarly, we can save a code snippet for later use:
+\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
+\begin{CDRBlock}[tags=src]
+\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
+\end{CDRBlock}
+With next instruction,
+\begin{CDRBlock}[tags=src]
+\CDRCodeUse[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]{UNIK key}
+\end{CDRBlock}
+we can display the code snippet with different styles like \CDRCodeUse[tags=src,style=autumn]{UNIK key} or \CDRCodeUse[tags=src,style=default]{UNIK key}, and even use it in a footnote\footnote{Here is the aspect when \pkg{pygments} is not available: \CDRCodeUse[tags=src,pygments=false]{UNIK key}}.
 
 The available options are collected in section \ref{sect:options} because they are shared.
 \subsection{The \texttt{CDRBlock} environment}
@@ -543,13 +561,13 @@ This engine named \CDRCode|tcbox| was declared by next command
 }
 \end{CDRBlock}
 with \CDRCode|tcbox| as \MyMeta{engine name},
-\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \MyMeta{begin engine instructions}, where \CDRCode[tags=src]|#1| will be replaced by whatever is provided for key \CDRCode[tags={src,options}]|⟨\MyMeta{engine name}⟩ engine options|, and as \MyMeta{end engine instructions}
+\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \MyMeta{begin engine instructions}, where \CDRCode[tags=src]|#1| will be replaced by whatever is provided for key \CDRCode[tags=options]|⟨\MyMeta{engine name}⟩ engine options|, and as \MyMeta{end engine instructions}
 \CDRCode[tags=src]|\end{tcolorbox}|. This command is availale to define a custom display engine as well.
 
 There is an engine named \CDRCode[tags=src]|default| which is always available and used by default.
 The command \CDRCode[tags=src]|\CDRBlockEngineRenew| will be used to redefine engines, with a similar syntax.
 
-Notice the \CDRCode[tags=src]|\CDRGetOption| command used to retrieve the value for the key \CDRCode[tags={src,options}]|label|.
+Notice the \CDRCode[tags=src]|\CDRGetOption| command used to retrieve the value for the key \CDRCode[tags=options]|label|.
 %
 \begin{center}
 \setlength{\arraycolsep}{0pt}
@@ -662,8 +680,8 @@ Line 5
 In the middle column, non positive integers count lines from the end.
 Notice that line numbering is 1 based such that the last line corresponds to index 0.
 
-In the last column, the option \CDRCode[tags={src,options}]|firstline=L.*2| means: from the first line that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|, according to \LaTeX3 \url{interface3.pdf}.
-Similarly, the option \CDRCode[tags={src,options}]|lastline=L.*4| means: up to the first line, from the line found above, that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|.
+In the last column, the option \CDRCode[tags=options]|firstline=L.*2| means: from the first line that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|, according to \LaTeX3 \url{interface3.pdf}.
+Similarly, the option \CDRCode[tags=options]|lastline=L.*4| means: up to the first line, from the line found above, that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|.
 %
 
 \subsection{Spacing}
@@ -720,7 +738,7 @@ vspace=\dimexpr0.5\topsep-\partopsep\relax
 \lipsum[4][1]
 \end{tabular}
 \end{center}
-The line height is inherited from the surrounding environment unless the baselinestrech factor has been provided. Columns 2 and 3 are enclosed in a \pkg{setspace} environment with one and a half line spacing. The last column also adds the \CDRCode[tags={src,options}]|baselinstretch=2| option.
+The line height is inherited from the surrounding environment unless the baselinestrech factor has been provided. Columns 2 and 3 are enclosed in a \pkg{setspace} environment with one and a half line spacing. The last column also adds the \CDRCode[tags=options]|baselinstretch=2| option.
 \begin{center}
 \setlength{\tabcolsep}{0pt}
 \begin{tabular}{p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}}
@@ -757,6 +775,13 @@ Line 2
 \end{spacing}
 \end{tabular}
 \end{center}
+
+
+
+
+
+
+
 
 \end{document}
 
