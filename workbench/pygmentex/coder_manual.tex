@@ -154,97 +154,6 @@ To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while
   },
 }
 %%%%%
-\subsection{Spacing}
-For blocks, the size of the left and right margins can be adjusted.
-On the second line below were used the options
-\CDRCode[tags=options]|xleftmargin=3cm|
-and \CDRCode[tags=options]|xrightmargin=2cm|
-\begin{CDRBlock}[
-  tags=normal margins,
-  show tags=left,
-]
-One line⟨\mboxfill{.}⟩
-\end{CDRBlock}
-\begin{CDRBlock}[
-  tags=adjusted margins,
-  show tags=left,
-  xleftmargin=3cm,
-  xrightmargin=2cm,
-]
-One line⟨\mboxfill{.}⟩
-\end{CDRBlock}
-The vertical space before and after the blocks is governed by \CDRCode[tags=src]|\topsep|, \CDRCode[tags=src]|\partopsep| and \CDRCode[tags=src]|\parskip| like standard list are.
-In addition, the \CDRCode[tags=options]|vspace|
-options, which initial value is exactly \CDRCode[tags=src]|\topsep|, allows a supplemental adjustment:
-\begin{center}
-\setlength{\tabcolsep}{0pt}
-\begin{tabular}{p{0.233\columnwidth}p{0.233\columnwidth}p{0.533\columnwidth}}
-Text before
-\begin{CDRBlock}[
-  tags=src,
-]
-Default vspace
-\end{CDRBlock}
-Text after
-&Text before
-\begin{CDRBlock}[
-  tags=src,
-  vspace=5mm,
-]
-vspace=5mm
-\end{CDRBlock}
-Text after
-&
-Text before
-\begin{CDRBlock}[
-  tags=src,
-  vspace=\dimexpr0.5\topsep-\partopsep\relax,
-]
-vspace=\dimexpr0.5\topsep-\partopsep\relax
-\end{CDRBlock}
-Text after
-\end{tabular}
-\end{center}
-The line height is inherited from the surrounding environment unless the baselinestrech factor has been provided. Columns 2 and 3 are enclosed in a \pkg{setspace} environment with one and a half line spacing. The last column also adds the \CDRCode[tags={src,options}]|baselinstretch=2| option.
-\begin{center}
-\setlength{\tabcolsep}{0pt}
-\begin{tabular}{p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}}
-\lipsum[1][1]
-\begin{CDRBlock}[
-  tags=src,
-]
-Line 1
-Line 2
-\end{CDRBlock}
-\lipsum[2][1]
-&&
-\begin{spacing}{1.5}
-\lipsum[1][1]
-\begin{CDRBlock}[
-  tags=src,
-]
-Line 1
-Line 2
-\end{CDRBlock}
-\lipsum[2][1]
-\end{spacing}
-&&
-\begin{spacing}{1.5}
-\lipsum[1][1]
-\begin{CDRBlock}[
-  tags=src,
-  baselinestretch=2,
-]
-Line 1
-Line 2
-\end{CDRBlock}
-\lipsum[2][1]
-\end{spacing}
-\end{tabular}
-\end{center}
-
-\end{document}
-
 %%%%%
 \begin{figure}
 \begin{center}
@@ -672,7 +581,7 @@ Verbatim line.
 \end{center}
 
 \section{Miscellanées}
-\subscetion{Filtering}
+\subsection{Filtering}
 One can display only a selected range of lines.
 \begin{center}
 \setlength{\arraycolsep}{0pt}
@@ -757,7 +666,99 @@ In the last column, the option \CDRCode[tags={src,options}]|firstline=L.*2| mean
 Similarly, the option \CDRCode[tags={src,options}]|lastline=L.*4| means: up to the first line, from the line found above, that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|.
 %
 
-\end{document}      
+\subsection{Spacing}
+For blocks, the size of the left and right margins can be adjusted.
+On the second line below were used the options
+\CDRCode[tags=options]|xleftmargin=3cm|
+and \CDRCode[tags=options]|xrightmargin=2cm|
+\begin{CDRBlock}[
+  tags=normal margins,
+  show tags=left,
+  escapeinside=⟨⟩,
+]
+One line⟨\mboxfill{.}⟩
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags=adjusted margins,
+  show tags=left,
+  xleftmargin=3cm,
+  xrightmargin=2cm,
+  escapeinside=⟨⟩,
+]
+One line⟨\mboxfill{.}⟩
+\end{CDRBlock}
+The vertical space before and after the blocks is governed by \CDRCode[tags=src]|\topsep|, \CDRCode[tags=src]|\partopsep| and \CDRCode[tags=src]|\parskip| like standard list are.
+In addition, the \CDRCode[tags=options]|vspace|
+options, which initial value is exactly \CDRCode[tags=src]|\topsep|, allows a supplemental adjustment:
+\begin{center}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.193\columnwidth}p{0.02\columnwidth}p{0.193\columnwidth}p{0.02\columnwidth}p{0.519\columnwidth}}
+\lipsum[3][1]
+\begin{CDRBlock}[
+  tags=src,
+]
+Default vspace
+\end{CDRBlock}
+\lipsum[4][1]
+&&
+\lipsum[3][1]
+\begin{CDRBlock}[
+  tags=src,
+  vspace=5mm,
+]
+vspace=5mm
+\end{CDRBlock}
+\lipsum[4][1]
+&&
+\lipsum[3][1]
+\begin{CDRBlock}[
+  tags=src,
+  vspace=\dimexpr0.5\topsep-\partopsep\relax,
+]
+vspace=\dimexpr0.5\topsep-\partopsep\relax
+\end{CDRBlock}
+\lipsum[4][1]
+\end{tabular}
+\end{center}
+The line height is inherited from the surrounding environment unless the baselinestrech factor has been provided. Columns 2 and 3 are enclosed in a \pkg{setspace} environment with one and a half line spacing. The last column also adds the \CDRCode[tags={src,options}]|baselinstretch=2| option.
+\begin{center}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}}
+\lipsum[1][1]
+\begin{CDRBlock}[
+  tags=src,
+]
+Line 1
+Line 2
+\end{CDRBlock}
+\lipsum[2][1]
+&&
+\begin{spacing}{1.5}
+\lipsum[1][1]
+\begin{CDRBlock}[
+  tags=src,
+]
+Line 1
+Line 2
+\end{CDRBlock}
+\lipsum[2][1]
+\end{spacing}
+&&
+\begin{spacing}{1.5}
+\lipsum[1][1]
+\begin{CDRBlock}[
+  tags=src,
+  baselinestretch=2,
+]
+Line 1
+Line 2
+\end{CDRBlock}
+\lipsum[2][1]
+\end{spacing}
+\end{tabular}
+\end{center}
+
+\end{document}
 
 %
 \subsection{Options}
