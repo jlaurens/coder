@@ -3030,13 +3030,15 @@ if __name__ == '__main__':
 % Set the parents of \metatt{child name} to the
 % given list.
 % When the \metatt{child name} is not provided, it defaults to |__local|.
+% Implementation detail: uses |\l_CDR_tl|.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_get_inherit:cn #1 #2 {
-  \seq_set_from_clist:cn { \CDR_tag_parent_seq:c { #1 } } { #2 }
-  \seq_remove_duplicates:c \l_CDR_tl
-  \seq_remove_all:cn \l_CDR_tl {}
-  \seq_put_right:cn \l_CDR_tl { \q_no_value }
+  \tl_set:Nx \l_CDR_tl { \CDR_tag_parent_seq:c { #1 } }
+  \seq_set_from_clist:cn { \l_CDR_tl } { #2 }
+  \seq_remove_duplicates:c { \l_CDR_tl }
+  \seq_remove_all:cn { \l_CDR_tl } {}
+  \seq_put_right:cn { \l_CDR_tl } { \q_no_value }
 }
 \cs_new:Npn \CDR_get_inherit:cf {
   \exp_args:Nnf \CDR_get_inherit:cn
@@ -5541,11 +5543,17 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
   no~export~format .code:n = \CDR_tag_set:,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed dry~numbers{[=true$\vert$false]}]^^A
+% \itemtt[\CDRCheckRed dry numbers{[=true$\vert$false]}]^^A
 % Initially |false|.
 %    \begin{MacroCode}[OK]
   dry~numbers .code:n = \CDR_tag_boolean_set:x { #1 },
   dry~numbers .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed no top space{[=true$\vert$false]}]^^A
+% Initially |false|.
+%    \begin{MacroCode}[OK]
+  no~top~space .code:n = \CDR_tag_boolean_set:x { #1 },
+  no~top~space .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed test{[=true$\vert$false]}]^^A
 % whether the chunk is a test,
@@ -5568,6 +5576,7 @@ if __name__ == '__main__':
     no~export = false,
     no~export~format = ,
     dry~numbers = false,
+    no~top~space = false,
     test = false,
     engine~options = ,
   },
@@ -5635,14 +5644,10 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \FVB@CDRBlock {
+\CDR@Debug{STEP:\exp_args:NV \tl_to_str:n \l_CDR_tl}
   \@bsphack
   \exp_args:NV \CDRBlock_preflight:n \FV@KeyValues
   \begingroup
-  \lua_now:n {
-    CDR.synctex_tag = tex.get_synctex_tag();
-    CDR.synctex_line = tex.inputlineno;
-    tex.set_synctex_mode(1)
-  }
   \seq_clear:N \l_CDR_vrb_seq
   \cs_set_protected_nopar:Npn \FV@ProcessLine ##1 {
     \seq_put_right:Nn \l_CDR_vrb_seq { ##1 }
@@ -5651,11 +5656,17 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
+% \begin{variable}{\l_CDR_regex}
+% Scratch variable to hold a regular expression.
+% \end{variable}
+%    \begin{MacroCode}
+\regex_new:N \l_CDR_regex
+%    \end{MacroCode}
+%
 % \begin{function}{\FVE@CDRBlock}
 % \pkg{fancyvrb} helper to end the |CDRBlock| environment.
 % \end{function}
 %    \begin{MacroCode}
-\regex_new:N \l_CDR_regex
 \cs_generate_variant:Nn \regex_set:Nn { Nx, NV }
 \cs_new:Npn \FVE@CDRBlock {
   \CDRBlock_setup:
@@ -5732,6 +5743,33 @@ if __name__ == '__main__':
         }
       }
     }
+  }
+%    \end{MacroCode}
+% This is a patch to remove an extra space at the top.
+%    \begin{MacroCode}
+  \cs_set:Npn \FV@ListVSpace {%
+%  \@topsepadd\topsep
+    \@topsepadd=\FancyVerbVspace
+    \if@noparlist\advance\@topsepadd\partopsep\fi
+    \if@inlabel
+      \vskip\parskip
+    \else
+      \if@nobreak
+        \vskip\parskip
+        \clubpenalty\@M
+      \else
+        \CDR_if_tag_truthy:cF { no~top~space } {
+          \addpenalty\@beginparpenalty
+          \@topsep\@topsepadd
+          \advance\@topsep\parskip
+          \addvspace\@topsep
+        }
+      \fi
+    \fi
+    \global\@nobreakfalse
+    \global\@inlabelfalse
+    \global\@minipagefalse
+    \global\@newlistfalse
   }
 \CDR@Debug{\string\FVE@CDRBlock\space 2}
   \CDRBlock_engine_begin:
@@ -6500,7 +6538,6 @@ if __name__ == '__main__':
 \tl_new:N \l_CDR_delimiters_tl
 \cs_new_protected:Npn \CDRBlock@FV {
 \CDR@Debug {DEBUG.Block.FV}
-  \FV@UseKeyValues
   \FV@UseVerbatim {
     \CDR_tag_get:c { format }
     \CDR_if_no_export:T {
