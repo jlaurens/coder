@@ -5268,11 +5268,10 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \subsection{Block mode default engine}
 %    \begin{MacroCode}
-\CDRBlockEngineNew { default} {
+\CDRBlockEngineNew { default } {
   \@bsphack
 } {
   \@esphack
-  \noindent
 }
 %    \end{MacroCode}
 %
@@ -5649,7 +5648,7 @@ if __name__ == '__main__':
 \cs_new:Npn \FVB@CDRBlock {
 \CDR@Debug{STEP:\exp_args:NV \tl_to_str:n \l_CDR_tl}
   \exp_args:NV \CDRBlock_preflight:n \FV@KeyValues
-  \begingroup
+%  \begingroup
   \seq_clear:N \l_CDR_vrb_seq
   \cs_set_protected_nopar:Npn \FV@ProcessLine ##1 {
     \seq_put_right:Nn \l_CDR_vrb_seq { ##1 }
@@ -5783,7 +5782,7 @@ if __name__ == '__main__':
   }
   \CDRBlock_teardown:
   \CDRBlock_engine_end:
-  \endgroup
+%  \endgroup
 }
 \DefineVerbatimEnvironment{CDRBlock}{CDRBlock}{}
 %    \begin{MacroCode}  
