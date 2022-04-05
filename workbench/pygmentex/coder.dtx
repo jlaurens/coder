@@ -5268,8 +5268,11 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \subsection{Block mode default engine}
 %    \begin{MacroCode}
-\CDRBlockEngineNew {default} {
+\CDRBlockEngineNew { default} {
+  \@bsphack
 } {
+  \@esphack
+  \noindent
 }
 %    \end{MacroCode}
 %
@@ -5487,7 +5490,7 @@ if __name__ == '__main__':
           \CDR_if_tag_truthy:cT { mbox } { \mbox } {
             \input { \l_CDR_pyg_tex_tl }\ignorespaces
           }  
-          \lua_now:n { CDR:hilight_code_terdown() }
+          \lua_now:n { CDR:hilight_code_teardown() }
           \makeatother
         }
         \group_end:
@@ -5645,7 +5648,6 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \cs_new:Npn \FVB@CDRBlock {
 \CDR@Debug{STEP:\exp_args:NV \tl_to_str:n \l_CDR_tl}
-  \@bsphack
   \exp_args:NV \CDRBlock_preflight:n \FV@KeyValues
   \begingroup
   \seq_clear:N \l_CDR_vrb_seq
@@ -5670,6 +5672,7 @@ if __name__ == '__main__':
 \cs_generate_variant:Nn \regex_set:Nn { Nx, NV }
 \cs_new:Npn \FVE@CDRBlock {
   \CDRBlock_setup:
+  \CDRBlock_engine_begin:
 %    \end{MacroCode}
 % We export all the lines if requested except what was escaped to \LaTeX.
 % As we use regular expressions, we must take care of characters with a special
@@ -5772,18 +5775,15 @@ if __name__ == '__main__':
     \global\@newlistfalse
   }
 \CDR@Debug{\string\FVE@CDRBlock\space 2}
-  \CDRBlock_engine_begin:
   \tl_clear:N \FV@ListProcessLastLine
   \CDR_if_pygments:TF {
     \CDRBlock@Pyg
   } {
     \CDRBlock@FV
   }
-  \CDRBlock_engine_end:
   \CDRBlock_teardown:
+  \CDRBlock_engine_end:
   \endgroup
-  \@esphack
-  \noindent
 }
 \DefineVerbatimEnvironment{CDRBlock}{CDRBlock}{}
 %    \begin{MacroCode}  
