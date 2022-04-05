@@ -1123,6 +1123,8 @@ local function synctex_state_restore(self)
   tex.force_synctex_tag(self.synctex_tag)
   tex.force_synctex_line(self.synctex_line)
   tex.set_synctex_mode(self.synctex_mode)
+  self.synctex_tag = 0
+  self.synctex_line = 0
 end
 %    \end{MacroCode}
 %
@@ -5485,9 +5487,7 @@ if __name__ == '__main__':
           \CDR_if_tag_truthy:cT { mbox } { \mbox } {
             \input { \l_CDR_pyg_tex_tl }\ignorespaces
           }  
-          \lua_now:n {
-            tex.set_synctex_mode(0)
-          }
+          \lua_now:n { CDR:hilight_code_terdown() }
           \makeatother
         }
         \group_end:
@@ -5778,10 +5778,6 @@ if __name__ == '__main__':
     \CDRBlock@Pyg
   } {
     \CDRBlock@FV
-  }
-  \lua_now:n {
-    tex.set_synctex_mode(0);
-    CDR.synctex_line = 0;
   }
   \CDRBlock_engine_end:
   \CDRBlock_teardown:
