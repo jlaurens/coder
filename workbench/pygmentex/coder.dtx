@@ -3309,7 +3309,65 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{function}{\@CDR@TEST,\CDR_tag_provide_from_kv:n}
+% \begin{function}{\CDR_tag_expand_kv:n}
+% \begin{syntax}
+% \cs{CDR_tag_expand_kv:N} \Arg{key-value list variable}
+% \end{syntax}
+% Expands the keys matching |tags/|\meta{tag names list}.
+% The list a comma separated list, except that the pipe character replaces the comma.
+% Implementation detail: uses |\l_CDR_clist|.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\cs_new_protected_nopar:Npn \CDR_tag_expand_kv:N #1 {
+\CDR@Debug{\string\CDR_tag_expand_kv:N}
+  \clist_clear:N \l_CDR_clist
+  \cs_set:Npn \@CDR:n {
+    \clist_put_right:Nn \l_CDR_clist
+  }
+  \cs_set:Npn \@CDR:nn ##1 ##2 {
+    \regex_extract_once:nnNTF { ^ tags/([^/]+)(/([^/]+))? $} { ##1 } \l_CDR_seq {
+      \tl_set:Nx \l_CDR_tl { \seq_item:Nn \l_CDR_seq 4 }
+      \cs_set:Npn \@@CDR:nn ####1 ####2 {
+        \clist_put_right:Nn \l_CDR_clist {
+          tags / ####1 / ####2 = { ##2 }
+        }
+      }
+      \seq_map_inline:Nn \l_CDR_seq {
+        \CDR@Debug{====CAPTURE ####1}
+      }
+      \exp_args:Nnx
+      \regex_split:nnNTF { [|] } { \seq_item:Nn \l_CDR_seq 2 } \l_CDR_seq {
+        \tl_if_empty:NTF \l_CDR_tl {
+          \seq_map_inline:Nn \l_CDR_seq {
+            \clist_put_right:Nn \l_CDR_clist { tags/####1 = { ##2 } }
+          }
+        } {
+          \seq_map_inline:Nn \l_CDR_seq {
+            \exp_args:NnV \@@CDR:nn { ####1 } \l_CDR_tl
+          }
+        }
+      } {
+        \clist_put_right:Nn \l_CDR_clist { ##1 = { ##2 } } 
+      }
+    } {
+      \clist_put_right:Nn \l_CDR_clist { ##1 = { ##2 } } 
+    }
+  }
+  \exp_args:NnnV
+  \keyval_parse:nnn {
+    \@CDR:n
+  } {
+    \@CDR:nn
+  } #1
+  \clist_map_inline:Nn \l_CDR_clist {
+    \exp_args:Nx \CDR@Debug {KV:\tl_to_str:n{##1}}
+  }
+  \clist_set_eq:NN #1 \l_CDR_clist
+\CDR@Debug{\string\CDR_tag_expand_kv:N...DONE}
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\CDR_tag_provide_from_kv:n}
 % \begin{syntax}
 % \cs{CDR_tag_provide:n} \Arg{deep comma list}
 % \cs{CDR_tag_provide_from_kv:n} \Arg{key-value list}
@@ -4345,6 +4403,7 @@ if __name__ == '__main__':
 \CDR@Debug{\string\CDRSet}
   \CDR_set_preflight:n { #1 }
   \keys_set_known:nnnN { CDR@Set } { #1 } { CDR@Set } \l_CDR_kv_clist
+  \CDR_tag_expand_kv:N \l_CDR_kv_clist
   \clist_map_inline:nn {
     __pygments, __pygments.block,
     __tags, __engine, default.block, default.code, default,
