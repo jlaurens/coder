@@ -5393,12 +5393,6 @@ if __name__ == '__main__':
 % \end{function}
 %
 % \subsection{Storage}
-% \begin{variable}{\l_CDR_tag_tl}
-% To store the tag given.
-%    \begin{MacroCode}[OK]
-\tl_new:N \l_CDR_tag_tl
-%    \end{MacroCode}
-% \end{variable}
 %
 % \subsection{\texttt{__code} \pkg{l3keys} module}
 % This is the module used to parse the user interface of the \cs{CDRCode} command.
@@ -5406,12 +5400,6 @@ if __name__ == '__main__':
 \CDR_tag_keys_define:nn { __code } {
 %    \end{MacroCode}
 % \begin{description}
-% \itemtt[\CDRCheckGreen tag=\meta{name}]^^A
-% to use the settings of the already existing named tag to display.
-%    \begin{MacroCode}[OK]
-  tag .tl_set:N = \l_CDR_tag_tl,
-  tag .value_required:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed engine options=\meta{engine options}]^^A
 % options forwarded to the engine. They are appended to the options
 % given with key \metatt{engine name}| engine options|.
@@ -5423,7 +5411,6 @@ if __name__ == '__main__':
 % initialize
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = { 
-    tag = default,
     engine~options = ,
   },
   __initialize .value_forbidden:n = true,
@@ -5436,8 +5423,19 @@ if __name__ == '__main__':
 % \subsection{Implementation}
 %
 %    \begin{MacroCode}[OK]
-\NewDocumentCommand \CDRCode { O{} } {
+\cs_new:Npn \CDRCodeSave #1 #2 {
   \group_begin:
+  \DefineShortVerb { #2 }
+  \SaveVerb [
+    aftersave = {
+      \exp_args:Nx \UndefineShortVerb { #2 }
+      \tl_gset_eq:cN { CDRCodeUse / #1 : } \FV@SV@CDR@Source
+      \group_end:
+      \ignorespaces
+    }
+  ] { CDR@Source } #2
+}
+\cs_new:Npn \CDRCode_prepare:n #1 {
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_false:
   }
@@ -5454,7 +5452,51 @@ if __name__ == '__main__':
     __fancyvrb,
   }
   \CDR_local_set:V \l_CDR_kv_clist  
-  \CDRCode:n
+  \CDR_set_conditional:Nn \CDR_if_pygments: {
+    \CDR_has_pygments_p: && \CDR_if_tag_truthy_p:c {pygments}
+  }
+}
+\NewDocumentCommand \CDRCodeUse { O{} m } {
+  \group_begin:
+  \CDRCode_prepare:n { #1 }
+  \CDR_if_pygments:TF {
+    \cs_set:Npn \CDR@StyleUseTag {
+      \CDR@StyleUse { \CDR_tag_get:c { style } }
+      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
+    }
+    \CDRCode@Pyg:n { CDRCodeUse / #2 : }
+    \group_end:
+  } {
+    \CDRCode@FV:c { CDRCodeUse / #2 : }
+    \group_end:
+  }
+}
+\NewDocumentCommand \CDRCode { O{} m } {
+  \group_begin:
+  \CDRCode_prepare:n { #1 }
+  \CDR_if_pygments:TF {
+    \cs_set:Npn \CDR@StyleUseTag {
+      \CDR@StyleUse { \CDR_tag_get:c { style } }
+      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
+    }
+    \DefineShortVerb { #2 }
+    \SaveVerb [
+      aftersave = {
+        \exp_args:Nx \UndefineShortVerb { #2 }
+        \CDRCode@Pyg:n{FV@SV@CDR@Source}
+        \group_end:
+      }
+    ] { CDR@Source } #2
+  } {
+    \DefineShortVerb { #2 }
+    \SaveVerb [
+      aftersave = {
+        \exp_args:Nx \UndefineShortVerb { #2 }
+        \CDRCode@FV:c { FV@SV@CDR@Source }
+        \group_end:
+      }
+    ] { CDR@Source } #2
+  }
 }
 %    \end{MacroCode}
 %
@@ -5510,90 +5552,82 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRCode:n}
+% \begin{function}{\CDRCode@Pyg:}
 % \begin{syntax}
-% \cs{CDRCode:n} \meta{delimiter}
+% \cs{CDRCode@Pyg:n} \Arg{tl variable name}
 % \end{syntax}
-% Main utility used by |\CDRCode|.
+% Utility used by |\CDRCode:n|.
 % The main tricky part is that we must collect the \metatt{key[=value]}
 % items and feed |\FV@KeyValues| with them in the |aftersave| handler.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new_protected_nopar:Npn \CDRCode:n #1 {
-  \bool_if:nTF { \CDR_has_pygments_p: && \CDR_if_tag_truthy_p:c {pygments}} {
-    \cs_set:Npn \CDR@StyleUseTag {
-      \CDR@StyleUse { \CDR_tag_get:c { style } }
-      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
+\cs_new_protected_nopar:Npn \CDRCode@Pyg:n #1 {
+  \lua_now:n { CDR:hilight_code_setup() }
+  \CDR_tag_get:cN {lang} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('lang') }
+  \CDR_tag_get:cN {cache} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('cache') }
+  \CDR_tag_get:cN {debug} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('debug') }
+  \CDR_tag_get:cN {escapeinside} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('escapeinside') }
+  \CDR_tag_get:cN {mathescape} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('mathescape') }
+  \CDR_tag_get:cN {style} \l_CDR_tl
+  \lua_now:n { CDR:hilight_set_var('style') }
+  \lua_now:n { CDR:hilight_set_var('source', '#1') }
+  \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
+  \FV@UseKeyValues
+  \frenchspacing
+  \FV@BaseLineStretch
+  \FV@FontSize
+  \FV@FontFamily
+  \FV@FontSeries
+  \FV@FontShape
+  \selectfont
+  \FV@DefineWhiteSpace
+  \FancyVerbDefineActive
+  \FancyVerbFormatCom
+  \CDR@DefinePygSp
+  \CDR_tag_get:c { format }
+  \CDR@CodeEngineApply {
+    \CDR@StyleIfExist { \CDR_tag_get:c { style } } { } {
+      \lua_now:n { CDR:hilight_source(true, false) }
+        \input { \l_CDR_pyg_sty_tl }
     }
-    \DefineShortVerb { #1 }
-    \SaveVerb [
-      aftersave = {
-        \exp_args:Nx \UndefineShortVerb { #1 }
-        \lua_now:n { CDR:hilight_code_setup() }
-        \CDR_tag_get:cN {lang} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('lang') }
-        \CDR_tag_get:cN {cache} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('cache') }
-        \CDR_tag_get:cN {debug} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('debug') }
-        \CDR_tag_get:cN {escapeinside} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('escapeinside') }
-        \CDR_tag_get:cN {mathescape} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('mathescape') }
-        \CDR_tag_get:cN {style} \l_CDR_tl
-        \lua_now:n { CDR:hilight_set_var('style') }
-        \lua_now:n { CDR:hilight_set_var('source', 'FV@SV@CDR@Source') }
-        \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
-        \FV@UseKeyValues
-        \frenchspacing
-        \FV@BaseLineStretch
-        \FV@FontSize
-        \FV@FontFamily
-        \FV@FontSeries
-        \FV@FontShape
-        \selectfont
-        \FV@DefineWhiteSpace
-        \FancyVerbDefineActive
-        \FancyVerbFormatCom
-        \CDR@DefinePygSp
-        \CDR_tag_get:c { format }
-        \CDR@CodeEngineApply {
-          \CDR@StyleIfExist { \CDR_tag_get:c { style } } { } {
-            \lua_now:n { CDR:hilight_source(true, false) }
-            \input { \l_CDR_pyg_sty_tl }
-          }
-          \CDR@StyleUseTag
-          \lua_now:n { CDR:hilight_source(false, true) }        
-          \makeatletter
-          \CDR_if_tag_truthy:cT { mbox } { \mbox } {
-            \input { \l_CDR_pyg_tex_tl }\ignorespaces
-          }  
-          \lua_now:n { CDR:hilight_code_teardown() }
-          \makeatother
-        }
-        \group_end:
-      }
-    ] { CDR@Source } #1
-  } {
-    \DefineShortVerb { #1 }
-    \SaveVerb [
-      aftersave = {
-        \UndefineShortVerb { #1 }
-        \cs_set_eq:NN \CDR@FormattingPrep \FV@FormattingPrep
-        \cs_set:Npn \FV@FormattingPrep {
-          \CDR@FormattingPrep
-          \CDR_tag_get:c { format }
-        }
-        \CDR@CodeEngineApply { \CDR_if_tag_truthy:cT { mbox } { \mbox } {
-          \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
-          \FV@UseKeyValues
-          \FV@FormattingPrep
-          \FV@SV@CDR@Source
-        } }
-        \group_end:
-      }
-    ] { CDR@Source } #1
+    \CDR@StyleUseTag
+    \lua_now:n { CDR:hilight_source(false, true) }        
+    \makeatletter
+    \CDR_if_tag_truthy:cT { mbox } { \mbox } {
+      \input { \l_CDR_pyg_tex_tl }\ignorespaces
+    }  
+    \lua_now:n { CDR:hilight_code_teardown() }
+    \makeatother
   }
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\CDRCode@FV:c}
+% \begin{syntax}
+% \cs{CDRCode@FV:n} \Arg{cs name}
+% \end{syntax}
+% Utility used by |\CDRCode:n|.
+% The main tricky part is that we must collect the \metatt{key[=value]}
+% items and feed |\FV@KeyValues| with them in the |aftersave| handler.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\cs_new_protected_nopar:Npn \CDRCode@FV:c #1 {
+  \cs_set_eq:NN \CDR@FormattingPrep \FV@FormattingPrep
+  \cs_set:Npn \FV@FormattingPrep {
+    \CDR@FormattingPrep
+    \CDR_tag_get:c { format }
+  }
+  \CDR@CodeEngineApply { \CDR_if_tag_truthy:cT { mbox } { \mbox } {
+    \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
+    \FV@UseKeyValues
+    \FV@FormattingPrep
+    \use:c { #1 }
+  } }
 }
 %    \end{MacroCode}
 %
