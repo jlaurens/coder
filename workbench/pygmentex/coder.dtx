@@ -3689,7 +3689,10 @@ if __name__ == '__main__':
 % to export and display.
 %    \begin{MacroCode}
   tags .code:n = {
-    \clist_set:Nx \l_CDR_clist { #1 }
+    \str_set:Nx \l_CDR_str { #1 }
+    \str_replace_all:Nnn \l_CDR_str {|} {,}
+    \exp_args:NNV
+    \clist_set:Nn \l_CDR_clist \l_CDR_str
     \clist_remove_duplicates:N \l_CDR_clist
     \exp_args:NV
     \CDR_tag_set:n \l_CDR_clist
