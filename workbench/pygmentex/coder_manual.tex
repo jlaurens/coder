@@ -22,6 +22,7 @@
 \usepackage{multicol}
 \usepackage{efbox}
 \usepackage{mboxfill}
+\usepackage{setspace}
 
 \typeout{************** REMOVE!!}
 \CDRSet{python path=/Users/jlaurens/opt/anaconda3/bin/python}
@@ -62,9 +63,6 @@
 
 \def\CDRCheckRed {}
 
-\makeatletter
-\def\CDR@Debug#1{\typeout{**** DEBUG #1}}
-\makeatother
 \begin{document}
 \title{User manual for the \pkg{coder} package}
 \author{Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}}
@@ -84,10 +82,10 @@ followed by
 \\[0.25\baselineskip]
 The colorized code is then found in \MyMeta{file name}\verb|-colorized.pdf|%
 
-To test the installation for an editor, the next document should output a small diagnostic page.
+To test the installation for an editor, the next document should output a small diagnostic page with informations about paths.
 \CDRSet{numbers=none}
 \begin{center}
-\begin{tabular}{p{0.355\linewidth}|p{0.635\linewidth}}
+\begin{tabular}{p{0.345\linewidth}|p{0.645\linewidth}}
 \begin{minipage}[t]{0.9\linewidth}
 \begin{CDRBlock}[lang=tex,tags=latex]
 \documentclass{article}
@@ -100,21 +98,20 @@ To test the installation for an editor, the next document should output a small 
 \hspace{0.09\linewidth}
 &
 \begin{minipage}[t]{0.95\linewidth}
+\begin{itemize}
+\item
 An example of a bad installation:
 \par
-Path to \textsf{python}: \texttt{/usr/bin/python}
-\par
-Path to \textsf{pygmentize}: \texttt{}
-\par
+Path to \textsf{python}: \texttt{/usr/bin/python}\\
+Path to \textsf{pygmentize}: \texttt{}\\
 Pygments is not available
-\par\noindent
+\item
 An example of a good installation:
 \par
-Path to \textsf{python}: \texttt{/opt/anaconda3/bin/python}
-\par
-Path to \textsf{pygmentize}: \texttt{/opt/anaconda3/bin/pygmentize}
-\par\noindent
+Path to \textsf{python}: \texttt{/opt/anaconda3/bin/python}\\
+Path to \textsf{pygmentize}: \texttt{/opt/anaconda3/bin/pygmentize}\\
 Pygments is available
+\end{itemize}
 \end{minipage}%
 \end{tabular}
 \end{center}
@@ -122,6 +119,7 @@ Pygments is available
 \section{Display code}
 \subsection{Example}
 To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while computing recursively the factorial of a number.
+\colorlet{CDROption}{magenta!66!black}
 \CDRSet{
   showspaces,
   only top,
@@ -150,8 +148,104 @@ To see \pkg{coder} in action, we compare \pkg{lua} and \pkg{python} syntax while
     numbers=none,
     show tags=none,
     escapeinside=⟨⟩,
-  }
+  },
+  tags/options={
+    format=\color{CDROption}\bfseries,
+  },
 }
+%%%%%
+\subsection{Spacing}
+For blocks, the size of the left and right margins can be adjusted.
+On the second line below were used the options
+\CDRCode[tags=options]|xleftmargin=3cm|
+and \CDRCode[tags=options]|xrightmargin=2cm|
+\begin{CDRBlock}[
+  tags=normal margins,
+  show tags=left,
+]
+One line⟨\mboxfill{.}⟩
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags=adjusted margins,
+  show tags=left,
+  xleftmargin=3cm,
+  xrightmargin=2cm,
+]
+One line⟨\mboxfill{.}⟩
+\end{CDRBlock}
+The vertical space before and after the blocks is governed by \CDRCode[tags=src]|\topsep|, \CDRCode[tags=src]|\partopsep| and \CDRCode[tags=src]|\parskip| like standard list are.
+In addition, the \CDRCode[tags=options]|vspace|
+options, which initial value is exactly \CDRCode[tags=src]|\topsep|, allows a supplemental adjustment:
+\begin{center}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.233\columnwidth}p{0.233\columnwidth}p{0.533\columnwidth}}
+Text before
+\begin{CDRBlock}[
+  tags=src,
+]
+Default vspace
+\end{CDRBlock}
+Text after
+&Text before
+\begin{CDRBlock}[
+  tags=src,
+  vspace=5mm,
+]
+vspace=5mm
+\end{CDRBlock}
+Text after
+&
+Text before
+\begin{CDRBlock}[
+  tags=src,
+  vspace=\dimexpr0.5\topsep-\partopsep\relax,
+]
+vspace=\dimexpr0.5\topsep-\partopsep\relax
+\end{CDRBlock}
+Text after
+\end{tabular}
+\end{center}
+The line height is inherited from the surrounding environment unless the baselinestrech factor has been provided. Columns 2 and 3 are enclosed in a \pkg{setspace} environment with one and a half line spacing. The last column also adds the \CDRCode[tags={src,options}]|baselinstretch=2| option.
+\begin{center}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}}
+\lipsum[1][1]
+\begin{CDRBlock}[
+  tags=src,
+]
+Line 1
+Line 2
+\end{CDRBlock}
+\lipsum[2][1]
+&&
+\begin{spacing}{1.5}
+\lipsum[1][1]
+\begin{CDRBlock}[
+  tags=src,
+]
+Line 1
+Line 2
+\end{CDRBlock}
+\lipsum[2][1]
+\end{spacing}
+&&
+\begin{spacing}{1.5}
+\lipsum[1][1]
+\begin{CDRBlock}[
+  tags=src,
+  baselinestretch=2,
+]
+Line 1
+Line 2
+\end{CDRBlock}
+\lipsum[2][1]
+\end{spacing}
+\end{tabular}
+\end{center}
+
+\end{document}
+
+%%%%%
 \begin{figure}
 \begin{center}
 \begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
@@ -237,7 +331,6 @@ def factorial(n):
 For the \CDRCode|CDRBlock| environment, the \CDRCode|show tags| option allows to display the list of tags.
 The possible choices are illustrated hereafter below each source.
 \setlength{\columnsep}{15mm}
-\colorlet{CDROption}{magenta!66!black}
 \begin{multicols}{3}
 \CDRSet{
   tags/dummy = {
@@ -369,7 +462,10 @@ Options are illustrated below, to the right of each source.
 \setlength{\arraycolsep}{0pt}
 \begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
 %
-\begin{CDRBlock}[tags=src]
+\begin{CDRBlock}[
+  no top space,
+  tags=src,
+]
 \begin{⟨CDRBlock⟩}[
   tags=X,
   show tags=none,
@@ -382,6 +478,7 @@ Options are illustrated below, to the right of each source.
 \end{CDRBlock}
 &
 \begin{CDRBlock}[
+  no top space,
   tags=X,
   show tags=none,
   numbers=left,
@@ -406,7 +503,10 @@ Blocks with the same leftmost tag can be numbered continuously with option \CDRC
 \setlength{\arraycolsep}{0pt}
 \begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
 %
-\begin{CDRBlock}[tags=src]
+\begin{CDRBlock}[
+  no top space,
+  tags=src,
+]
 \begin{⟨CDRBlock⟩}[
   tags=X,
   show tags=none,
@@ -426,6 +526,7 @@ Blocks with the same leftmost tag can be numbered continuously with option \CDRC
   \color{lightgray}#1%
 }
 \begin{CDRBlock}[
+  no top space,
   tags=X,
   show tags=none,
   numbers=left,
@@ -533,16 +634,20 @@ This engine named \CDRCode|tcbox| was declared by next command
 }
 \end{CDRBlock}
 with \CDRCode|tcbox| as \MyMeta{engine name},
-\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \MyMeta{begin engine instructions} and as \MyMeta{end engine instructions}
+\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \MyMeta{begin engine instructions}, where \CDRCode[tags=src]|#1| will be replaced by whatever is provided for key \CDRCode[tags={src,options}]|⟨\MyMeta{engine name}⟩ engine options|, and as \MyMeta{end engine instructions}
 \CDRCode[tags=src]|\end{tcolorbox}|. This command is availale to define a custom display engine as well.
 
-There is an engine named \CDRCode[tags=src]|default| which is always available and used by default. \CDRCode[tags=src]|\CDRBlockEngineRenew| will be used to redefine engines, with a similar syntax.
+There is an engine named \CDRCode[tags=src]|default| which is always available and used by default.
+The command \CDRCode[tags=src]|\CDRBlockEngineRenew| will be used to redefine engines, with a similar syntax.
+
+Notice the \CDRCode[tags=src]|\CDRGetOption| command used to retrieve the value for the key \CDRCode[tags={src,options}]|label|.
 %
 \begin{center}
 \setlength{\arraycolsep}{0pt}
 \begin{tabular}{p{0.495\columnwidth}p{0.495\columnwidth}}
 The \pkg{coder} package also supports \pkg{fancyvrb} options to display frames, here is an example taken from the \pkg{fancyvrb} documentation:
 \begin{CDRBlock}[
+  tags=src,
   frame=single,
   framerule=1mm,
   framesep=3mm,
@@ -566,15 +671,16 @@ Verbatim line.
 \end{tabular}
 \end{center}
 
-\section{Filtering}
+\section{Miscellanées}
+\subscetion{Filtering}
+One can display only a selected range of lines.
 \begin{center}
 \setlength{\arraycolsep}{0pt}
-\begin{tabular}{p{0.495\columnwidth}p{0.495\columnwidth}}
-One can choose to display only some lines:
-\begin{CDRBlock}[tags=src]
+\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
+\begin{CDRBlock}[tags=src,no top space]
 \begin{⟨CDRBlock⟩}[
-  firstline=2,
-  lastline=4,
+  ⟨\color{CDROption}firstline=2⟩,
+  ⟨\color{CDROption}lastline=4⟩,
 ]
 Line 1
 Line 2 *
@@ -586,6 +692,30 @@ Line 5
 The output reads
 \begin{CDRBlock}[
   firstline=2,
+  lastline=4,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{CDRBlock}
+&
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROption}firstline=-3⟩,
+  ⟨\color{CDROption}lastline=-1⟩,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output reads
+\begin{CDRBlock}[
+  firstline=-3,
   lastline=-1,
 ]
 Line 1
@@ -595,15 +725,38 @@ Line 4 *
 Line 5
 \end{CDRBlock}
 &
-Non positive integers would count from the last line: \CDRCode[tags=src]|lastline=-3| and \CDRCode[tags=src]|lastline=-1| would give the same output (notice that line numbering is 1 based).
-
-Moreover, the option \CDRCode[tags=src]|firstline=2|
-can be replaced by \CDRCode[tags=src]|firstline=L.*2| which means: from the first line that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"| according to \LaTeX3 \url{interface3.pdf}.
-
-Similarly, the option \CDRCode[tags=src]|lastline=4|
-can be replaced by \CDRCode[tags=src]|lastline=L.*4| which means: up to the first line, from the line found above, that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|.
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROption}firstline=L.*2⟩,
+  ⟨\color{CDROption}lastline=L.*4⟩,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output reads
+\begin{CDRBlock}[
+  firstline=L.*2,
+  lastline=L.*4,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{CDRBlock}
 \end{tabular}
 \end{center}
+In the middle column, non positive integers count lines from the end.
+Notice that line numbering is 1 based such that the last line corresponds to index 0.
+
+In the last column, the option \CDRCode[tags={src,options}]|firstline=L.*2| means: from the first line that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|, according to \LaTeX3 \url{interface3.pdf}.
+Similarly, the option \CDRCode[tags={src,options}]|lastline=L.*4| means: up to the first line, from the line found above, that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|.
+%
+
 \end{document}      
 
 %
