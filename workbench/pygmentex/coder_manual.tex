@@ -531,17 +531,19 @@ then blocks of code can be framed by adding the option \CDRCode|engine=tcbox|
     colframe=magenta!80!black,
     boxrule=5\fboxrule,
     fonttitle=\sffamily\bfseries,
+  },
+  engine options = {
     title=\CDRGetOption{label},
   },
 ]
 \textbf{ABCDE}
 \end{CDRBlock}
-It is possible to pass any option of the \pkg{tcolorbox} package with the key \CDRCode[mbox=false,tags=src]|tcbox engine options|, here is the source of the magenta box above
+It is possible to pass any option of the \pkg{tcolorbox} package with the key \CDRCode[mbox=false,tags=options]|engine options|, here is the source of the magenta box above
 \begin{CDRBlock}[tags=src]
 \begin{⟨CDRBlock⟩}[
   ⟨\textcolor{CDROption}{\textbf{label}}⟩=Example,
   ⟨\textcolor{CDROption}{\textbf{engine}}⟩=tcbox,
-  ⟨\textcolor{CDROption}{\textbf{tcbox engine options}}⟩={
+  ⟨\textcolor{CDROption}{\textbf{engine options}}⟩={
     colback=magenta!5!white,
     colframe=magenta!80!black,
     boxrule=5\fboxrule,
@@ -775,12 +777,18 @@ Line 2
 \end{spacing}
 \end{tabular}
 \end{center}
+\subsection{Escaping to \LaTeX}
+When some part of the code does not belong to the programming language,
+it is possible to break temporarily the syntax coloring process with the \CDRCode[tags=options]|escapeinside={⟨\MyMeta{delimiters}⟩}| where \MyMeta{delimiters} is a placeholder for a string composed of two different characters. 
+The delimiters are removed and what is between them is typeset by \LaTeX. Actually, escaping to 
+\LaTeX\ may not consider some additions eventually made by packages like \pkg{babel}.
 
-
-
-
-
-
+The source code for the previous instruction was entered with
+\begin{CDRBlock}[tags=src]
+\CDRCode[escapeinside={()},...]|escapeinside={(\MyMeta{delimiters})}|
+\end{CDRBlock}
+Where \CDRCode[tags=src]|\MyMeta| is a private command.
+The delimiters must not be part of the code, unicode characters $\langle$ and $\rangle$ are suitable amongst many others.
 
 
 \end{document}
