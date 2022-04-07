@@ -1069,7 +1069,7 @@ end
 % save it as a |JSON| file and launch \CDRPy{} with the proper arguments.
 % \end{function}
 %    \begin{MacroCode}
-local function hilight_code_setup(self)
+local function hilight_code_setup(self,save)
   self:synctex_state_save()
   self['.arguments'] = {
     __cls__ = 'Arguments',
@@ -1082,6 +1082,8 @@ local function hilight_code_setup(self)
       style   = 'default',
       mathescape   = JSON_boolean_false,
       escapeinside = '',
+      synctex_tag  = save and self.synctex_tag  or 0,
+      synctex_line = save and self.synctex_line or 0,
     },
     texopts = {
       __cls__ = 'TeXOpts',
@@ -1181,6 +1183,8 @@ local function hilight_block_setup(self, tags_clist_var)
       texcomments  = JSON_boolean_false,
       mathescape   = JSON_boolean_false,
       escapeinside = '',
+      synctex_tag  = self.synctex_tag,
+      synctex_line = self.synctex_line,
     },
     texopts = {
       __cls__ = 'TeXOpts',
@@ -1652,6 +1656,8 @@ class PygOpts(BaseOpts):
   escapeinside = ""
   envname = 'Verbatim'
   lang = 'tex'
+  synctex_tag  = 0
+  synctex_line = 0
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
     self.linenostart = abs(int(self.linenostart))
@@ -1870,8 +1876,8 @@ file name with extension, contains processing information.
       style = pygopts.style,
       nobackground = pygopts.nobackground,
       commandprefix = pygopts.commandprefix,
-      texcomments = pygopts.texcomments,
-      mathescape = pygopts.mathescape,
+      texcomments  = pygopts.texcomments,
+      mathescape   = pygopts.mathescape,
       escapeinside = pygopts.escapeinside,
       envname = 'CDR@Pyg@Verbatim',
     )
@@ -1978,16 +1984,24 @@ file name with extension, contains processing information.
     assert(m)
     hilighted = m.group(1)
     texopts = self.texopts
+    pygopts = self.pygopts
     if texopts.is_inline:
       return hilighted.replace(' ', r'\CDR@Sp ')+r'\ignorespaces'
     lines = hilighted.split('\n')
     ans_code = []
-    last = 1
+    last = 0
     for line in lines[1:]:
       last += 1
       ans_code.append(rf'''\CDR@Line{{{last}}}{{{line}}}''')
-    if len(lines):
-      ans_code.insert(0, rf'''\CDR@Line[last={last}]{{{1}}}{{{lines[0]}}}''')
+    if last:
+      s = r'\CDR@Setup{'
+      s += f'last={last},'
+      if pygopts.synctex_tag:
+        s += f'synctex tag={pygopts.synctex_tag},'
+      if pygopts.synctex_line:
+        s += f'synctex tag={pygopts.synctex_line},'
+      s+='}'
+      ans_code.insert(0, s)
     hilighted = '\n'.join(ans_code)
     return hilighted
 %    \end{MacroCode}
@@ -5321,14 +5335,37 @@ if __name__ == '__main__':
 %
 % \subsection{Implementation}
 %
+% \begin{function}{\CDRCodeSave}
+% \begin{syntax}
+% \cs{CDRCodeSave} \Arg{unique id} \metatt{delimiter}
+% \end{syntax}
+% \metatt{uniue id} will be the argument of \cs{CDRCodeUse}.
+% \end{function}
 %    \begin{MacroCode}[OK]
+\exp_args_generate:n {xxV}
+\cs_set:Npn \CDRCodeSave:nnnn #1 #2 #3 #4 {
+  \tl_gset:cn { CDRCodeUse / #4 : } {
+    \CDR@Setup {
+      synctex~tag=#1,
+      synctex~line=#2,
+    }
+    \tl_set:Nn \FV@SV@CDR@Source {#3}
+  }
+}
 \cs_new:Npn \CDRCodeSave #1 #2 {
   \group_begin:
+  \lua_now:n { CDR:synctex_state_save() }
   \DefineShortVerb { #2 }
   \SaveVerb [
     aftersave = {
       \exp_args:Nx \UndefineShortVerb { #2 }
-      \tl_gset_eq:cN { CDRCodeUse / #1 : } \FV@SV@CDR@Source
+      \exp_args:NxxV
+      \CDRCodeSave:nnnn {
+        \lua_now:n { tex.print(CDR.synctex_tag) }
+      } {
+        \lua_now:n { tex.print(CDR.synctex_line) }
+      } \FV@SV@CDR@Source { #1 }
+      \lua_now:n { CDR:synctex_state_restore() }
       \group_end:
       \ignorespaces
     }
@@ -5358,16 +5395,23 @@ if __name__ == '__main__':
 \NewDocumentCommand \CDRCodeUse { O{} m } {
   \group_begin:
   \CDRCode_prepare:n { #1 }
-  \CDR_if_pygments:TF {
-    \cs_set:Npn \CDR@StyleUseTag {
-      \CDR@StyleUse { \CDR_tag_get:c { style } }
-      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
+  \cs_if_exist:cTF { CDRCodeUse / #2 : } {
+    \use:c { CDRCodeUse / #2 : }
+    \CDR_if_pygments:TF {
+      \cs_set:Npn \CDR@StyleUseTag {
+        \CDR@StyleUse { \CDR_tag_get:c { style } }
+        \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
+      }
+      \CDRCode@Pyg:v { FV@SV@CDR@Source }
+    } {
+      \CDRCode@FV:v  { FV@SV@CDR@Source }
     }
-    \CDRCode@Pyg:n { CDRCodeUse / #2 : }
     \group_end:
   } {
-    \CDRCode@FV:c { CDRCodeUse / #2 : }
-    \group_end:
+    \PackageError
+      { coder }
+      { Bad~identifier:~#2 }
+      { See~\string\CDRCodeSave }
   }
 }
 %    \end{MacroCode}
@@ -5379,7 +5423,6 @@ if __name__ == '__main__':
 % When \pkg{pygments} does not manage what is escaped,
 % it must be done by hand.
 % \end{function}
-%
 %    \begin{MacroCode}[OK]
 \cs_new_protected_nopar:Npn \CDRCode_escape_inside:n #1 {
 \CDR@Debug{\string\CDRCode_escape_inside:nn}
@@ -5425,7 +5468,7 @@ if __name__ == '__main__':
     \SaveVerb [
       aftersave = {
         \exp_args:Nx \UndefineShortVerb { #2 }
-        \CDRCode@Pyg:n{FV@SV@CDR@Source}
+        \CDRCode@Pyg:v{FV@SV@CDR@Source}
         \group_end:
       }
     ] { CDR@Source } #2
@@ -5434,7 +5477,7 @@ if __name__ == '__main__':
     \SaveVerb [
       aftersave = {
         \exp_args:Nx \UndefineShortVerb { #2 }
-        \CDRCode@FV:c { FV@SV@CDR@Source }
+        \CDRCode@FV:v { FV@SV@CDR@Source }
         \group_end:
       }
     ] { CDR@Source } #2
@@ -5503,7 +5546,7 @@ if __name__ == '__main__':
 % items and feed |\FV@KeyValues| with them in the |aftersave| handler.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new_protected_nopar:Npn \CDRCode@Pyg:n #1 {
+\cs_new_protected_nopar:Npn \CDRCode@Pyg:v #1 {
   \lua_now:n { CDR:hilight_code_setup() }
   \CDR_tag_get:cN {lang} \l_CDR_tl
   \lua_now:n { CDR:hilight_set_var('lang') }
@@ -5549,7 +5592,7 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRCode@FV:c}
+% \begin{function}{\CDRCode@FV:v}
 % \begin{syntax}
 % \cs{CDRCode@FV:n} \Arg{cs name}
 % \end{syntax}
@@ -5558,7 +5601,7 @@ if __name__ == '__main__':
 % items and feed |\FV@KeyValues| with them in the |aftersave| handler.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new_protected_nopar:Npn \CDRCode@FV:c #1 {
+\cs_new_protected_nopar:Npn \CDRCode@FV:v #1 {
   \cs_set_eq:NN \CDR@FormattingPrep \FV@FormattingPrep
   \cs_set:Npn \FV@FormattingPrep {
     \CDR@FormattingPrep
@@ -6157,7 +6200,7 @@ if __name__ == '__main__':
 % \begin{syntax}
 % \cs{CDR_line_[LRNSO]_[LRN]:nn} \Arg{line number} \Arg{line content}
 % \end{syntax}
-% These functions may be called by |\CDR_line:nnn| on each block.
+% These functions may be called by |\CDR@Line| on each block.
 % |LRNSO| corresponds to the |show tags| options
 % whereas |LRN| corresponds to the |numbers| options.
 % These functions display the first line and setup the next one.
@@ -6380,22 +6423,26 @@ if __name__ == '__main__':
 %
 % \paragraph{Lines}
 %
+% \begin{function}{\CDR@Setup}
+% \begin{syntax}
+% \cs{CDR@Line} \Arg{kv list}
+% \end{syntax}
+% This is the very first command called when typesetting.
+% \end{function}
 %    \begin{MacroCode}
-\cs_new:Npn \CDR@Line {
-\CDR@Debug {\string\CDR@Line}
-  \peek_meaning_ignore_spaces:NTF [%]
-  { \CDR_line:nnn } { 
-    \PackageError
-      { coder }
-      { Missing~`['%]
-        ~at~first~\string\CDR@Line~call }
-      { See~the~coder~developper~manual }
-  }
+\keys_define:nn { CDR@Setup } {
+  last         .code:n = \CDR_int_set:cn { __last } { #1 },
+  synctex~tag  .code:n = \lua_now:n { CDR.synctex_tag  = #1 },
+  synctex~line .code:n = \lua_now:n { CDR.synctex_line = #1 },
+}
+\cs_new:Npn \CDR@Setup #1 {
+\CDR@Debug {\string\CDR@Setup}
+  \keys_set:nn { CDR@Setup } { #1 }
 }
 %    \end{MacroCode}
-% \begin{function}{\CDR_line:nnn}
+% \begin{function}{\CDR@Line}
 % \begin{syntax}
-% \cs{CDR_line:nnn} \Arg{CDR@Line kv list} \Arg{line index} \Arg{line content}
+% \cs{CDR@Line} \Arg{line index} \Arg{line content}
 % \end{syntax}
 % This is the very first command called when typesetting.
 % Some setup are made for line numbering, in particular the |\CDR_if_visible_at_index:n...|
@@ -6406,12 +6453,8 @@ if __name__ == '__main__':
 % The line index refers to the lines in the source, what is displayed is a line number.
 % \end{function}
 %    \begin{MacroCode}
-\keys_define:nn { CDR@Line } {
-  last .code:n = \CDR_int_set:cn { __last } { #1 },
-}
-\cs_new:Npn \CDR_line:nnn [ #1 ] #2 {
-\CDR@Debug {\string\CDR_line:nnn}
-  \keys_set:nn { CDR@Line } { #1 }
+\cs_new:Npn \CDR@Line #1 {
+\CDR@Debug {\string\CDR@Line}
   \CDR_if_number_on:TF {
     \CDR_int_set:cn { __n } { 1 }
     \CDR_int_set:cn { __i } { 1 }
@@ -6456,7 +6499,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
     \CDR_set_conditional_alt:Nn \CDR_if_visible_at_index:n {
-      \CDR_if_number_visible_p:n { ##1 + \CDR_int:c { __start } - (#2) } 
+      \CDR_if_number_visible_p:n { ##1 + \CDR_int:c { __start } - (#1) } 
     }
     \CDR_set_conditional_alt:Nn \CDR_if_number_visible:n {
       ! \CDR_int_compare_p:cNn { __last } < { ##1 } 
@@ -6474,7 +6517,7 @@ if __name__ == '__main__':
         && \CDR_if_number_visible_p:n { ##1 }
       }
     }
-\CDR@Debug {CDR_line:nnn:1}
+\CDR@Debug {\string\CDR@Line:1}
 %    \end{MacroCode}
 %    \begin{MacroCode}
     \CDR_set_conditional:Nn \CDR_if_no_number: {
@@ -6491,7 +6534,7 @@ if __name__ == '__main__':
           \use_none:nn
         } {
           \CDR_int_set:cn { __i } { ##1 }
-          \CDR_int_set:cn { __n } { ##1 + \CDR_int:c { __start } - (#2) }
+          \CDR_int_set:cn { __n } { ##1 + \CDR_int:c { __start } - (#1) }
           \tl_set:Nx \@currentlabel { \CDR_int_use:c { __n } }
           {
             \advance\interlinepenalty\widowpenalty
@@ -6507,7 +6550,7 @@ if __name__ == '__main__':
         }
       }
     }
-    \CDR_int_set:cn { __n } { 1 + \CDR_int:c { __start } - (#2) }
+    \CDR_int_set:cn { __n } { 1 + \CDR_int:c { __start } - (#1) }
     \tl_set:Nx \@currentlabel { \CDR_int_use:c { __n } }
   } {
 \CDR@Debug {NUMBER~OFF}
