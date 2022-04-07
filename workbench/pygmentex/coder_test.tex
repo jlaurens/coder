@@ -13,6 +13,8 @@
 \RequirePackage{mdframed}
 \RequirePackage{luacode}
 \usepackage{tcolorbox}
+\usepackage{relsize}
+\usepackage{lipsum}
 
 %
 %
@@ -86,17 +88,17 @@
 \CDRSet{tags/src/escapeinside=⟨⟩}
 \CDRCode[tags=src]|ABCD⟨\textbf{ABCD}⟩EFGH|
 
-%\section{Sandbox}
-%\makeatletter\ExplSyntaxOn
-%\def\CDR@Debug { \use_none:n }
-%\ExplSyntaxOff\makeatother
-%%\input{Tests/Sandbox}
-%%\input{Tests/Engine}
-%%\input{Tests/numbering}
-%%\input{Tests/vspace}
+\section{Sandbox}
+\makeatletter\ExplSyntaxOn
+\def\CDR@Debug { \use_none:n }
+\ExplSyntaxOff\makeatother
+\input{Tests/Sandbox}
+%\input{Tests/Engine}
+%\input{Tests/numbering}
+%\input{Tests/vspace}
 %\input{Tests/label}
-%
-%\end{document}
+
+\end{document}
 
 \section{Testing the tag mechanism}
 \makeatletter\ExplSyntaxOn
