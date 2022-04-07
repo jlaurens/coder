@@ -2235,112 +2235,18 @@ if __name__ == '__main__':
 \clist_new:N \l_CDR_clist
 %    \end{MacroCode}
 % \end{variable}
-% \subsection{Files}
+%
 % \begin{variable}{\l_CDR_ior}
 % Input file identifier
 %    \begin{MacroCode}[OK]
 \ior_new:N \l_CDR_ior
 %    \end{MacroCode}
 % \end{variable}
-% \begin{variable}{\l_CDR_iow}
-% Output file identifier
-%    \begin{MacroCode}[OK]
-\iow_new:N \l_CDR_iow
-%    \end{MacroCode}
-% \end{variable}
-% \subsection{Global variables}
-% Line number counter for the source code chunks.
-% \begin{variable}{\g_CDR_source_int}
-% Chunk number counter.
-%    \begin{MacroCode}
-\int_new:N \g_CDR_source_int
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\g_CDR_source_prop}
-% Global source property list.
-%    \begin{MacroCode}
-\prop_new:N \g_CDR_source_prop
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\g_CDR_chunks_tl,\l_CDR_chunks_tl}
-% The comma separated list of current chunks.
-% If the next list of chunks is the same as the current one,
-% then it might not display. 
-%    \begin{MacroCode}
-\tl_new:N \g_CDR_chunks_tl
-\tl_new:N \l_CDR_chunks_tl
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\g_CDR_vars}
-% Tree storage for global variables.
-%    \begin{MacroCode}
-\prop_new:N \g_CDR_vars
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\g_CDR_hook_tl}
-% Hook general purpose.
-%    \begin{MacroCode}
-\tl_new:N \g_CDR_hook_tl
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\g/CDR/Chunks/<name>}
-% List of chunk keys for given named code.
-% \end{variable}
 %
-% \subsection{Local variables}
 % \begin{variable}{\l_CDR_kv_clist}
 % keyval storage.
 %    \begin{MacroCode}
 \clist_new:N \l_CDR_kv_clist
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\l_CDR_opts_tl}
-% options storage.
-%    \begin{MacroCode}
-\tl_new:N \l_CDR_opts_tl
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\l_CDR_recorded_tl}
-% Full verbatim body of the \texttt{CDR} environment.
-%    \begin{MacroCode}
-\tl_new:N \l_CDR_recorded_tl
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\l_CDR_count_tl}
-% Contains the number of lines processed by \pkg{pygments} as tokens.
-%    \begin{MacroCode}
-\tl_new:N \l_CDR_count_tl
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\g_CDR_int}
-% Global integer to store linenos locally in time.
-%    \begin{MacroCode}
-\int_new:N \g_CDR_int
-%    \end{MacroCode}
-% \end{variable}
-%
-% \begin{variable}{\l_CDR_line_tl}
-% Token list for one line.
-%    \begin{MacroCode}
-\tl_new:N \l_CDR_line_tl
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\l_CDR_lineno_tl}
-% Token list for lineno display.
-%    \begin{MacroCode}
-\tl_new:N \l_CDR_lineno_tl
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\l_CDR_name_tl}
-% Token list for chunk name display.
-%    \begin{MacroCode}
-\tl_new:N \l_CDR_name_tl
-%    \end{MacroCode}
-% \end{variable}
-% \begin{variable}{\l_CDR_info_tl}
-% Token list for the info of line.
-%    \begin{MacroCode}
-\tl_new:N \l_CDR_info_tl
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -3464,7 +3370,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \begin{description}
 % \itemtt[\CDRCheckRed lang=\meta{language name}]^^A
-%where \metatt{language name} is recognized by \texttt{pygments}, including a void string,
+%where \metatt{language name} is recognized by \pkg{pygments}, including a void string,
 %    \begin{MacroCode}[OK]
   lang .code:n = \CDR_tag_set:,
   lang .value_required:n = true,
@@ -3478,7 +3384,7 @@ if __name__ == '__main__':
   pygments .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed style=\meta{style name}]^^A
-%where \metatt{style name} is recognized by \texttt{pygments}, including a void string,
+%where \metatt{style name} is recognized by \pkg{pygments}, including a void string,
 %    \begin{MacroCode}[OK]
   style .code:n = \CDR_tag_set:,
   style .value_required:n = true,
@@ -3602,25 +3508,6 @@ if __name__ == '__main__':
   post~processor .code:n = \CDR_tag_set:,
   post~processor .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed default engine options=\meta{default engine options}]^^A
-% to specify the corresponding options,
-%    \begin{MacroCode}[OK]
-  default~engine~options .code:n = \CDR_tag_set:,
-  default~engine~options .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed default options=\meta{default options}]^^A
-% to specify the \pkg{\jobname} options that should apply
-% when the default engine is selected.setup_tags
-%    \begin{MacroCode}[OK]
-  default~options .code:n = \CDR_tag_set:,
-  default~options .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed \meta{engine name} engine options=\meta{engine options}]^^A
-% to specify the options
-% for the named engine,
-% \itemtt[\CDRCheckRed \meta{engine name} options=\meta{\pkg{\jobname} options}]^^A
-% to specify the \pkg{\jobname} options that should apply
-% when the named engine is selected.
 % \itemtt[\CDRCheckRed __initialize]^^A
 % to initialize storage properly. We cannot use |.initial:n| actions
 % because the |\l_keys_path_str| is not set up properly.
@@ -3630,8 +3517,6 @@ if __name__ == '__main__':
     cache = true,
     debug = false,
     post~processor = ,
-    default~engine~options = ,
-    default~options = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -3756,11 +3641,33 @@ if __name__ == '__main__':
   engine .code:n = \CDR_tag_set:,
   engine .value_required:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed default engine options=\meta{default engine options}]^^A
+% to specify the corresponding options,
+%    \begin{MacroCode}[OK]
+  default~engine~options .code:n = \CDR_tag_set:,
+  default~engine~options .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed engine options=\meta{engine options}]^^A
+% options forwarded to the engine. They are appended to the options
+% given with key \metatt{engine name}| engine options|.
+% Mainly a convenient user interface shortcut.
+%    \begin{MacroCode}[OK]
+  engine~options .code:n = \CDR_tag_set:,
+  engine~options .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed \meta{engine name} engine options=\meta{engine options}]^^A
+% to specify the options
+% for the named engine,
+% \itemtt[\CDRCheckRed \meta{engine name} options=\meta{\pkg{\jobname} options}]^^A
+% to specify the \pkg{\jobname} options that should apply
+% when the named engine is selected.
 % \itemtt[\CDRCheckRed __initialize]^^A
 % Initialization.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
     engine = default,
+    default~engine~options = ,
+    engine~options = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -3938,13 +3845,6 @@ if __name__ == '__main__':
   defineactive .code:n = \CDR_tag_set:, 
   defineactive .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckGreen reflabel=\meta{label}]^^A
-% define a label to be used with |\pageref|.
-% Initially empty.
-%    \begin{MacroCode}[OK]
-  reflabel .code:n = \CDR_tag_set:, 
-  reflabel .value_required:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckGreen __initialize]^^A
 % Initialization.
 %    \begin{MacroCode}[OK]
@@ -3959,7 +3859,6 @@ if __name__ == '__main__':
     obeytabs = false,
     tabsize = 2,
     defineactive = ,
-    reflabel = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -4150,6 +4049,13 @@ if __name__ == '__main__':
   label .code:n = \CDR_tag_set:,
   label .value_required:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckGreen reflabel=\meta{label}]^^A
+% define a label to be used with |\pageref|.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  reflabel .code:n = \CDR_tag_set:, 
+  reflabel .value_required:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckGreen __initialize]^^A
 % Initialization.
 %    \begin{MacroCode}[OK]
@@ -4164,6 +4070,7 @@ if __name__ == '__main__':
     vspace = \topset,
     samepage = false,
     label = ,
+    reflabel = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -5400,18 +5307,10 @@ if __name__ == '__main__':
 \CDR_tag_keys_define:nn { __code } {
 %    \end{MacroCode}
 % \begin{description}
-% \itemtt[\CDRCheckRed engine options=\meta{engine options}]^^A
-% options forwarded to the engine. They are appended to the options
-% given with key \metatt{engine name}| engine options|.
-%    \begin{MacroCode}[OK]
-  engine~options .code:n = \CDR_tag_set:,
-  engine~options .value_required:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed __initialize]^^A
 % initialize
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = { 
-    engine~options = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -5720,14 +5619,6 @@ if __name__ == '__main__':
   test .code:n = \CDR_tag_boolean_set:x { #1 },
   test .default:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed engine options=\meta{engine options}]^^A
-% options forwarded to the engine. They are appended to the options
-% given with key \metatt{engine name}| engine options|.
-% Mainly a convenient user interface shortcut.
-%    \begin{MacroCode}[OK]
-  engine~options .code:n = \CDR_tag_set:,
-  engine~options .value_required:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed __initialize]^^A
 % initialize
 %    \begin{MacroCode}[OK]
@@ -5737,7 +5628,6 @@ if __name__ == '__main__':
     dry~numbers = false,
     no~top~space = false,
     test = false,
-    engine~options = ,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -5819,6 +5709,12 @@ if __name__ == '__main__':
 % \end{variable}
 %    \begin{MacroCode}
 \regex_new:N \l_CDR_regex
+%    \end{MacroCode}
+% Utility to use \string\fvset\ properly.
+%    \begin{MacroCode}
+\cs_new:Npn \CDR_fvset:nn #1 #2 {
+  \fvset{#1={#2}}
+}
 %    \end{MacroCode}
 %
 % \begin{function}{\FVE@CDRBlock}
@@ -5929,6 +5825,19 @@ if __name__ == '__main__':
     \global\@inlabelfalse
     \global\@minipagefalse
     \global\@newlistfalse
+  }
+  \clist_map_inline:nn { resetmargins, gobble, fontsize, fontshape, fontseries,
+    showspaces, showtabs,
+  } {
+    \CDR_tag_get:cNTF { ##1 } \l_CDR_tl {
+      \exp_args:NnV
+      \CDR_fvset:nn { ##1 } \l_CDR_tl
+    } {
+      \PackageError
+        { coder }
+        { Build~time~error,~missing~key:~##1 }
+        { Please report }
+    }
   }
 \CDR@Debug{\string\FVE@CDRBlock\space 2}
   \tl_clear:N \FV@ListProcessLastLine
@@ -6844,7 +6753,7 @@ if __name__ == '__main__':
   \CDR_get_inherit:f {
     \g_CDR_tags_clist,
     __block, __tags, __engine, default.block, __pygments.block,
-    __fancyvrb.block __fancyvrb.frame, __fancyvrb.number,
+    __fancyvrb.block, __fancyvrb.frame, __fancyvrb.number,
     __pygments, default, __fancyvrb,
   }
 %    \end{MacroCode}
