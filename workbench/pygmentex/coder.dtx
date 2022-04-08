@@ -691,6 +691,7 @@ local function set_python_path(self, path_var)
 	   path = path:match("^(.+/)")..'pygmentize'
 	   mode,_,__ = lfs.attributes(path,'mode')
 	   print('**** CDR path, mode', path, mode)
+    self.PYGMENTIZE_PATH = path
     if mode == 'file' or mode == 'link' then
 	     tex.print('true')
     else
