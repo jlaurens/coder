@@ -4691,6 +4691,31 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
+%
+% \begin{function}{\CDR_rescan_regex_split:NNn}
+% \begin{syntax}
+% \cs{CDR_escapeinside:Nn} \meta{regex variable} \meta{tl variable} \Arg{argument}
+% \end{syntax}
+% Escape the content of \metatt{argumen} with
+% respect to \metatt{regex variable} and put the result in \meta{tl variable}.
+% Implementation detail: uses |\l_CDR_tl| and |\l_CDR_seq|.
+% \end{function}
+%    \begin{MacroCode}
+\cs_new_protected:Npn \CDR_rescan_regex_split:NNn #1 #2 #3 {
+  \regex_split:NnN #1 { #3 } \l_CDR_seq
+  \seq_pop_left:NN \l_CDR_seq #2
+  \bool_until_do:nn { \seq_if_empty_p:N \l_CDR_seq } {
+    \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
+    \tl_set_rescan:Nnx \l_CDR_tl {
+      \cctab_select:N \c_document_cctab
+    } { \l_CDR_tl }
+    \tl_put_right:NV #2 \l_CDR_tl
+    \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
+    \tl_put_right:NV #2 \l_CDR_tl
+  }
+}
+%    \end{MacroCode}
+%
 % Files are created at the end of the typesetting process.
 % We define a separate macro to be used for testing purposes.
 %    \begin{MacroCode}[OK]
@@ -4780,18 +4805,10 @@ if __name__ == '__main__':
             }
           } {
             \ior_str_map_inline:Nn \l_CDR_ior {
-              \regex_split:NnN \l_CDR_regex { ########1 } \l_CDR_seq
-              \seq_pop_left:NN \l_CDR_seq \l_CDR_export_tl
-              \bool_until_do:nn { \seq_if_empty_p:N \l_CDR_seq } {
-                \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
-                \exp_args:NnnV
-                \tl_set_rescan:Nnx \l_CDR_tl {
-                  \cctab_select:N \c_document_cctab
-                } \l_CDR_tl
-                \tl_put_right:Nx \l_CDR_export_tl { \l_CDR_tl }
-                \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
-                \tl_put_right:NV \l_CDR_export_tl \l_CDR_tl
-              }
+              \CDR_rescan_regex_split:NNn
+                \l_CDR_regex
+                \l_CDR_export_tl
+                { ########1 }
               \lua_now:n {
                 CDR:append_file_info('####1','l_CDR_export_tl')
               }
@@ -6840,10 +6857,12 @@ if __name__ == '__main__':
         }
 \CDR@Debug{\string\CDRBlock_use_fv:c\space 1121a}
         \seq_map_indexed_inline:cn { #1_seq } {
-          \regex_split:NnN \l_CDR_regex { ##2 } \l_CDR_seq
+          \CDR_rescan_regex_split:NNn
+            \l_CDR_regex \l_CDR_export_tl { ##2 }
+          \exp_args:NnV
           \CDR@Line
             { ##1 }
-            { \seq_use:Nn \l_CDR_seq {} }
+            \l_CDR_export_tl
         }
 \CDR@Debug{\string\CDRBlock_use_fv:c\space 1121b}
       } {
@@ -6855,10 +6874,12 @@ if __name__ == '__main__':
             .*? [ \tl_item:Nn \l_CDR_delimiters_tl { 3 } ]
           }
           \seq_map_indexed_inline:cn { #1_seq } {
-            \regex_split:NnN \l_CDR_regex { ##2 } \l_CDR_seq
+            \CDR_rescan_regex_split:NNn
+              \l_CDR_regex \l_CDR_export_tl { ##2 }
+            \exp_args:NnV
             \CDR@Line
               { ##1 }
-              { \seq_use:Nn \l_CDR_seq {} }
+              \l_CDR_export_tl
           }
         } {
 \CDR@Debug{\string\CDRBlock_use_fv:c\space 11222}
