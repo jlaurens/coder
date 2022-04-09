@@ -6337,14 +6337,14 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %
 % \paragraph{Boxes for lines}
-% The first index is for the tags (|L|, |R|, |N|, |A|, |M|),
+% The first index is for the tags (|L|, |R|, |N|, |S|, |M|),
 % the second for the numbers (|L|, |R|, |N|).
 % |L| stands for left, |R| stands for right, |N| stands for nothing,
-% |S| stands for same side as numbers, |O| stands for opposite side of numbers.
+% |S| stands for same side as numbers, |M| stands for mirror side of numbers.
 % 
-% \begin{function}{\CDR_line_[LRNSO]_[LRN]:nn}
+% \begin{function}{\CDR_line_[LRNSM]_[LRN]:nn}
 % \begin{syntax}
-% \cs{CDR_line_[LRNSO]_[LRN]:nn} \Arg{line number} \Arg{line content}
+% \cs{CDR_line_[LRNSM]_[LRN]:nn} \Arg{line number} \Arg{line content}
 % \end{syntax}
 % These functions may be called by |\CDR@Line| on each block.
 % |LRNSO| corresponds to the |show tags| options
