@@ -5438,6 +5438,20 @@ if __name__ == '__main__':
   \CDR_set_conditional:Nn \CDR_if_pygments: {
     \CDR_has_pygments_p: && \CDR_if_tag_truthy_p:c {pygments}
   }
+  \clist_map_inline:nn {
+    fontsize, fontshape, fontseries,
+    showspaces, showtabs, reflabel,
+  } {
+    \CDR_tag_get:cNTF { ##1 } \l_CDR_tl {
+      \exp_args:NnV
+      \CDR_fvset:nn { ##1 } \l_CDR_tl
+    } {
+      \PackageError
+        { coder }
+        { Build~time~error,~missing~key:~##1 }
+        { Please report }
+    }
+  }
 }
 \NewDocumentCommand \CDRCodeUse { O{} m } {
 \CDR@Debug{\string\CDRCodeUse=#2}
@@ -5503,12 +5517,13 @@ if __name__ == '__main__':
     \bool_while_do:nn { ! \seq_if_empty_p:N \l_CDR_seq } {
       \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
       \exp_args:NnV
-      \tl_rescan:nn { \cctab_select:N \c_document_cctab } \l_CDR_tl
+      \tl_rescan:nn { } \l_CDR_tl
       \seq_pop_left:NN \l_CDR_seq \l_CDR_tl \tl_use:N \l_CDR_tl  
     }
   }
 }
-\NewDocumentCommand \CDRCode { O{} m } {  \group_begin:
+\NewDocumentCommand \CDRCode { O{} m } {
+  \group_begin:
   \CDRCode_prepare:n { #1 }
   \CDR_if_pygments:TF {
     \cs_set:Npn \CDR@StyleUseTag {
@@ -5519,7 +5534,7 @@ if __name__ == '__main__':
     \SaveVerb [
       aftersave = {
         \exp_args:Nx \UndefineShortVerb { #2 }
-        \CDRCode_pyg:v{FV@SV@CDR@Source}
+        \CDRCode_pyg:v { FV@SV@CDR@Source }
         \group_end:
       }
     ] { CDR@Source } #2
@@ -5572,7 +5587,8 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
   \CDR_get_inherit:f {
     \g_CDR_tags_clist,
-    __tags, __engine, __code, default.code, __pygments, default,
+    __tags, __engine,
+    __code, default.code, __pygments, __fancyvrb, default,
   }
 }
 %    \end{MacroCode}
@@ -5972,8 +5988,9 @@ if __name__ == '__main__':
       \global\@minipagefalse
       \global\@newlistfalse
     }
-    \clist_map_inline:nn { resetmargins, gobble, fontsize, fontshape, fontseries,
-      showspaces, showtabs,
+    \clist_map_inline:nn {
+      resetmargins, gobble, fontsize, fontshape, fontseries,
+      showspaces, showtabs, reflabel,
     } {
       \CDR_tag_get:cNTF { ##1 } \l_CDR_tl {
         \exp_args:NnV
