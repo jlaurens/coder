@@ -1,0 +1,224 @@
+% !TeX program=lualatex
+% !TEX encoding = UTF-8 Unicode
+
+\documentclass{beamer}
+\mode<presentation>
+\usepackage{fontspec}
+\usepackage{coder}
+\usepackage{ifthen}
+\usepackage{emoji}{}
+
+\title{Presentation of package \textsf{coder}}
+
+\subtitle
+{Complement to the manual}
+
+\author[Author, Another] % (optional, use only with lots of authors)
+{Jérôme LAURENS}
+
+\institute[Universities of Somewhere and Elsewhere] % (optional, but mostly needed)
+{
+  Institut de mathématiques de Bourgogne\\
+  Université de Bourgogne, France
+}
+
+\date % (optional, should be abbreviation of conference name)
+{\today}
+
+% If you wish to uncover everything in a step-wise fashion, uncomment
+% the following command: 
+
+%\beamerdefaultoverlayspecification{<+->}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+  % You might wish to add the option [pausesections]
+\end{frame}
+
+\section{Motivation}
+
+\subsection{The Basic Problem That We Studied}
+
+\begin{CDRBlockSave}{Snippet1}
+\textbf{Line 1}
+\textbf{Line 2}
+\textbf{Line 3}
+\end{CDRBlockSave}
+\makeatletter
+\newcommand{\MyCDRNumberMainA}[1]{
+  \setlength{\unitlength}{1cm}
+  \begin{picture}(0,0)
+  \put(-1,0){\llap{\ifthenelse{#1=1}{\emoji{t-rex}}
+    {\ifthenelse{#1=2}{\emoji{penguin}}{\emoji{whale}}}%
+  } }
+  \end{picture}
+  %
+  \ifthenelse{#1=\beamer@slidenumber}{%
+    \color{red}\bfseries}{}#1
+}
+\makeatother
+\begin{CDRBlockSave}{SourceA}
+\makeatletter
+\newcommand{\MyCDRNumberMainA}[1]{
+  \setlength{\unitlength}{1cm}
+  \begin{picture}(0,0)
+  \put(-1,0){\llap{\ifthenelse{#1=1}{\emoji{t-rex}}
+    {\ifthenelse{#1=2}{\emoji{penguin}}{\emoji{whale}}}%
+  } }
+  \end{picture}
+  %
+  \ifthenelse{#1=\beamer@slidenumber}{%
+    \color{red}\bfseries}{}#1
+}
+\makeatother
+\end{CDRBlockSave}
+
+\begin{frame}
+{Playing with line numbers}
+{CDRBlockSave on slide number \insertslidenumber}
+\begin{block}{CDRBlockUse}
+\renewcommand{\CDRNumberMain}{\MyCDRNumberMainA}
+\CDRBlockUse[
+  xleftmargin=2cm,
+]{Snippet1}
+\end{block}
+\only<+(2)>{}
+\end{frame}
+\begin{frame}
+{Playing with line numbers}
+{SourceA}
+\begin{block}{Source}
+\CDRBlockUse{SourceA}
+\end{block}
+\end{frame}
+\begin{frame}
+{Playing with line numbers}
+{SourceA}
+\begin{block}{Source}
+\CDRBlockUse{SourceA}
+\end{block}
+\end{frame}
+\begin{frame}
+{Playing with line numbers}
+{SourceA}
+\begin{block}{Source}
+\CDRBlockExe{SourceA}
+\end{block}
+\end{frame}
+
+\end{document}
+
+
+
+\documentclass{beamer}
+
+\usepackage{fontspec}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    linkcolor={red!50!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+}
+\usepackage{float}
+\usepackage{tcolorbox}
+\usepackage{coder}
+\usepackage{lipsum}
+\usepackage{luacode} % JL
+\usepackage{unicode-math}
+\usepackage{multicol}
+\usepackage{efbox}
+\usepackage{mboxfill}
+\usepackage{setspace}
+\usepackage{relsize}
+
+
+\ExplSyntaxOn
+
+\cs_new_protected:Npn \cs #1 {
+  \texttt{
+    \textbackslash
+    \tl_rescan:nn {
+      \cctab_select:N \c_str_cctab
+    } {
+      #1
+    }
+  }
+}
+\cs_new:Npn \pkg { \textsf }
+
+\cs_new:Npn \MyOption #1 {
+  \texttt{#1}
+}
+
+\ExplSyntaxOff
+
+\NewDocumentCommand \itemtt { o } {
+  \IfNoValueTF { #1 } {
+    \item
+  } {
+    \item[\ttfamily#1]
+  }
+}
+
+\NewDocumentCommand \MyMeta {om} {%
+  {\normalfont$⟨${\itshape#2}$\,⟩$%
+  \IfValueT{#1}{\textsubscript{#1}}}%
+}
+\let\meta\MyMeta
+\NewDocumentCommand \MyMetatt {om} {%
+  {\normalfont$⟨${\ttfamily#2}$\,⟩$%
+  \IfValueT{#1}{\textsubscript{\ttfamily#1}}}%
+}
+\let\metatt\MyMetatt
+
+\def\CDRCheckRed {}
+\def\CDRCheckGreen {}
+\def\CDRCheckProhibited {}
+
+\colorlet{CDROptions}{magenta!66!black}
+\CDRSet{
+  only top,
+  tags/lua={
+    lang=lua,
+    style=autumn,
+    numbers=right,
+    show tags=mirror,
+  },
+  tags/python={
+    lang=python,
+    style=trac,
+    numbers=left,
+    show tags=mirror,
+  },
+  tags/latex|src|options={
+    lang=tex,
+    style=default,
+    numbers=none,
+    show tags=none,
+    escapeinside=⟨⟩,
+  },
+  tags/options={
+    format=\color{CDROptions}\bfseries,
+  },
+}
+
+\newfontfamily\TGCFont{TeX Gyre Cursor}[NFSSFamily=TGC]
+
+\begin{document}
+\title{User manual for the \pkg{coder} package}
+\author{Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}}
+\maketitle
+\tableofcontents
+
+\end{document}
+
+
