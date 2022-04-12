@@ -7,8 +7,7 @@
 %<*readme>
 # The coder package
 
-Usually, documentation is put inside the code,
-the coder package allows to work the other way round
+This package allows to format in \LaTeX\ the documentation put in the code, as soon as long comments exist. It also allows to work the other way round
 by putting code inside the documentation.
 This is particularly interesting when different code files share some logic
 and should be documented all at once.
@@ -107,6 +106,8 @@ This work consists of the file  \jobname.dtx
 and the derived files           \jobname.ins,
                                 \jobname.pdf,
                                 \jobname-util.lua,
+                                \jobname-driver-raw.lua,
+                                \jobname-driver-lua.lua,
                                 \jobname-tool.py and
                                 \jobname.sty.
 
@@ -122,10 +123,13 @@ and the derived files           \jobname.ins,
 \def\MetaPrefix{--}
 \usedir{scripts/coder}
 \generate{
-  \file{\jobname-util.x.lua}{\from{\jobname.dtx}{lua}}
+  \file{\jobname-util.lua}{\from{\jobname.dtx}{lua}}
 }
 \generate{
-  \file{\jobname-util.lua}{\from{\jobname.dtx}{lua}}
+  \file{\jobname-driver-raw.lua}{\from{\jobname.dtx}{driver-raw}}
+}
+\generate{
+  \file{\jobname-driver-lua.lua}{\from{\jobname.dtx}{driver-lua}}
 }
 \usepreamble\PreamblePy
 {
@@ -133,9 +137,6 @@ and the derived files           \jobname.ins,
 \global\def\MetaPrefix{#}
 }
 \usedir{scripts/coder}
-\generate{
-  \file{\jobname-tool.x.py}{\from{\jobname.dtx}{py}}
-}
 \generate{
   \file{\jobname-tool.py}{\from{\jobname.dtx}{py}}
 }
@@ -1344,12 +1345,11 @@ end
 % \end{function}
 %    \begin{MacroCode}[OK]
 local function export_file(self, file_name_var)
-  self['.name'] = assert(token.get_macro(assert(file_name_var)))
-  self['.export'] = {
+  local name = assert(token.get_macro(assert(file_name_var)))
+  local export = {
     preamble = {},
     postamble = {},
   }
-end
 %    \end{MacroCode}
 % \begin{function}{export_file_info, append_file_info}
 % \begin{syntax}
@@ -1359,23 +1359,22 @@ end
 % This is called at export time.
 % \metatt{value name var} is the name of an \pkg{str} variable
 % containing the value.
+% It must follow a call to |export_file|.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function export_file_info(self, key, value)
-  local export = self['.export']
-  value = assert(token.get_macro(assert(value)))
-  if export[key] == JSON_boolean_true or export[key] == JSON_boolean_false then
-    export[key] = (value == 'true') and JSON_boolean_true or JSON_boolean_false
-  else
-    export[key] = value
+  function self.export_file_info(_, key, value)
+    value = assert(token.get_macro(assert(value)))
+    if export[key] == JSON_boolean_true or export[key] == JSON_boolean_false then
+      export[key] = (value == 'true') and JSON_boolean_true or JSON_boolean_false
+    else
+      export[key] = value
+    end
   end
-end
-local function append_file_info(self, key, value)
-  local export = self['.export']
-  local t = export[key]
-  value = assert(token.get_macro(assert(value)))
-  t[#t+1] = value
-end
+  function self.append_file_info(_, key, value)
+    local t = export[key]
+    value = assert(token.get_macro(assert(value)))
+    t[#t+1] = value
+  end
 %    \end{MacroCode}
 % \begin{function}{export_complete}
 % \begin{syntax}
@@ -1384,53 +1383,51 @@ end
 % This is called at export time.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function export_complete(self)
-  local name    = self['.name']
-print('**** CDR NAME', name)
-  local export  = self['.export']
-  local records = self['.records']
-  local raw  = export.raw  == 'true'
-  local once = export.once == 'true'
-  local tags = export.tags
-  local tt = {}
-  local s, t, _
+  function self.export_complete(this)
+    local raw  = export.raw  == 'true'
+    local once = export.once == 'true'
+    local tags = export.tags
+    local tt = {}
+    local s, t, _
 print('**** CDR', tags, raw, once)
-  if not raw then
-    s = export.preamble
-    for _,t in ipairs(s) do
-      tt[#tt+1] = t
+    if not raw then
+      s = export.preamble
+      for _,t in ipairs(s) do
+        tt[#tt+1] = t
+      end
     end
-  end
-  for tag in string.gmatch(export.tags, '([^,]+)') do
-    local Rs = records[tag]
-    if Rs then
-      for _,R in ipairs(Rs) do
-        if not R.already[name] or not once then
-          tt[#tt+1] = R.code
-        end
-        if once then
-          R.already[name] = true
+    for tag in string.gmatch(export.tags, '([^,]+)') do
+      local Rs = records[tag]
+      if Rs then
+        for _,R in ipairs(Rs) do
+          if not R.already[name] or not once then
+            tt[#tt+1] = R.code
+          end
+          if once then
+            R.already[name] = true
+          end
         end
       end
     end
-  end
-  if not raw then
-    s = export.postamble
-    for _,t in ipairs(s) do
-      tt[#tt+1] = t
+    if not raw then
+      s = export.postamble
+      for _,t in ipairs(s) do
+        tt[#tt+1] = t
+      end
     end
-  end
 print('**** CDR', name, #tt)
-  if #tt>0 then
-    if #tt[#tt] > 0 then
-      tt[#tt+1] = ''
+    if #tt>0 then
+      if #tt[#tt] > 0 then
+        tt[#tt+1] = ''
+      end
+      local fh = assert(io.open(name,'w'))
+      fh:write(table.concat(tt, '\n'))
+      fh:close()
     end
-    local fh = assert(io.open(name,'w'))
-    fh:write(table.concat(tt, '\n'))
-    fh:close()
+    this.export_file_info = nil
+    this.append_file_info = nil
+    this.export_complete = nil
   end
-  self['.name'] = nil
-  self['.export'] = nil
 end
 %    \end{MacroCode}
 %
@@ -1496,6 +1493,114 @@ end
 local _DESCRIPTION = [[Global coder utilities on the lua side]]
 %    \end{MacroCode}
 % \end{variable}
+%
+% \begin{function}{rescan_begin, rescan_push_line, rescan_end}
+% \begin{syntax}
+% CDR:rescan_begin()
+% CDR:rescan_push_line(\metatt{tl line variable})
+% CDR:rescan_end()
+% \end{syntax}
+% This is a strong replacement to the various rescan functions (including |\scantokens|) assuming that
+% what is rescan is a string.
+% Initialize the rescan with |CDR:rescan_begin()|,
+% then put each line in turn with |CDR:rescan_push_line(...)| and finally
+% teminate the process with |CDR:rescan_end()|
+% Implementation detail: use a closure.
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function rescan_begin(self)
+  local t = {}
+  local makeatletter = false
+  local ExplSyntaxOn = false
+  function self.rescan_makeatletter(this, yorn)
+    makeatletter = yorn
+    if makeatletter then
+      tex.print([[\makeatletter]])
+    end
+  end
+  function self.rescan_ExplSyntaxOn(this, yorn)
+    ExplSyntaxOn = yorn
+    if ExplSyntaxOn then
+      tex.print([[\ExplSyntaxOn]])
+    end
+  end
+  function self.rescan_push_line(this, tl_var)
+    table.insert(t, assert(token.get_macro(assert(tl_var))))
+  end
+  function self.rescan_end(me)
+    tex.print(t);
+    if ExplSyntaxOn then
+      tex.print([[\ExplSyntaxOff]])
+    end
+    if makeatletter then
+      tex.print([[\makeatother]])
+    end
+    self.rescan_makeatletter = nil
+    self.rescan_ExplSyntaxOn = nil
+    self.rescan_push_line = nil;
+    self.rescan_end = nil;
+  end
+end
+%    \end{MacroCode}
+%
+% \section{Input}
+%
+% \begin{function}{input_begin,
+%   input_show_comments_set,
+%   input_show_code_set,
+%   input_end
+% }
+% \begin{syntax}
+% CDR:input_begin(\metatt{tl source variable}, \metatt{tl driver variable})
+% CDR:input_show_comments_set(\metatt{tl variable})
+% CDR:input_show_code_set(\metatt{tl variable})
+% CDR:input_end()
+% \end{syntax}
+% These are the helpers to input a source file.
+% The driver, source and various options are stored,
+% then the process is launched on the \TeX\ side by
+% |CDR:input_end()| which forwards to |self:input_process|.
+% Implementation detail: all functions but the first ont are
+% implemented dynamically.
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function input_begin(self, source_var, driver_var)
+  local args = {
+    source = assert(token.get_macro(source_var or 'l_CDR_input_tl')),
+    driver = assert(token.get_macro(driver_var or 'l_CDR_tl')),
+    show_comments = true,
+    show_code = true,
+  }
+  function self.input_show_comments_set(this, var)
+    args.show_comments = assert(token.get_macro(var or 'l_CDR_tl')) == 'true'
+  end
+  function self.input_show_code_set(this, var)
+    args.show_code = assert(token.get_macro(var or 'l_CDR_tl')) == 'true'
+  end
+  function self.input_end(this)
+    this.input_show_comments_set = nil
+    this.input_show_code_set = nil
+    this.input_end = nil
+    this:input_process(args)
+  end
+end
+%    \end{MacroCode}
+%
+% \begin{function}{input_process}
+% \begin{syntax}
+% CDR:input_process(\metatt{args})
+% \end{syntax}
+% These is the main processor.
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function input_process(self, args)
+  print('========= CDRInput lua processor')
+  for k, v in pairs(args) do
+    print(k, '-->', v)
+  end
+end
+%    \end{MacroCode}
+%
 % \section{Return the module}
 %    \begin{MacroCode}
 return {
@@ -1565,6 +1670,15 @@ return {
   synctex_tag_set       = synctex_tag_set,
   synctex_line_set      = synctex_line_set,
 %    \end{MacroCode}
+% \itemtt[rescan]
+%    \begin{MacroCode}
+  rescan_begin     = rescan_begin,
+%    \end{MacroCode}
+% \itemtt[input]
+%    \begin{MacroCode}
+  input_begin      = input_begin,
+  input_process    = input_process,
+%    \end{MacroCode}
 % \itemtt[cache]
 %    \begin{MacroCode}
   cache_clean_all    = cache_clean_all,
@@ -1575,9 +1689,6 @@ return {
 %    \begin{MacroCode}
   ['.style_set']     = {},
   ['.colored_set']   = {},
-  ['.options']       = {},
-  ['.export']        = {},
-  ['.name']          = nil,
 %    \end{MacroCode}
 % \itemtt[already] false at the beginning,
 % true after the first call of \CDRPy{}
@@ -1592,9 +1703,6 @@ return {
 % \itemtt[Exportation]
 %    \begin{MacroCode}
   export_file        = export_file,
-  export_file_info   = export_file_info,
-  append_file_info   = append_file_info,
-  export_complete    = export_complete,
 %    \end{MacroCode}
 % \end{description}
 %    \begin{MacroCode}
@@ -1677,7 +1785,7 @@ class TeXOpts(BaseOpts):
     self.pyg_sty_p = Path(self.pyg_sty_p or '')
 %    \end{MacroCode}
 %
-% \subsection{\texttt{PygOpts}class}
+% \subsection{\texttt{PygOpts} class}
 % \pkg{pygments} |LaTeXFormatter| options.
 % Some of them may be deliberately unused.
 % In particular, line numbering is governed by \pkg{fancyvrb} options.
@@ -3288,7 +3396,7 @@ if __name__ == '__main__':
   \cs_set:Npn \@CDR:n {
     \clist_put_right:Nn \l_CDR_clist
   }
-  \cs_set:Npn \@CDR:nn ##1 ##2 {
+  \cs_set:Npn \@CDR:nn ##1 ##2 { \use_none:n { $ }
     \regex_extract_once:nnNTF { ^ tags/([^/]+)(/([^/]+))? $} { ##1 } \l_CDR_seq {
       \tl_set:Nx \l_CDR_tl { \seq_item:Nn \l_CDR_seq 4 }
       \cs_set:Npn \@@CDR:nn ####1 ####2 {
@@ -3651,9 +3759,9 @@ if __name__ == '__main__':
   tags .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed default tags=\meta{comma list of tag names}]^^A
-% to enable/disable the display of the code chunks tags, setup some style, export.
+% when no tag is provided.
 % Initially |empty|.
-% to export and display.
+% When empty, the first tag list provided will override this.
 %    \begin{MacroCode}
   default~tags .code:n = {
     \clist_set:Nx \l_CDR_clist { #1 }
@@ -4766,9 +4874,9 @@ if __name__ == '__main__':
 \CDR@Debug{\string\CDR_export_complete:~FILE~##1}
     \CDR_export_if_tags:nNTF { ##1 } \l_CDR_clist {
       \str_set:Nx \l_CDR_str { ##1 }
-      \lua_now:n { CDR:export_file('l_CDR_str') }
       \lua_now:n {
-        CDR:export_file_info('tags','l_CDR_clist')
+        CDR:export_file('l_CDR_str');
+        CDR:export_file_info('tags','l_CDR_clist');
       }
 \CDR@Debug{\string\CDR_export_complete:~TAGS~\l_CDR_clist}
       \clist_map_inline:nn { raw, once, } {
@@ -6250,6 +6358,31 @@ if __name__ == '__main__':
 \DefineVerbatimEnvironment{CDRBlockSave}{CDRBlockSave}{}
 %    \end{MacroCode}
 %
+% \begin{function}[EXP,pTF]{\CDRBlock_if_saved:c}
+% \begin{syntax}
+% \cs{CDRBlock_if_saved:cTF} \Arg{identifier} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Set of conditionals.
+% If some code was saved under \Arg{identifier},
+% execute \Arg{true code} otherwise, execute \Arg{false code}.
+% \end{function}
+%    \begin{MacroCode}
+\CDR_set_conditional_alt:Nn \CDRBlock_if_saved:c {
+  \seq_if_exist_p:c { CDRBlockUse / #1_seq }
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\CDRBlockIfSaved}
+% \begin{syntax}
+% \cs{CDRBlockIfSaved} \Arg{identifier} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% If some code was saved under \Arg{identifier},
+% execute \Arg{true code} otherwise, execute \Arg{false code}.
+% \end{function}
+%    \begin{MacroCode}
+\cs_set_eq:NN \CDRBlockIfSaved \CDRBlock_if_saved:cTF
+%    \end{MacroCode}
+%
 % \begin{function}{\CDRBlockUse}
 % \begin{syntax}
 % \cs{CDRBlockUse} \oarg{key[=value] list} \marg{unique identifier}
@@ -6258,26 +6391,69 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \NewDocumentCommand\CDRBlockUse{ O{} m } {
 \CDR@Debug{\string\CDRBlockUse/#2}
-  \lua_now:n { CDR:synctex_state_save() }
-  \cs_set:Npn \FV@KeyValues { #1 }
-  \CDRBlock_use:c { CDRBlockUse / #2 }
-  \lua_now:n { CDR:synctex_state_restore() }
+ \CDRBlock_if_saved:cTF { #2 } {
+    \lua_now:n { CDR:synctex_state_save() }
+    \cs_set:Npn \FV@KeyValues { #1 }
+    \CDRBlock_use:c { CDRBlockUse / #2 }
+    \lua_now:n { CDR:synctex_state_restore() }
+  } {
+    \PackageError
+      { coder }
+      { Unknown~block~identifier:~#2 }
+      { See~CDRBlockSave~environment. }
+  }
 }
 %    \end{MacroCode}
 %
+%    \begin{MacroCode}[OK]
+\keys_define:nn { CDRBlockExe } {
+  makeatletter .choices:nn =
+    { {}, true, false }
+    { \directlua{
+      CDR:rescan_makeatletter(\l_keys_choice_tl)
+    } },
+  makeatletter .default:n = true,
+  ExplSyntaxOn .choices:nn =
+    { {}, true, false }
+    { \directlua{
+      CDR:rescan_ExplSyntaxOn(\l_keys_choice_tl)
+    } },
+  ExplSyntaxOn .default:n = true,
+}
+%    \end{MacroCode}
 % \begin{function}{\CDRBlockExe}
 % \begin{syntax}
-% \cs{CDRBlockExe} \marg{unique identifier}
+% \cs{CDRBlockExe} \oarg{makeatletter[=true$\vert$false]} \marg{block identifier}
 % \end{syntax}
 % \end{function}
 %    \begin{MacroCode}
-\NewDocumentCommand\CDRBlockExe{ m } {
-\CDR@Debug{\string\CDRBlockExe/#1}
-  \lua_now:n { CDR:synctex_state_save() }
-  \cs_if_exist:cTF { CDRBlockUse / #1 } {
-    \exp_args:Nv \tl_to_str:n { CDRBlockUse / #1 }
+\NewDocumentCommand\CDRBlockExe{ O{} m } {
+\CDR@Debug{\string\CDRBlockExe/#2}
+  \lua_now:n {
+    CDR:rescan_begin()
+    CDR:synctex_state_save()
+  }
+  \exp_args:Nnx
+  \keys_set:nn { CDRBlockExe } {
+    \tl_if_empty:nT { #1 } { makeatletter=false, }
+    #1
+  }
+  \CDRBlock_if_saved:cTF { #2 } {
+    \prop_get:cnNT { #2_prop } { synctex_tag } \l_CDR_tl {
+      \lua_now:n { CDR:synctex_tag_set(\l_CDR_tl) }
+    }
+    \prop_get:cnNT { #2_prop } { synctex_line } \l_CDR_tl {
+      \lua_now:n { CDR:synctex_line_set(\l_CDR_tl) }
+    }
+    \seq_map_variable:cNn { CDRBlockUse / #2_seq } \l_CDR_tl {
+      \directlua{CDR:rescan_push_line('l_CDR_tl')}
+    }
+    \directlua{CDR:rescan_end()}    
   } {
-    NO~\string\CDRBlockUse/#1!
+    \PackageError
+      { coder }
+      { Unknown~block~identifier:~#2 }
+      { See~CDRBlockSave~environment. }
   }
   \lua_now:n { CDR:synctex_state_restore() }
 }
@@ -6285,10 +6461,10 @@ if __name__ == '__main__':
 %
 % \begin{function}{\CDRBlockFree}
 % \begin{syntax}
-% \cs{CDRBlockFree} \marg{unique identifier}
+% \cs{CDRBlockFree} \marg{block identifier}
 % \end{syntax}
 % Free the memory for this identifier. After that instruction,
-% |\CDRBlockUse{|\marg{unique identifier}|}| is no longer available.
+% |\CDRBlockUse{|\marg{block identifier}|}| is no longer available.
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRBlockFree #1 {
@@ -6709,6 +6885,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 %
 % \paragraph{Lines}
+% The code is typeset one line after the other.
 %
 % \begin{function}{\CDR@Setup}
 % \begin{syntax}
@@ -7130,97 +7307,150 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \section{Management}
-%
-% \begin{variable}{\g_CDR_in_impl_bool}
-% Whether we are currently in the implementation section.
-%    \begin{MacroCode}
-\bool_new:N \g_CDR_in_impl_bool
-%    \end{MacroCode}
-% \end{variable}
-%
-% \begin{function}[EXP,pTF]{\CDR_if_show_code:}
-%   \begin{syntax}
-%     \cs{CDR_if_show_code:TF} \Arg{true code} \Arg{false code}
-%   \end{syntax}
-%   Execute \meta{true code} when code should be printed, \meta{false code} otherwise.
-%    \begin{MacroCode}
-\prg_new_conditional:Nnn \CDR_if_show_code: { p, T, F, TF } {
-  \bool_if:nTF {
-    \g_CDR_in_impl_bool && !\g_CDR_with_impl_bool
-  } {
-    \prg_return_false:
-  } {
-    \prg_return_true:
-  }
-}
-%    \end{MacroCode}
-% \end{function}
-%
-% \begin{variable}{\g_CDR_with_impl_bool}
-%    \begin{MacroCode}
-\bool_new:N \g_CDR_with_impl_bool
-%    \end{MacroCode}
-% \end{variable}
-%
-% \section{Section separators}
-% \begin{function}{\CDRImplementation,\CDRFinale}
+% \section{\string\CDRInput}
+% This is certainly the most interesting feature of this package: it allows to input source files and pretty print the comments.
+% Quite everything is done on the \pkg{lua} side such that
+% a little bit of \pkg{lua} is required but that remains
+% extremely simple.
+% \begin{function}{\CDRInput}
 % \begin{syntax}
-% \cs{CDRImplementation}
-% \cs{CDRFinale}
+% \cs{CDRInput} \oarg{driver=\metatt{driver name}$\vert$\metatt{driver path}, \metatt{key}=\metatt{value}...} \Arg{source path}
 % \end{syntax}
-% \cs{CDRImplementation} start an implementation part
-% where all the sectioning commands do nothing,
-% whereas \cs{CDRFinale} stop an implementation part.
+% Read and execute the lua driver,
+% then typeset the source accordingly.
+% Some builtin drivers are provided and used by their name
+% which is in general the name of a programming language.
+% The default driver is |raw|, which means that the file is input as is.
+% The other \metatt{key}|=|\metatt{value} options are used to display the code within |CDRBlock| environment.
 % \end{function}
-% \section{Finale}
+% 
+% \subsection{Builtin drivers}
+% Here is the |raw| driver.
 %    \begin{MacroCode}
-\newcounter{CDR@impl@page}
-\DeclareDocumentCommand \CDRImplementation {} {
-  \bool_if:NF \g_CDR_with_impl_bool {
-    \clearpage
-    \bool_gset_true:N \g_CDR_in_impl_bool
-    \let\CDR@old@part\part
-    \DeclareDocumentCommand\part{som}{}
-    \let\CDR@old@section\section
-    \DeclareDocumentCommand\section{som}{}
-    \let\CDR@old@subsection\subsection
-    \DeclareDocumentCommand\subsection{som}{}
-    \let\CDR@old@subsubsection\subsubsection
-    \DeclareDocumentCommand\subsubsection{som}{}
-    \let\CDR@old@paragraph\paragraph
-    \DeclareDocumentCommand\paragraph{som}{}
-    \let\CDR@old@subparagraph\subparagraph
-    \DeclareDocumentCommand\subparagraph{som}{}
-    \cs_if_exist:NT \refsection{ \refsection }
-    \setcounter{ CDR@impl@page }{ \value{page} }
-  }
-}
-\DeclareDocumentCommand\CDRFinale {} {
-  \bool_if:NF \g_CDR_with_impl_bool {
-    \clearpage
-    \bool_gset_false:N \g_CDR_in_impl_bool
-    \let\part\CDR@old@part
-    \let\section\CDR@old@section
-    \let\subsection\CDR@old@subsection
-    \let\subsubsection\CDR@old@subsubsection
-    \let\paragraph\CDR@old@paragraph
-    \let\subparagraph\CDR@old@subparagraph
-    \setcounter { page } { \value{ CDR@impl@page } }
-  }
-}
-%\cs_set_eq:NN \CDR_line_number: \prg_do_nothing:
+%</sty>
+%<*driver-raw>
+-- This is the raw driver for the coder package
+-- Display code as is
+-- See \CDRInput
+-- put here whatever statement you need
+-- return a table
+return {}
+%</driver-raw>
+%<*sty>
 %    \end{MacroCode}
-% \section{Finale}
+% and here is the |lua| driver.
 %    \begin{MacroCode}
-%\AddToHook { cmd/FancyVerbFormatLine/before } {
-%  \CDR_line_number:
-%}
+%</sty>
+%<*driver-lua>
+--[=[latex.coder[tags=driver]
+This is lua raw driver for the \pkg{coder} package.
+Pretty print comments formatted in \LaTeX\ that are delimited by lines matching
+\begin{CDRBlock}[lang=lua]
+^--[(=$)[latex.coder([.*])
+\end{CDRBlock}
+and the next line matching
+\begin{CDRBlock}[lang=lua, escapeinside=()]
+^--latex.coder](\meta{equals})]
+\end{CDRBlock}
+The delimiting lines are not typeset.
+The first one defines the \meta{equals} string as first capture and \meta{options} as second capture. \meta{equals} is passed to \CDRCode[lang=lua]|CDR:input_options_set|.
+See the \CDRCode|\CDRInput| documentation.
+--latex.coder]=]
+-- put here whatever statement you need
+local equals = ''
+-- return a table
+return {
+  begin_comment = function ()
+    return '^--[(=$)[latex.coder([.*])'
+  end,
+  begin_action  = function(captured_eqs, captured_opts)
+    equals      = captured_eqs
+    CDR:input_options_set(captured_opts)
+  end,
+  end_comment   = function()
+    return '^--latex.coder]'..equals..']'
+  end
+}
+%</driver-lua>
+%<*sty>
 %    \end{MacroCode}
+%
+% \subsection{Options}
+% The options will inherit the |__tags| \pkg{l3keys} module.
+%    \begin{MacroCode}[OK]
+\CDR_tag_keys_define:nn { CDRInput } {
+%    \end{MacroCode}
+% \begin{description}
+%
+% \itemtt[\CDRCheckGreen driver=\metatt{driver name}$\vert$\metatt{driver path}]^^A
+% When the driver has a path extension, this is the path
+% to a driver, otherwise this is a builtin driver name.
+% Some builtin drivers are provided
+% and generally named after a programming language.
+% Initially |raw|, which means that the file is input as one uncommented code snippet.
+% Let's hope that no language will ever be named |raw|.
+%    \begin{MacroCode}[OK]
+  driver .code:n = \CDR_tag_set:,
+  driver .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed show comments{[=true$\vert$false]}]^^A
+% whether comments should be displayed.
+% Initially |true|.
+%    \begin{MacroCode}[OK]
+  show~comments .code:n = \CDR_tag_boolean_set:x { #1 },
+  show~comments .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed show code{[=true$\vert$false]}]^^A
+% whether code should be displayed.
+% Initially |true|.
+%    \begin{MacroCode}[OK]
+  show~code .code:n = \CDR_tag_boolean_set:x { #1 },
+  show~code .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckGreen __initialize]^^A
+% Initialization.
+%    \begin{MacroCode}[OK]
+  __initialize .meta:n = {
+    driver        = raw,
+    show~comments = true,
+    show~code     = true,
+  },
+  __initialize .value_forbidden:n = true,
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[OK]
+}
+%    \end{MacroCode}
+%    \begin{MacroCode}[OK]
+\AtBeginDocument{
+  \CDR_tag_keys_set:nn { CDRInput } { __initialize }
+}
+%    \end{MacroCode}
+%
+% \subsection{Implementation}
+%
 %    \begin{MacroCode}
-
+\tl_new:N \l_CDR_input_tl
+\NewDocumentCommand\CDRInput { O{} m } {
+\CDR@Debug{\string\CDRInput}
+  \group_begin:
+  \tl_set:Nn \l_CDR_input_tl { #2 }
+  \CDR_local_inherit:n { CDRInput }
+  \CDR_local_set_known:nN { #1 } \l_CDR_kv_clist
+  \CDR_get_inherit:n { CDRInput }
+  \CDR_tag_get:cN { driver } \l_CDR_tl
+  \directlua { CDR:input_begin() }
+  \CDR_tag_get:cN { show~comments } \l_CDR_tl
+  \directlua { CDR:input_show_comments_set() }
+  \CDR_tag_get:cN { show~code } \l_CDR_tl
+  \directlua { CDR:input_show_code_set() }
+  \directlua { CDR:input_end() }  
+  \group_end:
+}
+%    \end{MacroCode}
+%
+%    \begin{MacroCode}
 \ExplSyntaxOff
-
 %    \end{MacroCode}  
 %
 % Input a configuration file named \texttt{\jobname.cfg}, if any.
