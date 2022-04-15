@@ -289,3 +289,5 @@ workbench/README.txt
 workbench/**/Tests/*.test.txt
 
 **/*.pygd
+workbench/pygmentex/coder-driver-lua.lua
+workbench/pygmentex/coder-driver-raw.lua
