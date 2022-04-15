@@ -1118,25 +1118,25 @@ Instead, one will use the key
 \itemtt[\CDRCheckGreen tags={\meta[1]{tag}|\meta[2]{tag}|...}]
 used for exportation (section \ref{sect:exportation}), for line numbering (section \ref{sect:line numbering}) and also for styling, see section \ref{sect:styling}.
 Initially a void list.
-\meta{tag} is subject to minor restrictions (section \ref{sect:tags}).
+\CDRMeta{tag} is subject to minor restrictions (section \ref{sect:tags}).
 %%%%% __engine
-\itemtt[\CDRCheckGreen engine=\meta{engine name}]
+\itemtt[\CDRCheckGreen engine=\CDRMeta{engine name}]
 to specify the engine used to display inline code or blocks, see section \ref{sect:frames}.
 Initially \CDRCode|default|.
-\itemtt[\CDRCheckRed \metatt{engine name} engine options=\meta{engine options}]
+\itemtt[\CDRCheckRed \metatt{engine name} engine options=\CDRMeta{engine options}]
 to specify the options that should apply
-when the engine named \meta{engine name} is selected, see section \ref{sect:frames}.
-\itemtt[\CDRCheckGreen default engine options=\meta{engine options}]
+when the engine named \CDRMeta{engine name} is selected, see section \ref{sect:frames}.
+\itemtt[\CDRCheckGreen default engine options=\CDRMeta{engine options}]
 to specify the options for the default engine which is named \CDRCode|default|, see section \ref{sect:frames}.
 Initially empty, depends on the engine used.
-\itemtt[\CDRCheckGreen engine options=\meta{engine options}]
+\itemtt[\CDRCheckGreen engine options=\CDRMeta{engine options}]
 options forwarded to the engine, see section \ref{sect:frames}.
 They are appended to the options
 given with key \CDRCode|⟨\MyMetatt{engine name}⟩ engine options|.
 Mainly a convenient user interface shortcut.
 Suitable for \CDRCode|\CDRCode| and \CDRCode|CDRBlock| but not for \CDRCode|\CDRSet|.
 %%%%% default
-\itemtt[\CDRCheckRed format=\meta{format commands}]
+\itemtt[\CDRCheckRed format=\CDRMeta{format commands}]
 the format used to display the code (mainly font, size and color),
 after the font has been selected.
 Initially empty.
@@ -1147,26 +1147,26 @@ Initially \CDRCode|false|.
 whether \pkg{pygments} should be used for syntax coloring.
 Initially \CDRCode|true| if \pkg{pygments} is available,
 \CDRCode|false| otherwise.
-\itemtt[\CDRCheckRed lang=\meta{language name}]
-where \meta{language name} is recognized by \pkg{pygments}, including a void string,
-\itemtt[\CDRCheckRed style=\meta{style name}]
-where \meta{style name} is recognized by \pkg{pygments}, including a void string,
+\itemtt[\CDRCheckRed lang=\CDRMeta{language name}]
+where \CDRMeta{language name} is recognized by \pkg{pygments}, including a void string,
+\itemtt[\CDRCheckRed style=\CDRMeta{style name}]
+where \CDRMeta{style name} is recognized by \pkg{pygments}, including a void string,
 \itemtt[\CDRCheckRed cache{[=true|false]}]
 Set to \CDRCode|true| if the \pkg{coder} package should use already existing files
 instead of creating new ones. When using \pkg{pygments} for syntax coloring the file \CDRCode|⟨\MyMetatt{file name}⟩.tex|, the companion script \verb|coder-tool.py| creates a folder named \CDRCode[tags=options]|⟨\MyMetatt{file name}⟩.pygd|. This is where intermediate files are stored and kept from one typesetting process to the next, which happens to save processing time. This folder can safely be removed, besides it will automatically be cleaned if there is no \CDRCode|⟨\MyMetatt{file name}⟩.aux| file yet.
 The option \CDRCode|cache=false| will disable this caching feature.
 
 Initially \CDRCode|true|.
-\itemtt[\CDRCheckRed escapeinside=\meta{delimiters}]
+\itemtt[\CDRCheckRed escapeinside=\CDRMeta{delimiters}]
 If set to a string of length 2, enables escaping to \LaTeX{}. Text
        delimited by these 2 characters is read as \LaTeX{} code and
        typeset accordingly. It has no effect in string literals when
        \pkg{pygments} is used.
 Initially empty.
-%\itemtt[\CDRCheckRed formatcom=\meta{command}]
+%\itemtt[\CDRCheckRed formatcom=\CDRMeta{command}]
 %execute before printing verbatim text.
 %Initially empty.
-\itemtt[\CDRCheckRed fontfamily=\meta{family name}]
+\itemtt[\CDRCheckRed fontfamily=\CDRMeta{family name}]
 font family to use. \CDRCode|tt|, \CDRCode|courier| and \CDRCode|helvetica| are pre-defined.
 Initially \texttt{tt}.
 \begin{center}
@@ -1220,7 +1220,7 @@ and instruction
 \begin{CDRBlock}[tags=src]
 \newfontfamily\TGCFont{TeX Gyre Cursor}[NFSSFamily=TGC]
 \end{CDRBlock}
-\itemtt[\CDRCheckRed fontsize=\meta{font size}]
+\itemtt[\CDRCheckRed fontsize=\CDRMeta{font size}]
 size of the font to use. If you use the \pkg{relsize} package as well,
 you can require a change of the size proportional to the current one
 (for instance below, the option used is \CDRCode[mbox=false]|fontsize=\relsize{-2}| on the right, compared to \CDRCode[mbox=false]|fontsize=\small| on the left).
@@ -1319,14 +1319,14 @@ Spaces are not shown in escaped instructions.
 %\itemtt[\CDRCheckRed obeytabs=true|false]
 %position characters according to the tabs.
 %Initially false: tab characters are added to the current position.
-%\itemtt[\CDRCheckRed tabsize=\meta{integer}]
+%\itemtt[\CDRCheckRed tabsize=\CDRMeta{integer}]
 %number of spaces given by a tab character,
 %Initially 2 (8 for \pkg{fancyvrb}).
-%\itemtt[\CDRCheckRed defineactive=\meta{macro}]
+%\itemtt[\CDRCheckRed defineactive=\CDRMeta{macro}]
 %to define the effect of active characters.
 %This allows to do some devious tricks, see the \pkg{fancyvrb} package.
 %Initially empty.
-\itemtt[\CDRCheckGreen reflabel=\meta{label}]
+\itemtt[\CDRCheckGreen reflabel=\CDRMeta{label}]
 define a label to be used with \CDRCode|\pageref|.
 Initially empty. See section \ref{sect:xrefs}.
 \end{description}
@@ -1350,10 +1350,10 @@ Initially empty.
 \itemtt[\CDRCheckRed no top space{[=true|false]}]
 When \CDRCode|true|, there is no separation top space before the block.
 Initially \CDRCode|false|. See section \ref{sect:spacing}.
-\itemtt[\CDRCheckRed numbers format=\meta{format commands}]
+\itemtt[\CDRCheckRed numbers format=\CDRMeta{format commands}]
 the format used to display line numbers (mainly font, size and color).
-\itemtt[\CDRCheckRed tags format=\meta{format commands}]
-%, where \meta{format} is used
+\itemtt[\CDRCheckRed tags format=\CDRMeta{format commands}]
+%, where \CDRMeta{format} is used
 the format used to display the tag names (mainly font, size and color),
 after it is appended to the \CDRCode|numbers format|.
 Initially empty.
@@ -1362,33 +1362,33 @@ whether tags should be displayed.
 \itemtt[\CDRCheckRed only top{[=true|false]}]
 to avoid chunk tags repetitions, if on the same page,
 two consecutive code chunks have the same list of tags, the second names are not displayed.
-%\itemtt[\CDRCheckRed commentchar=\meta{character}]
+%\itemtt[\CDRCheckRed commentchar=\CDRMeta{character}]
 %lines starting with this character are ignored.
 %Initially empty.
-\itemtt[\CDRCheckRed gobble=\meta{integer}]
+\itemtt[\CDRCheckRed gobble=\CDRMeta{integer}]
 number of characters to suppress
 at the beginning of each line (from 0 to 9),
 mainly useful when environments are indented.
 Sole option of the \CDRCode|CDRBlockSave| environment.
-\itemtt[\CDRCheckRed baselinestretch=auto|\meta{dimension}]
+\itemtt[\CDRCheckRed baselinestretch=auto|\CDRMeta{dimension}]
 value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
 Initially \texttt{auto}: its current value just before the verbatim command.
-%\itemtt[\CDRCheckProhibited commandchars=\meta{three characters}]
+%\itemtt[\CDRCheckProhibited commandchars=\CDRMeta{three characters}]
 %characters which define the character which starts a macro and marks the
 %beginning and end of a group; thus lets us introduce escape sequences in
 %verbatim code. Of course, it is better to choose special characters which
 %are not used in the verbatim text.
 %Private to \pkg{coder}, unavailable to users.
-\itemtt[\CDRCheckRed xleftmargin=\meta{dimension}]
+\itemtt[\CDRCheckRed xleftmargin=\CDRMeta{dimension}]
 indentation to add at the start of each line.
 Initially \CDRCode|0pt|: no left margin.
-\itemtt[\CDRCheckRed xrightmargin=\meta{dimension}]
+\itemtt[\CDRCheckRed xrightmargin=\CDRMeta{dimension}]
 right margin to add after each line.
 Initially \CDRCode|0pt|: no right margin.
 \itemtt[\CDRCheckRed resetmargins{[=true|false]}]
 reset the left margin, which is useful if we are inside other indented environments.
 Initially \CDRCode|true|.
-\itemtt[\CDRCheckRed hfuzz=\meta{dimension}]
+\itemtt[\CDRCheckRed hfuzz=\CDRMeta{dimension}]
 value to give to the \TeX{} \CDRCode|\hfuzz| dimension for text to format.
 This can be used to avoid seeing some unimportant overfull box messages.
 Initially \CDRCode|2pt|.
@@ -1399,8 +1399,8 @@ Initially \CDRCode|\topsep|. See section \ref{sect:spacing}.
 in very special circumstances, we may want to make sure that a block of code is not spread over multiple pages.
 To avoid a page break as far as possible, set the \CDRCode|samepage| option to \CDRCode|true|.
 Initially \CDRCode|false|.
-\itemtt[\CDRCheckRed label={\{[\meta{top string}]
-\meta{string}\}}]
+\itemtt[\CDRCheckRed label={\{[\CDRMeta{top string}]
+\CDRMeta{string}\}}]
 label(s) to print on top, bottom or both, frame lines.
 If the label(s) contains special characters, comma or equal sign,
 it must be placed inside a group.
@@ -1417,24 +1417,24 @@ Next options are illustrated in section \ref{sect:numbering}.
 numbering of the verbatim lines.
 If requested, this numbering is done outside the verbatim environment.
 Initially none: no numbering.
-\itemtt[\CDRCheckRed numbersep=\meta{dimension}]
+\itemtt[\CDRCheckRed numbersep=\CDRMeta{dimension}]
 gap between numbers and verbatim lines.
 Initially \CDRCode|1ex|.
-\itemtt[\CDRCheckRed firstnumber=auto|last|\meta{integer}]
+\itemtt[\CDRCheckRed firstnumber=auto|last|\CDRMeta{integer}]
 number of the first line.
 \CDRCode|last| means that the numbering is continued from the previous  block with the same first tag.
 If an integer is given, its value will be used to start the numbering.
 Initially \CDRCode|auto|: numbering starts from 1.
-\itemtt[\CDRCheckRed stepnumber=\meta{integer}]
+\itemtt[\CDRCheckRed stepnumber=\CDRMeta{integer}]
 interval at which line numbers are printed.
 Initially 1: all lines are numbered.
 %\itemtt[\CDRCheckRed numberblanklines{[=true|false]}]
 %to number or not the white lines (really empty or containing blank characters only).
 %Initially |true|: all lines are numbered.
-\itemtt[\CDRCheckRed firstline=\meta{integer}|\meta{regex}]
+\itemtt[\CDRCheckRed firstline=\CDRMeta{integer}|\CDRMeta{regex}]
 first line to print.
 Initially empty: all lines from the first are printed.
-\itemtt[\CDRCheckRed lastline=\meta{integer}|\meta{regex}]
+\itemtt[\CDRCheckRed lastline=\CDRMeta{integer}|\CDRMeta{regex}]
 last line to print.
 Initially empty: all lines until the last one are printed.
 \itemtt[\CDRCheckRed dry numbers{[=true|false]}]
@@ -1517,16 +1517,16 @@ type of frame around the verbatim environment.
 With \CDRCode|leftline| and \CDRCode|single| modes, a space of a length given
 by the \LaTeX{} \CDRCode|\fboxsep| macro is added between the left vertical line
 and the text. Initially \CDRCode|none|: no frame.
-\itemtt[\CDRCheckRed framerule=\meta{dimension}]
+\itemtt[\CDRCheckRed framerule=\CDRMeta{dimension}]
 width of the rule of the frame if any.
 Initially \CDRCode|0.4pt|.
-\itemtt[\CDRCheckRed framesep=\meta{dimension}]
+\itemtt[\CDRCheckRed framesep=\CDRMeta{dimension}]
 width of the gap between the frame (if any) and the text.
 Initially \CDRCode|\fboxsep|.
-\itemtt[\CDRCheckRed rulecolor=\meta{color command}]
+\itemtt[\CDRCheckRed rulecolor=\CDRMeta{color command}]
 color of the frame rule, expressed in the standard \LaTeX{} way.
 Initially black.
-\itemtt[\CDRCheckRed rulecolor=\meta{color command}]
+\itemtt[\CDRCheckRed rulecolor=\CDRMeta{color command}]
 color used to fill the space between the frame and the text
 (its thickness is given by \CDRCode|framesep|).
 Initially empty.
