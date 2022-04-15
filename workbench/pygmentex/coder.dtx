@@ -2382,14 +2382,17 @@ if __name__ == '__main__':
 %
 % \subsection{\string\CDRMeta}
 % 
-% \begin{function}{\CDRMeta,\CDRMeta*}
+% \begin{function}{\CDRMeta,\CDRMeta*,\CDRMetaFormat}
 % \begin{syntax}
 % \cs{CDRMeta} \Arg{description}
+% \cs{CDRMeta*} \Arg{description}
+% \cs{CDRMetaFormat}
 % \end{syntax}
-% Typeset the \meta{description} with |\CDRMetaFormat|
-% and enclosed between $\langle$ and $\rangle$.
+% Typeset the \meta{description} with \cs{CDRMetaFormat}
+% and enclosed between the angle brackets $\langle$ and $\rangle$.
 % The starred version is typeset in tt when not in tt,
 % and in default font oherwise.
+% \cs{CDRMetaFormat} can be redefined by the user to add color for example.
 % \end{function}
 %    \begin{MacroCode}
 \DeclareDocumentCommand \CDRMeta { s m }
@@ -2411,7 +2414,6 @@ if __name__ == '__main__':
 \cs_new_protected:Npn \CDRMeta_sub:n #1 {
   \ensuremath { \sb {#1} }
 }
-\tl_const:Nn \CDRMetaFormat { \slshape }
 \cs_new_protected:Npn \CDRMetaFormat:n #1 {
   \CDRMetaFormat
   \IfBooleanTF { #1 } {
