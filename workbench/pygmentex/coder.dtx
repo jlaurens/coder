@@ -1144,7 +1144,6 @@ local function synctex_state_save(self, offset)
   self:synctex_line_set(tex.inputlineno+(offset or 0))
   self.synctex_mode = tex.get_synctex_mode()
   tex.set_synctex_mode(1)
-  tex.print('\\verb|synctex_state_saved|',self.synctex_mode,self.synctex_tag,self.synctex_line,'\\\\')
 end
 %    \end{MacroCode}
 %
