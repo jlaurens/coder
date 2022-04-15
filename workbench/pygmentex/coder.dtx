@@ -340,9 +340,11 @@ and the derived files           \jobname.ins,
 % Moreover, block code chunks can be exported to files, once declared with \cs{CDRExport} command.
 % The \cs{CDRSet} command is used to set various parameters,
 % including display engines declared with either \cs{CDRCodeEngineNew} or \cs{CDRBlockEngineNew}\footnote{Work in progress}.
+% Finally, the \cs{CDRInput} command is used to include source files
+% and typeset with \LaTeX\ the embedded documentation.
 %
 % \subsection{Code flow}
-% The normal code flow is
+% The normal code flow os syntax highlighting is
 % \begin{enumerate}
 % \item from \CDRSty{}, \LaTeX{} parses a code snippet as |\CDRCode| argument
 % of |CDRBlock| environment body, somehow stores it,
