@@ -1,6 +1,7 @@
 # The coder package
 
-This package allows to format in \LaTeX\ the documentation put in the code, as soon as long comments exist. It also allows to work the other way round
+This package allows to format in \LaTeX\ the documentation put in the code,
+as soon as long comments exist. It also allows to work the other way round
 by putting code inside the documentation.
 This is particularly interesting when different code files share some logic
 and should be documented all at once.
