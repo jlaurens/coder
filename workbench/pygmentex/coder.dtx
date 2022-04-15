@@ -108,6 +108,8 @@ and the derived files           \jobname.ins,
                                 \jobname.pdf,
                                 \jobname-util.lua,
                                 \jobname-driver-raw.lua,
+                                \jobname-driver-c.lua,
+                                \jobname-driver-py.lua,
                                 \jobname-driver-lua.lua,
                                 \jobname-tool.py and
                                 \jobname.sty.
@@ -128,6 +130,12 @@ and the derived files           \jobname.ins,
 }
 \generate{
   \file{\jobname-driver-raw.lua}{\from{\jobname.dtx}{driver-raw}}
+}
+\generate{
+  \file{\jobname-driver-c.lua}{\from{\jobname.dtx}{driver-c}}
+}
+\generate{
+  \file{\jobname-driver-py.lua}{\from{\jobname.dtx}{driver-py}}
 }
 \generate{
   \file{\jobname-driver-lua.lua}{\from{\jobname.dtx}{driver-lua}}
@@ -1550,11 +1558,13 @@ end
 %
 % \begin{function}{input_begin,
 %   input_set_boolean,
+%   input_set_integer,
 %   input_end,
 % }
 % \begin{syntax}
 % CDR:input_begin(\metatt{tl source variable}, \metatt{tl driver variable})
 % CDR:input_set_boolean(\metatt{key}, \metatt{tl variable})
+% CDR:input_set_integer(\metatt{key}, \metatt{tl variable})
 % CDR:input_end()
 % \end{syntax}
 % These are the helpers to input a source file.
@@ -1571,11 +1581,16 @@ local function input_begin(self, source_var, driver_var)
   local args = {
     source = assert(token.get_macro(source_var or 'l_CDR_input_tl')),
     driver = assert(token.get_macro(driver_var or 'l_CDR_a_tl')),
-    show_code = true,
-    show_doc  = true,
+    first_line = 1,
+    last_line  = 0,
+    show_code  = true,
+    show_doc   = true,
   }
   function self.input_set_boolean(this, key, var)
     args[key] = assert(token.get_macro(var or 'l_CDR_a_tl')) == 'true'
+  end
+  function self.input_set_integer(this, key, var)
+    args[key] = tonumber(token.get_macro(var or 'l_CDR_a_tl'))
   end
   function self.input(this)
     this:input_process(args)
@@ -1755,10 +1770,28 @@ local function input_process(self, args)
   end or function (l)
     next_code(l)
   end
+  local loop
+  if args.first_line <= 0 then
+    args.first_line = args.first_line + #lines
+  end
+  if args.last_line <= 0 then
+    args.last_line  = args.last_line  + #lines
+  end
   body = in_code
+  loop = function (l)
+    if n >= args.first_line then
+      loop = function (l)
+        if n > args.last_line then
+          loop = noop
+        end
+        body(l)
+      end
+      body(l)
+    end
+  end
   for _,l in ipairs(lines) do
-    n = n+1
-    body(l)
+    n = _
+    loop(l)
   end
   if conclude then
     conclude()
@@ -6648,7 +6681,7 @@ if __name__ == '__main__':
 \CDR@Debug{\string\CDRBlockUse/#2}
  \CDRBlock_if_saved:cTF { #2 } {
     \lua_now:n { CDR:synctex_state_save() }
-    \cs_set:Npn \FV@KeyValues { #1 }
+    \tl_set:Nn \FV@KeyValues { #1 }
     \CDRBlock_use:c { CDRBlockUse / #2 }
     \lua_now:n { CDR:synctex_state_restore() }
   } {
@@ -6742,7 +6775,7 @@ if __name__ == '__main__':
 % and use \pkg{fancyvrb} once more to display the colored code.
 % \end{function}
 %    \begin{MacroCode}
-\cs_set_protected:Npn \CDRBlock_use_pyg:c #1 {
+\cs_new_protected:Npn \CDRBlock_use_pyg:c #1 {
 \CDR@Debug { \string\CDRBlock_use_pyg:c / #1 }
   \prop_get:cnNT { #1_prop } { synctex_tag } \l_CDR_a_tl {
     \lua_now:n { CDR:hilight_set_var('synctex_tag') }
@@ -6774,6 +6807,7 @@ if __name__ == '__main__':
   \CDR@StyleUseTag
   \CDR@DefinePygSp
   \lua_now:n { CDR:hilight_source(false, true) }
+  \group_begin:
   \fvset{ commandchars=\\\{\} }
   \FV@UseVerbatim {
     \CDR_tag_get:c { format }
@@ -6784,6 +6818,7 @@ if __name__ == '__main__':
     \input{ \l_CDR_pyg_tex_tl }\ignorespaces
     \makeatother
   }
+  \group_end:
 }
 %    \end{MacroCode}
 %
@@ -7599,25 +7634,100 @@ return {}
 % and here is the |lua| driver.
 %    \begin{MacroCode}
 %</sty>
-%<*driver-lua>
---[=[!latex:\begin{module}
-This is lua driver for the \pkg{coder} package.
-Pretty print documentation formatted in \LaTeX\ that is delimited by special
-comment markers. The beginning of a documentation block is delimited by
-\CDRCode[lang=lua]|^--[(=*)[!latex:|
-which must start a line and the next
-\CDRCode|--](\metatt{equals})]|
-where \metatt{equals} represents the previously capture group.
+%<*driver-c>
+--[=[!latex:
+\begin{coder}{Embedded documentation}
+This is the driver for the C programming language
+and other languages with the same syntax regarding long comments.
+The \pkg{coder} package  will pretty print embedded documentation formatted in \LaTeX\ that is delimited by special
+comment markers. The beginning of a documentation block is delimited by a full line starting with
+\CDRCode[lang=lua]|^/%*+!latex:|.
+The end of a documentation block is delimited by a full line starting with \CDRCode[lang=lua]|^%*+/|.
+In both cases there must be at least one star.
 
-The delimiters are removed and what is delimited is typeset with \LaTeX{}.
+The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
-See the \CDRCode|\CDRInput| documentation.
---]=]
+See the \CDRCode|\CDRInput| documentation for more information.
+\end{coder}
+]=]
 -- put here whatever statement you need
 -- return a table
 return {
   open = function (self, line)
-    local equals, i = line:match(
+    return line:match(
+      [[^/%*+!latex:]]
+    ) ~= nil
+  end,
+  close = function (self, line)
+    return line:match(
+      [[^%*+/]]
+    ) ~= nil
+  end,
+}
+%</driver-c>
+%<*driver-py>
+--[=[!latex:
+\begin{coder}{Embedded documentation}
+This is the driver for the python programming language.
+The \pkg{coder} package  will pretty print embedded documentation formatted in \LaTeX\ that is delimited by special
+comment markers. The beginning of a documentation block is delimited by a full line starting with
+\CDRCode[lang=lua]|^('''|""")!latex:|.
+The end of a documentation block is delimited by a full line
+starting with the very same combination of quotes and spaces.
+
+The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
+
+See the \CDRCode|\CDRInput| documentation for more information.
+\end{coder}
+]=]
+-- put here whatever statement you need
+-- return a table
+return {
+  open = function (self, line)
+    local quotes = line:match(
+      [[^(%s*""")!latex:]]
+    )
+    if quotes then
+      local pattern = '^'..quotes
+      self.close = function (this, l)
+        return l:match(pattern) ~= nil
+      end
+      return true
+    end
+    quotes = line:match(
+      [[^(%s*''')!latex:]]
+    )
+    if quotes then
+      local pattern = '^'..quotes
+      self.close = function (this, l)
+        return l:match(pattern) ~= nil
+      end
+      return true
+    end
+  end,
+}
+%</driver-py>
+%<*driver-lua>
+--[=[!latex:
+\begin{coder}{Embedded documentation}
+This is the driver for the lua programming language.
+The \pkg{coder} package  will pretty print embedded documentation formatted in \LaTeX\ that is delimited by special
+comment markers. The beginning of a documentation block is delimited by a full line starting with
+\CDRCode[lang=lua]|^--[(=*)[!latex:|.
+The end of a documentation block is delimited by the next full line starting with
+\CDRCode[lang=lua,escapeinside=<>]|](<\CDRMeta{equals}>)]|
+where \CDRMeta*{equals} represents the previously capture group.
+
+The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
+
+See the \CDRCode|\CDRInput| documentation for more information.
+\end{coder}
+]=]
+-- put here whatever statement you need
+-- return a table
+return {
+  open = function (self, line)
+    local equals = line:match(
       '^%-%-%[(=*)%[!latex:'--]--]
     )
     if equals then--[--[
@@ -7651,6 +7761,26 @@ return {
   driver .code:n = \CDR_tag_set:,
   driver .value_required:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckGreen first line=\metatt{integer}]^^A
+% The lines up to \metatt{integer}-1 are hidden.
+% If the value is not positive, then the total amount
+% of lines is added.
+% The initial value is 1: no header line is hidden.
+%    \begin{MacroCode}[OK]
+  first~line .code:n = \CDR_tag_set:,
+  first~line .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckGreen last line=\metatt{integer}]^^A
+% The lines from \metatt{integer}+1 are hidden.
+% The initial value is the total amount of lines:
+% no trailer line is hidden.
+% If the value is not positive, then the total amount
+% of lines is added.
+% The initial value is 0: no trailer line is hidden.
+%    \begin{MacroCode}[OK]
+  last~line .code:n = \CDR_tag_set:,
+  last~line .value_required:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed show code{[=true$\vert$false]}]^^A
 % whether code should be displayed.
 % Initially |true|.
@@ -7669,9 +7799,12 @@ return {
 % Initialization.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
-    driver    = raw,
-    show~code = true,
-    show~doc  = true,
+    first~line = 1,
+    last~line  = 0,
+    driver     = raw,
+    show~code  = true,
+    show~doc   = true,
+    
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -7704,11 +7837,13 @@ return {
   \directlua { CDR:input_set_boolean('show_code') }
   \CDR_tag_get:cN { show~doc } \l_CDR_a_tl
   \directlua { CDR:input_set_boolean('show_doc') }
-  \exp_args:NNNV
-  \group_end:
-  \clist_set:Nn \l_CDR_kv_clist \l_CDR_kv_clist
+  \CDR_tag_get:cN { first~line } \l_CDR_a_tl
+  \directlua { CDR:input_set_integer('first_line') }
+  \CDR_tag_get:cN { last~line } \l_CDR_a_tl
+  \directlua { CDR:input_set_integer('last_line') }
   \directlua { CDR:input() }
   \directlua { CDR:input_end() }
+  \group_end:
 }
 %    \end{MacroCode}
 %
