@@ -115,16 +115,16 @@
 %\end{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-This Lua\LaTeX\ package is available on CTAN and a part of any standard \TeX{} distribution\footnote{In progress}. To use it in a document, put the next instruction in the preamble:
+This Lua\LaTeX\ package is available on CTAN and is part of any standard \TeX{} distribution\footnote{In progress}. To use it in a document, put the next instruction in the preamble:
 \begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
 \RequirePackage{coder}
 \end{CDRBlock}
-and run Lua\LaTeX{}. In order to have syntaxe highlighting like above, you must have \pkg{pygments} installed (see \url{https://pygments.org} for that purpose) but this is not a requirement for the other features of the \pkg{coder} package. To test \pkg{pygments} installation, you can run from a terminal
+and run Lua\LaTeX{}. In order to have syntax highlighting like above, you must enable shell escape in Lua\TeX\footnote{There is a \texttt{--shell-escape} option on the command line, and editors may provide a check box in their preference section.} and have \pkg{pygments} installed (see \url{https://pygments.org} for that purpose) but this is not a requirement for the other features of the \pkg{coder} package.
+
+In order to test \pkg{pygments} installation, you can successively run from a terminal the commands
 \\[0.25\baselineskip]
 \verb|pygmentize -O full -o |\MyMeta{file name}\verb|-colorized.tex |\MyMeta{file name}\verb|.tex|
-\\[0.25\baselineskip]
-followed by
-\\[0.25\baselineskip]
+\\[0.1\baselineskip]
 \verb|latex |\MyMeta{file name}\verb|-colorized.tex|.
 \\[0.25\baselineskip]
 The colorized code is then found in \MyMeta{file name}\verb|-colorized.pdf|%
@@ -170,11 +170,13 @@ To use \pkg{pygments}, some editors need to be launched from a terminal, like \T
 Notice that such a command can be put in a \verb|coder.cfg| file accessible to Lua\LaTeX. When available this configuration file is automatically loaded by package \pkg{coder}.
 
 To install the \pkg{coder} package from source, download and typeset \verb|coder.dtx|. Copy the files to your personal texmf tree
-\begin{description}
+\begin{itemize}
 \item tex/latex/coder/coder.sty
 \item scripts/coder/coder-util.lua
 \item scripts/coder/coder-tool.py
-\end{description}
+\item scripts/coder/coder-driver-raw.lua
+\item scripts/coder/coder-driver-lua.lua
+\end{itemize}
 %
 \section{Display code}
 \subsection{Example}
@@ -271,14 +273,19 @@ def factorial(n):
 \end{figure}
 Similarly to \CDRCode|\CDRCodeSave| there is a \CDRCode|CDRBlockSave| environment which unique mandatory argument is an identifier
 \begin{CDRBlock}[tags=src]
-\begin{CDRBlockSave}{⟨\MyMeta{identifier}⟩}
+\begin{CDRBlockSave}{⟨\MyMeta{block identifier}⟩}
 ...
 \end{CDRBlockSave}
 \end{CDRBlock}
-Next command allows to display that source with any option available
+Next command allows to display that saved source with any option available
 \begin{CDRBlock}[tags=src]
-\CDRBlockUse[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]{⟨\MyMeta{identifier}⟩}
+\CDRBlockUse[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]{⟨\MyMeta{block identifier}⟩}
 \end{CDRBlock}
+If the source is a \LaTeX{} code, it can be executed with
+\begin{CDRBlock}[tags=src]
+\CDRBlockExe[⟨\metatt{makeatletter[=true|false]}⟩]{⟨\MyMeta{block identifier}⟩}
+\end{CDRBlock}
+This command is widely used in this manual.
 %
 \section{Export code with \cs{CDRExport}}
 \label{sect:exportation}
