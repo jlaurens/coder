@@ -171,8 +171,7 @@ and the derived files           \jobname.ins,
 \NeedsTeXFormat{LaTeX2e}
 \ExplSyntaxOff
 
-\RequirePackage{xcolor, fancyvrb}
-\RequirePackage{emoji}
+\RequirePackage{fontspec, xcolor, fancyvrb}
 \RequirePackage{ifthen}
 \AddToHook { begindocument / before } {
   \RequirePackage{datetime2}
@@ -274,14 +273,13 @@ and the derived files           \jobname.ins,
 % \fi
 %
 %\title{^^A
-%  \textsf{\jobname} --- code inlined in a \LaTeX\ document\thanks{^^A
-%    This file describes version \CDRFileVersion, last revised \CDRFileDate.^^A
-%  }^^A
-%}
+%  \textsf{\jobname}\\
+% code inlined in a \LaTeX\ document\\
+% \LaTeX\ inlined in a code source%}
 %\author{^^A
 %  Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}^^A
 %}
-%\date{Released \CDRFileDate}
+%\date{Released \CDRFileDate\thanks{This file describes version \CDRFileVersion.}}
 %
 %\maketitle
 %
@@ -665,6 +663,7 @@ local rep   = string.rep
 local lpeg  = require("lpeg")
 local P, Cg, Cp, V = lpeg.P, lpeg.Cg, lpeg.Cp, lpeg.V
 local json  = require('lualibs-util-jsn')
+local ltb = _ENV.luatexbase
 %    \end{MacroCode}
 % \section{General purpose material}
 % \begin{variable}{CDR_PY_PATH}
@@ -701,15 +700,15 @@ local function set_python_path(self, path_var)
   end
   if mode == 'file' or mode == 'link' then
     self.PYTHON_PATH = path
-  	  print('**** CDR python path', self.PYTHON_PATH)
-	   path = path:match("^(.+/)")..'pygmentize'
-	   mode,_,__ = lfs.attributes(path,'mode')
-	   print('**** CDR path, mode', path, mode)
+    print('**** CDR python path', self.PYTHON_PATH)
+    path = path:match("^(.+/)")..'pygmentize'
+    mode,_,__ = lfs.attributes(path,'mode')
+    print('**** CDR path, mode', path, mode)
     self.PYGMENTIZE_PATH = path
     if mode == 'file' or mode == 'link' then
-	     tex.print('true')
+      tex.print('true')
     else
-	     tex.print('false')
+      tex.print('false')
     end
   else
     self.PYTHON_PATH = nil    
@@ -951,7 +950,7 @@ local function hilight_set(self, key, value)
 end
 
 local function hilight_set_var(self, key, var)
-  self:hilight_set(key, assert(token.get_macro(var or 'l_CDR_tl')))
+  self:hilight_set(key, assert(token.get_macro(var or 'l_CDR_a_tl')))
 end
 %    \end{MacroCode}
 %
@@ -1114,7 +1113,7 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function synctex_tag_set(self, tag)
-  if tag > 0 then
+  if assert(tag, 'Unexpected nil tag') > 0 then
     self.synctex_tag  = tag
   end
 end
@@ -1128,7 +1127,7 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function synctex_line_set(self, line)
-  if line > 0 then
+  if line >= 0 then
     self.synctex_line  = line
   end
 end
@@ -1144,8 +1143,9 @@ end
 local function synctex_state_save(self, offset)
   self:synctex_tag_set(tex.get_synctex_tag())
   self:synctex_line_set(tex.inputlineno+(offset or 0))
-  self.synctex_mode = tex.get_synctex_mode();
+  self.synctex_mode = tex.get_synctex_mode()
   tex.set_synctex_mode(1)
+  tex.print('\\verb|synctex_state_saved|',self.synctex_mode,self.synctex_tag,self.synctex_line,'\\\\')
 end
 %    \end{MacroCode}
 %
@@ -1388,7 +1388,7 @@ local function export_file(self, file_name_var)
     local once = export.once == 'true'
     local tags = export.tags
     local tt = {}
-    local s, t, _
+    local s, _
 print('**** CDR', tags, raw, once)
     if not raw then
       s = export.preamble
@@ -1396,6 +1396,7 @@ print('**** CDR', tags, raw, once)
         tt[#tt+1] = t
       end
     end
+    local records = self['.records'] or {}
     for tag in string.gmatch(export.tags, '([^,]+)') do
       local Rs = records[tag]
       if Rs then
@@ -1546,43 +1547,106 @@ end
 % \section{Input}
 %
 % \begin{function}{input_begin,
-%   input_show_comments_set,
-%   input_show_code_set,
-%   input_end
+%   input_set_boolean,
+%   input_end,
 % }
 % \begin{syntax}
 % CDR:input_begin(\metatt{tl source variable}, \metatt{tl driver variable})
-% CDR:input_show_comments_set(\metatt{tl variable})
-% CDR:input_show_code_set(\metatt{tl variable})
+% CDR:input_set_boolean(\metatt{key}, \metatt{tl variable})
 % CDR:input_end()
 % \end{syntax}
 % These are the helpers to input a source file.
 % The driver, source and various options are stored,
 % then the process is launched on the \TeX\ side by
-% |CDR:input_end()| which forwards to |self:input_process|.
-% Implementation detail: all functions but the first ont are
+% |CDR:input()| which forwards to |self:input_process|.
+% Implementation detail: all functions but the first are
 % implemented dynamically.
+% The |input_begin| and |input_end| methods must be called
+% in separate |\directlua| calls.
 % \end{function}
 %    \begin{MacroCode}[OK]
 local function input_begin(self, source_var, driver_var)
   local args = {
     source = assert(token.get_macro(source_var or 'l_CDR_input_tl')),
-    driver = assert(token.get_macro(driver_var or 'l_CDR_tl')),
-    show_comments = true,
+    driver = assert(token.get_macro(driver_var or 'l_CDR_a_tl')),
     show_code = true,
+    show_doc  = true,
   }
-  function self.input_show_comments_set(this, var)
-    args.show_comments = assert(token.get_macro(var or 'l_CDR_tl')) == 'true'
+  function self.input_set_boolean(this, key, var)
+    args[key] = assert(token.get_macro(var or 'l_CDR_a_tl')) == 'true'
   end
-  function self.input_show_code_set(this, var)
-    args.show_code = assert(token.get_macro(var or 'l_CDR_tl')) == 'true'
-  end
-  function self.input_end(this)
-    this.input_show_comments_set = nil
-    this.input_show_code_set = nil
-    this.input_end = nil
+  function self.input(this)
     this:input_process(args)
   end
+  function self.input_end(this)
+    this.synctex_state_restore = nil
+    this:synctex_state_restore()
+  end
+end
+%    \end{MacroCode}
+%
+% \begin{function}{get_driver}
+% \begin{syntax}
+% CDR:get_driver(\metatt{name})
+% \end{syntax}
+% Get the driver with the given name.
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function get_driver(self, name)
+  local path
+  if name:match('%.lua$') then
+    path = kpse.find_file(name)
+  else
+    path = kpse.find_file('coder-driver-'..name..'.lua')
+  end
+  local f, err = loadfile(path)
+  if not f then
+    tex.print([[\PackageError{coder}]]..'{Bad driver '
+      ..name..'}{'..err..'}'
+    )
+    return
+  end
+  local status, driver = pcall(f)
+  if status then
+    return driver
+  end
+  tex.print([[\PackageError{coder}]]..'{Syntax error in '
+    ..path..'}{'..driver..'}'
+  )
+end
+%    \end{MacroCode}
+%
+% \begin{function}{synctex_tag_will_catch, synctex_tag_did_catch}
+% \begin{syntax}
+% CDR:synctex_tag_will_catch()
+% \end{syntax}
+% This must be called at the Lua\TeX\ level, followed by an \cs{input}.
+% Then, the |synctex_tag_catched| of the receiver
+% will contain the Sync\TeX\ tag for that file.
+% The file content is simulated to be a single line with only
+% a percent character.
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function synctex_tag_will_catch(self)
+  ltb.add_to_callback(
+    'open_read_file',
+    function (file_name)
+      return {
+        reader = function(this)
+          self.synctex_tag_catched = tex.get_synctex_tag()
+          this.reader = function (_)
+            ltb.remove_from_callback(
+              'open_read_file',
+              'coder.CDRInput'
+            )
+            return nil
+          end
+          return '%'
+        end,
+      }
+    end,
+    'coder.CDRInput'
+  )
 end
 %    \end{MacroCode}
 %
@@ -1594,16 +1658,122 @@ end
 % \end{function}
 %    \begin{MacroCode}[OK]
 local function input_process(self, args)
-  print('========= CDRInput lua processor')
-  for k, v in pairs(args) do
-    print(k, '-->', v)
+  self.input_set_boolean = nil
+  self:synctex_state_save()
+  self.synctex_state_save = function () end
+  self.synctex_state_restore = function () end
+  local source = kpse.find_file(args.source)
+  if not source then
+    tex.print([[\PackageError{coder}{No source ]]
+    ..args.source..
+    [[}{See \CDRInput.}]])
+    return
+  end
+%    \end{MacroCode}
+% We must read the file all at once in memory because we must
+% the last line.
+%    \begin{MacroCode}[OK]  
+  local lines = {}
+  f = assert(io.open(source))
+  for l in f:lines() do
+    lines[#lines+1] = l
+  end
+  f:close()
+  local last_line = table.remove(lines)
+  local d = self:get_driver(args.driver)
+  if d.setup then
+    d:setup(args)
+  end
+  local n = 0
+  local function noop() end
+  local ans = {}
+  local function one_more_line(l)
+    ans[#ans+1] = l
+  end
+  local line_code = args.show_code and one_more_line or noop
+  local pending_code, conclude, next_code
+  local function prepare_code(l)
+    line_code([[\begin{CDRBlock}]]
+       ..'[firstnumber='..n..',obey lines]')
+    line_code(l)
+    pending_code = function ()
+      line_code([[\end{CDRBlock}]])
+    end
+    conclude = function ()
+      if #last_line>0 then
+        line_code(last_line)
+      end
+      line_code([[\end{CDRBlock}]])
+      line_code('')
+      conclude = nil
+    end
+    next_code = line_code
+  end
+  self:synctex_tag_set(self.synctex_tag_catched)
+  self:synctex_line_set(0)
+  local s1 = [[\directlua]]
+  ..'{CDR:synctex_target_set('
+  local s2 = ')}'
+  local line_doc  = args.show_doc and function (l)
+    local space, unspace = l:match('^(%s*)(.*)$')
+    if #unspace>0 then
+      one_more_line(space..s1..n..s2..unspace)
+    else
+      one_more_line(l)
+    end
+  end or noop
+  pending_code = noop
+  next_code = prepare_code
+  local body, in_doc, in_code
+  in_doc = function (l)
+    if d:close(l) then
+      body = in_code
+      next_code = prepare_code
+      conclude = function ()
+        if #last_line then
+          line_code([[\begin{CDRBlock}]]
+            ..'[firstnumber='..(n+1)..',obey lines]')
+          line_code(last_line)
+          line_code([[\end{CDRBlock}]])
+          line_code('')
+        end
+      end
+    else
+      line_doc(l)
+    end
+  end
+  in_code = d.open and function (l)
+    if d:open(l) then
+      pending_code()
+      pending_code = noop
+      body = in_doc
+    else
+      next_code(l)
+    end
+  end or function (l)
+    next_code(l)
+  end
+  body = in_code
+  for _,l in ipairs(lines) do
+    n = n+1
+    body(l)
+  end
+  if conclude then
+    conclude()
+  end
+  for _,l in ipairs(ans) do
+    if self.debug then print('****', _, '====>', l) end
+    tex.print(l)
+  end  
+  if d.teardown then
+    d:teardown()
   end
 end
 %    \end{MacroCode}
 %
 % \section{Return the module}
 %    \begin{MacroCode}
-return {
+return setmetatable({}, { __index = {
 %    \end{MacroCode}
 % Known fields are
 % \begin{description}
@@ -1664,20 +1834,22 @@ return {
 %    \end{MacroCode}
 % \itemtt[synctex]
 %    \begin{MacroCode}
-  synctex_state_save    = synctex_state_save,
-  synctex_state_restore = synctex_state_restore,
-  synctex_target_set    = synctex_target_set,
-  synctex_tag_set       = synctex_tag_set,
-  synctex_line_set      = synctex_line_set,
+  synctex_state_save     = synctex_state_save,
+  synctex_state_restore  = synctex_state_restore,
+  synctex_target_set     = synctex_target_set,
+  synctex_tag_set        = synctex_tag_set,
+  synctex_line_set       = synctex_line_set,
+  synctex_tag_will_catch = synctex_tag_will_catch,
 %    \end{MacroCode}
 % \itemtt[rescan]
 %    \begin{MacroCode}
-  rescan_begin     = rescan_begin,
+  rescan_begin  = rescan_begin,
 %    \end{MacroCode}
 % \itemtt[input]
 %    \begin{MacroCode}
-  input_begin      = input_begin,
-  input_process    = input_process,
+  input_begin   = input_begin,
+  input_process = input_process,
+  get_driver    = get_driver,
 %    \end{MacroCode}
 % \itemtt[cache]
 %    \begin{MacroCode}
@@ -1687,8 +1859,8 @@ return {
 %    \end{MacroCode}
 % \itemtt[Internals]
 %    \begin{MacroCode}
-  ['.style_set']     = {},
-  ['.colored_set']   = {},
+  ['.style_set']   = {},
+  ['.colored_set'] = {},
 %    \end{MacroCode}
 % \itemtt[already] false at the beginning,
 % true after the first call of \CDRPy{}
@@ -1706,7 +1878,7 @@ return {
 %    \end{MacroCode}
 % \end{description}
 %    \begin{MacroCode}
-}
+} })
 %    \end{MacroCode}
 %    \begin{MacroCode}
 %</lua>
@@ -2207,6 +2379,71 @@ if __name__ == '__main__':
 %
 % \section{Setup}
 %
+% \subsection{\string\CDRMeta}
+% 
+% \begin{function}{\CDRMeta,\CDRMeta*}
+% \begin{syntax}
+% \cs{CDRMeta} \Arg{description}
+% \end{syntax}
+% Typeset the \meta{description} with |\CDRMetaFormat|
+% and enclosed between $\langle$ and $\rangle$.
+% The starred version is typeset in tt when not in tt,
+% and in default font oherwise.
+% \end{function}
+%    \begin{MacroCode}
+\DeclareDocumentCommand \CDRMeta { s m }
+  { \CDR_meta:nn {#1} { #2 } }
+\cs_new_protected:Npn \CDR_meta:nn #1 #2 {
+  \tl_set:Nn \l_CDR_a_tl {#2}
+  \tl_map_inline:nn {
+    3 4 7 8 { 11 } { 12 } { 13 }
+  } {
+    \tl_set_rescan:Nnn \l_CDR_b_tl {
+      \char_set_catcode:nn { `_ } {##1}
+    } { _ }
+    \exp_args:NNV
+    \tl_replace_all:Nnn \l_CDR_a_tl \l_CDR_b_tl
+      { \CDRMeta_sub:n }
+  }
+  \exp_args:NnV \CDRMeta_angle:nn { #1 } \l_CDR_a_tl
+}
+\cs_new_protected:Npn \CDRMeta_sub:n #1 {
+  \ensuremath { \sb {#1} }
+}
+\tl_const:Nn \CDRMetaFormat { \slshape }
+\cs_new_protected:Npn \CDRMetaFormat:n #1 {
+  \CDRMetaFormat
+  \IfBooleanTF { #1 } {
+    \group_begin:
+    \ttfamily
+    \exp_args:NNNV
+    \group_end:
+    \exp_args:NnV
+    \tl_if_eq:nnTF\f@family\f@family {
+      \fontfamily{\familydefault}\selectfont
+    } {
+      \ttfamily
+    }
+  } { }
+}
+\cs_new_protected:Npn \CDRMeta_angle:nn #1 #2 {
+  \ensuremath \langle
+  \mode_if_math:T { \nfss@text }
+  {
+    \CDRMetaFormat:n { #1 }
+    \edef \CDR: {
+      \hyphenchar \the \font \the \hyphenchar \font
+    }
+    \hyphenchar \font \m@ne
+    \language \l@nohyphenation
+    #2 \/
+    \CDR:
+  }
+  \ensuremath \rangle
+}
+%    \end{MacroCode}
+%
+%
 % \subsection{Utilities}
 %
 % \begin{function}{\CDR_set_conditional:Nn}
@@ -2282,8 +2519,8 @@ if __name__ == '__main__':
   \lua_now:n { CDR:set_python_path() }
 }
 \cs_new:Npn \CDR_pygments_setup: {
-  \sys_get_shell:nnNTF {which~pygmentize} { \cc_select:N \c_str_cctab } \l_CDR_tl {
-    \tl_if_in:NnTF \l_CDR_tl { pygmentize } {
+  \sys_get_shell:nnNTF {which~pygmentize} { \cc_select:N \c_str_cctab } \l_CDR_a_tl {
+    \tl_if_in:NnTF \l_CDR_a_tl { pygmentize } {
       \prg_set_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
         \prg_return_true:
       }  
@@ -2371,10 +2608,11 @@ if __name__ == '__main__':
 \bool_new:N \l_CDR_bool
 %    \end{MacroCode}
 % \end{variable}
-% \begin{variable}{\l_CDR_tl}
-% Local scratch variable.
+% \begin{variable}{\l_CDR_[a$\vert$b]_tl}
+% Local scratch variables.
 %    \begin{MacroCode}[OK]
-\tl_new:N \l_CDR_tl
+\tl_new:N \l_CDR_a_tl
+\tl_new:N \l_CDR_b_tl
 %    \end{MacroCode}
 % \end{variable}
 % \begin{variable}{\l_CDR_str}
@@ -2681,11 +2919,11 @@ if __name__ == '__main__':
 % \begin{variable}{\c_CDR_tag_regex}
 % To parse a \pkg{l3keys} full key path.
 %    \begin{MacroCode}[OK]
-\tl_set:Nn \l_CDR_tl { /([^/]*)/(.*)$ } \use_none:n { $ }
-\tl_put_left:NV \l_CDR_tl \c_CDR_tags
-\tl_put_left:Nn \l_CDR_tl { ^ }
+\tl_set:Nn \l_CDR_a_tl { /([^/]*)/(.*)$ } \use_none:n { $ }
+\tl_put_left:NV \l_CDR_a_tl \c_CDR_tags
+\tl_put_left:Nn \l_CDR_a_tl { ^ }
 \exp_args:NNV
-\regex_const:Nn \c_CDR_tag_regex \l_CDR_tl
+\regex_const:Nn \c_CDR_tag_regex \l_CDR_a_tl
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -3104,15 +3342,15 @@ if __name__ == '__main__':
 % Set the parents of \metatt{child name} to the
 % given list.
 % When the \metatt{child name} is not provided, it defaults to |__local|.
-% Implementation detail: uses |\l_CDR_tl|.
+% Implementation detail: uses |\l_CDR_a_tl|.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_get_inherit:cn #1 #2 {
-  \tl_set:Nx \l_CDR_tl { \CDR_tag_parent_seq:c { #1 } }
-  \seq_set_from_clist:cn { \l_CDR_tl } { #2 }
-  \seq_remove_duplicates:c { \l_CDR_tl }
-  \seq_remove_all:cn { \l_CDR_tl } {}
-  \seq_put_right:cn { \l_CDR_tl } { \q_no_value }
+  \tl_set:Nx \l_CDR_a_tl { \CDR_tag_parent_seq:c { #1 } }
+  \seq_set_from_clist:cn { \l_CDR_a_tl } { #2 }
+  \seq_remove_duplicates:c { \l_CDR_a_tl }
+  \seq_remove_all:cn { \l_CDR_a_tl } {}
+  \seq_put_right:cn { \l_CDR_a_tl } { \q_no_value }
 }
 \cs_new:Npn \CDR_get_inherit:cf {
   \exp_args:Nnf \CDR_get_inherit:cn
@@ -3372,12 +3610,12 @@ if __name__ == '__main__':
 % \begin{variable}{\c_CDR_provide_regex}
 % To parse a \pkg{l3keys} full key path.
 %    \begin{MacroCode}[OK]
-\tl_set:Nn \l_CDR_tl { /([^/]*)(?:/(.*))?$ } \use_none:n { $ }
+\tl_set:Nn \l_CDR_a_tl { /([^/]*)(?:/(.*))?$ } \use_none:n { $ }
 \exp_args:NNf
-\tl_put_left:Nn \l_CDR_tl { \CDR_tag_module:n {} }
-\tl_put_left:Nn \l_CDR_tl { ^ }
+\tl_put_left:Nn \l_CDR_a_tl { \CDR_tag_module:n {} }
+\tl_put_left:Nn \l_CDR_a_tl { ^ }
 \exp_args:NNV
-\regex_const:Nn \c_CDR_provide_regex \l_CDR_tl
+\regex_const:Nn \c_CDR_provide_regex \l_CDR_a_tl
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -3398,7 +3636,7 @@ if __name__ == '__main__':
   }
   \cs_set:Npn \@CDR:nn ##1 ##2 { \use_none:n { $ }
     \regex_extract_once:nnNTF { ^ tags/([^/]+)(/([^/]+))? $} { ##1 } \l_CDR_seq {
-      \tl_set:Nx \l_CDR_tl { \seq_item:Nn \l_CDR_seq 4 }
+      \tl_set:Nx \l_CDR_a_tl { \seq_item:Nn \l_CDR_seq 4 }
       \cs_set:Npn \@@CDR:nn ####1 ####2 {
         \clist_put_right:Nn \l_CDR_clist {
           tags / ####1 / ####2 = { ##2 }
@@ -3409,13 +3647,13 @@ if __name__ == '__main__':
       }
       \exp_args:Nnx
       \regex_split:nnNTF { [|] } { \seq_item:Nn \l_CDR_seq 2 } \l_CDR_seq {
-        \tl_if_empty:NTF \l_CDR_tl {
+        \tl_if_empty:NTF \l_CDR_a_tl {
           \seq_map_inline:Nn \l_CDR_seq {
             \clist_put_right:Nn \l_CDR_clist { tags/####1 = { ##2 } }
           }
         } {
           \seq_map_inline:Nn \l_CDR_seq {
-            \exp_args:NnV \@@CDR:nn { ####1 } \l_CDR_tl
+            \exp_args:NnV \@@CDR:nn { ####1 } \l_CDR_a_tl
           }
         }
       } {
@@ -3452,7 +3690,7 @@ if __name__ == '__main__':
 % For that purpose, we use |\keyval_parse:nnn| with two |\CDR_tag_provide:| helper.
 %
 % Notice that a tag name should contain no `/'.
-% Implementation detail: uses |\l_CDR_tl|.
+% Implementation detail: uses |\l_CDR_a_tl|.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \regex_const:Nn \c_CDR_engine_regex { ^[^/]+\sengine\soptions$ } \use_none:n { $ }
@@ -3462,7 +3700,7 @@ if __name__ == '__main__':
   \regex_extract_once:NnNTF \c_CDR_provide_regex {
     \CDR_tag_module:n { .. } / #1
   } \l_CDR_seq {
-    \tl_set:Nx \l_CDR_tl { \seq_item:Nn \l_CDR_seq 3 }
+    \tl_set:Nx \l_CDR_a_tl { \seq_item:Nn \l_CDR_seq 3 }
     \exp_args:Nx
     \clist_map_inline:nn {
       \seq_item:Nn \l_CDR_seq 2
@@ -3481,18 +3719,18 @@ if __name__ == '__main__':
 \CDR@Debug{\string\CDR_tag_provide:n~\CDR_tag_module:n {##1} = ...}
       }
       \exp_args:NnV
-      \CDR_tag_keys_if_exist:nnF { ##1 } \l_CDR_tl {
+      \CDR_tag_keys_if_exist:nnF { ##1 } \l_CDR_a_tl {
         \exp_args:NNV
-        \regex_match:NnT \c_CDR_engine_regex \l_CDR_tl {
+        \regex_match:NnT \c_CDR_engine_regex \l_CDR_a_tl {
           \exp_args:Nnf
           \CDR_tag_keys_define:nn { ##1 } {
-            \use:n { \l_CDR_tl } .code:n = \CDR_tag_set:n { ####1 },
+            \use:n { \l_CDR_a_tl } .code:n = \CDR_tag_set:n { ####1 },
           }
           \exp_args:Nnf
           \CDR_tag_keys_define:nn { ##1 } {
-            \use:n { \l_CDR_tl } .value_required:n = true,
+            \use:n { \l_CDR_a_tl } .value_required:n = true,
           }
-\CDR@Debug{\string\CDR_tag_provide:n:~\CDR_tag_module:n { ##1 } / \l_CDR_tl = ...}
+\CDR@Debug{\string\CDR_tag_provide:n:~\CDR_tag_module:n { ##1 } / \l_CDR_a_tl = ...}
         }
       }
     }
@@ -4786,9 +5024,9 @@ if __name__ == '__main__':
 % If a |lang| is given, forwards the declaration
 % to all the code chunks tagged within |\g_CDR_tags_clist|.
 %    \begin{MacroCode}[OK]
-        \CDR_export_get:ccNT { \l_CDR_file_tl } { lang } \l_CDR_tl {
+        \CDR_export_get:ccNT { \l_CDR_file_tl } { lang } \l_CDR_a_tl {
           \clist_map_inline:Nn \g_CDR_tags_clist {
-            \CDR_tag_set:ccV { ##1 } { lang } \l_CDR_tl
+            \CDR_tag_set:ccV { ##1 } { lang } \l_CDR_a_tl
           }
         }
       }
@@ -4818,19 +5056,19 @@ if __name__ == '__main__':
 % \end{syntax}
 % Escape the content of \metatt{argumen} with
 % respect to \metatt{regex variable} and put the result in \meta{tl variable}.
-% Implementation detail: uses |\l_CDR_tl| and |\l_CDR_seq|.
+% Implementation detail: uses |\l_CDR_a_tl| and |\l_CDR_seq|.
 % \end{function}
 %    \begin{MacroCode}
 \cs_new_protected:Npn \CDR_rescan_regex_split:NNn #1 #2 #3 {
   \regex_split:NnN #1 { #3 } \l_CDR_seq
   \seq_pop_left:NN \l_CDR_seq #2
   \bool_until_do:nn { \seq_if_empty_p:N \l_CDR_seq } {
-    \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
+    \seq_pop_left:NN \l_CDR_seq \l_CDR_a_tl
     \exp_args:NNnV
-    \tl_set_rescan:Nnn \l_CDR_tl {} \l_CDR_tl
-    \tl_put_right:NV #2 \l_CDR_tl
-    \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
-    \tl_put_right:NV #2 \l_CDR_tl
+    \tl_set_rescan:Nnn \l_CDR_a_tl {} \l_CDR_a_tl
+    \tl_put_right:NV #2 \l_CDR_a_tl
+    \seq_pop_left:NN \l_CDR_seq \l_CDR_a_tl
+    \tl_put_right:NV #2 \l_CDR_a_tl
   }
 }
 %    \end{MacroCode}
@@ -4889,19 +5127,19 @@ if __name__ == '__main__':
         }
       }
       \tl_clear:N \l_CDR_regex
-      \CDR_export_get:ccNT { ##1 } { escapeinside } \l_CDR_tl {
-        \int_compare:nNnTF { \tl_count:N \l_CDR_tl } = 1 {
+      \CDR_export_get:ccNT { ##1 } { escapeinside } \l_CDR_a_tl {
+        \int_compare:nNnTF { \tl_count:N \l_CDR_a_tl } = 1 {
           \regex_set:Nx \l_CDR_regex {
-            [ \tl_item:Nn \l_CDR_tl 1 ]
+            [ \tl_item:Nn \l_CDR_a_tl 1 ]
             ( .*? )
-            [ \tl_item:Nn \l_CDR_tl 1 ]
+            [ \tl_item:Nn \l_CDR_a_tl 1 ]
           }
         } {
-          \int_compare:nNnT { \tl_count:N \l_CDR_tl } > 1 {
+          \int_compare:nNnT { \tl_count:N \l_CDR_a_tl } > 1 {
             \regex_set:Nx \l_CDR_regex {
-              [ \tl_item:Nn \l_CDR_tl 1 ]
+              [ \tl_item:Nn \l_CDR_a_tl 1 ]
               ( .*? )
-              [ \tl_item:Nn \l_CDR_tl 2 ]
+              [ \tl_item:Nn \l_CDR_a_tl 2 ]
             }
           }
         }
@@ -4911,10 +5149,10 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
       \clist_map_inline:nn { preamble, postamble, } {
 \CDR@Debug{\string\CDR_export_complete:~####1}
-        \CDR_if_amblefile:nNnTF { ##1 } \l_CDR_tl { ####1 } {
-\CDR@Debug{\string\CDR_export_complete:~file: \l_CDR_tl}
+        \CDR_if_amblefile:nNnTF { ##1 } \l_CDR_a_tl { ####1 } {
+\CDR@Debug{\string\CDR_export_complete:~file: \l_CDR_a_tl}
           \exp_args:NNV
-          \ior_open:Nn \l_CDR_ior \l_CDR_tl
+          \ior_open:Nn \l_CDR_ior \l_CDR_a_tl
           \tl_if_empty:NTF \l_CDR_regex {
             \ior_str_map_inline:Nn \l_CDR_ior {
               \l_set:Nn \l_CDR_export_tl { ########1 }
@@ -4946,15 +5184,15 @@ if __name__ == '__main__':
 \CDR@Debug{\string\CDR_export_complete:~no~'##1'->'####1' }
             }
           } {
-            \CDR_export_get:ccNTF { ##1 } { ####1 } \l_CDR_tl {
+            \CDR_export_get:ccNTF { ##1 } { ####1 } \l_CDR_a_tl {
               \exp_args:NNV
-              \regex_split:NnN \l_CDR_regex \l_CDR_tl \l_CDR_seq
+              \regex_split:NnN \l_CDR_regex \l_CDR_a_tl \l_CDR_seq
               \seq_pop_left:NN \l_CDR_seq \l_CDR_export_tl
               \bool_until_do:nn { \seq_if_empty_p:N \l_CDR_seq } {
-                \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
-                \tl_put_right:Nx \l_CDR_export_tl { \l_CDR_tl }
-                \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
-                \tl_put_right:NV \l_CDR_export_tl \l_CDR_tl
+                \seq_pop_left:NN \l_CDR_seq \l_CDR_a_tl
+                \tl_put_right:Nx \l_CDR_export_tl { \l_CDR_a_tl }
+                \seq_pop_left:NN \l_CDR_seq \l_CDR_a_tl
+                \tl_put_right:NV \l_CDR_export_tl \l_CDR_a_tl
               }
               \lua_now:n {
                 CDR:append_file_info('####1','l_CDR_export_tl')
@@ -5563,9 +5801,9 @@ if __name__ == '__main__':
     fontsize, fontshape, fontseries,
     showspaces, showtabs, reflabel,
   } {
-    \CDR_tag_get:cNTF { ##1 } \l_CDR_tl {
+    \CDR_tag_get:cNTF { ##1 } \l_CDR_a_tl {
       \exp_args:NnV
-      \CDR_fvset:nn { ##1 } \l_CDR_tl
+      \CDR_fvset:nn { ##1 } \l_CDR_a_tl
     } {
       \PackageError
         { coder }
@@ -5634,12 +5872,12 @@ if __name__ == '__main__':
   \seq_if_empty:NTF \l_CDR_seq {
     #1
   } {
-    \seq_pop_left:NN \l_CDR_seq \l_CDR_tl \tl_use:N \l_CDR_tl
+    \seq_pop_left:NN \l_CDR_seq \l_CDR_a_tl \tl_use:N \l_CDR_a_tl
     \bool_while_do:nn { ! \seq_if_empty_p:N \l_CDR_seq } {
-      \seq_pop_left:NN \l_CDR_seq \l_CDR_tl
+      \seq_pop_left:NN \l_CDR_seq \l_CDR_a_tl
       \exp_args:NnV
-      \tl_rescan:nn { } \l_CDR_tl
-      \seq_pop_left:NN \l_CDR_seq \l_CDR_tl \tl_use:N \l_CDR_tl  
+      \tl_rescan:nn { } \l_CDR_a_tl
+      \seq_pop_left:NN \l_CDR_seq \l_CDR_a_tl \tl_use:N \l_CDR_a_tl  
     }
   }
 }
@@ -5719,8 +5957,8 @@ if __name__ == '__main__':
 \CDR@Debug{\string \CDRCode_engine_setup:N, \string #1}
   \CDR_local_inherit:n { __engine }
   \CDR_local_set_known:N #1
-  \CDR_tag_get:cNT { engine } \l_CDR_tl {
-    \clist_put_left:Nx #1 { \CDRCode_options_use:V \l_CDR_tl }
+  \CDR_tag_get:cNT { engine } \l_CDR_a_tl {
+    \clist_put_left:Nx #1 { \CDRCode_options_use:V \l_CDR_a_tl }
   }
 }
 %    \end{MacroCode}
@@ -5736,17 +5974,17 @@ if __name__ == '__main__':
 %    \begin{MacroCode}[OK]
 \cs_new_protected_nopar:Npn \CDRCode_pyg:v #1 {
   \lua_now:n { CDR:hilight_code_setup() }
-  \CDR_tag_get:cN {lang} \l_CDR_tl
+  \CDR_tag_get:cN {lang} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('lang') }
-  \CDR_tag_get:cN {cache} \l_CDR_tl
+  \CDR_tag_get:cN {cache} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('cache') }
-  \CDR_tag_get:cN {debug} \l_CDR_tl
+  \CDR_tag_get:cN {debug} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('debug') }
-  \CDR_tag_get:cN {escapeinside} \l_CDR_tl
+  \CDR_tag_get:cN {escapeinside} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('escapeinside') }
-  \CDR_tag_get:cN {mathescape} \l_CDR_tl
+  \CDR_tag_get:cN {mathescape} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('mathescape') }
-  \CDR_tag_get:cN {style} \l_CDR_tl
+  \CDR_tag_get:cN {style} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('style') }
   \lua_now:n { CDR:hilight_set_var('source', '#1') }
   \clist_set_eq:NN \FV@KeyValues \l_CDR_kv_clist
@@ -5766,7 +6004,7 @@ if __name__ == '__main__':
   \CDR@CodeEngineApply {
     \CDR@StyleIfExist { \CDR_tag_get:c { style } } { } {
       \lua_now:n { CDR:hilight_source(true, false) }
-        \input { \l_CDR_pyg_sty_tl }
+      \input { \l_CDR_pyg_sty_tl }
     }
     \CDR@StyleUseTag
     \lua_now:n { CDR:hilight_source(false, true) }        
@@ -5850,15 +6088,22 @@ if __name__ == '__main__':
   test .code:n = \CDR_tag_boolean_set:x { #1 },
   test .default:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed obey lines{[=true$\vert$false]}]^^A
+% The displayed line numbers are exactly the physical ones.
+%    \begin{MacroCode}[OK]
+  obey~lines .code:n = \CDR_tag_set:,
+  obey~lines .default:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed __initialize]^^A
 % initialize
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
     no~export = false,
     no~export~format = ,
-    dry~numbers = false,
+    dry~numbers  = false,
     no~top~space = false,
-    test = false,
+    test   = false,
+    obey~lines = false,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -5945,7 +6190,7 @@ if __name__ == '__main__':
   \FV@Scan
 }
 \cs_new:Npn \CDRBlock_scan_end: {
-\CDR@Debug{\string\CDRBlock_scan_end:}
+\CDR@Debug{\string\CDRBlock_scan_end:~\seq_count:N \l_CDR_vrb_seq~lines}
   \exp_args:NNNV
   \group_end:
   \tl_set:Nn \l_CDR_vrb_seq \l_CDR_vrb_seq
@@ -6024,10 +6269,10 @@ if __name__ == '__main__':
 %
 % Actually, no alternate possibility is offered.
 %    \begin{MacroCode}  
-\CDR@Debug{\string\CDRBlock_use:c\space 1}
+\CDR@Debug{\string\CDRBlock_use:c\space Record lines}
     \seq_map_inline:cn { #1_seq } {
-      \tl_set:Nn \l_CDR_tl { ##1 }
-      \lua_now:n { CDR:record_line('l_CDR_tl') }
+      \tl_set:Nn \l_CDR_a_tl { ##1 }
+      \lua_now:n { CDR:record_line('l_CDR_a_tl') }
     }
 %    \end{MacroCode}
 % Line numbering is not delegated to \pkg{fancyvrb}, the main difficulty
@@ -6036,17 +6281,17 @@ if __name__ == '__main__':
 % Let us start by the minimum index.
 %    \begin{MacroCode}  
     \CDR_int_set:cn { __mini } { 1 }
-    \CDR_tag_get:cNT { firstline } \l_CDR_tl {
-      \tl_if_empty:NF \l_CDR_tl {
+    \CDR_tag_get:cNT { firstline } \l_CDR_a_tl {
+      \tl_if_empty:NF \l_CDR_a_tl {
         \exp_args:NNV
-        \regex_match:NnTF \c_CDR_int_regex \l_CDR_tl {
-          \int_compare:nNnTF { \l_CDR_tl } > 0 {
-            \CDR_int_set:cn { __mini } { \l_CDR_tl }
+        \regex_match:NnTF \c_CDR_int_regex \l_CDR_a_tl {
+          \int_compare:nNnTF { \l_CDR_a_tl } > 0 {
+            \CDR_int_set:cn { __mini } { \l_CDR_a_tl }
           } {
-            \CDR_int_set:cn { __mini } { \seq_count:c { #1_seq } + \l_CDR_tl }
+            \CDR_int_set:cn { __mini } { \seq_count:c { #1_seq } + \l_CDR_a_tl }
           }
         } {
-          \regex_set:NV \l_CDR_regex \l_CDR_tl
+          \regex_set:NV \l_CDR_regex \l_CDR_a_tl
           \seq_map_indexed_inline:cn { #1_seq } {
             \regex_match:NnT \l_CDR_regex { ##2 } {
               \CDR_int_set:cn { __mini } { ##1 }
@@ -6060,17 +6305,17 @@ if __name__ == '__main__':
 % Let us go now for the maximum index.
 %    \begin{MacroCode}  
     \CDR_int_set:cn { __maxi } { \seq_count:c { #1_seq } }
-    \CDR_tag_get:cNT { lastline } \l_CDR_tl {
-      \tl_if_empty:NF \l_CDR_tl {
+    \CDR_tag_get:cNT { lastline } \l_CDR_a_tl {
+      \tl_if_empty:NF \l_CDR_a_tl {
         \exp_args:NNV
-        \regex_match:NnTF \c_CDR_int_regex \l_CDR_tl {
-          \int_compare:nNnTF { \l_CDR_tl } > 0 {
-            \CDR_int_set:cn { __maxi } { \l_CDR_tl }
+        \regex_match:NnTF \c_CDR_int_regex \l_CDR_a_tl {
+          \int_compare:nNnTF { \l_CDR_a_tl } > 0 {
+            \CDR_int_set:cn { __maxi } { \l_CDR_a_tl }
           } {
-            \CDR_int_set:cn { __maxi } { \seq_count:c { #1_seq } + \l_CDR_tl }
+            \CDR_int_set:cn { __maxi } { \seq_count:c { #1_seq } + \l_CDR_a_tl }
           }
         } {
-          \regex_set:NV \l_CDR_regex \l_CDR_tl
+          \regex_set:NV \l_CDR_regex \l_CDR_a_tl
           \seq_map_indexed_inline:cn { #1_seq } {
             \CDR_int_compare:cNnF { __mini } > { ##1 } {
               \regex_match:NnT \l_CDR_regex { ##2 } {
@@ -6113,9 +6358,9 @@ if __name__ == '__main__':
       resetmargins, gobble, fontsize, fontshape, fontseries,
       showspaces, showtabs, reflabel,
     } {
-      \CDR_tag_get:cNTF { ##1 } \l_CDR_tl {
+      \CDR_tag_get:cNTF { ##1 } \l_CDR_a_tl {
         \exp_args:NnV
-        \CDR_fvset:nn { ##1 } \l_CDR_tl
+        \CDR_fvset:nn { ##1 } \l_CDR_a_tl
       } {
         \PackageError
           { coder }
@@ -6124,6 +6369,9 @@ if __name__ == '__main__':
       }
     }
 \CDR@Debug{\string\CDRBlock_use:c\space 2}
+    \CDR_if_tag_truthy:cT { obey~lines } {
+      \tl_set:Nn \l_CDR_obey_tl { __n }
+    }
     \tl_clear:N \FV@ListProcessLastLine
     \CDR_if_pygments:TF {
       \CDRBlock_use_pyg:c { #1 }
@@ -6161,6 +6409,8 @@ if __name__ == '__main__':
 % \metatt{engine name}| engine options| for appropriate
 % engine names.
 %    \begin{MacroCode}
+  \clist_put_right:NV \FV@KeyValues \l_CDR_kv_clist
+  \clist_clear:N \l_CDR_kv_clist
   \CDRBlock_tags_setup:N \FV@KeyValues
   \CDRBlock_engine_setup:N \FV@KeyValues
   \CDR_local_inherit:n {
@@ -6170,7 +6420,7 @@ if __name__ == '__main__':
   \CDR_local_set_known:N \FV@KeyValues
   \CDR_tag_provide_from_kv:V \FV@KeyValues
   \CDR_local_set_known:N \FV@KeyValues
-\CDR@Debug{\string \CDRBlock_setup:n.KV1:\l_CDR_kv_clist}
+\CDR@Debug{\string \CDRBlock_setup:n.KV1:}
 %    \end{MacroCode}
 % Now |\FV@KeyValues| is meant to contains only keys
 % related to \pkg{fancyvrb} but we still need to filter them out.
@@ -6321,12 +6571,12 @@ if __name__ == '__main__':
     \seq_gset_eq:cN { \l_CDR_vrb_tl _seq } \l_CDR_vrb_seq
   } {
 \CDR@Debug{\string\FVE@CDRBlockSave/1}
-    \CDR_tag_get:cN { gobble } \l_CDR_tl
+    \CDR_tag_get:cN { gobble } \l_CDR_a_tl
 \CDR@Debug{\string\FVE@CDRBlockSave/2}
     \exp_args:NnV
     \use:n {
       \renewcommand{\FV@@@@Gobble} [ %]
-    } \l_CDR_tl %[
+    } \l_CDR_a_tl %[
     ] {}
 \CDR@Debug{\string\FVE@CDRBlockSave/3}
     \seq_gclear:c { \l_CDR_vrb_tl _seq }
@@ -6439,14 +6689,14 @@ if __name__ == '__main__':
     #1
   }
   \CDRBlock_if_saved:cTF { #2 } {
-    \prop_get:cnNT { #2_prop } { synctex_tag } \l_CDR_tl {
-      \lua_now:n { CDR:synctex_tag_set(\l_CDR_tl) }
+    \prop_get:cnNT { #2_prop } { synctex_tag } \l_CDR_a_tl {
+      \lua_now:n { CDR:synctex_tag_set(\l_CDR_a_tl) }
     }
-    \prop_get:cnNT { #2_prop } { synctex_line } \l_CDR_tl {
-      \lua_now:n { CDR:synctex_line_set(\l_CDR_tl) }
+    \prop_get:cnNT { #2_prop } { synctex_line } \l_CDR_a_tl {
+      \lua_now:n { CDR:synctex_line_set(\l_CDR_a_tl) }
     }
-    \seq_map_variable:cNn { CDRBlockUse / #2_seq } \l_CDR_tl {
-      \directlua{CDR:rescan_push_line('l_CDR_tl')}
+    \seq_map_variable:cNn { CDRBlockUse / #2_seq } \l_CDR_a_tl {
+      \directlua{CDR:rescan_push_line('l_CDR_a_tl')}
     }
     \directlua{CDR:rescan_end()}    
   } {
@@ -6489,29 +6739,30 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \cs_set_protected:Npn \CDRBlock_use_pyg:c #1 {
 \CDR@Debug { \string\CDRBlock_use_pyg:c / #1 }
-  \prop_get:cnNT { #1_prop } { synctex_tag } \l_CDR_tl {
+  \prop_get:cnNT { #1_prop } { synctex_tag } \l_CDR_a_tl {
     \lua_now:n { CDR:hilight_set_var('synctex_tag') }
   }
-  \prop_get:cnNT { #1_prop } { synctex_line } \l_CDR_tl {
+  \prop_get:cnNT { #1_prop } { synctex_line } \l_CDR_a_tl {
     \lua_now:n { CDR:hilight_set_var('synctex_line') }
   }
   \lua_now:n { CDR:hilight_set_var('lang') }
-  \CDR_tag_get:cN {lang} \l_CDR_tl
+  \CDR_tag_get:cN {lang} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('lang') }
-  \CDR_tag_get:cN {cache} \l_CDR_tl
+  \CDR_tag_get:cN {cache} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('cache') }
-  \CDR_tag_get:cN {debug} \l_CDR_tl
+  \CDR_tag_get:cN {debug} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('debug') }
-  \CDR_tag_get:cN {texcomments} \l_CDR_tl
+  \CDR_tag_get:cN {texcomments} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('texcomments') }
-  \CDR_tag_get:cN {escapeinside} \l_CDR_tl
+  \CDR_tag_get:cN {escapeinside} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('escapeinside') }
-  \CDR_tag_get:cN {mathescape} \l_CDR_tl
+  \CDR_tag_get:cN {mathescape} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('mathescape') }
-  \CDR_tag_get:cN {style} \l_CDR_tl
+  \CDR_tag_get:cN {style} \l_CDR_a_tl
   \lua_now:n { CDR:hilight_set_var('style') }
-  \cctab_select:N \c_document_cctab
-  \CDR@StyleIfExist { \l_CDR_tl } { } {
+%  \cctab_select:N \c_document_cctab
+\CDR@Debug { \string\CDRBlock_use_pyg:c / Style:\l_CDR_a_tl }
+  \CDR@StyleIfExist { \l_CDR_a_tl } { } {
     \lua_now:n { CDR:hilight_source(true, false) }
     \input { \l_CDR_pyg_sty_tl }
   }
@@ -6844,13 +7095,15 @@ if __name__ == '__main__':
 % Returns an hbox with the given material.
 % The first |LR| command is the reference, from which are derived the |L|, |R| and |N| commands.
 % At run time the |\CDR_line_box:nn| is defined to call one of the above commands
-% (with the same signarture).
+% (with the same signature).
 % \end{function}
 %    \begin{MacroCode}
+\tl_new:N \l_CDR_obey_tl
+\tl_set:Nn \l_CDR_obey_tl { __i }
 \cs_new:Npn \CDR_line_box:nnn #1 #2 #3 {
 \CDR@Debug {\string\CDR_line_box:nnn/\tl_to_str:n{#1}/.../\tl_to_str:n{#3}/}
   \lua_now:e {
-    CDR:synctex_target_set( \CDR_int_use:c { __i } )
+    CDR:synctex_target_set( \CDR_int_use:c { \l_CDR_obey_tl } )
   }
   \hbox to \hsize {
     \kern \leftmargin
@@ -7043,18 +7296,18 @@ if __name__ == '__main__':
 % One solution is to allways display the first one but it is not satisfying
 % when lines are numbered stepwise, moreover when the tags should be displayed.
 %    \begin{MacroCode}
-  \tl_clear:N \l_CDR_tl
+  \tl_clear:N \l_CDR_a_tl
   \CDR_if_already_tags:TF {
-    \tl_put_right:Nn \l_CDR_tl { _N }
+    \tl_put_right:Nn \l_CDR_a_tl { _N }
   } {
     \exp_args:Nx
     \str_case:nnF { \CDR_tag_get:c { show~tags } } {
-      { left  } { \tl_put_right:Nn \l_CDR_tl { _L } }
-      { right } { \tl_put_right:Nn \l_CDR_tl { _R } }
-      { none  } { \tl_put_right:Nn \l_CDR_tl { _N } }
-      { dry   } { \tl_put_right:Nn \l_CDR_tl { _N } }
-      { same  } { \tl_put_right:Nn \l_CDR_tl { _S } }
-      { mirror  } { \tl_put_right:Nn \l_CDR_tl { _M } }
+      { left  } { \tl_put_right:Nn \l_CDR_a_tl { _L } }
+      { right } { \tl_put_right:Nn \l_CDR_a_tl { _R } }
+      { none  } { \tl_put_right:Nn \l_CDR_a_tl { _N } }
+      { dry   } { \tl_put_right:Nn \l_CDR_a_tl { _N } }
+      { same  } { \tl_put_right:Nn \l_CDR_a_tl { _S } }
+      { mirror  } { \tl_put_right:Nn \l_CDR_a_tl { _M } }
     } { \PackageError
           { coder }
           { Unknown~show~tags~options~:~ \CDR_tag_get:c { show~tags } }
@@ -7068,15 +7321,15 @@ if __name__ == '__main__':
   \exp_args:Nx
   \str_case:nnF { \CDR_tag_get:c { numbers } } {
     { left  } {
-      \tl_put_right:Nn \l_CDR_tl { _L }
+      \tl_put_right:Nn \l_CDR_a_tl { _L }
       \cs_set:Npn \CDR@@Line { \CDR_line_box_L:n }
     }
     { right } {
-      \tl_put_right:Nn \l_CDR_tl { _R }
+      \tl_put_right:Nn \l_CDR_a_tl { _R }
       \cs_set:Npn \CDR@@Line { \CDR_line_box_R:n }
     }
     { none  } {
-      \tl_put_right:Nn \l_CDR_tl { _N }
+      \tl_put_right:Nn \l_CDR_a_tl { _N }
       \cs_set:Npn \CDR@@Line { \CDR_line_box_N:n }    
     }
   } { \PackageError
@@ -7084,14 +7337,14 @@ if __name__ == '__main__':
         { Unknown~numbers~options~:~ \CDR_tag_get:c { numbers } }
         { See~the~coder~manual }
   }
-\CDR@Debug {\string\CDR@Line == BRANCH:CDR_line \l_CDR_tl :n}
+\CDR@Debug {\string\CDR@Line == BRANCH:CDR_line \l_CDR_a_tl :n}
   \CDR_int_compare:cNnTF { __mini } > { 1 } {
     \use_none:n
   } {
     \CDR_int_compare:cNnTF { __maxi } < { 1 } {
       \use_none:n
     } {
-      \use:c { CDR_line \l_CDR_tl :n }
+      \use:c { CDR_line \l_CDR_a_tl :n }
      }
   }
 }
@@ -7112,8 +7365,8 @@ if __name__ == '__main__':
 \CDR@Debug {\string\CDRBlock_use_fv:c}
   \CDR_tag_get:cN { format } \l_CDR_vrb_tl
   \CDR_if_no_export:T {
-    \CDR_tag_get:cN { no~export~format } \l_CDR_tl
-    \tl_put_right:NV \l_CDR_vrb_tl \l_CDR_tl
+    \CDR_tag_get:cN { no~export~format } \l_CDR_a_tl
+    \tl_put_right:NV \l_CDR_vrb_tl \l_CDR_a_tl
   }
   \tl_put_right:Nn \l_CDR_vrb_tl \CDR@Setup
   \cs_set:Npn \CDR:n ##1 {
@@ -7301,8 +7554,8 @@ if __name__ == '__main__':
 \CDR@Debug{ \string \CDRBlock_engine_setup:N, \string #1 }
   \CDR_local_inherit:n { __engine }
   \CDR_local_set_known:N #1
-  \CDR_tag_get:cNT { engine } \l_CDR_tl {
-    \clist_put_left:Nx #1 { \CDRBlock_options_use:V \l_CDR_tl }
+  \CDR_tag_get:cNT { engine } \l_CDR_a_tl {
+    \clist_put_left:Nx #1 { \CDRBlock_options_use:V \l_CDR_a_tl }
   }
 }
 %    \end{MacroCode}
@@ -7342,34 +7595,34 @@ return {}
 %    \begin{MacroCode}
 %</sty>
 %<*driver-lua>
---[=[latex.coder[tags=driver]
-This is lua raw driver for the \pkg{coder} package.
-Pretty print comments formatted in \LaTeX\ that are delimited by lines matching
-\begin{CDRBlock}[lang=lua]
-^--[(=$)[latex.coder([.*])
-\end{CDRBlock}
-and the next line matching
-\begin{CDRBlock}[lang=lua, escapeinside=()]
-^--latex.coder](\meta{equals})]
-\end{CDRBlock}
-The delimiting lines are not typeset.
-The first one defines the \meta{equals} string as first capture and \meta{options} as second capture. \meta{equals} is passed to \CDRCode[lang=lua]|CDR:input_options_set|.
+--[=[!latex:\begin{module}
+This is lua driver for the \pkg{coder} package.
+Pretty print documentation formatted in \LaTeX\ that is delimited by special
+comment markers. The beginning of a documentation block is delimited by
+\CDRCode[lang=lua]|^--[(=*)[!latex:|
+which must start a line and the next
+\CDRCode|--](\metatt{equals})]|
+where \metatt{equals} represents the previously capture group.
+
+The delimiters are removed and what is delimited is typeset with \LaTeX{}.
+
 See the \CDRCode|\CDRInput| documentation.
---latex.coder]=]
+--]=]
 -- put here whatever statement you need
-local equals = ''
 -- return a table
 return {
-  begin_comment = function ()
-    return '^--[(=$)[latex.coder([.*])'
+  open = function (self, line)
+    local equals, i = line:match(
+      '^%-%-%[(=*)%[!latex:'--]--]
+    )
+    if equals then--[--[
+      local pattern = '^%]'..equals..'%]'
+      self.close = function (this, l)
+        return l:match(pattern) ~= nil
+      end
+      return true
+    end
   end,
-  begin_action  = function(captured_eqs, captured_opts)
-    equals      = captured_eqs
-    CDR:input_options_set(captured_opts)
-  end,
-  end_comment   = function()
-    return '^--latex.coder]'..equals..']'
-  end
 }
 %</driver-lua>
 %<*sty>
@@ -7393,13 +7646,6 @@ return {
   driver .code:n = \CDR_tag_set:,
   driver .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed show comments{[=true$\vert$false]}]^^A
-% whether comments should be displayed.
-% Initially |true|.
-%    \begin{MacroCode}[OK]
-  show~comments .code:n = \CDR_tag_boolean_set:x { #1 },
-  show~comments .default:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed show code{[=true$\vert$false]}]^^A
 % whether code should be displayed.
 % Initially |true|.
@@ -7407,13 +7653,20 @@ return {
   show~code .code:n = \CDR_tag_boolean_set:x { #1 },
   show~code .default:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed show doc{[=true$\vert$false]}]^^A
+% whether doc should be displayed.
+% Initially |true|.
+%    \begin{MacroCode}[OK]
+  show~doc .code:n = \CDR_tag_boolean_set:x { #1 },
+  show~doc .default:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckGreen __initialize]^^A
 % Initialization.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
-    driver        = raw,
-    show~comments = true,
-    show~code     = true,
+    driver    = raw,
+    show~code = true,
+    show~doc  = true,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -7434,18 +7687,23 @@ return {
 \NewDocumentCommand\CDRInput { O{} m } {
 \CDR@Debug{\string\CDRInput}
   \group_begin:
+  \directlua { CDR:synctex_tag_will_catch() }
+  \input{#2}
   \tl_set:Nn \l_CDR_input_tl { #2 }
   \CDR_local_inherit:n { CDRInput }
   \CDR_local_set_known:nN { #1 } \l_CDR_kv_clist
   \CDR_get_inherit:n { CDRInput }
-  \CDR_tag_get:cN { driver } \l_CDR_tl
+  \CDR_tag_get:cN { driver } \l_CDR_a_tl
   \directlua { CDR:input_begin() }
-  \CDR_tag_get:cN { show~comments } \l_CDR_tl
-  \directlua { CDR:input_show_comments_set() }
-  \CDR_tag_get:cN { show~code } \l_CDR_tl
-  \directlua { CDR:input_show_code_set() }
-  \directlua { CDR:input_end() }  
+  \CDR_tag_get:cN { show~code } \l_CDR_a_tl
+  \directlua { CDR:input_set_boolean('show_code') }
+  \CDR_tag_get:cN { show~doc } \l_CDR_a_tl
+  \directlua { CDR:input_set_boolean('show_doc') }
+  \exp_args:NNNV
   \group_end:
+  \clist_set:Nn \l_CDR_kv_clist \l_CDR_kv_clist
+  \directlua { CDR:input() }
+  \directlua { CDR:input_end() }
 }
 %    \end{MacroCode}
 %
