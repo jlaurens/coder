@@ -7,7 +7,8 @@
 %<*readme>
 # The coder package
 
-This package allows to format in \LaTeX\ the documentation put in the code, as soon as long comments exist. It also allows to work the other way round
+This package allows to format in \LaTeX\ the documentation put in the code,
+as soon as long comments exist. It also allows to work the other way round
 by putting code inside the documentation.
 This is particularly interesting when different code files share some logic
 and should be documented all at once.
@@ -6710,12 +6711,47 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
+% \begin{function}{\CDRBlockExe}
+% \begin{syntax}
+% \cs{CDRBlockExe} \marg{unique identifier}
+% \end{syntax}
+% \end{function}
+%    \begin{MacroCode}
+\NewDocumentCommand\CDRBlockExe{ O{} m } {
+\CDR@Debug{\string\CDRBlockExe/#2}
+  \lua_now:n {
+    CDR:rescan_begin()
+    CDR:synctex_state_save()
+  }
+  \exp_args:Nnx
+  \keys_set:nn { CDRBlockExe } {
+    \tl_if_empty:nT { #1 } { makeatletter=false, }
+    #1
+  }
+  \CDRBlock_if_saved:cTF { #2 } {
+    \prop_get:cnNT { #2_prop } { synctex_tag } \l_CDR_a_tl {
+      \lua_now:n { CDR:synctex_tag_set(\l_CDR_a_tl) }
+    }
+    \prop_get:cnNT { #2_prop } { synctex_line } \l_CDR_a_tl {
+      \lua_now:n { CDR:synctex_line_set(\l_CDR_a_tl) }
+    }
+    \seq_map_variable:cNn { CDRBlockUse / #2_seq } \l_CDR_a_tl {
+      \directlua{CDR:rescan_push_line('l_CDR_a_tl')}
+    }
+    \directlua{CDR:rescan_end()}    
+  } {
+    NO~\string\CDRBlockUse/#1!
+  }
+  \lua_now:n { CDR:synctex_state_restore() }
+}
+%    \end{MacroCode}
+%
 % \begin{function}{\CDRBlockFree}
 % \begin{syntax}
-% \cs{CDRBlockFree} \marg{block identifier}
+% \cs{CDRBlockFree} \marg{unique identifier}
 % \end{syntax}
 % Free the memory for this identifier. After that instruction,
-% |\CDRBlockUse{|\marg{block identifier}|}| is no longer available.
+% |\CDRBlockUse{|\marg{unique identifier}|}| is no longer available.
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRBlockFree #1 {
@@ -7633,6 +7669,52 @@ return {
 % The options will inherit the |__tags| \pkg{l3keys} module.
 %    \begin{MacroCode}[OK]
 \CDR_tag_keys_define:nn { CDRInput } {
+%    \end{MacroCode}
+% \begin{description}
+%
+% \itemtt[\CDRCheckGreen driver=\metatt{driver name}$\vert$\metatt{driver path}]^^A
+% When the driver has a path extension, this is the path
+% to a driver, otherwise this is a builtin driver name.
+% Some builtin drivers are provided
+% and generally named after a programming language.
+% Initially |raw|, which means that the file is input as one uncommented code snippet.
+% Let's hope that no language will ever be named |raw|.
+%    \begin{MacroCode}[OK]
+  driver .code:n = \CDR_tag_set:,
+  driver .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed show code{[=true$\vert$false]}]^^A
+% whether code should be displayed.
+% Initially |true|.
+%    \begin{MacroCode}[OK]
+  show~code .code:n = \CDR_tag_boolean_set:x { #1 },
+  show~code .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed show doc{[=true$\vert$false]}]^^A
+% whether doc should be displayed.
+% Initially |true|.
+%    \begin{MacroCode}[OK]
+  show~doc .code:n = \CDR_tag_boolean_set:x { #1 },
+  show~doc .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckGreen __initialize]^^A
+% Initialization.
+%    \begin{MacroCode}[OK]
+  __initialize .meta:n = {
+    driver    = raw,
+    show~code = true,
+    show~doc  = true,
+  },
+  __initialize .value_forbidden:n = true,
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[OK]
+}
+%    \end{MacroCode}
+%    \begin{MacroCode}[OK]
+\AtBeginDocument{
+  \CDR_tag_keys_set:nn { CDRInput } { __initialize }
+}
 %    \end{MacroCode}
 % \begin{description}
 %
