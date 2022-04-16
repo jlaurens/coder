@@ -1,6 +1,6 @@
 /*!latex:
 \begin{coder}{Embedded comment}
-This is a C function.
+This is a C program to compute 10!.
 \end{coder}
 */
 #include <stdio.h>
