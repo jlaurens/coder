@@ -116,1011 +116,1002 @@
 \tableofcontents
 \section{Installation}
 
-%\CDRCodeSave{UNIK}|\textbf{WIKI}|
-%
-%\subsection{The \CDRCodeUse[style=autumn]{UNIK} command}
-%\subsection{The \CDRCodeUse[style=default]{UNIK} command}
-%\subsection{The \string\CDRSet\ command}
-%
-%\end{document}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+This Lua\LaTeX\ package is available on CTAN and is part of any standard \TeX{} distribution\footnote{In progress}. To use it in a document, put the next instruction in the preamble:
+\begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
+\RequirePackage{coder}
+\end{CDRBlock}
+and run Lua\LaTeX{}. In order to have syntax highlighting like above, you must enable shell escape in Lua\TeX\footnote{There is a \texttt{--shell-escape} option on the command line, and editors may provide a check box in their preference section.} and have \pkg{pygments} installed (see \url{https://pygments.org} for that purpose) but this is not a requirement for the other features of the \pkg{coder} package.
 
-%This Lua\LaTeX\ package is available on CTAN and is part of any standard \TeX{} distribution\footnote{In progress}. To use it in a document, put the next instruction in the preamble:
-%\begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
-%\RequirePackage{coder}
-%\end{CDRBlock}
-%and run Lua\LaTeX{}. In order to have syntax highlighting like above, you must enable shell escape in Lua\TeX\footnote{There is a \texttt{--shell-escape} option on the command line, and editors may provide a check box in their preference section.} and have \pkg{pygments} installed (see \url{https://pygments.org} for that purpose) but this is not a requirement for the other features of the \pkg{coder} package.
+In order to test \pkg{pygments} installation, you can successively run from a terminal the commands
+\\[0.25\baselineskip]
+\verb|pygmentize -O full -o |\MyMeta{file name}\verb|-colorized.tex |\MyMeta{file name}\verb|.tex|
+\\[0.1\baselineskip]
+\verb|latex |\MyMeta{file name}\verb|-colorized.tex|.
+\\[0.25\baselineskip]
+The colorized code is then found in \MyMeta{file name}\verb|-colorized.pdf|%
+
+To test the installation for an editor, the next document should output a small diagnostic page with informations about paths.
+\CDRSet{numbers=none}
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.345\linewidth}|p{0.645\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[lang=tex,tags=latex]
+\documentclass{article}
+\RequirePackage{coder}
+\begin{document}
+\CDRTest
+\end{document}
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\begin{minipage}[t]{0.95\linewidth}
+\begin{itemize}
+\item
+An example of a bad installation:
+\par
+Path to \textsf{python}: \texttt{/usr/bin/python}\\
+Path to \textsf{pygmentize}: \texttt{}\\
+Pygments is not available
+\item
+An example of a good installation:
+\par
+Path to \textsf{python}: \texttt{/opt/anaconda3/bin/python}\\
+Path to \textsf{pygmentize}: \texttt{/opt/anaconda3/bin/pygmentize}\\
+Pygments is available
+\end{itemize}
+\end{minipage}%
+\end{tabular}
+\end{center}
+To use \pkg{pygments}, some editors need to be launched from a terminal, like \TeX{}works on OSX for example. An alternate solution is to add to the preamble of each document
+\begin{CDRBlock}[tags=src]
+\CDRSet{python path=⟨\MyMeta{path to python with pygmentize}⟩}
+\end{CDRBlock}
+Notice that such a command can be put in a \verb|coder.cfg| file accessible to Lua\LaTeX. When available this configuration file is automatically loaded by package \pkg{coder}.
+
+To install the \pkg{coder} package from source, download and typeset \verb|coder.dtx|. Copy the files to your personal texmf tree
+\begin{itemize}
+\item tex/latex/coder/coder.sty
+\item scripts/coder/coder-util.lua
+\item scripts/coder/coder-tool.py
+\item scripts/coder/coder-driver-raw.lua
+\item scripts/coder/coder-driver-lua.lua
+\end{itemize}
 %
-%In order to test \pkg{pygments} installation, you can successively run from a terminal the commands
-%\\[0.25\baselineskip]
-%\verb|pygmentize -O full -o |\MyMeta{file name}\verb|-colorized.tex |\MyMeta{file name}\verb|.tex|
-%\\[0.1\baselineskip]
-%\verb|latex |\MyMeta{file name}\verb|-colorized.tex|.
-%\\[0.25\baselineskip]
-%The colorized code is then found in \MyMeta{file name}\verb|-colorized.pdf|%
+\section{Display code}
+\subsection{Example}
+To see \pkg{coder} in action, we compare in figure \ref{fig:First example} \pkg{lua} and \pkg{python} syntax while computing recursively the factorial of an integer.
+%%%%%
+%%%%%
+\begin{figure}[h!]
+\begin{center}
+\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[tags=lua]
+function factorial(n)
+  --[[Compute n!]]
+  if n > 1 then
+    return n * factorial(n-1)
+  end
+  return 1
+end
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\hspace{0.09\linewidth}%
+\begin{minipage}[t]{0.8\linewidth}
+\begin{CDRBlock}[tags=py]
+def factorial(n):
+  '''Compute n!'''
+  if n > 1:
+    return n * factorial(n-1)
+  return 1
+\end{CDRBlock}
+\end{minipage}%
+\end{tabular}
+\end{center}
+\caption{First example}
+\label{fig:First example}
+\end{figure}
+The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} on the left and style \texttt{trac} on the right. Line numbering may appear on each side of the code, or may be hidden.
 %
-%To test the installation for an editor, the next document should output a small diagnostic page with informations about paths.
-%\CDRSet{numbers=none}
-%\begin{center}
-%\setlength{\tabcolsep}{0mm}
-%\begin{tabular}{p{0.345\linewidth}|p{0.645\linewidth}}
-%\begin{minipage}[t]{0.9\linewidth}
-%\begin{CDRBlock}[lang=tex,tags=latex]
-%\documentclass{article}
-%\RequirePackage{coder}
-%\begin{document}
-%\CDRTest
-%\end{document}
-%\end{CDRBlock}
-%\end{minipage}%
-%\hspace{0.09\linewidth}
-%&
-%\begin{minipage}[t]{0.95\linewidth}
-%\begin{itemize}
-%\item
-%An example of a bad installation:
-%\par
-%Path to \textsf{python}: \texttt{/usr/bin/python}\\
-%Path to \textsf{pygmentize}: \texttt{}\\
-%Pygments is not available
-%\item
-%An example of a good installation:
-%\par
-%Path to \textsf{python}: \texttt{/opt/anaconda3/bin/python}\\
-%Path to \textsf{pygmentize}: \texttt{/opt/anaconda3/bin/pygmentize}\\
-%Pygments is available
-%\end{itemize}
-%\end{minipage}%
-%\end{tabular}
-%\end{center}
-%To use \pkg{pygments}, some editors need to be launched from a terminal, like \TeX{}works on OSX for example. An alternate solution is to add to the preamble of each document
-%\begin{CDRBlock}[tags=src]
-%\CDRSet{python path=⟨\MyMeta{path to python with pygmentize}⟩}
-%\end{CDRBlock}
-%Notice that such a command can be put in a \verb|coder.cfg| file accessible to Lua\LaTeX. When available this configuration file is automatically loaded by package \pkg{coder}.
+\subsection{\texorpdfstring{\cs{CDRCode}}{CDRCode} command}
+Inserting code as inline text is possible with the command \CDRCode[tags=src]|\CDRCode| which syntax is
+\begin{CDRBlock}[tags=src]
+\CDRCode[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]?⟨\MyMeta{inline code chunk}⟩?
+\end{CDRBlock}
+
+Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course. Similarly, we can save a code snippet for later use:
+\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
+\begin{CDRBlock}[tags=src]
+\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
+\end{CDRBlock}
+With next instruction,
+\begin{CDRBlock}[tags=src]
+\CDRCodeUse[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]{UNIK key}
+\end{CDRBlock}
+we can display the code snippet with different styles like \CDRCodeUse[tags=src,style=autumn]{UNIK key} or \CDRCodeUse[tags=src,style=default,reflabel=UNIK key]{UNIK key}, and even use it in a footnote\footnote{Here is the aspect when \pkg{pygments} is not available: \CDRCodeUse[tags=src,pygments=false]{UNIK key}}.
+Code snippets must be saved before they are used, in particular, possibly before the table of contents is built.
+
+The available options are collected in section \ref{sect:options} because they are shared.
+\subsection{The \texttt{CDRBlock} environment}
+Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line literally consisting  of \CDRCode[lang=tex]|\end{CDRBlock}|, with no extra space.
+Optional key--value options are enclosed with square brackets. The opening bracket must follow the \CDRCode[lang=tex]|\begin{CDRBlock}| instruction, on the very same line. For the first examples of figure \ref{fig:First example}, the input was
+\begin{figure}[H]
+\begin{center}
+\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[tags=lua]
+function factorial(n)
+  --[[Compute n!]]
+  if n > 1 then
+    return n * factorial(n-1)
+  end
+  return 1
+end
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\hspace{0.09\linewidth}%
+\begin{minipage}[t]{0.8\linewidth}
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[tags=py]
+def factorial(n):
+  '''Compute n!'''
+  if n > 1:
+    return n * factorial(n-1)
+  return 1
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\end{minipage}%
+\end{tabular}
+\end{center}
+\caption{Source of figure \ref{fig:First example}}
+\end{figure}
+Similarly to \CDRCode|\CDRCodeSave| there is a \CDRCode|CDRBlockSave| environment which unique mandatory argument is an identifier
+\begin{CDRBlock}[tags=src]
+\begin{CDRBlockSave}{⟨\MyMeta{block identifier}⟩}
+...
+\end{CDRBlockSave}
+\end{CDRBlock}
+Next command allows to display that saved source with any option available
+\begin{CDRBlock}[tags=src]
+\CDRBlockUse[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]{⟨\MyMeta{block identifier}⟩}
+\end{CDRBlock}
+If the source is a \LaTeX{} code, it can be executed with
+\begin{CDRBlock}[tags=src]
+\CDRBlockExe[⟨\metatt{makeatletter[=true|false]}⟩]{⟨\MyMeta{block identifier}⟩}
+\end{CDRBlock}
+This command is widely used in this manual.
 %
-%To install the \pkg{coder} package from source, download and typeset \verb|coder.dtx|. Copy the files to your personal texmf tree
-%\begin{itemize}
-%\item tex/latex/coder/coder.sty
-%\item scripts/coder/coder-util.lua
-%\item scripts/coder/coder-tool.py
-%\item scripts/coder/coder-driver-raw.lua
-%\item scripts/coder/coder-driver-lua.lua
-%\end{itemize}
-%%
-%\section{Display code}
-%\subsection{Example}
-%To see \pkg{coder} in action, we compare in figure \ref{fig:First example} \pkg{lua} and \pkg{python} syntax while computing recursively the factorial of an integer.
-%%%%%%
-%%%%%%
-%\begin{figure}[h!]
-%\begin{center}
-%\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
-%\begin{minipage}[t]{0.9\linewidth}
-%\begin{CDRBlock}[tags=lua]
-%function factorial(n)
-%  --[[Compute n!]]
-%  if n > 1 then
-%    return n * factorial(n-1)
-%  end
-%  return 1
-%end
-%\end{CDRBlock}
-%\end{minipage}%
-%\hspace{0.09\linewidth}
-%&
-%\hspace{0.09\linewidth}%
-%\begin{minipage}[t]{0.8\linewidth}
-%\begin{CDRBlock}[tags=py]
-%def factorial(n):
-%  '''Compute n!'''
-%  if n > 1:
-%    return n * factorial(n-1)
-%  return 1
-%\end{CDRBlock}
-%\end{minipage}%
-%\end{tabular}
-%\end{center}
-%\caption{First example}
-%\label{fig:First example}
-%\end{figure}
-%The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} on the left and style \texttt{trac} on the right. Line numbering may appear on each side of the code, or may be hidden.
-%%
-%\subsection{\texorpdfstring{\cs{CDRCode}}{CDRCode} command}
-%Inserting code as inline text is possible with the command \CDRCode[tags=src]|\CDRCode| which syntax is
-%\begin{CDRBlock}[tags=src]
-%\CDRCode[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]?⟨\MyMeta{inline code chunk}⟩?
-%\end{CDRBlock}
+\section{Export code with \cs{CDRExport}}
+\label{sect:exportation}
+\subsection{Usage}
+The syntax for the \CDRCode|\CDRExport| command is the following, where the \CDRCode|file| key must be provided with a non empty value,
+\begin{CDRBlock}[tags=src]
+\CDRExport{
+  file={⟨\MyMeta{output file path}⟩},
+  tags=⟨{\color{CDROptions}\MyMeta[1]{tag}}|\MyMeta[2]{tag}|...⟩,
+}
+\end{CDRBlock}
+At the end of the typesetting process, all the code snippets with {\color{CDROptions}\MyMeta[1]{tag}} like
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[tags=⟨\MyMeta{some tag}|{\color{CDROptions}\MyMeta[1]{tag}}|\MyMeta{other tag}|...⟩]
+...
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+are collected in the order of the source, then all the code chunks with \MyMeta[2]{tag} are collected in turn,... Finally, the result is written to \MyMeta{output file path}.
+
+If the \CDRCode|tags| list is void, no exportation takes place. This exportation list can contain macros.
+\subsection{Options}
+\begin{description}
+\itemtt[lang=\MyMeta{language}]
+One of the languages \pkg{pygments} is aware of, the list of officially supported languages is available at \url{https://pygments.org/languages/}.
+Initially \CDRCode|tex|.
+Every subsequent code chunk which first tag is in the exportation list will have the same \CDRCode|lang| option, unil the next change. 
+\itemtt[preamble=\MyMeta{preamble text}, preamble file=\MyMeta{preamble file path}]
+The \MyMeta{preamble text} is saved before the collected code chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \MyMeta{preamble file path}
+is given, then the \MyMeta{preamble text} is taken from the file instead.
+Initially empty.
+\itemtt[postamble=\MyMeta{postamble text}, postamble file=\MyMeta{postamble file path}]
+the \MyMeta{postamble text} is saved after the code collected chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \MyMeta{preamble file path}
+is given, then the \MyMeta{preamble text} is taken from the file instead. Initially empty.
+\itemtt[escapeinside=\MyMeta{delimiters}]
+the preamble and the postamble can contain \LaTeX\ instructions enclosed between the delimiters,
+these will be executed before exportation.
+Not any command is suitable here, macros containing text, \CDRCode|\date| may be convenient here.
+When the \MyMeta{delimiters} is void, no escaping occurs.
+When \MyMeta{delimiters} contains only one character, it is used both as opening and closing delimiter. When it contains at leat two characers, the first one is used as opening delimiter, the second one as closing delimiter.
+\itemtt[raw{[=true|false]}]
+When \CDRCode|true|, a preamble and postamble will be added to all the collected code chunks. Initially \CDRCode|false|.
+\itemtt[once{[=true|false]}]
+Consider for example the exportation \CDRCode|tags| list
+\MyMeta[1]{tag}|\MyMeta[2]{tag}.
+If a block code chunk has exactly the same tag list, then it should be exported when \MyMeta[1]{tag} codes are collected but also when \MyMeta[2]{tag} codes are collected.
+If the \CDRCode|once| option is set to \CDRCode|true|,
+such a code chunk will only be exported the first time, and will be ignored afterwards.
+Initially \CDRCode|true|: export only once.
+\end{description}
+%    lang = tex,
+%    preamble =,
+%    postamble =,
+%    raw = false,
+%    once = true,
 %
-%Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course. Similarly, we can save a code snippet for later use:
-%\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
-%\begin{CDRBlock}[tags=src]
-%\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
-%\end{CDRBlock}
-%With next instruction,
-%\begin{CDRBlock}[tags=src]
-%\CDRCodeUse[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]{UNIK key}
-%\end{CDRBlock}
-%we can display the code snippet with different styles like \CDRCodeUse[tags=src,style=autumn]{UNIK key} or \CDRCodeUse[tags=src,style=default,reflabel=UNIK key]{UNIK key}, and even use it in a footnote\footnote{Here is the aspect when \pkg{pygments} is not available: \CDRCodeUse[tags=src,pygments=false]{UNIK key}}.
-%Code snippets must be saved before they are used, in particular, possibly before the table of contents is built.
+\section{Decorations}
+\subsection{Tags}
+For the \CDRCode|CDRBlock| environment, the \CDRCode|show tags| option allows to display the list of tags, see section \ref{sect:tags} for more details about tags.
+The possible choices are illustrated hereafter below each source.
+\setlength{\columnsep}{15mm}
+\begin{multicols}{3}
+\CDRSet{
+  tags/dummy = {
+    frame=single,
+    resetmargins=true,
+  },
+}
 %
-%The available options are collected in section \ref{sect:options} because they are shared.
-%\subsection{The \texttt{CDRBlock} environment}
-%Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line literally consisting  of \CDRCode[lang=tex]|\end{CDRBlock}|, with no extra space.
-%Optional key--value options are enclosed with square brackets. The opening bracket must follow the \CDRCode[lang=tex]|\begin{CDRBlock}| instruction, on the very same line. For the first examples of figure \ref{fig:First example}, the input was
-%\begin{figure}[H]
-%\begin{center}
-%\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
-%\begin{minipage}[t]{0.9\linewidth}
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[tags=lua]
-%function factorial(n)
-%  --[[Compute n!]]
-%  if n > 1 then
-%    return n * factorial(n-1)
-%  end
-%  return 1
-%end
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\end{minipage}%
-%\hspace{0.09\linewidth}
-%&
-%\hspace{0.09\linewidth}%
-%\begin{minipage}[t]{0.8\linewidth}
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[tags=py]
-%def factorial(n):
-%  '''Compute n!'''
-%  if n > 1:
-%    return n * factorial(n-1)
-%  return 1
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\end{minipage}%
-%\end{tabular}
-%\end{center}
-%\caption{Source of figure \ref{fig:First example}}
-%\end{figure}
-%Similarly to \CDRCode|\CDRCodeSave| there is a \CDRCode|CDRBlockSave| environment which unique mandatory argument is an identifier
-%\begin{CDRBlock}[tags=src]
-%\begin{CDRBlockSave}{⟨\MyMeta{block identifier}⟩}
-%...
-%\end{CDRBlockSave}
-%\end{CDRBlock}
-%Next command allows to display that saved source with any option available
-%\begin{CDRBlock}[tags=src]
-%\CDRBlockUse[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]{⟨\MyMeta{block identifier}⟩}
-%\end{CDRBlock}
-%If the source is a \LaTeX{} code, it can be executed with
-%\begin{CDRBlock}[tags=src]
-%\CDRBlockExe[⟨\metatt{makeatletter[=true|false]}⟩]{⟨\MyMeta{block identifier}⟩}
-%\end{CDRBlock}
-%This command is widely used in this manual.
-%%
-%\section{Export code with \cs{CDRExport}}
-%\label{sect:exportation}
-%\subsection{Usage}
-%The syntax for the \CDRCode|\CDRExport| command is the following, where the \CDRCode|file| key must be provided with a non empty value,
-%\begin{CDRBlock}[tags=src]
-%\CDRExport{
-%  file={⟨\MyMeta{output file path}⟩},
-%  tags=⟨{\color{CDROptions}\MyMeta[1]{tag}}|\MyMeta[2]{tag}|...⟩,
-%}
-%\end{CDRBlock}
-%At the end of the typesetting process, all the code snippets with {\color{CDROptions}\MyMeta[1]{tag}} like
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[tags=⟨\MyMeta{some tag}|{\color{CDROptions}\MyMeta[1]{tag}}|\MyMeta{other tag}|...⟩]
-%...
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%are collected in the order of the source, then all the code chunks with \MyMeta[2]{tag} are collected in turn,... Finally, the result is written to \MyMeta{output file path}.
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROptions}{\textbf{show tags=none}}⟩,
+]
+no tags
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=none,
+  frame=single,
+]
+no tags
+\end{CDRBlock}
 %
-%If the \CDRCode|tags| list is void, no exportation takes place. This exportation list can contain macros.
-%\subsection{Options}
-%\begin{description}
-%\itemtt[lang=\MyMeta{language}]
-%One of the languages \pkg{pygments} is aware of, the list of officially supported languages is available at \url{https://pygments.org/languages/}.
-%Initially \CDRCode|tex|.
-%Every subsequent code chunk which first tag is in the exportation list will have the same \CDRCode|lang| option, unil the next change. 
-%\itemtt[preamble=\MyMeta{preamble text}, preamble file=\MyMeta{preamble file path}]
-%The \MyMeta{preamble text} is saved before the collected code chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \MyMeta{preamble file path}
-%is given, then the \MyMeta{preamble text} is taken from the file instead.
-%Initially empty.
-%\itemtt[postamble=\MyMeta{postamble text}, postamble file=\MyMeta{postamble file path}]
-%the \MyMeta{postamble text} is saved after the code collected chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \MyMeta{preamble file path}
-%is given, then the \MyMeta{preamble text} is taken from the file instead. Initially empty.
-%\itemtt[escapeinside=\MyMeta{delimiters}]
-%the preamble and the postamble can contain \LaTeX\ instructions enclosed between the delimiters,
-%these will be executed before exportation.
-%Not any command is suitable here, macros containing text, \CDRCode|\date| may be convenient here.
-%When the \MyMeta{delimiters} is void, no escaping occurs.
-%When \MyMeta{delimiters} contains only one character, it is used both as opening and closing delimiter. When it contains at leat two characers, the first one is used as opening delimiter, the second one as closing delimiter.
-%\itemtt[raw{[=true|false]}]
-%When \CDRCode|true|, a preamble and postamble will be added to all the collected code chunks. Initially \CDRCode|false|.
-%\itemtt[once{[=true|false]}]
-%Consider for example the exportation \CDRCode|tags| list
-%\MyMeta[1]{tag}|\MyMeta[2]{tag}.
-%If a block code chunk has exactly the same tag list, then it should be exported when \MyMeta[1]{tag} codes are collected but also when \MyMeta[2]{tag} codes are collected.
-%If the \CDRCode|once| option is set to \CDRCode|true|,
-%such a code chunk will only be exported the first time, and will be ignored afterwards.
-%Initially \CDRCode|true|: export only once.
-%\end{description}
-%%    lang = tex,
-%%    preamble =,
-%%    postamble =,
-%%    raw = false,
-%%    once = true,
-%%
-%\section{Decorations}
-%\subsection{Tags}
-%For the \CDRCode|CDRBlock| environment, the \CDRCode|show tags| option allows to display the list of tags, see section \ref{sect:tags} for more details about tags.
-%The possible choices are illustrated hereafter below each source.
-%\setlength{\columnsep}{15mm}
-%\begin{multicols}{3}
-%\CDRSet{
-%  tags/dummy = {
-%    frame=single,
-%    resetmargins=true,
-%  },
-%}
-%%
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[
-%  tags = dummy,
-%  ⟨\textcolor{CDROptions}{\textbf{show tags=none}}⟩,
-%]
-%no tags
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\begin{CDRBlock}[
-%  tags = dummy,
-%  show tags=none,
-%  frame=single,
-%]
-%no tags
-%\end{CDRBlock}
-%%
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[
-%  tags = dummy,
-%  ⟨\textcolor{CDROptions}{\textbf{show tags=left}}⟩,
-%]
-%tags on the left
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\begin{CDRBlock}[
-%  tags = dummy,
-%  show tags=left,
-%  frame=single,
-%]
-%tags on the left
-%\end{CDRBlock}
-%%
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[
-%  tags = dummy,
-%  ⟨\textcolor{CDROptions}{\textbf{show tags=right}}⟩,
-%]
-%tags on the right
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\begin{CDRBlock}[
-%  tags = dummy,
-%  show tags=right,
-%  frame=single,
-%]
-%tags on the right
-%\end{CDRBlock}
-%%
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[
-%  tags = dummy,
-%  ⟨\textcolor{CDROptions}{\textbf{show tags=same}}⟩,
-%]
-%tags like numbers
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\begin{CDRBlock}[
-%  tags = dummy,
-%  show tags=same,
-%  numbers=left,
-%  frame=single,
-%]
-%tags like numbers
-%\end{CDRBlock}
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[
-%  tags = dummy,
-%  ⟨\textcolor{CDROptions}{\textbf{show tags=same}}⟩,
-%]
-%tags like numbers
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\begin{CDRBlock}[
-%  tags = dummy,
-%  show tags=same,
-%  numbers=right,
-%  frame=single,
-%]
-%tags like numbers
-%\end{CDRBlock}
-%%
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[
-%  tags = dummy,
-%  ⟨\textcolor{CDROptions}{\textbf{show tags=mirror}}⟩,
-%]
-%tags in mirror
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\begin{CDRBlock}[
-%  tags = dummy,
-%  show tags=mirror,
-%  numbers=left,
-%  frame=single,
-%]
-%tags in mirror
-%\end{CDRBlock}
-%%
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[
-%  tags = dummy,
-%  ⟨\textcolor{CDROptions}{\textbf{show tags=mirror}}⟩,
-%]
-%tags in mirror
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\begin{CDRBlock}[
-%  tags = dummy,
-%  show tags=mirror,
-%  numbers=right,
-%  frame=single,
-%]
-%tags in mirror
-%\end{CDRBlock}
-%\end{multicols}
-%%
-%\subsection{Line numbering}
-%\label{sect:line numbering}
-%Line numbering only makes sense for blocks of code.
-%Options are illustrated below, to the right of each source.
-%\begin{center}
-%\setlength{\arraycolsep}{0pt}
-%\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
-%%
-%\begin{CDRBlock}[
-%  no top space,
-%  tags=src,
-%]
-%\begin{⟨CDRBlock⟩}[
-%  tags=X,
-%  show tags=none,
-%  numbers=left,
-%  ⟨\textcolor{CDROptions}{\textbf{firstnumber=10}}⟩,
-%  ⟨\textcolor{CDROptions}{\textbf{stepnumber=3}}⟩,
-%]
-%...
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%&
-%\begin{CDRBlock}[
-%  no top space,
-%  tags=X,
-%  show tags=none,
-%  numbers=left,
-%  firstnumber=10,
-%  stepnumber=3,
-%]
-%line 1 numbered 10
-%line 2
-%line 3 numbered 12
-%line 4
-%line 5
-%line 6 numbered 15
-%line 7
-%line 8
-%line 9 numbered 18
-%\end{CDRBlock}
-%&
-%\end{tabular}
-%\end{center}
-%Blocks with the same leftmost tag can be numbered continuously with option \CDRCode[tags=src]|firstnumber=last|, the next one starting just after the previous has stopped.
-%\begin{center}
-%\setlength{\arraycolsep}{0pt}
-%\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
-%%
-%\begin{CDRBlock}[
-%  no top space,
-%  tags=src,
-%]
-%\begin{⟨CDRBlock⟩}[
-%  tags=X,
-%  show tags=none,
-%  numbers=left,
-%  ⟨\textcolor{CDROptions}{\textbf{firstnumber=last}}⟩,
-%  ⟨\textcolor{CDROptions}{\textbf{stepnumber=4}}⟩,
-%]
-%...
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%&
-%\RenewDocumentCommand\CDRNumberMain{m}{%
-%  \color{CDROptions}\bfseries#1
-%  \color{.!25!white}\makebox[4mm]{\mboxfill[0.75mm]{.}}%
-%}
-%\RenewDocumentCommand\CDRNumberOther{m}{%
-%  \color{lightgray}#1%
-%}
-%\begin{CDRBlock}[
-%  no top space,
-%  tags=X,
-%  show tags=none,
-%  numbers=left,
-%  firstnumber=last,
-%  stepnumber=4,
-%]
-%line 1
-%line 2 numbered 20
-%line 3
-%line 4
-%line 5
-%line 6 numbered 24
-%line 7
-%line 8
-%line 9
-%\end{CDRBlock}
-%&
-%\end{tabular}
-%\end{center}
-%%
-%Above, the intermediate line numbers were displayed by redefining the command \CDRCode[tags=src]|\CDRNumberOther| that defaults to no operation:
-%\begin{CDRBlock}[tags=src]
-%\RenewDocumentCommand\CDRNumberOther{m}{%
-%  \color{lightgray}#1%
-%}
-%\end{CDRBlock}
-%Similarly, the command \CDRCode[tags=src]|\CDRNumberMain| to display the main line numbers has been redefined with the help of the \pkg{mboxfill} package:
-%\begin{CDRBlock}[tags=src]
-%\RenewDocumentCommand\CDRNumberMain{m}{%
-%  \color{⟨\MyMeta{color}⟩}\bfseries#1
-%  \color{.!25!white}\makebox[4mm]{\mboxfill[0.75mm]{.}}%
-%}
-%\end{CDRBlock}
-%\subsection{Frames}
-%\label{sect:frames}
-%%
-%\subsubsection{Inline code}
-%When the \pkg{efbox} package is loaded, inline code can be framed by adding the option \CDRCode|engine=efbox|: \CDRCode[
-%  engine=efbox,
-%  efbox engine options={
-%    backgroundcolor=magenta!5!white,
-%    linecolor=magenta!80!black,
-%    linewidth=5\fboxrule,
-%  }
-%] |\textbf{⟨\lipsum[5][7]⟩}|.
-%It is possible to pass any option of the \pkg{efbox} package with the key \CDRCode[mbox=false]|efbox engine options|, here is the source of the previous magenta box
-%\begin{CDRBlock}[tags=src]
-%\CDRCode[
-%  ⟨\textcolor{CDROptions}{\textbf{engine}}⟩=efbox,
-%  ⟨\textcolor{CDROptions}{\textbf{efbox engine options}}⟩={
-%    backgroundcolor=magenta!5!white,
-%    linecolor=magenta!80!black,
-%    linewidth=5\fboxrule,
-%  }
-%] |\textbf{⟨\lipsum[5][7]⟩}|
-%\end{CDRBlock}
-%This engine named \CDRCode|efbox| was declared by next command
-%\begin{CDRBlock}[tags=src]
-%\CDRCodeEngineNew {⟨\MyMeta{engine name}⟩} {
-%  ⟨\MyMeta{engine instructions}⟩
-%}
-%\end{CDRBlock}
-%with \CDRCode|efbox| as \MyMeta{engine name},
-%and \CDRCode[tags=src]|\efbox[#1]{#2}| as \MyMeta{engine instructions}. It can be used to define a custom display engine as well.
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROptions}{\textbf{show tags=left}}⟩,
+]
+tags on the left
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=left,
+  frame=single,
+]
+tags on the left
+\end{CDRBlock}
 %
-%There is an engine named \CDRCode[tags=src]|default| which is always available and used by default. The command \CDRCode[tags=src]|\CDRCodeEngineRenew| will be used to redefine engines, with a similar syntax.
-%%
-%\subsubsection{Block code}
-%If the \pkg{tcolorbox} package is loaded,
-%then blocks of code can be framed by adding the option \CDRCode|engine=tcbox|
-%\begin{CDRBlock}[
-%  label=Example,
-%  engine=tcbox,
-%  tcbox engine options={
-%    colback=magenta!5!white,
-%    colframe=magenta!80!black,
-%    boxrule=5\fboxrule,
-%    fonttitle=\sffamily\bfseries,
-%  },
-%  engine options = {
-%    title=\CDRGetOption{label},
-%  },
-%]
-%\textbf{⟨\lipsum[1][1]⟩}
-%\end{CDRBlock}
-%It is possible to pass any option of the \pkg{tcolorbox} package with the key \CDRCode[mbox=false,tags=options]|engine options|, here is the source of the magenta box above
-%\begin{CDRBlock}[tags=src]
-%\begin{⟨CDRBlock⟩}[
-%  ⟨\textcolor{CDROptions}{\textbf{label}}⟩=Example,
-%  ⟨\textcolor{CDROptions}{\textbf{engine}}⟩=tcbox,
-%  ⟨\textcolor{CDROptions}{\textbf{engine options}}⟩={
-%    colback=magenta!5!white,
-%    colframe=magenta!80!black,
-%    boxrule=5\fboxrule,
-%    fontupper=\sffamily\bfseries,
-%    title=\CDRGetOption{⟨\textcolor{CDROptions}{\textbf{label}}⟩},
-%  },
-%]
-%\textbf{⟨\lipsum[5][7]⟩}
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%This engine named \CDRCode|tcbox| was declared by next command
-%\begin{CDRBlock}[tags=src]
-%\CDRBlockEngineNew {⟨\MyMeta{engine name}⟩} {
-%  ⟨\MyMeta{begin engine instructions}⟩
-%} {
-%  ⟨\MyMeta{end engine instructions}⟩
-%}
-%\end{CDRBlock}
-%with \CDRCode|tcbox| as \MyMeta{engine name},
-%\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \MyMeta{begin engine instructions}, where \CDRCode[tags=src]|#1| will be replaced by whatever is provided for key \CDRCode[tags=options]|⟨\MyMetatt{engine name}⟩ engine options|, and as \MyMeta{end engine instructions}
-%\CDRCode[tags=src]|\end{tcolorbox}|. This command is availale to define a custom display engine as well.
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROptions}{\textbf{show tags=right}}⟩,
+]
+tags on the right
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=right,
+  frame=single,
+]
+tags on the right
+\end{CDRBlock}
 %
-%There is an engine named \CDRCode[tags=src]|default| which is always available and used by default.
-%The command \CDRCode[tags=src]|\CDRBlockEngineRenew| will be used to redefine engines, with a similar syntax.
-%Notice the \CDRCode[tags=src]|\CDRGetOption| command used to retrieve the value for the key \CDRCode[tags=options]|label|.
-%%
-%\begin{center}
-%\setlength{\arraycolsep}{0pt}
-%\begin{tabular}{p{0.495\columnwidth}p{0.495\columnwidth}}
-%The \pkg{coder} package also supports \pkg{fancyvrb} options to display frames, here is an example taken from the \pkg{fancyvrb} documentation:
-%\begin{CDRBlock}[
-%  tags=src,
-%  frame=single,
-%  framerule=1mm,
-%  framesep=3mm,
-%  rulecolor=\color{red},
-%  fillcolor=\color{yellow}
-%]
-%Verbatim line.
-%\end{CDRBlock}
-%&
-%\begin{CDRBlock}[tags=src, no top space]
-%\begin{⟨CDRBlock⟩}[
-%  frame=single,
-%  framerule=1mm,
-%  framesep=3mm,
-%  rulecolor=\color{red},
-%  fillcolor=\color{yellow}
-%]
-%Verbatim line.
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\end{tabular}
-%\end{center}
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROptions}{\textbf{show tags=same}}⟩,
+]
+tags like numbers
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=same,
+  numbers=left,
+  frame=single,
+]
+tags like numbers
+\end{CDRBlock}
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROptions}{\textbf{show tags=same}}⟩,
+]
+tags like numbers
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=same,
+  numbers=right,
+  frame=single,
+]
+tags like numbers
+\end{CDRBlock}
 %
-%\section{Miscellanées}
-%\subsection{Filtering}
-%One can display only a selected range of lines.
-%\begin{center}
-%\setlength{\arraycolsep}{0pt}
-%\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
-%\begin{CDRBlock}[tags=src,no top space]
-%\begin{⟨CDRBlock⟩}[
-%  ⟨\color{CDROptions}firstline=2⟩,
-%  ⟨\color{CDROptions}lastline=4⟩,
-%]
-%Line 1
-%Line 2 *
-%Line 3 *
-%Line 4 *
-%Line 5
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%The output reads
-%\begin{CDRBlock}[
-%  firstline=2,
-%  lastline=4,
-%]
-%Line 1
-%Line 2 *
-%Line 3 *
-%Line 4 *
-%Line 5
-%\end{CDRBlock}
-%&
-%\begin{CDRBlock}[tags=src,no top space]
-%\begin{⟨CDRBlock⟩}[
-%  ⟨\color{CDROptions}firstline=-3⟩,
-%  ⟨\color{CDROptions}lastline=-1⟩,
-%]
-%Line 1
-%Line 2 *
-%Line 3 *
-%Line 4 *
-%Line 5
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%The output reads
-%\begin{CDRBlock}[
-%  firstline=-3,
-%  lastline=-1,
-%]
-%Line 1
-%Line 2 *
-%Line 3 *
-%Line 4 *
-%Line 5
-%\end{CDRBlock}
-%&
-%\begin{CDRBlock}[tags=src,no top space]
-%\begin{⟨CDRBlock⟩}[
-%  ⟨\color{CDROptions}firstline=L.*2⟩,
-%  ⟨\color{CDROptions}lastline=L.*4⟩,
-%]
-%Line 1
-%Line 2 *
-%Line 3 *
-%Line 4 *
-%Line 5
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%The output reads
-%\begin{CDRBlock}[
-%  firstline=L.*2,
-%  lastline=L.*4,
-%]
-%Line 1
-%Line 2 *
-%Line 3 *
-%Line 4 *
-%Line 5
-%\end{CDRBlock}
-%\end{tabular}
-%\end{center}
-%In the middle column, non positive integers count lines from the end.
-%Notice that line numbering is 1 based such that the last line corresponds to index 0.
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROptions}{\textbf{show tags=mirror}}⟩,
+]
+tags in mirror
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=mirror,
+  numbers=left,
+  frame=single,
+]
+tags in mirror
+\end{CDRBlock}
 %
-%In the last column, the option \CDRCode[tags=options]|firstline=L.*2| means: from the first line that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|, according to \LaTeX3 \url{interface3.pdf}.
-%Similarly, the option \CDRCode[tags=options]|lastline=L.*4| means: up to the first line, from the line found above, that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|.
-%%
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  tags = dummy,
+  ⟨\textcolor{CDROptions}{\textbf{show tags=mirror}}⟩,
+]
+tags in mirror
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags = dummy,
+  show tags=mirror,
+  numbers=right,
+  frame=single,
+]
+tags in mirror
+\end{CDRBlock}
+\end{multicols}
 %
-%\subsection{Spacing}
-%\label{sect:spacing}
-%For blocks, the size of the left and right margins can be adjusted.
-%On the second line below were used the options
-%\CDRCode[tags=options]|xleftmargin=3cm|
-%and \CDRCode[tags=options]|xrightmargin=2cm|
-%\begin{CDRBlock}[
-%  tags=normal margins,
-%  show tags=left,
-%  escapeinside=⟨⟩,
-%]
-%One line⟨\mboxfill{.}⟩
-%\end{CDRBlock}
-%\begin{CDRBlock}[
-%  tags=adjusted margins,
-%  show tags=left,
-%  xleftmargin=3cm,
-%  xrightmargin=2cm,
-%  escapeinside=⟨⟩,
-%]
-%One line⟨\mboxfill{.}⟩
-%\end{CDRBlock}
-%\begin{CDRBlock}[
-%  tags=adjusted margins,
-%  show tags=left,
-%  xleftmargin=3cm,
-%  xrightmargin=2cm,
-%  only top=false,
-%  numbersep=\dimexpr1ex+\CDRGetOption{xleftmargin}\relax,
-%  escapeinside=⟨⟩,
-%]
-%One line⟨\mboxfill{.}⟩
-%\end{CDRBlock}
-%The vertical alignment of the first and last tags on their right side
-%is obtained with option \CDRCode[tags=options]|numbersep=\dimexpr1ex+\CDRGetOption{xleftmargin}\relax|
-%for the third block.
-%Notice the usage of \CDRCode|\CDRGetOption| to retrieve the value for the 
-%\CDRCode[tags=src]|xleftmargin| key.
+\subsection{Line numbering}
+\label{sect:line numbering}
+Line numbering only makes sense for blocks of code.
+Options are illustrated below, to the right of each source.
+\begin{center}
+\setlength{\arraycolsep}{0pt}
+\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
 %
-%The vertical space before and after the blocks is governed by \CDRCode[tags=src]|\topsep|, \CDRCode[tags=src]|\partopsep| and \CDRCode[tags=src]|\parskip| like standard list are.
-%In addition, the \CDRCode[tags=options]|vspace|
-%options, which initial value is exactly \CDRCode[tags=src]|\topsep|, allows a supplemental adjustment:
-%\begin{center}
-%\setlength{\tabcolsep}{0pt}
-%\begin{tabular}{p{0.193\columnwidth}p{0.02\columnwidth}p{0.193\columnwidth}p{0.02\columnwidth}p{0.519\columnwidth}}
-%\lipsum[3][1]
-%\begin{CDRBlock}[
-%  tags=src,
-%]
-%Default vspace
-%\end{CDRBlock}
-%\lipsum[4][1]
-%&&
-%\lipsum[3][1]
-%\begin{CDRBlock}[
-%  tags=src,
-%  vspace=5mm,
-%]
-%vspace=5mm
-%\end{CDRBlock}
-%\lipsum[4][1]
-%&&
-%\lipsum[3][1]
-%\begin{CDRBlock}[
-%  tags=src,
-%  vspace=\dimexpr0.5\topsep-\partopsep\relax,
-%]
-%vspace=\dimexpr0.5\topsep-\partopsep\relax
-%\end{CDRBlock}
-%\lipsum[4][1]
-%\end{tabular}
-%\end{center}
-%The line height is inherited from the surrounding environment unless the baselinestrech factor has been provided. Columns 2 and 3 are enclosed in a \pkg{setspace} environment with one and a half line spacing. The last column also adds the \CDRCode[tags=options]|baselinstretch=2| option.
-%\begin{center}
-%\setlength{\tabcolsep}{0pt}
-%\begin{tabular}{p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}}
-%\lipsum[1][1]
-%\begin{CDRBlock}[
-%  tags=src,
-%]
-%Line 1
-%Line 2
-%\end{CDRBlock}
-%\lipsum[2][1]
-%&&
-%\begin{spacing}{1.5}
-%\lipsum[1][1]
-%\begin{CDRBlock}[
-%  tags=src,
-%]
-%Line 1
-%Line 2
-%\end{CDRBlock}
-%\lipsum[2][1]
-%\end{spacing}
-%&&
-%\begin{spacing}{1.5}
-%\lipsum[1][1]
-%\begin{CDRBlock}[
-%  tags=src,
-%  baselinestretch=2,
-%]
-%Line 1
-%Line 2
-%\end{CDRBlock}
-%\lipsum[2][1]
-%\end{spacing}
-%\end{tabular}
-%\end{center}
-%When used in itemize and enumerate lists or similar environments, the \CDRCode|CDRBlock| environment ignores the indentation. With option \CDRCode[tags=options]|resetmargins=false| it adapts its width to the indentation as occurs on the right:
-%\begin{center}
-%\setlength{\tabcolsep}{0mm}
-%\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-%\begin{minipage}[t]{0.85\linewidth}
-%\CDRSet{show tags=none}
-%\begin{CDRBlock}[tags=latex]
-%Line of code⟨\mboxfill{.}⟩
-%\end{CDRBlock}
-%\begin{itemize}
-%\item One
-%\begin{CDRBlock}
-%Line of code⟨\mboxfill{.}⟩
-%\end{CDRBlock}
-%\item Two
-%\begin{enumerate}
-%\item Three
-%\begin{CDRBlock}
-%Line of code⟨\mboxfill{.}⟩
-%\end{CDRBlock}
-%\end{enumerate}
-%\end{itemize}
-%\end{minipage}
-%&
-%\CDRSet{resetmargins=false,show tags=none}
-%\begin{minipage}[t]{0.85\linewidth}
-%\begin{CDRBlock}[tags=latex]
-%Line of code⟨\mboxfill{.}⟩
-%\end{CDRBlock}
-%\begin{itemize}
-%\item One
-%\begin{CDRBlock}
-%Line of code⟨\mboxfill{.}⟩
-%\end{CDRBlock}
-%\item Two
-%\begin{enumerate}
-%\item Three
-%\begin{CDRBlock}
-%Line of code⟨\mboxfill{.}⟩
-%\end{CDRBlock}
-%\end{enumerate}
-%\end{itemize}
-%\end{minipage}
-%\end{tabular}
-%\end{center}
-%%
-%\subsection{Escaping to \LaTeX}
-%When some part of the code does not belong to the programming language,
-%it is possible to break temporarily the syntax coloring process with the \CDRCode[tags=options]|escapeinside={⟨\MyMeta{delimiters}⟩}| where \MyMeta{delimiters} is a placeholder for a string composed of two different characters, possibly without surrounding braces. 
-%The delimiters are removed and what is between them is typeset by \LaTeX. 
+\begin{CDRBlock}[
+  no top space,
+  tags=src,
+]
+\begin{⟨CDRBlock⟩}[
+  tags=X,
+  show tags=none,
+  numbers=left,
+  ⟨\textcolor{CDROptions}{\textbf{firstnumber=10}}⟩,
+  ⟨\textcolor{CDROptions}{\textbf{stepnumber=3}}⟩,
+]
+...
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+&
+\begin{CDRBlock}[
+  no top space,
+  tags=X,
+  show tags=none,
+  numbers=left,
+  firstnumber=10,
+  stepnumber=3,
+]
+line 1 numbered 10
+line 2
+line 3 numbered 12
+line 4
+line 5
+line 6 numbered 15
+line 7
+line 8
+line 9 numbered 18
+\end{CDRBlock}
+&
+\end{tabular}
+\end{center}
+Blocks with the same leftmost tag can be numbered continuously with option \CDRCode[tags=src]|firstnumber=last|, the next one starting just after the previous has stopped.
+\begin{center}
+\setlength{\arraycolsep}{0pt}
+\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
 %
-%The source code for the previous instruction was entered with
-%\begin{CDRBlock}[tags=src]
-%\CDRCode[escapeinside={()},...]|escapeinside={(\MyMeta{delimiters})}|
-%\end{CDRBlock}
-%Where \CDRCode[tags=src]|\MyMeta| is a private command.
-%The delimiters must not be part of the code, the unicode characters $\langle$ and $\rangle$ are suitable amongst many others.
+\begin{CDRBlock}[
+  no top space,
+  tags=src,
+]
+\begin{⟨CDRBlock⟩}[
+  tags=X,
+  show tags=none,
+  numbers=left,
+  ⟨\textcolor{CDROptions}{\textbf{firstnumber=last}}⟩,
+  ⟨\textcolor{CDROptions}{\textbf{stepnumber=4}}⟩,
+]
+...
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+&
+\RenewDocumentCommand\CDRNumberMain{m}{%
+  \color{CDROptions}\bfseries#1
+  \color{.!25!white}\makebox[4mm]{\mboxfill[0.75mm]{.}}%
+}
+\RenewDocumentCommand\CDRNumberOther{m}{%
+  \color{lightgray}#1%
+}
+\begin{CDRBlock}[
+  no top space,
+  tags=X,
+  show tags=none,
+  numbers=left,
+  firstnumber=last,
+  stepnumber=4,
+]
+line 1
+line 2 numbered 20
+line 3
+line 4
+line 5
+line 6 numbered 24
+line 7
+line 8
+line 9
+\end{CDRBlock}
+&
+\end{tabular}
+\end{center}
 %
-%\subsection{Cross references}
-%\label{sect:xrefs}
-%We can always refer to the page of a specific code extract with the \CDRCode|reflabel=⟨\MyMeta{label name}⟩| option. This is how we know that \CDRCodeUse[tags=src,style=default]{UNIK key} was also used on page \pageref{UNIK key}. For block code, this is similar:
-%\begin{center}
-%\setlength{\tabcolsep}{0mm}%
-%\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-%\begin{CDRBlock}[
-%  tags=src,
-%  reflabel=My,
-%  no top space,
-%]
-%\begin{⟨CDRBlock⟩}[reflabel=My]
-%⟨\lipsum[1][3]⟩
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%&
-%On the second typeset run, we have
-%\CDRCode[tags=src]|\pageref{My}| = \pageref{My}.
-%\end{tabular}
-%\end{center}
-%Line references are also available: \CDRCode|escapeinside| is used to define 2 characters that will delimit some \LaTeX{} instructions to be executed, here \CDRCode[tags=latex]|\label{line.421}|.
-%\begin{center}
-%\setlength{\tabcolsep}{0pt}
-%\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-%\begin{CDRBlock}[tags=src, no top space]
-%\begin{⟨CDRBlock⟩}[
-%  numbers=left,
-%  firstnumber=421,
-%  escapeinside=||,
-%]
-%line 421|\label{line.421}|
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%&
-%which output simply reads
-%\begin{CDRBlock}[
-%  numbers=left,
-%  firstnumber=421,
-%  escapeinside=||,
-%]
-%line 421|\label{line.421}|
-%\end{CDRBlock}
-%\CDRCode|\ref*{line.421}| = \ref*{line.421}.
-%However this does not play well with \pkg{hyperref} hence the starred command.
-%\end{tabular}
-%\end{center}
-%It can be used as well when \pkg{pygments} is not available.
-%\begin{center}
-%\CDRSet{pygments=false}
-%\setlength{\tabcolsep}{0pt}
-%\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-%\begin{CDRBlock}[tags=src, no top space]
-%\begin{⟨CDRBlock⟩}[
-%  numbers=left,
-%  firstnumber=123,
-%  escapeinside=||,
-%]
-%line 123|\label{line.123}|
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%&
-%which output simply reads
-%\begin{CDRBlock}[
-%  numbers=left,
-%  firstnumber=123,
-%  escapeinside=||,
-%]
-%line 123|\label{line.123}|
-%\end{CDRBlock}
-%\CDRCode|\ref*{line.123}| = \ref*{line.123}.
-%This does not play well with \pkg{hyperref} hence the starred command.
-%\end{tabular}
-%\end{center}
-%Cross references can be used with saved block, with some extra precaution.
-%Here for example, the label is dynamically based on the macro \CDRCode|\My|.
-%\begin{center}
-%\CDRSet{pygments=true, numbers=left}
-%\setlength{\tabcolsep}{0pt}
-%\begin{tabular}{p{0.433\linewidth}p{0.283\linewidth}p{0.283\linewidth}}
-%\begin{CDRBlock}[tags=src, no top space]
-%\begin{⟨CDRBlockSave⟩}{MyBlock}
-%line 421 or 123|\label{line.\My}|
-%\end{⟨CDRBlock⟩}
-%\end{CDRBlock}
-%\newcommand\My{A}
-%\begin{CDRBlockSave}{MyBlock}
-%line 421 or 123|\label{line.\My}|
-%\end{CDRBlockSave}
-%&
-%First use:
-%\begin{CDRBlock}
-%\newcommand\My{A}
-%\CDRBlockUse[
-%  escapeinside=||,
-%  numbers=left,
-%  firstnumber=421,
-%]{MyBlock}
-%\end{CDRBlock}
-%which reads
-%\newcommand\My{A}
-%\CDRBlockUse[
-%  escapeinside=||,
-%  numbers=left,
-%  firstnumber=421,
-%]{MyBlock}
-%&
-%Second use:
-%\begin{CDRBlock}
-%\newcommand\My{B}
-%\CDRBlockUse[
-%  escapeinside=||,
-%  numbers=left,
-%  firstnumber=123,
-%]{MyBlock}
-%\end{CDRBlock}
-%which reads
-%\newcommand\My{B}
-%\CDRBlockUse[
-%  escapeinside=||,
-%  numbers=left,
-%  firstnumber=123,
-%]{MyBlock}
-%\end{tabular}
-%\end{center}
-%We get for the first use, \CDRCode|\ref*{line.A}| = \ref*{line.A}
-%and for the second use \CDRCode|\ref*{line.B}| = \ref*{line.B}.
-%\subsection{The \CDRCodeUse[tags=src]{CDRMeta} command}
-%It is common practice to emphasize \CDRMeta{concepts}
-%or \CDRMeta*{metadata} by enclosing them between angle brackets.
-%This is achieved with \CDRCode[tags=src]|\CDRMeta{concepts}| or \CDRCode|\CDRMeta*{metadata}|.
-%\texttt{If the current font family is tt, then the aspect is swapped: \CDRMeta{concepts} or \CDRMeta*{metadata}.}
+Above, the intermediate line numbers were displayed by redefining the command \CDRCode[tags=src]|\CDRNumberOther| that defaults to no operation:
+\begin{CDRBlock}[tags=src]
+\RenewDocumentCommand\CDRNumberOther{m}{%
+  \color{lightgray}#1%
+}
+\end{CDRBlock}
+Similarly, the command \CDRCode[tags=src]|\CDRNumberMain| to display the main line numbers has been redefined with the help of the \pkg{mboxfill} package:
+\begin{CDRBlock}[tags=src]
+\RenewDocumentCommand\CDRNumberMain{m}{%
+  \color{⟨\MyMeta{color}⟩}\bfseries#1
+  \color{.!25!white}\makebox[4mm]{\mboxfill[0.75mm]{.}}%
+}
+\end{CDRBlock}
+\subsection{Frames}
+\label{sect:frames}
 %
-%By redefining the macro \CDRCode|\CDRMetaFormat|,
-%one can modify the aspect:
-%\begin{CDRBlockSave}{CDRMetaFormat}
-%\renewcommand\CDRMetaFormat{\itshape\color{magenta}}
-%\end{CDRBlockSave}
-%\begin{CDRBlock}
-%\renewcommand\CDRMetaFormat{\itshape\color{magenta}}
-%\end{CDRBlock}
-%%\CDRBlockUse{CDRMetaFormat}%
-%\ExplSyntaxOn
+\subsubsection{Inline code}
+When the \pkg{efbox} package is loaded, inline code can be framed by adding the option \CDRCode|engine=efbox|: \CDRCode[
+  engine=efbox,
+  efbox engine options={
+    backgroundcolor=magenta!5!white,
+    linecolor=magenta!80!black,
+    linewidth=5\fboxrule,
+  }
+] |\textbf{⟨\lipsum[5][7]⟩}|.
+It is possible to pass any option of the \pkg{efbox} package with the key \CDRCode[mbox=false]|efbox engine options|, here is the source of the previous magenta box
+\begin{CDRBlock}[tags=src]
+\CDRCode[
+  ⟨\textcolor{CDROptions}{\textbf{engine}}⟩=efbox,
+  ⟨\textcolor{CDROptions}{\textbf{efbox engine options}}⟩={
+    backgroundcolor=magenta!5!white,
+    linecolor=magenta!80!black,
+    linewidth=5\fboxrule,
+  }
+] |\textbf{⟨\lipsum[5][7]⟩}|
+\end{CDRBlock}
+This engine named \CDRCode|efbox| was declared by next command
+\begin{CDRBlock}[tags=src]
+\CDRCodeEngineNew {⟨\MyMeta{engine name}⟩} {
+  ⟨\MyMeta{engine instructions}⟩
+}
+\end{CDRBlock}
+with \CDRCode|efbox| as \MyMeta{engine name},
+and \CDRCode[tags=src]|\efbox[#1]{#2}| as \MyMeta{engine instructions}. It can be used to define a custom display engine as well.
+
+There is an engine named \CDRCode[tags=src]|default| which is always available and used by default. The command \CDRCode[tags=src]|\CDRCodeEngineRenew| will be used to redefine engines, with a similar syntax.
 %
-%\ExplSyntaxOff
-%gives for example
-%{\CDRBlockExe{CDRMetaFormat}
-%\CDRMeta{concepts}} instead of \CDRMeta{concepts}
-%%
-%\section{The \CDRCodeUse[tags=src]{CDRInput} command}
-%This is perhaps one of the key features of this package.
-%It allows to input a source file and typeset the embedded documentation in \LaTeX. Only the core technology is provided as we can see in next example.
+\subsubsection{Block code}
+If the \pkg{tcolorbox} package is loaded,
+then blocks of code can be framed by adding the option \CDRCode|engine=tcbox|
+\begin{CDRBlock}[
+  label=Example,
+  engine=tcbox,
+  tcbox engine options={
+    colback=magenta!5!white,
+    colframe=magenta!80!black,
+    boxrule=5\fboxrule,
+    fonttitle=\sffamily\bfseries,
+  },
+  engine options = {
+    title=\CDRGetOption{label},
+  },
+]
+\textbf{⟨\lipsum[1][1]⟩}
+\end{CDRBlock}
+It is possible to pass any option of the \pkg{tcolorbox} package with the key \CDRCode[mbox=false,tags=options]|engine options|, here is the source of the magenta box above
+\begin{CDRBlock}[tags=src]
+\begin{⟨CDRBlock⟩}[
+  ⟨\textcolor{CDROptions}{\textbf{label}}⟩=Example,
+  ⟨\textcolor{CDROptions}{\textbf{engine}}⟩=tcbox,
+  ⟨\textcolor{CDROptions}{\textbf{engine options}}⟩={
+    colback=magenta!5!white,
+    colframe=magenta!80!black,
+    boxrule=5\fboxrule,
+    fontupper=\sffamily\bfseries,
+    title=\CDRGetOption{⟨\textcolor{CDROptions}{\textbf{label}}⟩},
+  },
+]
+\textbf{⟨\lipsum[5][7]⟩}
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+This engine named \CDRCode|tcbox| was declared by next command
+\begin{CDRBlock}[tags=src]
+\CDRBlockEngineNew {⟨\MyMeta{engine name}⟩} {
+  ⟨\MyMeta{begin engine instructions}⟩
+} {
+  ⟨\MyMeta{end engine instructions}⟩
+}
+\end{CDRBlock}
+with \CDRCode|tcbox| as \MyMeta{engine name},
+\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \MyMeta{begin engine instructions}, where \CDRCode[tags=src]|#1| will be replaced by whatever is provided for key \CDRCode[tags=options]|⟨\MyMetatt{engine name}⟩ engine options|, and as \MyMeta{end engine instructions}
+\CDRCode[tags=src]|\end{tcolorbox}|. This command is availale to define a custom display engine as well.
+
+There is an engine named \CDRCode[tags=src]|default| which is always available and used by default.
+The command \CDRCode[tags=src]|\CDRBlockEngineRenew| will be used to redefine engines, with a similar syntax.
+Notice the \CDRCode[tags=src]|\CDRGetOption| command used to retrieve the value for the key \CDRCode[tags=options]|label|.
 %
-%  Here is the raw content of file \pkg{coder-driver-lua.lua} typeset with \pkg{pygments} xcode style:
-%\CDRSet{tags/lua={
-%  numbers=left,
-%  show tags=left,
-%  stepnumber=5,
-%}}
-%\CDRInput[tags=lua|xcode,first line=18]{coder-driver-lua.lua}
-%This was input with command
-%\begin{CDRBlock}[tags=src]
-%\CDRInput[tags=lua,first line=18]{coder-driver-lua.lua}
-%\end{CDRBlock}
-%The lines from 1 to 17 are hidden due to the
-%\CDRCode|first line=18| option.
-%With option \CDRCode|last line=-5|, the 5 last lines would have been hidden as well.
+\begin{center}
+\setlength{\arraycolsep}{0pt}
+\begin{tabular}{p{0.495\columnwidth}p{0.495\columnwidth}}
+The \pkg{coder} package also supports \pkg{fancyvrb} options to display frames, here is an example taken from the \pkg{fancyvrb} documentation:
+\begin{CDRBlock}[
+  tags=src,
+  frame=single,
+  framerule=1mm,
+  framesep=3mm,
+  rulecolor=\color{red},
+  fillcolor=\color{yellow}
+]
+Verbatim line.
+\end{CDRBlock}
+&
+\begin{CDRBlock}[tags=src, no top space]
+\begin{⟨CDRBlock⟩}[
+  frame=single,
+  framerule=1mm,
+  framesep=3mm,
+  rulecolor=\color{red},
+  fillcolor=\color{yellow}
+]
+Verbatim line.
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\end{tabular}
+\end{center}
+
+\section{Miscellanées}
+\subsection{Filtering}
+One can display only a selected range of lines.
+\begin{center}
+\setlength{\arraycolsep}{0pt}
+\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}firstline=2⟩,
+  ⟨\color{CDROptions}lastline=4⟩,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output reads
+\begin{CDRBlock}[
+  firstline=2,
+  lastline=4,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{CDRBlock}
+&
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}firstline=-3⟩,
+  ⟨\color{CDROptions}lastline=-1⟩,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output reads
+\begin{CDRBlock}[
+  firstline=-3,
+  lastline=-1,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{CDRBlock}
+&
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}firstline=L.*2⟩,
+  ⟨\color{CDROptions}lastline=L.*4⟩,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output reads
+\begin{CDRBlock}[
+  firstline=L.*2,
+  lastline=L.*4,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{CDRBlock}
+\end{tabular}
+\end{center}
+In the middle column, non positive integers count lines from the end.
+Notice that line numbering is 1 based such that the last line corresponds to index 0.
+
+In the last column, the option \CDRCode[tags=options]|firstline=L.*2| means: from the first line that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|, according to \LaTeX3 \url{interface3.pdf}.
+Similarly, the option \CDRCode[tags=options]|lastline=L.*4| means: up to the first line, from the line found above, that matches the regular expression pattern \CDRCode[tags=src]|"L.*2"|.
 %
-%If we add the option \CDRCode|driver=lua|, then the embedded documentation is typeset on its own.
+
+\subsection{Spacing}
+\label{sect:spacing}
+For blocks, the size of the left and right margins can be adjusted.
+On the second line below were used the options
+\CDRCode[tags=options]|xleftmargin=3cm|
+and \CDRCode[tags=options]|xrightmargin=2cm|
+\begin{CDRBlock}[
+  tags=normal margins,
+  show tags=left,
+  escapeinside=⟨⟩,
+]
+One line⟨\mboxfill{.}⟩
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags=adjusted margins,
+  show tags=left,
+  xleftmargin=3cm,
+  xrightmargin=2cm,
+  escapeinside=⟨⟩,
+]
+One line⟨\mboxfill{.}⟩
+\end{CDRBlock}
+\begin{CDRBlock}[
+  tags=adjusted margins,
+  show tags=left,
+  xleftmargin=3cm,
+  xrightmargin=2cm,
+  only top=false,
+  numbersep=\dimexpr1ex+\CDRGetOption{xleftmargin}\relax,
+  escapeinside=⟨⟩,
+]
+One line⟨\mboxfill{.}⟩
+\end{CDRBlock}
+The vertical alignment of the first and last tags on their right side
+is obtained with option \CDRCode[tags=options]|numbersep=\dimexpr1ex+\CDRGetOption{xleftmargin}\relax|
+for the third block.
+Notice the usage of \CDRCode|\CDRGetOption| to retrieve the value for the 
+\CDRCode[tags=src]|xleftmargin| key.
+
+The vertical space before and after the blocks is governed by \CDRCode[tags=src]|\topsep|, \CDRCode[tags=src]|\partopsep| and \CDRCode[tags=src]|\parskip| like standard list are.
+In addition, the \CDRCode[tags=options]|vspace|
+options, which initial value is exactly \CDRCode[tags=src]|\topsep|, allows a supplemental adjustment:
+\begin{center}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.193\columnwidth}p{0.02\columnwidth}p{0.193\columnwidth}p{0.02\columnwidth}p{0.519\columnwidth}}
+\lipsum[3][1]
+\begin{CDRBlock}[
+  tags=src,
+]
+Default vspace
+\end{CDRBlock}
+\lipsum[4][1]
+&&
+\lipsum[3][1]
+\begin{CDRBlock}[
+  tags=src,
+  vspace=5mm,
+]
+vspace=5mm
+\end{CDRBlock}
+\lipsum[4][1]
+&&
+\lipsum[3][1]
+\begin{CDRBlock}[
+  tags=src,
+  vspace=\dimexpr0.5\topsep-\partopsep\relax,
+]
+vspace=\dimexpr0.5\topsep-\partopsep\relax
+\end{CDRBlock}
+\lipsum[4][1]
+\end{tabular}
+\end{center}
+The line height is inherited from the surrounding environment unless the baselinestrech factor has been provided. Columns 2 and 3 are enclosed in a \pkg{setspace} environment with one and a half line spacing. The last column also adds the \CDRCode[tags=options]|baselinstretch=2| option.
+\begin{center}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}}
+\lipsum[1][1]
+\begin{CDRBlock}[
+  tags=src,
+]
+Line 1
+Line 2
+\end{CDRBlock}
+\lipsum[2][1]
+&&
+\begin{spacing}{1.5}
+\lipsum[1][1]
+\begin{CDRBlock}[
+  tags=src,
+]
+Line 1
+Line 2
+\end{CDRBlock}
+\lipsum[2][1]
+\end{spacing}
+&&
+\begin{spacing}{1.5}
+\lipsum[1][1]
+\begin{CDRBlock}[
+  tags=src,
+  baselinestretch=2,
+]
+Line 1
+Line 2
+\end{CDRBlock}
+\lipsum[2][1]
+\end{spacing}
+\end{tabular}
+\end{center}
+When used in itemize and enumerate lists or similar environments, the \CDRCode|CDRBlock| environment ignores the indentation. With option \CDRCode[tags=options]|resetmargins=false| it adapts its width to the indentation as occurs on the right:
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{minipage}[t]{0.85\linewidth}
+\CDRSet{show tags=none}
+\begin{CDRBlock}[tags=latex]
+Line of code⟨\mboxfill{.}⟩
+\end{CDRBlock}
+\begin{itemize}
+\item One
+\begin{CDRBlock}
+Line of code⟨\mboxfill{.}⟩
+\end{CDRBlock}
+\item Two
+\begin{enumerate}
+\item Three
+\begin{CDRBlock}
+Line of code⟨\mboxfill{.}⟩
+\end{CDRBlock}
+\end{enumerate}
+\end{itemize}
+\end{minipage}
+&
+\CDRSet{resetmargins=false,show tags=none}
+\begin{minipage}[t]{0.85\linewidth}
+\begin{CDRBlock}[tags=latex]
+Line of code⟨\mboxfill{.}⟩
+\end{CDRBlock}
+\begin{itemize}
+\item One
+\begin{CDRBlock}
+Line of code⟨\mboxfill{.}⟩
+\end{CDRBlock}
+\item Two
+\begin{enumerate}
+\item Three
+\begin{CDRBlock}
+Line of code⟨\mboxfill{.}⟩
+\end{CDRBlock}
+\end{enumerate}
+\end{itemize}
+\end{minipage}
+\end{tabular}
+\end{center}
+%
+\subsection{Escaping to \LaTeX}
+When some part of the code does not belong to the programming language,
+it is possible to break temporarily the syntax coloring process with the \CDRCode[tags=options]|escapeinside={⟨\MyMeta{delimiters}⟩}| where \MyMeta{delimiters} is a placeholder for a string composed of two different characters, possibly without surrounding braces. 
+The delimiters are removed and what is between them is typeset by \LaTeX. 
+
+The source code for the previous instruction was entered with
+\begin{CDRBlock}[tags=src]
+\CDRCode[escapeinside={()},...]|escapeinside={(\MyMeta{delimiters})}|
+\end{CDRBlock}
+Where \CDRCode[tags=src]|\MyMeta| is a private command.
+The delimiters must not be part of the code, the unicode characters $\langle$ and $\rangle$ are suitable amongst many others.
+
+\subsection{Cross references}
+\label{sect:xrefs}
+We can always refer to the page of a specific code extract with the \CDRCode|reflabel=⟨\MyMeta{label name}⟩| option. This is how we know that \CDRCodeUse[tags=src,style=default]{UNIK key} was also used on page \pageref{UNIK key}. For block code, this is similar:
+\begin{center}
+\setlength{\tabcolsep}{0mm}%
+\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{CDRBlock}[
+  tags=src,
+  reflabel=My,
+  no top space,
+]
+\begin{⟨CDRBlock⟩}[reflabel=My]
+⟨\lipsum[1][3]⟩
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+&
+On the second typeset run, we have
+\CDRCode[tags=src]|\pageref{My}| = \pageref{My}.
+\end{tabular}
+\end{center}
+Line references are also available: \CDRCode|escapeinside| is used to define 2 characters that will delimit some \LaTeX{} instructions to be executed, here \CDRCode[tags=latex]|\label{line.421}|.
+\begin{center}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{CDRBlock}[tags=src, no top space]
+\begin{⟨CDRBlock⟩}[
+  numbers=left,
+  firstnumber=421,
+  escapeinside=||,
+]
+line 421|\label{line.421}|
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+&
+which output simply reads
+\begin{CDRBlock}[
+  numbers=left,
+  firstnumber=421,
+  escapeinside=||,
+]
+line 421|\label{line.421}|
+\end{CDRBlock}
+\CDRCode|\ref*{line.421}| = \ref*{line.421}.
+However this does not play well with \pkg{hyperref} hence the starred command.
+\end{tabular}
+\end{center}
+It can be used as well when \pkg{pygments} is not available.
+\begin{center}
+\CDRSet{pygments=false}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{CDRBlock}[tags=src, no top space]
+\begin{⟨CDRBlock⟩}[
+  numbers=left,
+  firstnumber=123,
+  escapeinside=||,
+]
+line 123|\label{line.123}|
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+&
+which output simply reads
+\begin{CDRBlock}[
+  numbers=left,
+  firstnumber=123,
+  escapeinside=||,
+]
+line 123|\label{line.123}|
+\end{CDRBlock}
+\CDRCode|\ref*{line.123}| = \ref*{line.123}.
+This does not play well with \pkg{hyperref} hence the starred command.
+\end{tabular}
+\end{center}
+Cross references can be used with saved block, with some extra precaution.
+Here for example, the label is dynamically based on the macro \CDRCode|\My|.
+\begin{center}
+\CDRSet{pygments=true, numbers=left}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.433\linewidth}p{0.283\linewidth}p{0.283\linewidth}}
+\begin{CDRBlock}[tags=src, no top space]
+\begin{⟨CDRBlockSave⟩}{MyBlock}
+line 421 or 123|\label{line.\My}|
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\newcommand\My{A}
+\begin{CDRBlockSave}{MyBlock}
+line 421 or 123|\label{line.\My}|
+\end{CDRBlockSave}
+&
+First use:
+\begin{CDRBlock}
+\newcommand\My{A}
+\CDRBlockUse[
+  escapeinside=||,
+  numbers=left,
+  firstnumber=421,
+]{MyBlock}
+\end{CDRBlock}
+which reads
+\newcommand\My{A}
+\CDRBlockUse[
+  escapeinside=||,
+  numbers=left,
+  firstnumber=421,
+]{MyBlock}
+&
+Second use:
+\begin{CDRBlock}
+\newcommand\My{B}
+\CDRBlockUse[
+  escapeinside=||,
+  numbers=left,
+  firstnumber=123,
+]{MyBlock}
+\end{CDRBlock}
+which reads
+\newcommand\My{B}
+\CDRBlockUse[
+  escapeinside=||,
+  numbers=left,
+  firstnumber=123,
+]{MyBlock}
+\end{tabular}
+\end{center}
+We get for the first use, \CDRCode|\ref*{line.A}| = \ref*{line.A}
+and for the second use \CDRCode|\ref*{line.B}| = \ref*{line.B}.
+\subsection{The \CDRCodeUse[tags=src]{CDRMeta} command}
+It is common practice to emphasize \CDRMeta{concepts}
+or \CDRMeta*{metadata} by enclosing them between angle brackets.
+This is achieved with \CDRCode[tags=src]|\CDRMeta{concepts}| or \CDRCode|\CDRMeta*{metadata}|.
+\texttt{If the current font family is tt, then the aspect is swapped: \CDRMeta{concepts} or \CDRMeta*{metadata}.}
+
+By redefining the macro \CDRCode|\CDRMetaFormat|,
+one can modify the aspect:
+\begin{CDRBlockSave}{CDRMetaFormat}
+\renewcommand\CDRMetaFormat{\itshape\color{magenta}}
+\end{CDRBlockSave}
+\begin{CDRBlock}
+\renewcommand\CDRMetaFormat{\itshape\color{magenta}}
+\end{CDRBlock}
+%\CDRBlockUse{CDRMetaFormat}%
+\ExplSyntaxOn
+
+\ExplSyntaxOff
+gives for example
+{\CDRBlockExe{CDRMetaFormat}
+\CDRMeta{concepts}} instead of \CDRMeta{concepts}
+%
+\section{The \CDRCodeUse[tags=src]{CDRInput} command}
+This is perhaps one of the key features of this package.
+It allows to input a source file and typeset the embedded documentation in \LaTeX. Only the core technology is provided as we can see in next example.
+
+  Here is the raw content of file \pkg{coder-driver-lua.lua} typeset with \pkg{pygments} xcode style:
+\CDRSet{tags/lua={
+  numbers=left,
+  show tags=left,
+  stepnumber=5,
+}}
+\CDRInput[tags=lua|xcode,first line=18]{coder-driver-lua.lua}
+This was input with command
+\begin{CDRBlock}[tags=src]
+\CDRInput[tags=lua,first line=18]{coder-driver-lua.lua}
+\end{CDRBlock}
+The lines from 1 to 17 are hidden due to the
+\CDRCode|first line=18| option.
+With option \CDRCode|last line=-5|, the 5 last lines would have been hidden as well.
+
+If we add the option \CDRCode|driver=lua|, then the embedded documentation is typeset on its own.
 \begin{CDRBlockSave}{coder environment}
 \newtcolorbox{coder}[1]{
   box align=top,
@@ -1141,496 +1132,481 @@ Writing new ones is not difficult as soon as the programming languages supports 
 considering that already existing drivers may serve as starting points.
 
 \CDRInput[tags=xcode|py,first line=2,driver=py]{coder_test.py}
-\makeatletter
-\def\CDR@Debug#1{\typeout{**** CDR DEBUG #1}}
-\makeatother
-TEST
-\directlua{CDR.debug=true}
-\ExplSyntaxOn
-\directlua{
-lines={
-'',
-}
-}
-\ExplSyntaxOff
 \CDRInput[tags=xcode,lang=c,driver=raw]{coder_test.c}
 
-THIS IS THE END
-%%%%%%
-%%%%%%
-%%%%%%\section{The \CDRCodeUse[tags=src]{CDRSet} command}
-%%%%%%So far we have provided the various \pkg{coder} commands and environments with key--value options. The \CDRCodeUse[tags=src]{CDRSet} command allows to apply some setting once for all code snippets, moreover it can collect setting in style, already used above with tag names.
-%%%%%%%
-%%%%%%\subsection{General settings}
-%%%%%%Next command will turn the color of any forthcoming code snippet in dark magenta.
-%%%%%%\begin{CDRBlock}[tags=src]
-%%%%%%\CDRSet{format=\color{magenta!10!black}}
-%%%%%%\end{CDRBlock}
-%%%%%%The changes are local to the \LaTeX\ environment where they are performed.
-%%%%%%\subsection{Styling}
-%%%%%%\label{sect:styling}
-%%%%%%If some options may not be set globally and should only apply on demand, because for example different programming languages are used, then we specify a tag name like \CDRCode[tags=options]|lua| or \CDRCode[tags=options]|py|:
-%%%%%%\begin{CDRBlock}[tags=src]
-%%%%%%\CDRSet{
-%%%%%%  tags/⟨\color{CDROptions}lua⟩/lang=lua,
-%%%%%%  tags/⟨\color{CDROptions}py⟩/lang=python,
-%%%%%%}
-%%%%%%\end{CDRBlock}
-%%%%%%We can also specify at once many tag names separated by a \CDRCode[tags=src]?|?, each setting applying separately to each named tag.
-%%%%%%\begin{CDRBlock}[tags=src]
-%%%%%%\CDRSet{tags/⟨\color{CDROptions}lua⟩|⟨\color{CDROptions}py⟩/pygments=true}
-%%%%%%\end{CDRBlock}
-%%%%%%Finally, changing many options at once for the same tag is also possible:
-%%%%%%\begin{CDRBlock}[tags=src]
-%%%%%%\CDRSet{tags/⟨\color{CDROptions}lua⟩={
-%%%%%%  showspaces=true,
-%%%%%%  no export=true,
-%%%%%%} }
-%%%%%%\end{CDRBlock}
-%%%%%%\subsection{Tags}
-%%%%%%\label{sect:tags}
-%%%%%%Tags are used not only for styling but also for continuous line numbering (section \ref{sect:line numbering}) and exportation (section \ref{sect:exportation}). If only one tag is used and there is no exportation, it can be omitted.
-%%%%%%
-%%%%%%Tag names must not contain commas nor pipe characters, moreover, names with exactly two leading underscores are reserved by the \pkg{coder} package.
-%%%%%%More names are reserved by the \pkg{coder} package, but they are available to the user. They need not appear in a \CDRCode[tags=src]?tags=...? setting. Options set for the tag name \CDRCode[tags=src]?default? automatically apply to any forthcoming code snippet. Any option set for the tag name \CDRCode[tags=src]?default.code? applies to any forthcoming code snippet displayed inline, eventually overriding the \CDRCode[tags=src]?default? setting. Finally, options set for tag name \CDRCode[tags=src]?default.block? apply to any forthcoming code snippet displayed in block, taking precedence over the \CDRCode[tags=src]?default? setting.
-%%%%%%
-%%%%%%\subsection{Engines options}
-%%%%%%Engine options are provided to the \CDRCode[tags=src]?CDRBlock? environment and the \CDRCode[tags=src]?\CDRCode? , \CDRCode[tags=src]?\CDRCodeUse? and \CDRCode[tags=src]?\CDRBlockUse? commands with key \CDRCode[tags=src]?engine options?. This does not refer to the engine name and is not suitable for the 
-%%%%%%\CDRCode[tags=src]?\CDRSet? command argument.
-%%%%%%Instead, one will use the key
-%%%%%%\CDRCode[tags=src,mbox=false]?⟨\color{CDROptions}\MyMetatt{engine name}⟩ engine options? to distinguish between the engines.
-%%%%%%
-%%%%%%\subsection{Options}
-%%%%%%\label{sect:options}
-%%%%%%\subsubsection{\texttt{default} tag}
-%%%%%%\begin{description}
-%%%%%%\itemtt[\CDRCheckGreen tags={\meta[1]{tag}|\meta[2]{tag}|...}]
-%%%%%%used for exportation (section \ref{sect:exportation}), for line numbering (section \ref{sect:line numbering}) and also for styling, see section \ref{sect:styling}.
-%%%%%%Initially a void list.
-%%%%%%\CDRMeta{tag} is subject to minor restrictions (section \ref{sect:tags}).
-%%%%%%%%%%% __engine
-%%%%%%\itemtt[\CDRCheckGreen engine=\CDRMeta{engine name}]
-%%%%%%to specify the engine used to display inline code or blocks, see section \ref{sect:frames}.
-%%%%%%Initially \CDRCode|default|.
-%%%%%%\itemtt[\CDRCheckRed \metatt{engine name} engine options=\CDRMeta{engine options}]
-%%%%%%to specify the options that should apply
-%%%%%%when the engine named \CDRMeta{engine name} is selected, see section \ref{sect:frames}.
-%%%%%%\itemtt[\CDRCheckGreen default engine options=\CDRMeta{engine options}]
-%%%%%%to specify the options for the default engine which is named \CDRCode|default|, see section \ref{sect:frames}.
-%%%%%%Initially empty, depends on the engine used.
-%%%%%%\itemtt[\CDRCheckGreen engine options=\CDRMeta{engine options}]
-%%%%%%options forwarded to the engine, see section \ref{sect:frames}.
-%%%%%%They are appended to the options
-%%%%%%given with key \CDRCode|⟨\MyMetatt{engine name}⟩ engine options|.
-%%%%%%Mainly a convenient user interface shortcut.
-%%%%%%Suitable for \CDRCode|\CDRCode| and \CDRCode|CDRBlock| but not for \CDRCode|\CDRSet|.
-%%%%%%%%%%% default
-%%%%%%\itemtt[\CDRCheckRed format=\CDRMeta{format commands}]
-%%%%%%the format used to display the code (mainly font, size and color),
-%%%%%%after the font has been selected.
-%%%%%%Initially empty.
-%%%%%%\itemtt[\CDRCheckRed debug{[=true|false]}]
-%%%%%%Set to \CDRCode|true| if various debugging messages should be printed to the console.
-%%%%%%Initially \CDRCode|false|.
-%%%%%%\itemtt[\CDRCheckRed pygments{[=true|false]}]
-%%%%%%whether \pkg{pygments} should be used for syntax coloring.
-%%%%%%Initially \CDRCode|true| if \pkg{pygments} is available,
-%%%%%%\CDRCode|false| otherwise.
-%%%%%%\itemtt[\CDRCheckRed lang=\CDRMeta{language name}]
-%%%%%%where \CDRMeta{language name} is recognized by \pkg{pygments}, including a void string,
-%%%%%%\itemtt[\CDRCheckRed style=\CDRMeta{style name}]
-%%%%%%where \CDRMeta{style name} is recognized by \pkg{pygments}, including a void string,
-%%%%%%\itemtt[\CDRCheckRed cache{[=true|false]}]
-%%%%%%Set to \CDRCode|true| if the \pkg{coder} package should use already existing files
-%%%%%%instead of creating new ones. When using \pkg{pygments} for syntax coloring the file \CDRCode|⟨\MyMetatt{file name}⟩.tex|, the companion script \verb|coder-tool.py| creates a folder named \CDRCode[tags=options]|⟨\MyMetatt{file name}⟩.pygd|. This is where intermediate files are stored and kept from one typesetting process to the next, which happens to save processing time. This folder can safely be removed, besides it will automatically be cleaned if there is no \CDRCode|⟨\MyMetatt{file name}⟩.aux| file yet.
-%%%%%%The option \CDRCode|cache=false| will disable this caching feature.
-%%%%%%
-%%%%%%Initially \CDRCode|true|.
-%%%%%%\itemtt[\CDRCheckRed escapeinside=\CDRMeta{delimiters}]
-%%%%%%If set to a string of length 2, enables escaping to \LaTeX{}. Text
-%%%%%%       delimited by these 2 characters is read as \LaTeX{} code and
-%%%%%%       typeset accordingly. It has no effect in string literals when
-%%%%%%       \pkg{pygments} is used.
-%%%%%%Initially empty.
-%%%%%%%\itemtt[\CDRCheckRed formatcom=\CDRMeta{command}]
-%%%%%%%execute before printing verbatim text.
-%%%%%%%Initially empty.
-%%%%%%\itemtt[\CDRCheckRed fontfamily=\CDRMeta{family name}]
-%%%%%%font family to use. \CDRCode|tt|, \CDRCode|courier| and \CDRCode|helvetica| are pre-defined.
-%%%%%%Initially \texttt{tt}.
-%%%%%%\begin{center}
-%%%%%%\setlength{\tabcolsep}{0mm}
-%%%%%%\begin{tabular}{p{0.303\linewidth}p{0.333\linewidth}p{0.363\linewidth}}
-%%%%%%\begin{CDRBlock}[tags=src,no top space]
-%%%%%%\begin{⟨CDRBlock⟩}[
-%%%%%%  ⟨\color{CDROptions}fontfamily=courier⟩,
-%%%%%%]
-%%%%%%This is courier
-%%%%%%\end{⟨CDRBlock⟩}
-%%%%%%\end{CDRBlock}
-%%%%%%The output reads
-%%%%%%\begin{CDRBlock}[
-%%%%%%  fontfamily=courier,
-%%%%%%]
-%%%%%%This is NOT courier
-%%%%%%\end{CDRBlock}
-%%%%%%&
-%%%%%%\begin{CDRBlock}[tags=src,no top space]
-%%%%%%\begin{⟨CDRBlock⟩}[
-%%%%%%  ⟨\color{CDROptions}fontfamily=helvetica⟩,
-%%%%%%]
-%%%%%%This is helvetica
-%%%%%%\end{⟨CDRBlock⟩}
-%%%%%%\end{CDRBlock}
-%%%%%%The output reads
-%%%%%%\begin{CDRBlock}[
-%%%%%%  fontfamily=helvetica,
-%%%%%%]
-%%%%%%This is helvetica
-%%%%%%\end{CDRBlock}
-%%%%%%&
-%%%%%%\begin{CDRBlock}[tags=src,no top space]
-%%%%%%\begin{⟨CDRBlock⟩}[
-%%%%%%  ⟨\color{CDROptions}fontfamily=TGC⟩,
-%%%%%%]
-%%%%%%This is TeX Gyre Cursor
-%%%%%%\end{⟨CDRBlock⟩}
-%%%%%%\end{CDRBlock}
-%%%%%%The output reads
-%%%%%%\begin{CDRBlock}[
-%%%%%%  fontfamily=TGC,
-%%%%%%]
-%%%%%%This is TeX Gyre Cursor
-%%%%%%\end{CDRBlock}
-%%%%%%\end{tabular}
-%%%%%%\end{center}
-%%%%%%The \CDRCode|TGC| font family was created with package \pkg{fontspec}
-%%%%%%and instruction
-%%%%%%\begin{CDRBlock}[tags=src]
-%%%%%%\newfontfamily\TGCFont{TeX Gyre Cursor}[NFSSFamily=TGC]
-%%%%%%\end{CDRBlock}
-%%%%%%\itemtt[\CDRCheckRed fontsize=\CDRMeta{font size}]
-%%%%%%size of the font to use. If you use the \pkg{relsize} package as well,
-%%%%%%you can require a change of the size proportional to the current one
-%%%%%%(for instance below, the option used is \CDRCode[mbox=false]|fontsize=\relsize{-2}| on the right, compared to \CDRCode[mbox=false]|fontsize=\small| on the left).
-%%%%%%Initially \texttt{auto}: the same as the current font.
-%%%%%%\begin{center}
-%%%%%%\setlength{\tabcolsep}{0mm}
-%%%%%%\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-%%%%%%\begin{minipage}[t]{0.85\linewidth}
-%%%%%%\CDRSet{show tags=none,fontsize=\small}
-%%%%%%\begin{CDRBlock}[tags=latex,escapeinside=⟨⟩]
-%%%%%%⟨\lipsum[3][1]⟩
-%%%%%%\end{CDRBlock}
-%%%%%%\end{minipage}
-%%%%%%&
-%%%%%%\CDRSet{show tags=none,fontsize=\relsize{-2}}
-%%%%%%\begin{minipage}[t]{0.85\linewidth}
-%%%%%%\begin{CDRBlock}[tags=latex,escapeinside=⟨⟩]
-%%%%%%⟨\lipsum[3][1]⟩
-%%%%%%\end{CDRBlock}
-%%%%%%\end{minipage}
-%%%%%%\end{tabular}
-%%%%%%\end{center}
-%%%%%%
-%%%%%%\itemtt[\CDRCheckRed fontshape=auto|up|it|sl|sc]
-%%%%%%font shape to use. Initially \texttt{auto}: the same as the current font.
-%%%%%%Here is the difference between slanted with \CDRCode|fontshape=sl| and italic with  \CDRCode|fontshape=it|.
-%%%%%%\begin{center}
-%%%%%%\setlength{\tabcolsep}{0mm}
-%%%%%%\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-%%%%%%\begin{minipage}[t]{0.85\linewidth}
-%%%%%%\CDRSet{show tags=none,fontshape=sl}
-%%%%%%\begin{CDRBlock}[tags=latex,escapeinside=⟨⟩]
-%%%%%%⟨\lipsum[3][1]⟩
-%%%%%%\end{CDRBlock}
-%%%%%%\end{minipage}
-%%%%%%&
-%%%%%%\CDRSet{show tags=none,fontshape=it}
-%%%%%%\begin{minipage}[t]{0.85\linewidth}
-%%%%%%\begin{CDRBlock}[tags=latex,escapeinside=⟨⟩]
-%%%%%%⟨\lipsum[3][1]⟩
-%%%%%%\end{CDRBlock}
-%%%%%%\end{minipage}
-%%%%%%\end{tabular}
-%%%%%%\end{center}
-%%%%%%\itemtt[\CDRCheckRed fontseries=auto|bf|md|lf]
-%%%%%%\LaTeX{} font ‘series’ to use.
-%%%%%%Initially \texttt{auto}: the same as the current font.
-%%%%%%\itemtt[\CDRCheckRed showspaces{[=true|false]}]
-%%%%%%print a special character representing each space.
-%%%%%%Initially \CDRCode|false|: spaces not shown.
-%%%%%%Spaces are not shown in escaped instructions.
-%%%%%%\begin{center}
-%%%%%%\setlength{\tabcolsep}{0mm}
-%%%%%%\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-%%%%%%\begin{minipage}[t]{0.85\linewidth}
-%%%%%%\CDRSet{show tags=none,showspaces,pygments=true}
-%%%%%%\begin{CDRBlock}[tags=latex]
-%%%%%%\textbf{In eu orci massa}
-%%%%%%\end{CDRBlock}
-%%%%%%\end{minipage}
-%%%%%%&
-%%%%%%\CDRSet{show tags=none,showspaces,pygments=false}
-%%%%%%\begin{minipage}[t]{0.85\linewidth}
-%%%%%%\begin{CDRBlock}[tags=latex]
-%%%%%%\textbf{In eu orci massa}
-%%%%%%\end{CDRBlock}
-%%%%%%\end{minipage}
-%%%%%%\end{tabular}
-%%%%%%\end{center}
-%%%%%%%%
-%%%%%%%\itemtt[\CDRCheckRed showtabs=true|false]
-%%%%%%%explicitly show tab characters.
-%%%%%%%Initially \CDRCode|false|: tab characters not shown.
-%%%%%%%Tabs are not shown in escaped instructions.
-%%%%%%%
-%%%%%%%\begin{center}
-%%%%%%%\setlength{\tabcolsep}{0mm}
-%%%%%%%\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-%%%%%%%\begin{minipage}[t]{0.85\linewidth}
-%%%%%%%\CDRSet{show tags=none,showspaces,pygments=true}
-%%%%%%%\begin{CDRBlock}[tags=latex]
-%%%%%%%\textbf{In	eu	orci	massa}
-%%%%%%%\end{CDRBlock}
-%%%%%%%\end{minipage}
-%%%%%%%&
-%%%%%%%\CDRSet{show tags=none,showspaces,pygments=false}
-%%%%%%%\begin{minipage}[t]{0.85\linewidth}
-%%%%%%%\begin{CDRBlock}[tags=latex]
-%%%%%%%\textbf{In	eu	orci	massa}
-%%%%%%%\end{CDRBlock}
-%%%%%%%\end{minipage}
-%%%%%%%\end{tabular}
-%%%%%%%\end{center}
-%%%%%%%
-%%%%%%
-%%%%%%%\itemtt[\CDRCheckRed obeytabs=true|false]
-%%%%%%%position characters according to the tabs.
-%%%%%%%Initially false: tab characters are added to the current position.
-%%%%%%%\itemtt[\CDRCheckRed tabsize=\CDRMeta{integer}]
-%%%%%%%number of spaces given by a tab character,
-%%%%%%%Initially 2 (8 for \pkg{fancyvrb}).
-%%%%%%%\itemtt[\CDRCheckRed defineactive=\CDRMeta{macro}]
-%%%%%%%to define the effect of active characters.
-%%%%%%%This allows to do some devious tricks, see the \pkg{fancyvrb} package.
-%%%%%%%Initially empty.
-%%%%%%\itemtt[\CDRCheckGreen reflabel=\CDRMeta{label}]
-%%%%%%define a label to be used with \CDRCode|\pageref|.
-%%%%%%Initially empty. See section \ref{sect:xrefs}.
-%%%%%%\end{description}
-%%%%%%%__tags, __engine, __pygments, default, 
-%%%%%%\subsubsection{\texttt{default.code} tag}
-%%%%%%\begin{description}
-%%%%%%\itemtt[\CDRCheckRed mbox{[=true|false]}]
-%%%%%%When set to \CDRCode|true|, put the argument inside a \LaTeX\ \CDRCode|\mbox| to prevent the code snippet to spread over different lines.
-%%%%%%Use option \CDRCode[tags=src]|mbox=false| to allow line breaking like this
-%%%%%%\CDRCode[tags=src,mbox=false]|⟨\lipsum[5][1-3]⟩|
-%%%%%%Initially \CDRCode|true|: no line breaking.
-%%%%%%\end{description}
-%%%%%%\subsubsection{\texttt{default.block} tag}
-%%%%%%\begin{description}
-%%%%%%\itemtt[\CDRCheckRed no~export{[=true|false]}]
-%%%%%%to ignore this code snippet at export time.
-%%%%%%\itemtt[\CDRCheckRed no export format=\MyMeta{format commands}]
-%%%%%%a list of formatting instructions appended to \CDRCode|format|, \CDRCode|tags format| and \CDRCode|numbers format|
-%%%%%%when \CDRCode|no export| is \CDRCode|true|.
-%%%%%%Initially empty.
-%%%%%%\itemtt[\CDRCheckRed no top space{[=true|false]}]
-%%%%%%When \CDRCode|true|, there is no separation top space before the block.
-%%%%%%Initially \CDRCode|false|. See section \ref{sect:spacing}.
-%%%%%%\itemtt[\CDRCheckRed numbers format=\CDRMeta{format commands}]
-%%%%%%the format used to display line numbers (mainly font, size and color).
-%%%%%%\itemtt[\CDRCheckRed tags format=\CDRMeta{format commands}]
-%%%%%%%, where \CDRMeta{format} is used
-%%%%%%the format used to display the tag names (mainly font, size and color),
-%%%%%%after it is appended to the \CDRCode|numbers format|.
-%%%%%%Initially empty.
-%%%%%%\itemtt[\CDRCheckRed show tags={[=true|false]}]
-%%%%%%whether tags should be displayed.
-%%%%%%\itemtt[\CDRCheckRed only top{[=true|false]}]
-%%%%%%to avoid chunk tags repetitions, if on the same page,
-%%%%%%two consecutive code chunks have the same list of tags, the second names are not displayed.
-%%%%%%%\itemtt[\CDRCheckRed commentchar=\CDRMeta{character}]
-%%%%%%%lines starting with this character are ignored.
-%%%%%%%Initially empty.
-%%%%%%\itemtt[\CDRCheckRed gobble=\CDRMeta{integer}]
-%%%%%%number of characters to suppress
-%%%%%%at the beginning of each line (from 0 to 9),
-%%%%%%mainly useful when environments are indented.
-%%%%%%Sole option of the \CDRCode|CDRBlockSave| environment.
-%%%%%%\itemtt[\CDRCheckRed baselinestretch=auto|\CDRMeta{dimension}]
-%%%%%%value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
-%%%%%%Initially \texttt{auto}: its current value just before the verbatim command.
-%%%%%%%\itemtt[\CDRCheckProhibited commandchars=\CDRMeta{three characters}]
-%%%%%%%characters which define the character which starts a macro and marks the
-%%%%%%%beginning and end of a group; thus lets us introduce escape sequences in
-%%%%%%%verbatim code. Of course, it is better to choose special characters which
-%%%%%%%are not used in the verbatim text.
-%%%%%%%Private to \pkg{coder}, unavailable to users.
-%%%%%%\itemtt[\CDRCheckRed xleftmargin=\CDRMeta{dimension}]
-%%%%%%indentation to add at the start of each line.
-%%%%%%Initially \CDRCode|0pt|: no left margin.
-%%%%%%\itemtt[\CDRCheckRed xrightmargin=\CDRMeta{dimension}]
-%%%%%%right margin to add after each line.
-%%%%%%Initially \CDRCode|0pt|: no right margin.
-%%%%%%\itemtt[\CDRCheckRed resetmargins{[=true|false]}]
-%%%%%%reset the left margin, which is useful if we are inside other indented environments.
-%%%%%%Initially \CDRCode|true|.
-%%%%%%\itemtt[\CDRCheckRed hfuzz=\CDRMeta{dimension}]
-%%%%%%value to give to the \TeX{} \CDRCode|\hfuzz| dimension for text to format.
-%%%%%%This can be used to avoid seeing some unimportant overfull box messages.
-%%%%%%Initially \CDRCode|2pt|.
-%%%%%%\itemtt[\CDRCheckRed vspace=\MyMeta{dimension}]
-%%%%%%the amount of vertical space added to \CDRCode|\parskip| before and after blocks.
-%%%%%%Initially \CDRCode|\topsep|. See section \ref{sect:spacing}.
-%%%%%%\itemtt[\CDRCheckRed samepage{[=true|false]}]
-%%%%%%in very special circumstances, we may want to make sure that a block of code is not spread over multiple pages.
-%%%%%%To avoid a page break as far as possible, set the \CDRCode|samepage| option to \CDRCode|true|.
-%%%%%%Initially \CDRCode|false|.
-%%%%%%\itemtt[\CDRCheckRed label={\{[\CDRMeta{top string}]
-%%%%%%\CDRMeta{string}\}}]
-%%%%%%label(s) to print on top, bottom or both, frame lines.
-%%%%%%If the label(s) contains special characters, comma or equal sign,
-%%%%%%it must be placed inside a group.
-%%%%%%If an optional \MyMeta{top string} is given between square brackets,
-%%%%%%it will be used for the top line and \MyMeta{string} for the bottom line.
-%%%%%%Otherwise, \MyMeta{string} is used for both the top or bottom lines.
-%%%%%%Label(s) are printed only if the \texttt{frame} parameter is one of
-%%%%%%\CDRCode|topline|, \CDRCode|bottomline|, \CDRCode|lines| or \CDRCode|single|.
-%%%%%%Initially empty: no label.
-%%%%%%\end{description}
-%%%%%%Next options are illustrated in section \ref{sect:numbering}.
-%%%%%%\begin{description}
-%%%%%%\itemtt[\CDRCheckRed numbers=none|left|right]
-%%%%%%numbering of the verbatim lines.
-%%%%%%If requested, this numbering is done outside the verbatim environment.
-%%%%%%Initially none: no numbering.
-%%%%%%\itemtt[\CDRCheckRed numbersep=\CDRMeta{dimension}]
-%%%%%%gap between numbers and verbatim lines.
-%%%%%%Initially \CDRCode|1ex|.
-%%%%%%\itemtt[\CDRCheckRed firstnumber=auto|last|\CDRMeta{integer}]
-%%%%%%number of the first line.
-%%%%%%\CDRCode|last| means that the numbering is continued from the previous  block with the same first tag.
-%%%%%%If an integer is given, its value will be used to start the numbering.
-%%%%%%Initially \CDRCode|auto|: numbering starts from 1.
-%%%%%%\itemtt[\CDRCheckRed stepnumber=\CDRMeta{integer}]
-%%%%%%interval at which line numbers are printed.
-%%%%%%Initially 1: all lines are numbered.
-%%%%%%%\itemtt[\CDRCheckRed numberblanklines{[=true|false]}]
-%%%%%%%to number or not the white lines (really empty or containing blank characters only).
-%%%%%%%Initially |true|: all lines are numbered.
-%%%%%%\itemtt[\CDRCheckRed firstline=\CDRMeta{integer}|\CDRMeta{regex}]
-%%%%%%first line to print.
-%%%%%%Initially empty: all lines from the first are printed.
-%%%%%%\itemtt[\CDRCheckRed lastline=\CDRMeta{integer}|\CDRMeta{regex}]
-%%%%%%last line to print.
-%%%%%%Initially empty: all lines until the last one are printed.
-%%%%%%\itemtt[\CDRCheckRed dry numbers{[=true|false]}]
-%%%%%%When \CDRCode|true|, line numbers are not collected for further continuous line numbering.
-%%%%%%Initially \CDRCode|false|.
-%%%%%%\begin{center}
-%%%%%%\setlength{\tabcolsep}{0mm}
-%%%%%%\CDRSet{show tags=none}
-%%%%%%\begin{tabular}{p{0.333\linewidth}p{0.333\linewidth}p{0.333\linewidth}}
-%%%%%%\begin{CDRBlock}[tags=src,no top space]
-%%%%%%\begin{⟨CDRBlock⟩}[
-%%%%%%  firstnumber=421,
-%%%%%%  
-%%%%%%]
-%%%%%%LINE 421
-%%%%%%LINE 422
-%%%%%%LINE 423
-%%%%%%\end{⟨CDRBlock⟩}
-%%%%%%\end{CDRBlock}
-%%%%%%it reads
-%%%%%%\begin{CDRBlock}[
-%%%%%%  numbers=left,
-%%%%%%  firstnumber=421,
-%%%%%%]
-%%%%%%LINE 421
-%%%%%%LINE 422
-%%%%%%LINE 423
-%%%%%%\end{CDRBlock}
-%%%%%%&
-%%%%%%\begin{CDRBlock}[tags=src,no top space]
-%%%%%%\begin{⟨CDRBlock⟩}[
-%%%%%%  firstnumber=last,
-%%%%%%  dry numbers,
-%%%%%%]
-%%%%%%LINE 424
-%%%%%%LINE 425
-%%%%%%LINE 426
-%%%%%%\end{⟨CDRBlock⟩}
-%%%%%%\end{CDRBlock}
-%%%%%%it reads
-%%%%%%\begin{CDRBlock}[
-%%%%%%  numbers=left,
-%%%%%%  firstnumber=last,
-%%%%%%  dry numbers,
-%%%%%%]
-%%%%%%LINE 424
-%%%%%%LINE 425
-%%%%%%LINE 426
-%%%%%%\end{CDRBlock}
-%%%%%%&
-%%%%%%\begin{CDRBlock}[tags=src,no top space]
-%%%%%%\begin{⟨CDRBlock⟩}[
-%%%%%%  firstnumber=last,
-%%%%%%  
-%%%%%%]
-%%%%%%LINE 424
-%%%%%%LINE 425
-%%%%%%LINE 426
-%%%%%%\end{⟨CDRBlock⟩}
-%%%%%%\end{CDRBlock}
-%%%%%%it also reads
-%%%%%%\begin{CDRBlock}[
-%%%%%%  numbers=left,
-%%%%%%  firstnumber=last,
-%%%%%%  dry numbers,
-%%%%%%]
-%%%%%%LINE 424
-%%%%%%LINE 425
-%%%%%%LINE 426
-%%%%%%\end{CDRBlock}
-%%%%%%\end{tabular}
-%%%%%%\end{center}
-%%%%%%The line numbering of the third column follows the first one and ignore the block with the \CDRCode[tags=options]|dry numbers|.
-%%%%%%\end{description}
-%%%%%%Next options have no effect when \pkg{pygments} is used.
-%%%%%%Moreover, the \pkg{tcolorbox} package should be preferred instead.
-%%%%%%\begin{description}
-%%%%%%\itemtt[\CDRCheckRed frame=none|leftline|topline|bottomline|lines|single]
-%%%%%%type of frame around the verbatim environment.
-%%%%%%With \CDRCode|leftline| and \CDRCode|single| modes, a space of a length given
-%%%%%%by the \LaTeX{} \CDRCode|\fboxsep| macro is added between the left vertical line
-%%%%%%and the text. Initially \CDRCode|none|: no frame.
-%%%%%%\itemtt[\CDRCheckRed framerule=\CDRMeta{dimension}]
-%%%%%%width of the rule of the frame if any.
-%%%%%%Initially \CDRCode|0.4pt|.
-%%%%%%\itemtt[\CDRCheckRed framesep=\CDRMeta{dimension}]
-%%%%%%width of the gap between the frame (if any) and the text.
-%%%%%%Initially \CDRCode|\fboxsep|.
-%%%%%%\itemtt[\CDRCheckRed rulecolor=\CDRMeta{color command}]
-%%%%%%color of the frame rule, expressed in the standard \LaTeX{} way.
-%%%%%%Initially black.
-%%%%%%\itemtt[\CDRCheckRed rulecolor=\CDRMeta{color command}]
-%%%%%%color used to fill the space between the frame and the text
-%%%%%%(its thickness is given by \CDRCode|framesep|).
-%%%%%%Initially empty.
-%%%%%%\itemtt[\CDRCheckRed labelposition=none|topline|bottomline|all]
-%%%%%%position where to print the label(s) when defined.
-%%%%%%When options happen to be contradictory,
-%%%%%%like \CDRCode[mbox=false]|labelposition=bottomline|
-%%%%%%and \CDRCode|frame=topline|,
-%%%%%%nothing is displayed.
-%%%%%%Initially \CDRCode|none| when no labels are defined,
-%%%%%%\CDRCode|topline| for one label and \CDRCode|all| otherwise.
-%%%%%%
-%%%%%%\end{description}
-%%%%%%%    __block, default.block, __pygments.block,
-%%%%%%%    __fancyvrb.block __fancyvrb.frame, __fancyvrb.number, __fancyvrb,
-%%%%%%%
+\section{The \CDRCodeUse[tags=src]{CDRSet} command}
+So far we have provided the various \pkg{coder} commands and environments with key--value options. The \CDRCodeUse[tags=src]{CDRSet} command allows to apply some setting once for all code snippets, moreover it can collect setting in style, already used above with tag names.
+
+\subsection{General settings}
+Next command will turn the color of any forthcoming code snippet in dark magenta.
+\begin{CDRBlock}[tags=src]
+\CDRSet{format=\color{magenta!10!black}}
+\end{CDRBlock}
+The changes are local to the \LaTeX\ environment where they are performed.
+\subsection{Styling}
+\label{sect:styling}
+If some options may not be set globally and should only apply on demand, because for example different programming languages are used, then we specify a tag name like \CDRCode[tags=options]|lua| or \CDRCode[tags=options]|py|:
+\begin{CDRBlock}[tags=src]
+\CDRSet{
+  tags/⟨\color{CDROptions}lua⟩/lang=lua,
+  tags/⟨\color{CDROptions}py⟩/lang=python,
+}
+\end{CDRBlock}
+We can also specify at once many tag names separated by a \CDRCode[tags=src]?|?, each setting applying separately to each named tag.
+\begin{CDRBlock}[tags=src]
+\CDRSet{tags/⟨\color{CDROptions}lua⟩|⟨\color{CDROptions}py⟩/pygments=true}
+\end{CDRBlock}
+Finally, changing many options at once for the same tag is also possible:
+\begin{CDRBlock}[tags=src]
+\CDRSet{tags/⟨\color{CDROptions}lua⟩={
+  showspaces=true,
+  no export=true,
+} }
+\end{CDRBlock}
+\subsection{Tags}
+\label{sect:tags}
+Tags are used not only for styling but also for continuous line numbering (section \ref{sect:line numbering}) and exportation (section \ref{sect:exportation}). If only one tag is used and there is no exportation, it can be omitted.
+
+Tag names must not contain commas nor pipe characters, moreover, names with exactly two leading underscores are reserved by the \pkg{coder} package.
+More names are reserved by the \pkg{coder} package, but they are available to the user. They need not appear in a \CDRCode[tags=src]?tags=...? setting. Options set for the tag name \CDRCode[tags=src]?default? automatically apply to any forthcoming code snippet. Any option set for the tag name \CDRCode[tags=src]?default.code? applies to any forthcoming code snippet displayed inline, eventually overriding the \CDRCode[tags=src]?default? setting. Finally, options set for tag name \CDRCode[tags=src]?default.block? apply to any forthcoming code snippet displayed in block, taking precedence over the \CDRCode[tags=src]?default? setting.
+
+\subsection{Engines options}
+Engine options are provided to the \CDRCode[tags=src]?CDRBlock? environment and the \CDRCode[tags=src]?\CDRCode? , \CDRCode[tags=src]?\CDRCodeUse? and \CDRCode[tags=src]?\CDRBlockUse? commands with key \CDRCode[tags=src]?engine options?. This does not refer to the engine name and is not suitable for the 
+\CDRCode[tags=src]?\CDRSet? command argument.
+Instead, one will use the key
+\CDRCode[tags=src,mbox=false]?⟨\color{CDROptions}\MyMetatt{engine name}⟩ engine options? to distinguish between the engines.
+
+\subsection{Options}
+\label{sect:options}
+\subsubsection{\texttt{default} tag}
+\begin{description}
+\itemtt[\CDRCheckGreen tags={\meta[1]{tag}|\meta[2]{tag}|...}]
+used for exportation (section \ref{sect:exportation}), for line numbering (section \ref{sect:line numbering}) and also for styling, see section \ref{sect:styling}.
+Initially a void list.
+\CDRMeta{tag} is subject to minor restrictions (section \ref{sect:tags}).
+%%%% __engine
+\itemtt[\CDRCheckGreen engine=\CDRMeta{engine name}]
+to specify the engine used to display inline code or blocks, see section \ref{sect:frames}.
+Initially \CDRCode|default|.
+\itemtt[\CDRCheckRed \metatt{engine name} engine options=\CDRMeta{engine options}]
+to specify the options that should apply
+when the engine named \CDRMeta{engine name} is selected, see section \ref{sect:frames}.
+\itemtt[\CDRCheckGreen default engine options=\CDRMeta{engine options}]
+to specify the options for the default engine which is named \CDRCode|default|, see section \ref{sect:frames}.
+Initially empty, depends on the engine used.
+\itemtt[\CDRCheckGreen engine options=\CDRMeta{engine options}]
+options forwarded to the engine, see section \ref{sect:frames}.
+They are appended to the options
+given with key \CDRCode|⟨\MyMetatt{engine name}⟩ engine options|.
+Mainly a convenient user interface shortcut.
+Suitable for \CDRCode|\CDRCode| and \CDRCode|CDRBlock| but not for \CDRCode|\CDRSet|.
+%%%% default
+\itemtt[\CDRCheckRed format=\CDRMeta{format commands}]
+the format used to display the code (mainly font, size and color),
+after the font has been selected.
+Initially empty.
+\itemtt[\CDRCheckRed debug{[=true|false]}]
+Set to \CDRCode|true| if various debugging messages should be printed to the console.
+Initially \CDRCode|false|.
+\itemtt[\CDRCheckRed pygments{[=true|false]}]
+whether \pkg{pygments} should be used for syntax coloring.
+Initially \CDRCode|true| if \pkg{pygments} is available,
+\CDRCode|false| otherwise.
+\itemtt[\CDRCheckRed lang=\CDRMeta{language name}]
+where \CDRMeta{language name} is recognized by \pkg{pygments}, including a void string,
+\itemtt[\CDRCheckRed style=\CDRMeta{style name}]
+where \CDRMeta{style name} is recognized by \pkg{pygments}, including a void string,
+\itemtt[\CDRCheckRed cache{[=true|false]}]
+Set to \CDRCode|true| if the \pkg{coder} package should use already existing files
+instead of creating new ones. When using \pkg{pygments} for syntax coloring the file \CDRCode|⟨\MyMetatt{file name}⟩.tex|, the companion script \verb|coder-tool.py| creates a folder named \CDRCode[tags=options]|⟨\MyMetatt{file name}⟩.pygd|. This is where intermediate files are stored and kept from one typesetting process to the next, which happens to save processing time. This folder can safely be removed, besides it will automatically be cleaned if there is no \CDRCode|⟨\MyMetatt{file name}⟩.aux| file yet.
+The option \CDRCode|cache=false| will disable this caching feature.
+
+Initially \CDRCode|true|.
+\itemtt[\CDRCheckRed escapeinside=\CDRMeta{delimiters}]
+If set to a string of length 2, enables escaping to \LaTeX{}. Text
+       delimited by these 2 characters is read as \LaTeX{} code and
+       typeset accordingly. It has no effect in string literals when
+       \pkg{pygments} is used.
+Initially empty.
+\itemtt[\CDRCheckRed formatcom=\CDRMeta{command}]
+execute before printing verbatim text.
+Initially empty.
+\itemtt[\CDRCheckRed fontfamily=\CDRMeta{family name}]
+font family to use. \CDRCode|tt|, \CDRCode|courier| and \CDRCode|helvetica| are pre-defined.
+Initially \texttt{tt}.
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.303\linewidth}p{0.333\linewidth}p{0.363\linewidth}}
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}fontfamily=courier⟩,
+]
+This is courier
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output reads
+\begin{CDRBlock}[
+  fontfamily=courier,
+]
+This is NOT courier
+\end{CDRBlock}
+&
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}fontfamily=helvetica⟩,
+]
+This is helvetica
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output reads
+\begin{CDRBlock}[
+  fontfamily=helvetica,
+]
+This is helvetica
+\end{CDRBlock}
+&
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}fontfamily=TGC⟩,
+]
+This is TeX Gyre Cursor
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output reads
+\begin{CDRBlock}[
+  fontfamily=TGC,
+]
+This is TeX Gyre Cursor
+\end{CDRBlock}
+\end{tabular}
+\end{center}
+The \CDRCode|TGC| font family was created with package \pkg{fontspec}
+and instruction
+\begin{CDRBlock}[tags=src]
+\newfontfamily\TGCFont{TeX Gyre Cursor}[NFSSFamily=TGC]
+\end{CDRBlock}
+\itemtt[\CDRCheckRed fontsize=\CDRMeta{font size}]
+size of the font to use. If you use the \pkg{relsize} package as well,
+you can require a change of the size proportional to the current one
+(for instance below, the option used is \CDRCode[mbox=false]|fontsize=\relsize{-2}| on the right, compared to \CDRCode[mbox=false]|fontsize=\small| on the left).
+Initially \texttt{auto}: the same as the current font.
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{minipage}[t]{0.85\linewidth}
+\CDRSet{show tags=none,fontsize=\small}
+\begin{CDRBlock}[tags=latex,escapeinside=⟨⟩]
+⟨\lipsum[3][1]⟩
+\end{CDRBlock}
+\end{minipage}
+&
+\CDRSet{show tags=none,fontsize=\relsize{-2}}
+\begin{minipage}[t]{0.85\linewidth}
+\begin{CDRBlock}[tags=latex,escapeinside=⟨⟩]
+⟨\lipsum[3][1]⟩
+\end{CDRBlock}
+\end{minipage}
+\end{tabular}
+\end{center}
+
+\itemtt[\CDRCheckRed fontshape=auto|up|it|sl|sc]
+font shape to use. Initially \texttt{auto}: the same as the current font.
+Here is the difference between slanted with \CDRCode|fontshape=sl| and italic with  \CDRCode|fontshape=it|.
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{minipage}[t]{0.85\linewidth}
+\CDRSet{show tags=none,fontshape=sl}
+\begin{CDRBlock}[tags=latex,escapeinside=⟨⟩]
+⟨\lipsum[3][1]⟩
+\end{CDRBlock}
+\end{minipage}
+&
+\CDRSet{show tags=none,fontshape=it}
+\begin{minipage}[t]{0.85\linewidth}
+\begin{CDRBlock}[tags=latex,escapeinside=⟨⟩]
+⟨\lipsum[3][1]⟩
+\end{CDRBlock}
+\end{minipage}
+\end{tabular}
+\end{center}
+\itemtt[\CDRCheckRed fontseries=auto|bf|md|lf]
+\LaTeX{} font ‘series’ to use.
+Initially \texttt{auto}: the same as the current font.
+\itemtt[\CDRCheckRed showspaces{[=true|false]}]
+print a special character representing each space.
+Initially \CDRCode|false|: spaces not shown.
+Spaces are not shown in escaped instructions.
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{minipage}[t]{0.85\linewidth}
+\CDRSet{show tags=none,showspaces,pygments=true}
+\begin{CDRBlock}[tags=latex]
+\textbf{In eu orci massa}
+\end{CDRBlock}
+\end{minipage}
+&
+\CDRSet{show tags=none,showspaces,pygments=false}
+\begin{minipage}[t]{0.85\linewidth}
+\begin{CDRBlock}[tags=latex]
+\textbf{In eu orci massa}
+\end{CDRBlock}
+\end{minipage}
+\end{tabular}
+\end{center}
+%
+\itemtt[\CDRCheckRed showtabs=true|false]
+explicitly show tab characters.
+Initially \CDRCode|false|: tab characters not shown.
+Tabs are not shown in escaped instructions.
+
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{minipage}[t]{0.85\linewidth}
+\CDRSet{show tags=none,showspaces,pygments=true}
+\begin{CDRBlock}[tags=latex]
+\textbf{In	eu	orci	massa}
+\end{CDRBlock}
+\end{minipage}
+&
+\CDRSet{show tags=none,showspaces,pygments=false}
+\begin{minipage}[t]{0.85\linewidth}
+\begin{CDRBlock}[tags=latex]
+\textbf{In	eu	orci	massa}
+\end{CDRBlock}
+\end{minipage}
+\end{tabular}
+\end{center}
+
+
+\itemtt[\CDRCheckRed obeytabs=true|false]
+position characters according to the tabs.
+Initially false: tab characters are added to the current position.
+\itemtt[\CDRCheckRed tabsize=\CDRMeta{integer}]
+number of spaces given by a tab character,
+Initially 2 (8 for \pkg{fancyvrb}).
+\itemtt[\CDRCheckRed defineactive=\CDRMeta{macro}]
+to define the effect of active characters.
+This allows to do some devious tricks, see the \pkg{fancyvrb} package.
+Initially empty.
+\itemtt[\CDRCheckGreen reflabel=\CDRMeta{label}]
+define a label to be used with \CDRCode|\pageref|.
+Initially empty. See section \ref{sect:xrefs}.
+\end{description}
+%__tags, __engine, __pygments, default, 
+\subsubsection{\texttt{default.code} tag}
+\begin{description}
+\itemtt[\CDRCheckRed mbox{[=true|false]}]
+When set to \CDRCode|true|, put the argument inside a \LaTeX\ \CDRCode|\mbox| to prevent the code snippet to spread over different lines.
+Use option \CDRCode[tags=src]|mbox=false| to allow line breaking like this
+\CDRCode[tags=src,mbox=false]|⟨\lipsum[5][1-3]⟩|
+Initially \CDRCode|true|: no line breaking.
+\end{description}
+\subsubsection{\texttt{default.block} tag}
+\begin{description}
+\itemtt[\CDRCheckRed no~export{[=true|false]}]
+to ignore this code snippet at export time.
+\itemtt[\CDRCheckRed no export format=\MyMeta{format commands}]
+a list of formatting instructions appended to \CDRCode|format|, \CDRCode|tags format| and \CDRCode|numbers format|
+when \CDRCode|no export| is \CDRCode|true|.
+Initially empty.
+\itemtt[\CDRCheckRed no top space{[=true|false]}]
+When \CDRCode|true|, there is no separation top space before the block.
+Initially \CDRCode|false|. See section \ref{sect:spacing}.
+\itemtt[\CDRCheckRed numbers format=\CDRMeta{format commands}]
+the format used to display line numbers (mainly font, size and color).
+\itemtt[\CDRCheckRed tags format=\CDRMeta{format commands}]
+, where \CDRMeta{format} is used
+the format used to display the tag names (mainly font, size and color),
+after it is appended to the \CDRCode|numbers format|.
+Initially empty.
+\itemtt[\CDRCheckRed show tags={[=true|false]}]
+whether tags should be displayed.
+\itemtt[\CDRCheckRed only top{[=true|false]}]
+to avoid chunk tags repetitions, if on the same page,
+two consecutive code chunks have the same list of tags, the second names are not displayed.
+\itemtt[\CDRCheckRed commentchar=\CDRMeta{character}]
+lines starting with this character are ignored.
+Initially empty.
+\itemtt[\CDRCheckRed gobble=\CDRMeta{integer}]
+number of characters to suppress
+at the beginning of each line (from 0 to 9),
+mainly useful when environments are indented.
+Sole option of the \CDRCode|CDRBlockSave| environment.
+\itemtt[\CDRCheckRed baselinestretch=auto|\CDRMeta{dimension}]
+value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
+Initially \texttt{auto}: its current value just before the verbatim command.
+\itemtt[\CDRCheckProhibited commandchars=\CDRMeta{three characters}]
+characters which define the character which starts a macro and marks the
+beginning and end of a group; thus lets us introduce escape sequences in
+verbatim code. Of course, it is better to choose special characters which
+are not used in the verbatim text.
+Private to \pkg{coder}, unavailable to users.
+\itemtt[\CDRCheckRed xleftmargin=\CDRMeta{dimension}]
+indentation to add at the start of each line.
+Initially \CDRCode|0pt|: no left margin.
+\itemtt[\CDRCheckRed xrightmargin=\CDRMeta{dimension}]
+right margin to add after each line.
+Initially \CDRCode|0pt|: no right margin.
+\itemtt[\CDRCheckRed resetmargins{[=true|false]}]
+reset the left margin, which is useful if we are inside other indented environments.
+Initially \CDRCode|true|.
+\itemtt[\CDRCheckRed hfuzz=\CDRMeta{dimension}]
+value to give to the \TeX{} \CDRCode|\hfuzz| dimension for text to format.
+This can be used to avoid seeing some unimportant overfull box messages.
+Initially \CDRCode|2pt|.
+\itemtt[\CDRCheckRed vspace=\MyMeta{dimension}]
+the amount of vertical space added to \CDRCode|\parskip| before and after blocks.
+Initially \CDRCode|\topsep|. See section \ref{sect:spacing}.
+\itemtt[\CDRCheckRed samepage{[=true|false]}]
+in very special circumstances, we may want to make sure that a block of code is not spread over multiple pages.
+To avoid a page break as far as possible, set the \CDRCode|samepage| option to \CDRCode|true|.
+Initially \CDRCode|false|.
+\itemtt[\CDRCheckRed label={\{[\CDRMeta{top string}]
+\CDRMeta{string}\}}]
+label(s) to print on top, bottom or both, frame lines.
+If the label(s) contains special characters, comma or equal sign,
+it must be placed inside a group.
+If an optional \MyMeta{top string} is given between square brackets,
+it will be used for the top line and \MyMeta{string} for the bottom line.
+Otherwise, \MyMeta{string} is used for both the top or bottom lines.
+Label(s) are printed only if the \texttt{frame} parameter is one of
+\CDRCode|topline|, \CDRCode|bottomline|, \CDRCode|lines| or \CDRCode|single|.
+Initially empty: no label.
+\end{description}
+Next options are illustrated in section \ref{sect:numbering}.
+\begin{description}
+\itemtt[\CDRCheckRed numbers=none|left|right]
+numbering of the verbatim lines.
+If requested, this numbering is done outside the verbatim environment.
+Initially none: no numbering.
+\itemtt[\CDRCheckRed numbersep=\CDRMeta{dimension}]
+gap between numbers and verbatim lines.
+Initially \CDRCode|1ex|.
+\itemtt[\CDRCheckRed firstnumber=auto|last|\CDRMeta{integer}]
+number of the first line.
+\CDRCode|last| means that the numbering is continued from the previous  block with the same first tag.
+If an integer is given, its value will be used to start the numbering.
+Initially \CDRCode|auto|: numbering starts from 1.
+\itemtt[\CDRCheckRed stepnumber=\CDRMeta{integer}]
+interval at which line numbers are printed.
+Initially 1: all lines are numbered.
+\itemtt[\CDRCheckRed numberblanklines{[=true|false]}]
+to number or not the white lines (really empty or containing blank characters only).
+Initially |true|: all lines are numbered.
+\itemtt[\CDRCheckRed firstline=\CDRMeta{integer}|\CDRMeta{regex}]
+first line to print.
+Initially empty: all lines from the first are printed.
+\itemtt[\CDRCheckRed lastline=\CDRMeta{integer}|\CDRMeta{regex}]
+last line to print.
+Initially empty: all lines until the last one are printed.
+\itemtt[\CDRCheckRed dry numbers{[=true|false]}]
+When \CDRCode|true|, line numbers are not collected for further continuous line numbering.
+Initially \CDRCode|false|.
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\CDRSet{show tags=none}
+\begin{tabular}{p{0.333\linewidth}p{0.333\linewidth}p{0.333\linewidth}}
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  firstnumber=421,
+  
+]
+LINE 421
+LINE 422
+LINE 423
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+it reads
+\begin{CDRBlock}[
+  numbers=left,
+  firstnumber=421,
+]
+LINE 421
+LINE 422
+LINE 423
+\end{CDRBlock}
+&
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  firstnumber=last,
+  dry numbers,
+]
+LINE 424
+LINE 425
+LINE 426
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+it reads
+\begin{CDRBlock}[
+  numbers=left,
+  firstnumber=last,
+  dry numbers,
+]
+LINE 424
+LINE 425
+LINE 426
+\end{CDRBlock}
+&
+\begin{CDRBlock}[tags=src,no top space]
+\begin{⟨CDRBlock⟩}[
+  firstnumber=last,
+  
+]
+LINE 424
+LINE 425
+LINE 426
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+it also reads
+\begin{CDRBlock}[
+  numbers=left,
+  firstnumber=last,
+  dry numbers,
+]
+LINE 424
+LINE 425
+LINE 426
+\end{CDRBlock}
+\end{tabular}
+\end{center}
+The line numbering of the third column follows the first one and ignore the block with the \CDRCode[tags=options]|dry numbers|.
+\end{description}
+Next options have no effect when \pkg{pygments} is used.
+Moreover, the \pkg{tcolorbox} package should be preferred instead.
+\begin{description}
+\itemtt[\CDRCheckRed frame=none|leftline|topline|bottomline|lines|single]
+type of frame around the verbatim environment.
+With \CDRCode|leftline| and \CDRCode|single| modes, a space of a length given
+by the \LaTeX{} \CDRCode|\fboxsep| macro is added between the left vertical line
+and the text. Initially \CDRCode|none|: no frame.
+\itemtt[\CDRCheckRed framerule=\CDRMeta{dimension}]
+width of the rule of the frame if any.
+Initially \CDRCode|0.4pt|.
+\itemtt[\CDRCheckRed framesep=\CDRMeta{dimension}]
+width of the gap between the frame (if any) and the text.
+Initially \CDRCode|\fboxsep|.
+\itemtt[\CDRCheckRed rulecolor=\CDRMeta{color command}]
+color of the frame rule, expressed in the standard \LaTeX{} way.
+Initially black.
+\itemtt[\CDRCheckRed rulecolor=\CDRMeta{color command}]
+color used to fill the space between the frame and the text
+(its thickness is given by \CDRCode|framesep|).
+Initially empty.
+\itemtt[\CDRCheckRed labelposition=none|topline|bottomline|all]
+position where to print the label(s) when defined.
+When options happen to be contradictory,
+like \CDRCode[mbox=false]|labelposition=bottomline|
+and \CDRCode|frame=topline|,
+nothing is displayed.
+Initially \CDRCode|none| when no labels are defined,
+\CDRCode|topline| for one label and \CDRCode|all| otherwise.
+
+\end{description}
+%    __block, default.block, __pygments.block,
+%    __fancyvrb.block __fancyvrb.frame, __fancyvrb.number, __fancyvrb,
+
 
 \end{document}

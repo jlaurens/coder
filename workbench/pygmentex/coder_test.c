@@ -4,14 +4,11 @@ This is a C function.
 \end{coder}
 */
 #include <stdio.h>
-int factorial(int n);
-int factorial(n) {
-  if (n > 1) {
-    return n * factorial(n-1);
-  }
-  return 1;
-}
 int main(int argc, char **argv) {
-  printf("factorial(10)=%d",factorial(10));
+  int factorial = 1;
+  for (int i=2;i<=10;i++) {
+    factorial *= i;
+  }
+  printf("factorial(10)=%d\n",factorial);
   return 0;
 }
