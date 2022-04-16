@@ -282,9 +282,9 @@ and the derived files           \jobname.ins,
 % \fi
 %
 %\title{^^A
-%  \textsf{\jobname}\\
+%  \pkg{\jobname}\\
 % code inlined in a \LaTeX\ document\\
-% \LaTeX\ inlined in a code source%}
+% \LaTeX\ inlined in a code source}
 %\author{^^A
 %  Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}^^A
 %}
@@ -349,7 +349,7 @@ and the derived files           \jobname.ins,
 % Moreover, block code chunks can be exported to files, once declared with \cs{CDRExport} command.
 % The \cs{CDRSet} command is used to set various parameters,
 % including display engines declared with either \cs{CDRCodeEngineNew} or \cs{CDRBlockEngineNew}\footnote{Work in progress}.
-% Finally, the \cs{CDRInput} command is used to include source files
+% Finally, the \cs{CDRImport} command is used to include source files
 % and typeset with \LaTeX\ the embedded documentation.
 %
 % \subsection{Code flow}
@@ -1554,62 +1554,17 @@ local function rescan_begin(self)
 end
 %    \end{MacroCode}
 %
-% \section{Input}
+% \section{Import}
 %
-% \begin{function}{input_begin,
-%   input_set_boolean,
-%   input_set_integer,
-%   input_end,
-% }
+% \begin{function}{import_driver_get}
 % \begin{syntax}
-% CDR:input_begin(\metatt{tl source variable}, \metatt{tl driver variable})
-% CDR:input_set_boolean(\metatt{key}, \metatt{tl variable})
-% CDR:input_set_integer(\metatt{key}, \metatt{tl variable})
-% CDR:input_end()
-% \end{syntax}
-% These are the helpers to input a source file.
-% The driver, source and various options are stored,
-% then the process is launched on the \TeX\ side by
-% |CDR:input()| which forwards to |self:input_process|.
-% Implementation detail: all functions but the first are
-% implemented dynamically.
-% The |input_begin| and |input_end| methods must be called
-% in separate |\directlua| calls.
-% \end{function}
-%    \begin{MacroCode}[OK]
-local function input_begin(self, source_var, driver_var)
-  local args = {
-    source = assert(token.get_macro(source_var or 'l_CDR_input_tl')),
-    driver = assert(token.get_macro(driver_var or 'l_CDR_a_tl')),
-    first_line = 1,
-    last_line  = 0,
-    show_code  = true,
-    show_doc   = true,
-  }
-  function self.input_set_boolean(this, key, var)
-    args[key] = assert(token.get_macro(var or 'l_CDR_a_tl')) == 'true'
-  end
-  function self.input_set_integer(this, key, var)
-    args[key] = tonumber(token.get_macro(var or 'l_CDR_a_tl'))
-  end
-  function self.input(this)
-    this:input_process(args)
-  end
-  function self.input_end(this)
-    this.synctex_state_restore = nil
-    this:synctex_state_restore()
-  end
-end
-%    \end{MacroCode}
-%
-% \begin{function}{get_driver}
-% \begin{syntax}
-% CDR:get_driver(\metatt{name})
+% import_driver_get(\metatt{CDR}, \metatt{name})
 % \end{syntax}
 % Get the driver with the given name.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function get_driver(self, name)
+local function import_driver_get(self, args)
+  local name = args.driver
   local path
   if name:match('%.lua$') then
     path = kpse.find_file(name)
@@ -1625,6 +1580,9 @@ local function get_driver(self, name)
   end
   local status, driver = pcall(f)
   if status then
+    if driver.setup then
+      driver:setup(args)
+    end
     return driver
   end
   tex.print([[\PackageError{coder}]]..'{Syntax error in '
@@ -1654,7 +1612,7 @@ local function synctex_tag_will_catch(self)
           this.reader = function (_)
             ltb.remove_from_callback(
               'open_read_file',
-              'coder.CDRInput'
+              'coder.CDRImport'
             )
             return nil
           end
@@ -1662,45 +1620,46 @@ local function synctex_tag_will_catch(self)
         end,
       }
     end,
-    'coder.CDRInput'
+    'coder.CDRImport'
   )
 end
 %    \end{MacroCode}
 %
-% \begin{function}{input_process}
+% \begin{function}{import_process}
 % \begin{syntax}
-% CDR:input_process(\metatt{args})
+% CDR:import_process(\metatt{args})
 % \end{syntax}
 % These is the main processor.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function input_process(self, args)
-  self.input_set_boolean = nil
-  self:synctex_state_save()
-  self.synctex_state_save = function () end
-  self.synctex_state_restore = function () end
+local function import_source_get(self, args)
   local source = kpse.find_file(args.source)
   if not source then
     tex.print([[\PackageError{coder}{No source ]]
     ..args.source..
-    [[}{See \CDRInput.}]])
+    [[}{See \CDRImport.}]])
     return
   end
-%    \end{MacroCode}
-% We must read the file all at once in memory because we must
-% the last line.
-%    \begin{MacroCode}[OK]  
   local lines = {}
   f = assert(io.open(source))
   for l in f:lines() do
     lines[#lines+1] = l
   end
   f:close()
+  return lines
+end
+local function import_process(self, args)
+  self.import_set_boolean = nil
+  self:synctex_state_save()
+  self.synctex_state_save = function () end
+  self.synctex_state_restore = function () end
+%    \end{MacroCode}
+% We must read the file all at once in memory because we must
+% the last line.
+%    \begin{MacroCode}[OK]  
+  local lines = import_source_get(self, args)
   local last_line = table.remove(lines)
-  local d = self:get_driver(args.driver)
-  if d.setup then
-    d:setup(args)
-  end
+  local d = import_driver_get(self, args)
   local n = 0
   local function noop() end
   local ans = {}
@@ -1741,7 +1700,7 @@ local function input_process(self, args)
   end or noop
   pending_code = noop
   next_code = prepare_code
-  local body, in_doc, in_code
+  local body, in_doc, in_code, after_short
   in_doc = function (l)
     if d:close(l) then
       body = in_code
@@ -1767,6 +1726,10 @@ local function input_process(self, args)
     else
       next_code(l)
     end
+  end or function (l)
+    next_code(l)
+  end
+  short = d.short and function (l)
   end or function (l)
     next_code(l)
   end
@@ -1802,6 +1765,53 @@ local function input_process(self, args)
   end  
   if d.teardown then
     d:teardown()
+  end
+end
+%    \end{MacroCode}
+%
+% \begin{function}{import_begin,
+%   import_set_boolean,
+%   import_set_integer,
+%   import,
+%   import_end,
+% }
+% \begin{syntax}
+% CDR:import_begin(\metatt{tl source variable}, \metatt{tl driver variable})
+% CDR:import_set_boolean(\metatt{key}, \metatt{tl variable})
+% CDR:import_set_integer(\metatt{key}, \metatt{tl variable})
+% CDR:import_end()
+% \end{syntax}
+% These are the helpers to input a source file.
+% The driver, source and various options are stored,
+% then the process is launched on the \TeX\ side by
+% |CDR:import()| which forwards to |import_process|.
+% Implementation detail: all functions but the first are
+% implemented dynamically.
+% The |import_begin| and |import_end| methods must be called
+% in separate |\directlua| calls.
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function import_begin(self, source_var, driver_var)
+  local args = {
+    source = assert(token.get_macro(source_var or 'l_CDR_import_tl')),
+    driver = assert(token.get_macro(driver_var or 'l_CDR_a_tl')),
+    first_line = 1,
+    last_line  = 0,
+    show_code  = true,
+    show_doc   = true,
+  }
+  function self.import_set_boolean(this, key, var)
+    args[key] = assert(token.get_macro(var or 'l_CDR_a_tl')) == 'true'
+  end
+  function self.import_set_integer(this, key, var)
+    args[key] = tonumber(token.get_macro(var or 'l_CDR_a_tl'))
+  end
+  function self.import(this)
+    import_process(this, args)
+  end
+  function self.import_end(this)
+    this.synctex_state_restore = nil
+    this:synctex_state_restore()
   end
 end
 %    \end{MacroCode}
@@ -1882,9 +1892,7 @@ return setmetatable({}, { __index = {
 %    \end{MacroCode}
 % \itemtt[input]
 %    \begin{MacroCode}
-  input_begin   = input_begin,
-  input_process = input_process,
-  get_driver    = get_driver,
+  import_begin   = import_begin,
 %    \end{MacroCode}
 % \itemtt[cache]
 %    \begin{MacroCode}
@@ -5869,6 +5877,7 @@ if __name__ == '__main__':
     }
     \lua_now:n { CDR:synctex_state_restore() }
     \group_end:
+    \ignorespaces
   } {
     \PackageError
       { coder }
@@ -6744,6 +6753,7 @@ if __name__ == '__main__':
       { See~CDRBlockSave~environment. }
   }
   \lua_now:n { CDR:synctex_state_restore() }
+  \ignorespaces
 }
 %    \end{MacroCode}
 %
@@ -6809,16 +6819,17 @@ if __name__ == '__main__':
   \lua_now:n { CDR:hilight_source(false, true) }
   \group_begin:
   \fvset{ commandchars=\\\{\} }
-  \FV@UseVerbatim {
-    \CDR_tag_get:c { format }
-    \CDR_if_no_export:T {
-      \CDR_tag_get:c { no~export~format }
-    }
-    \makeatletter
-    \input{ \l_CDR_pyg_tex_tl }\ignorespaces
-    \makeatother
+  \FV@VerbatimBegin
+  \CDR_tag_get:c { format }
+  \CDR_if_no_export:T {
+    \CDR_tag_get:c { no~export~format }
   }
+  \makeatletter
+  \input{ \l_CDR_pyg_tex_tl }
+  \makeatother
+  \FV@VerbatimEnd
   \group_end:
+  \@doendpe\global\@ignorefalse\ignorespaces
 }
 %    \end{MacroCode}
 %
@@ -7600,14 +7611,14 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \section{\string\CDRInput}
+% \section{\string\CDRImport}
 % This is certainly the most interesting feature of this package: it allows to input source files and pretty print the comments.
 % Quite everything is done on the \pkg{lua} side such that
 % a little bit of \pkg{lua} is required but that remains
 % extremely simple.
-% \begin{function}{\CDRInput}
+% \begin{function}{\CDRImport}
 % \begin{syntax}
-% \cs{CDRInput} \oarg{driver=\metatt{driver name}$\vert$\metatt{driver path}, \metatt{key}=\metatt{value}...} \Arg{source path}
+% \cs{CDRImport} \oarg{driver=\metatt{driver name}$\vert$\metatt{driver path}, \metatt{key}=\metatt{value}...} \Arg{source path}
 % \end{syntax}
 % Read and execute the lua driver,
 % then typeset the source accordingly.
@@ -7624,7 +7635,7 @@ if __name__ == '__main__':
 %<*driver-raw>
 -- This is the raw driver for the coder package
 -- Display code as is
--- See \CDRInput
+-- See \CDRImport
 -- put here whatever statement you need
 -- return a table
 return {}
@@ -7647,7 +7658,7 @@ In both cases there must be at least one star.
 
 The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
-See the \CDRCode|\CDRInput| documentation for more information.
+See the \CDRCode|\CDRImport| documentation for more information.
 \end{coder}
 ]=]
 -- put here whatever statement you need
@@ -7661,6 +7672,11 @@ return {
   close = function (self, line)
     return line:match(
       [[^%*+/]]
+    ) ~= nil
+  end,
+  short = function (self, line)
+    return line:match(
+      [[^/+!latex:%s*(.*)]]
     ) ~= nil
   end,
 }
@@ -7677,7 +7693,7 @@ starting with the very same combination of quotes and spaces.
 
 The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
-See the \CDRCode|\CDRInput| documentation for more information.
+See the \CDRCode|\CDRImport| documentation for more information.
 \end{coder}
 ]=]
 -- put here whatever statement you need
@@ -7720,7 +7736,7 @@ where \CDRMeta*{equals} represents the previously capture group.
 
 The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
-See the \CDRCode|\CDRInput| documentation for more information.
+See the \CDRCode|\CDRImport| documentation for more information.
 \end{coder}
 ]=]
 -- put here whatever statement you need
@@ -7746,7 +7762,7 @@ return {
 % \subsection{Options}
 % The options will inherit the |__tags| \pkg{l3keys} module.
 %    \begin{MacroCode}[OK]
-\CDR_tag_keys_define:nn { CDRInput } {
+\CDR_tag_keys_define:nn { CDRImport } {
 %    \end{MacroCode}
 % \begin{description}
 %
@@ -7814,36 +7830,37 @@ return {
 %    \end{MacroCode}
 %    \begin{MacroCode}[OK]
 \AtBeginDocument{
-  \CDR_tag_keys_set:nn { CDRInput } { __initialize }
+  \CDR_tag_keys_set:nn { CDRImport } { __initialize }
 }
 %    \end{MacroCode}
 %
 % \subsection{Implementation}
 %
 %    \begin{MacroCode}
-\tl_new:N \l_CDR_input_tl
-\NewDocumentCommand\CDRInput { O{} m } {
-\CDR@Debug{\string\CDRInput}
+\tl_new:N \l_CDR_import_tl
+\NewDocumentCommand\CDRImport { O{} m } {
+\CDR@Debug{\string\CDRImport}
   \group_begin:
   \directlua { CDR:synctex_tag_will_catch() }
   \input{#2}
-  \tl_set:Nn \l_CDR_input_tl { #2 }
-  \CDR_local_inherit:n { CDRInput }
+  \tl_set:Nn \l_CDR_import_tl { #2 }
+  \CDR_local_inherit:n { CDRImport }
   \CDR_local_set_known:nN { #1 } \l_CDR_kv_clist
-  \CDR_get_inherit:n { CDRInput }
+  \CDR_get_inherit:n { CDRImport }
   \CDR_tag_get:cN { driver } \l_CDR_a_tl
-  \directlua { CDR:input_begin() }
+  \directlua { CDR:import_begin() }
   \CDR_tag_get:cN { show~code } \l_CDR_a_tl
-  \directlua { CDR:input_set_boolean('show_code') }
+  \directlua { CDR:import_set_boolean('show_code') }
   \CDR_tag_get:cN { show~doc } \l_CDR_a_tl
-  \directlua { CDR:input_set_boolean('show_doc') }
+  \directlua { CDR:import_set_boolean('show_doc') }
   \CDR_tag_get:cN { first~line } \l_CDR_a_tl
-  \directlua { CDR:input_set_integer('first_line') }
+  \directlua { CDR:import_set_integer('first_line') }
   \CDR_tag_get:cN { last~line } \l_CDR_a_tl
-  \directlua { CDR:input_set_integer('last_line') }
-  \directlua { CDR:input() }
-  \directlua { CDR:input_end() }
+  \directlua { CDR:import_set_integer('last_line') }
+  \directlua { CDR:import() }
+  \directlua { CDR:import_end() }
   \group_end:
+  \@doendpe\global\@ignorefalse\ignorespaces
 }
 %    \end{MacroCode}
 %

@@ -103,19 +103,106 @@
 }
 
 \newfontfamily\TGCFont{TeX Gyre Cursor}[NFSSFamily=TGC]
-
-\CDRCodeSave{CDRMeta}|\CDRMeta|
+\AtBeginDocument{
+\CDRCodeSave{CDRCode}|\CDRCode|
+\CDRCodeSave{CDRCodeSave}|\CDRCodeSave|
+\CDRCodeSave{CDRCodeUse}|\CDRCodeUse|
+\CDRCodeSave{CDRBlock}|CDRBlock|
+\CDRCodeSave{CDRBlockSave}|CDRBlockSave|
+\CDRCodeSave{CDRBlockUse}|\CDRBlockUse|
+\CDRCodeSave{CDRBlockExe}|\CDRBlockExe|
 \CDRCodeSave{CDRExport}|\CDRExport|
-\CDRCodeSave{CDRInput}|\CDRInput|
+\CDRCodeSave{CDRImport}|\CDRImport|
+\CDRCodeSave{CDRCodeEngineNew}|\CDRCodeEngineNew|
+\CDRCodeSave{CDRCodeEngineRenew}|\CDRCodeEngineRenew|
+\CDRCodeSave{CDRBlockEngineNew}|\CDRBlockEngineNew|
+\CDRCodeSave{CDRBlockEngineRenew}|\CDRBlockEngineRenew|
+\CDRCodeSave{CDRMeta}|\CDRMeta|
+\CDRCodeSave{CDRMetaFormat}|\CDRMetaFormat|
 \CDRCodeSave{CDRSet}|\CDRSet|
-
+}
 \begin{document}
-\title{User manual for the \pkg{coder} package}
+\begin{CDRBlockSave}{textbf}
+\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
+\end{CDRBlockSave}
+\CDRBlockExe{textbf}
+\title{\pkg{coder} user manual\\
+code inlined in a \LaTeX\ document\\
+\LaTeX\ inlined in a code source
+}
 \author{Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}}
 \maketitle
 \tableofcontents
-\section{Installation}
+%
+%
+\section{Features}
+Here is a survey of the commands and environments defined by this package with a short description.
+\begin{description}
+\item[{\CDRCodeUse[tags=src]{CDRCode}}, \CDRCodeUse{CDRCodeSave}, \CDRCodeUse{CDRCodeUse}]
+commands to display, save and reuse inline code snippets
+like \CDRCodeUse[tags=src]{UNIK key}, see \ref{sect:CDRCode},
+\item[\CDRCodeUse{CDRBlock}, \CDRCodeUse{CDRBlockSave}, \CDRCodeUse{CDRBlockUse}, \CDRCodeUse{CDRBlockExe}] environments
+and commands to display, save, reuse and execute\footnote{when these are \LaTeX\ instructions} block code snippets, see \ref{sect:CDRBlock}.
+Figure \ref{fig:First example} compares \pkg{lua} or \pkg{python} syntax while computing recursively the factorial of an integer.
+%%%%%
+%%%%%
+\begin{figure}[h!]
+\begin{center}
+\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\begin{CDRBlock}[tags=lua]
+function factorial(n)
+  --[[Compute n!]]
+  if n > 1 then
+    return n * factorial(n-1)
+  end
+  return 1
+end
+\end{CDRBlock}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\hspace{0.09\linewidth}%
+\begin{minipage}[t]{0.8\linewidth}
+\begin{CDRBlock}[tags=py]
+def factorial(n):
+  '''Compute n!'''
+  if n > 1:
+    return n * factorial(n-1)
+  return 1
+\end{CDRBlock}
+\end{minipage}%
+\end{tabular}
+\end{center}
+\caption{First example}
+\label{fig:First example}
+\end{figure}
+The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} on the left and style \texttt{trac} on the right. Line numbering may appear on each side of the code, or may be hidden.
+\item[{%
+\CDRCodeUse[tags=src]{CDRCodeEngineNew},
+\CDRCodeUse{CDRCodeEngineRenew},
+\CDRCodeUse{CDRBlockEngineNew},
+\CDRCodeUse{CDRBlockEngineRenew}%
+}]
+commands to define or redefine display engines
+for inline or block snippets,
+see sections \ref{sect:CDRCodeEngine} and \ref{sect:CDRBlockEngine},
+\item[\CDRCodeUse{CDRExport}]
+to export block snippets as external source,
+see section \ref{sect:CDRExport},
+\item[\CDRCodeUse{CDRImport}]
+to import external sources as block snippets,
+with embedded documentation properly typeset,
+see section \ref{sect:CDRImport},
+\item[\CDRCodeUse{CDRSet}]
+to set up various options,
+see section \ref{sect:CDRSet},
+\item[\CDRCodeUse{CDRMeta}, \CDRCodeUse{CDRMetaFormat}] 
+to properly display \CDRMeta{concepts} and \CDRMeta{metadata},
+see section \ref{sect:CDRMeta}.
+\end{description}
 
+\section{Installation}
 This Lua\LaTeX\ package is available on CTAN and is part of any standard \TeX{} distribution\footnote{In progress}. To use it in a document, put the next instruction in the preamble:
 \begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
 \RequirePackage{coder}
@@ -180,63 +267,26 @@ To install the \pkg{coder} package from source, download and typeset \verb|coder
 \end{itemize}
 %
 \section{Display code}
-\subsection{Example}
-To see \pkg{coder} in action, we compare in figure \ref{fig:First example} \pkg{lua} and \pkg{python} syntax while computing recursively the factorial of an integer.
-%%%%%
-%%%%%
-\begin{figure}[h!]
-\begin{center}
-\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
-\begin{minipage}[t]{0.9\linewidth}
-\begin{CDRBlock}[tags=lua]
-function factorial(n)
-  --[[Compute n!]]
-  if n > 1 then
-    return n * factorial(n-1)
-  end
-  return 1
-end
-\end{CDRBlock}
-\end{minipage}%
-\hspace{0.09\linewidth}
-&
-\hspace{0.09\linewidth}%
-\begin{minipage}[t]{0.8\linewidth}
-\begin{CDRBlock}[tags=py]
-def factorial(n):
-  '''Compute n!'''
-  if n > 1:
-    return n * factorial(n-1)
-  return 1
-\end{CDRBlock}
-\end{minipage}%
-\end{tabular}
-\end{center}
-\caption{First example}
-\label{fig:First example}
-\end{figure}
-The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} on the left and style \texttt{trac} on the right. Line numbering may appear on each side of the code, or may be hidden.
-%
-\subsection{\texorpdfstring{\cs{CDRCode}}{CDRCode} command}
+\subsection{The \CDRCodeUse{CDRCode} command}
+\label{sect:CDRCode}
 Inserting code as inline text is possible with the command \CDRCode[tags=src]|\CDRCode| which syntax is
 \begin{CDRBlock}[tags=src]
 \CDRCode[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]?⟨\MyMeta{inline code chunk}⟩?
 \end{CDRBlock}
 
 Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course. Similarly, we can save a code snippet for later use:
-\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
-\begin{CDRBlock}[tags=src]
-\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
-\end{CDRBlock}
+\CDRBlockUse[tags=src]{textbf}
 With next instruction,
 \begin{CDRBlock}[tags=src]
 \CDRCodeUse[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]{UNIK key}
 \end{CDRBlock}
 we can display the code snippet with different styles like \CDRCodeUse[tags=src,style=autumn]{UNIK key} or \CDRCodeUse[tags=src,style=default,reflabel=UNIK key]{UNIK key}, and even use it in a footnote\footnote{Here is the aspect when \pkg{pygments} is not available: \CDRCodeUse[tags=src,pygments=false]{UNIK key}}.
 Code snippets must be saved before they are used, in particular, possibly before the table of contents is built.
+For that purpose, \CDRCode|\CDRCodeSave| is allowed in the document preamble, once \pkg{coder} package has been loaded.
 
 The available options are collected in section \ref{sect:options} because they are shared.
-\subsection{The \texttt{CDRBlock} environment}
+\subsection{The \CDRCodeUse{CDRBlock} environment}
+\label{sect:CDRBlock}
 Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line literally consisting  of \CDRCode[lang=tex]|\end{CDRBlock}|, with no extra space.
 Optional key--value options are enclosed with square brackets. The opening bracket must follow the \CDRCode[lang=tex]|\begin{CDRBlock}| instruction, on the very same line. For the first examples of figure \ref{fig:First example}, the input was
 \begin{figure}[H]
@@ -288,9 +338,11 @@ If the source is a \LaTeX{} code, it can be executed with
 \CDRBlockExe[⟨\metatt{makeatletter[=true|false]}⟩]{⟨\MyMeta{block identifier}⟩}
 \end{CDRBlock}
 This command is widely used in this manual.
+
+Notice that the \CDRCodeUse{CDRBlockSave} environment must only be used in the document body.
 %
-\section{Export code with \cs{CDRExport}}
-\label{sect:exportation}
+\section{Export code with \CDRCodeUse{CDRExport}}
+\label{sect:CDRExport}
 \subsection{Usage}
 The syntax for the \CDRCode|\CDRExport| command is the following, where the \CDRCode|file| key must be provided with a non empty value,
 \begin{CDRBlock}[tags=src]
@@ -582,6 +634,7 @@ Similarly, the command \CDRCode[tags=src]|\CDRNumberMain| to display the main li
 \label{sect:frames}
 %
 \subsubsection{Inline code}
+\label{sect:CDRCodeEngine}
 When the \pkg{efbox} package is loaded, inline code can be framed by adding the option \CDRCode|engine=efbox|: \CDRCode[
   engine=efbox,
   efbox engine options={
@@ -613,6 +666,7 @@ and \CDRCode[tags=src]|\efbox[#1]{#2}| as \MyMeta{engine instructions}. It can b
 There is an engine named \CDRCode[tags=src]|default| which is always available and used by default. The command \CDRCode[tags=src]|\CDRCodeEngineRenew| will be used to redefine engines, with a similar syntax.
 %
 \subsubsection{Block code}
+\label{sect:CDRBlockEngine}
 If the \pkg{tcolorbox} package is loaded,
 then blocks of code can be framed by adding the option \CDRCode|engine=tcbox|
 \begin{CDRBlock}[
@@ -1070,7 +1124,9 @@ which reads
 \end{center}
 We get for the first use, \CDRCode|\ref*{line.A}| = \ref*{line.A}
 and for the second use \CDRCode|\ref*{line.B}| = \ref*{line.B}.
+%
 \subsection{The \CDRCodeUse[tags=src]{CDRMeta} command}
+\label{sect:CDRMeta}
 It is common practice to emphasize \CDRMeta{concepts}
 or \CDRMeta*{metadata} by enclosing them between angle brackets.
 This is achieved with \CDRCode[tags=src]|\CDRMeta{concepts}| or \CDRCode|\CDRMeta*{metadata}|.
@@ -1092,26 +1148,27 @@ gives for example
 {\CDRBlockExe{CDRMetaFormat}
 \CDRMeta{concepts}} instead of \CDRMeta{concepts}
 %
-\section{The \CDRCodeUse[tags=src]{CDRInput} command}
+\section{Import documented code with \CDRCodeUse[tags=src]{CDRImport}}
+\label{sect:CDRImport}
 This is perhaps one of the key features of this package.
 It allows to input a source file and typeset the embedded documentation in \LaTeX. Only the core technology is provided as we can see in next example.
 
-  Here is the raw content of file \pkg{coder-driver-lua.lua} typeset with \pkg{pygments} xcode style:
+  Here is the raw content of file \pkg{coder-driver-c.lua} typeset with \pkg{pygments} xcode style:
 \CDRSet{tags/lua={
   numbers=left,
   show tags=left,
   stepnumber=5,
 }}
-\CDRInput[tags=lua|xcode,first line=18]{coder-driver-lua.lua}
+\CDRImport[tags=lua|xcode,first line=18]{coder-driver-c.lua}
 This was input with command
 \begin{CDRBlock}[tags=src]
-\CDRInput[tags=lua,first line=18]{coder-driver-lua.lua}
+\CDRImport[tags=lua,first line=18]{coder-driver-c.lua}
 \end{CDRBlock}
 The lines from 1 to 17 are hidden due to the
 \CDRCode|first line=18| option.
-With option \CDRCode|last line=-5|, the 5 last lines would have been hidden as well.
+With supplemental option \CDRCode|last line=-5|, the 5 last lines would have been hidden as well.
 
-If we add the option \CDRCode|driver=lua|, then the embedded documentation is typeset on its own.
+If we add the option \CDRCode|driver=c|, then the embedded documentation is typeset on its own.
 \begin{CDRBlockSave}{coder environment}
 \newtcolorbox{coder}[1]{
   box align=top,
@@ -1121,18 +1178,18 @@ If we add the option \CDRCode|driver=lua|, then the embedded documentation is ty
 }
 \end{CDRBlockSave}
 \CDRBlockExe{coder environment}
-\CDRInput[tags=lua|xcode,first line=18,driver=lua]{coder-driver-lua.lua}
+\CDRImport[tags=lua|xcode,first line=18,driver=lua]{coder-driver-c.lua}
 We first defined the \CDRCode|coder| environment to display a box:
 \CDRBlockUse[tags=src]{coder environment}
 The line numbering of the code follows exactly the physical numbering of the source file.
 Moreover, Sync\TeX\ is largely supported, at least as far as allowed by Lua\TeX.
 
-Builtin drivers are provided to support various languages.
-Writing new ones is not difficult as soon as the programming languages supports block comments,
+Builtin drivers are provided to support various languages. The driver above can be used for a wide variety of languages whereas builtin drivers for python and lua are provided, respectively named \CDRCode|py| and \CDRCode|lua|.
+Writing new drivers is not difficult as soon as the programming languages supports block comments,
 considering that already existing drivers may serve as starting points.
 
-\CDRInput[tags=xcode|py,first line=2,driver=py]{coder_test.py}
-\CDRInput[tags=xcode,lang=c,driver=raw]{coder_test.c}
+\CDRImport[tags=xcode|py,first line=2,driver=py]{coder_test.py}
+\CDRImport[tags=xcode,lang=c,driver=raw]{coder_test.c}
 
 \section{The \CDRCodeUse[tags=src]{CDRSet} command}
 So far we have provided the various \pkg{coder} commands and environments with key--value options. The \CDRCodeUse[tags=src]{CDRSet} command allows to apply some setting once for all code snippets, moreover it can collect setting in style, already used above with tag names.
@@ -1165,7 +1222,7 @@ Finally, changing many options at once for the same tag is also possible:
 \end{CDRBlock}
 \subsection{Tags}
 \label{sect:tags}
-Tags are used not only for styling but also for continuous line numbering (section \ref{sect:line numbering}) and exportation (section \ref{sect:exportation}). If only one tag is used and there is no exportation, it can be omitted.
+Tags are used not only for styling but also for continuous line numbering (section \ref{sect:line numbering}) and exportation (section \ref{sect:CDRExport}). If only one tag is used and there is no exportation, it can be omitted.
 
 Tag names must not contain commas nor pipe characters, moreover, names with exactly two leading underscores are reserved by the \pkg{coder} package.
 More names are reserved by the \pkg{coder} package, but they are available to the user. They need not appear in a \CDRCode[tags=src]?tags=...? setting. Options set for the tag name \CDRCode[tags=src]?default? automatically apply to any forthcoming code snippet. Any option set for the tag name \CDRCode[tags=src]?default.code? applies to any forthcoming code snippet displayed inline, eventually overriding the \CDRCode[tags=src]?default? setting. Finally, options set for tag name \CDRCode[tags=src]?default.block? apply to any forthcoming code snippet displayed in block, taking precedence over the \CDRCode[tags=src]?default? setting.
@@ -1181,7 +1238,7 @@ Instead, one will use the key
 \subsubsection{\texttt{default} tag}
 \begin{description}
 \itemtt[\CDRCheckGreen tags={\meta[1]{tag}|\meta[2]{tag}|...}]
-used for exportation (section \ref{sect:exportation}), for line numbering (section \ref{sect:line numbering}) and also for styling, see section \ref{sect:styling}.
+used for exportation (section \ref{sect:CDRExport}), for line numbering (section \ref{sect:line numbering}) and also for styling, see section \ref{sect:styling}.
 Initially a void list.
 \CDRMeta{tag} is subject to minor restrictions (section \ref{sect:tags}).
 %%%% __engine
