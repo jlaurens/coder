@@ -15,7 +15,8 @@
 \usepackage{tcolorbox}
 \usepackage{relsize}
 \usepackage{lipsum}
-
+\usepackage{ifthen}
+\usepackage{xcolor}
 %
 %
 \ExplSyntaxOn
@@ -65,19 +66,6 @@
 \title{Testing the \pkg{coder} package}
 \author{Jérôme LAURENS}
 \maketitle
-
-\ExplSyntaxOn
-\RenewDocumentCommand\CDRTest {} {
-  \par\noindent
-  Path~to~\textsf{python}:~\texttt{\directlua{tex.print(CDR.PYTHON_PATH)}}
-  \par\noindent
-  Path~to~\textsf{pygmentize}:~\texttt{\directlua{tex.print(CDR.PYGMENTIZE_PATH)}}
-  \par\noindent
-  \CDR_has_pygments:TF { Pygments~is~available } { Pygments~is~not~available
-}:~%\CDRCode[lang=tex]|\textit{text}|
-  \par\noindent
-}
-\ExplSyntaxOff
 
 \section{Have \textsf{pygments}?}
 \CDRTest

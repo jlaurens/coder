@@ -1,6 +1,30 @@
 % !TeX program=lualatex
 % !TeX root=../coder_test.tex
 
+\def\baselinestretch{1}
+\begin{CDRBlockSave}{BASE}
+line 1
+physical line 2
+line 3
+\end{CDRBlockSave}
+\CDRBlockUse[]{BASE}
+\RenewDocumentCommand \CDRLineContent{ mmm } {%$
+#3\textcolor{red}{THIS IS LINE/#1/#2}}
+\colorlet{blackenta}{blue}
+\CDRBlockUse[
+  firstnumber=10,
+  line color=green!10!white,
+  text color=magenta!50!black,
+  pygments=true,
+]{BASE}
+\CDRBlockUse[
+  firstnumber=10,
+  line color=green!10!white,
+  text color=blue,
+  pygments=false,
+]{BASE}
+\endinput
+
 \CDRCodeSave{ABCD}|\textbf{XYZ}|
 ABCDE
 \CDRCodeUse{ABCD}

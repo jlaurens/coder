@@ -101,9 +101,7 @@
     numbers=left,
   },
 }
-
 \newfontfamily\TGCFont{TeX Gyre Cursor}[NFSSFamily=TGC]
-\AtBeginDocument{
 \CDRCodeSave{CDRCode}|\CDRCode|
 \CDRCodeSave{CDRCodeSave}|\CDRCodeSave|
 \CDRCodeSave{CDRCodeUse}|\CDRCodeUse|
@@ -120,7 +118,12 @@
 \CDRCodeSave{CDRMeta}|\CDRMeta|
 \CDRCodeSave{CDRMetaFormat}|\CDRMetaFormat|
 \CDRCodeSave{CDRSet}|\CDRSet|
-}
+\CDRCodeSave{CDRNumberMain}|\CDRNumberMain|
+\CDRCodeSave{CDRNumberOther}|\CDRNumberOther|
+\CDRCodeSave{CDRLineBox}|\CDRLineBox|
+\CDRCodeSave{CDRLinePrefix}|\CDRLinePrefix|
+\CDRCodeSave{CDRLineContent}|\CDRLineContent|
+\CDRCodeSave{CDRLineSuffix}|\CDRLineSuffix|
 \begin{document}
 \begin{CDRBlockSave}{textbf}
 \CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
@@ -178,6 +181,18 @@ def factorial(n):
 \label{fig:First example}
 \end{figure}
 The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} on the left and style \texttt{trac} on the right. Line numbering may appear on each side of the code, or may be hidden.
+\item[
+\CDRCodeUse{CDRNumberMain},
+\CDRCodeUse{CDRNumberOther},
+]
+for more control on number display, see \ref{sect:CDRNumber},
+\item[
+\CDRCodeUse{CDRLineBox},
+\CDRCodeUse{CDRLinePrefix},
+\CDRCodeUse{CDRLineContent},
+\CDRCodeUse{CDRLineSuffix},
+]
+for more control on line display, see \ref{sect:CDRLine},
 \item[{%
 \CDRCodeUse[tags=src]{CDRCodeEngineNew},
 \CDRCodeUse{CDRCodeEngineRenew},
@@ -187,11 +202,10 @@ The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} 
 commands to define or redefine display engines
 for inline or block snippets,
 see sections \ref{sect:CDRCodeEngine} and \ref{sect:CDRBlockEngine},
-\item[\CDRCodeUse{CDRExport}]
+\item[\CDRCodeUse{CDRExport}, \CDRCodeUse{CDRImport}]
 to export block snippets as external source,
 see section \ref{sect:CDRExport},
-\item[\CDRCodeUse{CDRImport}]
-to import external sources as block snippets,
+and to import external sources as block snippets,
 with embedded documentation properly typeset,
 see section \ref{sect:CDRImport},
 \item[\CDRCodeUse{CDRSet}]
@@ -207,7 +221,7 @@ This Lua\LaTeX\ package is available on CTAN and is part of any standard \TeX{} 
 \begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
 \RequirePackage{coder}
 \end{CDRBlock}
-and run Lua\LaTeX{}. In order to have syntax highlighting like above, you must enable shell escape in Lua\TeX\footnote{There is a \texttt{--shell-escape} option on the command line, and editors may provide a check box in their preference section.} and have \pkg{pygments} installed (see \url{https://pygments.org} for that purpose) but this is not a requirement for the other features of the \pkg{coder} package.
+and run Lua\LaTeX{}. In order to have syntax highlighting like above, you must enable shell escape in Lua\TeX\footnote{There is a \texttt{--shell-escape} option on the command line, and editors may provide a check box in their preference section.} and have \pkg{pygments} installed with shell command \texttt{pip install pygments}(see \url{https://pygments.org} for that purpose) but this is not a requirement for the other features of the \pkg{coder} package.
 
 In order to test \pkg{pygments} installation, you can successively run from a terminal the commands
 \\[0.25\baselineskip]
@@ -526,6 +540,7 @@ tags in mirror
 %
 \subsection{Line numbering}
 \label{sect:line numbering}
+\label{sect:CDRNumber}
 Line numbering only makes sense for blocks of code.
 Options are illustrated below, to the right of each source.
 \begin{center}
@@ -555,15 +570,15 @@ Options are illustrated below, to the right of each source.
   firstnumber=10,
   stepnumber=3,
 ]
-line 1 numbered 10
-line 2
-line 3 numbered 12
-line 4
-line 5
-line 6 numbered 15
-line 7
-line 8
-line 9 numbered 18
+physical line 1 numbered 10
+physical line 2
+physical line 3 numbered 12
+physical line 4
+physical line 5
+physical line 6 numbered 15
+physical line 7
+physical line 8
+physical line 9 numbered 18
 \end{CDRBlock}
 &
 \end{tabular}
@@ -603,15 +618,15 @@ Blocks with the same leftmost tag can be numbered continuously with option \CDRC
   firstnumber=last,
   stepnumber=4,
 ]
-line 1
-line 2 numbered 20
-line 3
-line 4
-line 5
-line 6 numbered 24
-line 7
-line 8
-line 9
+physical line 1
+physical line 2 numbered 20
+physical line 3
+physical line 4
+physical line 5
+physical line 6 numbered 24
+physical line 7
+physical line 8
+physical line 9
 \end{CDRBlock}
 &
 \end{tabular}
@@ -630,6 +645,54 @@ Similarly, the command \CDRCode[tags=src]|\CDRNumberMain| to display the main li
   \color{.!25!white}\makebox[4mm]{\mboxfill[0.75mm]{.}}%
 }
 \end{CDRBlock}
+%
+\subsection{Line content}
+\label{sect:CDRLine}
+\begin{center}
+\setlength{\arraycolsep}{0pt}
+\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
+%
+\begin{CDRBlock}[
+  no top space,
+  tags=src,
+]
+\begin{⟨CDRBlock⟩}[
+  tags=X,
+  show tags=none,
+  numbers=left,
+  ⟨\textcolor{CDROptions}{\textbf{firstnumber=last}}⟩,
+  ⟨\textcolor{CDROptions}{\textbf{stepnumber=4}}⟩,
+]
+...
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+&
+\RenewDocumentCommand\CDRNumberMain{m}{%
+  \color{CDROptions}\bfseries#1
+  \color{.!25!white}\makebox[4mm]{\mboxfill[0.75mm]{.}}%
+}
+\RenewDocumentCommand\CDRNumberOther{m}{%
+  \color{lightgray}#1%
+}
+\begin{CDRBlock}[
+  firstnumber=5,
+]
+physical line 1
+physical line 2 numbered 20
+physical line 3
+physical line 4
+physical line 5
+physical line 6 numbered 24
+physical line 7
+physical line 8
+physical line 9
+\end{CDRBlock}
+&
+\end{tabular}
+\end{center}
+
+\end{document}
+%
 \subsection{Frames}
 \label{sect:frames}
 %
@@ -719,31 +782,31 @@ Notice the \CDRCode[tags=src]|\CDRGetOption| command used to retrieve the value 
 \begin{center}
 \setlength{\arraycolsep}{0pt}
 \begin{tabular}{p{0.495\columnwidth}p{0.495\columnwidth}}
-The \pkg{coder} package also supports \pkg{fancyvrb} options to display frames, here is an example taken from the \pkg{fancyvrb} documentation:
-\begin{CDRBlock}[
-  tags=src,
-  frame=single,
-  framerule=1mm,
-  framesep=3mm,
-  rulecolor=\color{red},
-  fillcolor=\color{yellow}
-]
-Verbatim line.
-\end{CDRBlock}
-&
-\begin{CDRBlock}[tags=src, no top space]
-\begin{⟨CDRBlock⟩}[
-  frame=single,
-  framerule=1mm,
-  framesep=3mm,
-  rulecolor=\color{red},
-  fillcolor=\color{yellow}
-]
-Verbatim line.
-\end{⟨CDRBlock⟩}
-\end{CDRBlock}
-\end{tabular}
-\end{center}
+%The \pkg{coder} package also supports \pkg{fancyvrb} options to display frames, here is an example taken from the \pkg{fancyvrb} documentation:
+%\begin{CDRBlock}[
+%  tags=src,
+%  frame=single,
+%  framerule=1mm,
+%  framesep=3mm,
+%  rulecolor=\color{red},
+%  fillcolor=\color{yellow}
+%]
+%Verbatim line.
+%\end{CDRBlock}
+%&
+%\begin{CDRBlock}[tags=src, no top space]
+%\begin{⟨CDRBlock⟩}[
+%  frame=single,
+%  framerule=1mm,
+%  framesep=3mm,
+%  rulecolor=\color{red},
+%  fillcolor=\color{yellow}
+%]
+%Verbatim line.
+%\end{⟨CDRBlock⟩}
+%\end{CDRBlock}
+%\end{tabular}
+%\end{center}
 
 \section{Miscellanées}
 \subsection{Filtering}
