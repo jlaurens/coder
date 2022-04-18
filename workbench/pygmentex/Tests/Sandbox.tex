@@ -5,12 +5,18 @@
 \begin{CDRBlockSave}{BASE}
 line 1
 physical line 2
-line 3
+\physical line 3
+line 4
+line 5
 \end{CDRBlockSave}
 \CDRBlockUse[]{BASE}
-\RenewDocumentCommand \CDRLineContent{ mmm } {%$
-#3\textcolor{red}{THIS IS LINE/#1/#2}}
 \colorlet{blackenta}{blue}
+\CDRBlockUse[
+  firstnumber=10,
+  line prefix={#1/},
+  line postfix={/#2},
+  line suffix={/#1/#2},
+]{BASE}
 \CDRBlockUse[
   firstnumber=10,
   line color=green!10!white,
@@ -22,7 +28,43 @@ line 3
   line color=green!10!white,
   text color=blue,
   pygments=false,
+  line depth=0.3
 ]{BASE}
+\CDRBlockUse[
+  firstnumber=10,
+  line color=\ifnumodd{#1}{green!20!white}{green!10!white},
+]{BASE}
+\CDRBlockUse[
+  firstnumber=10,
+  line color=\ifnumodd{#2}{green!20!white}{green!10!white},
+]{BASE}
+
+\CDRDebugOn
+\begin{CDRBlock}[
+  line prefix=\ifnumequal{#1}{2}{%
+    \tikzmark{2E}%
+  }{},
+  line postfix=\ifnumequal{#1}{3}{%
+    \tikzmark{3E}%
+  }{},
+  line suffix=\ifnumequal{#1}{4}{%
+    \tikzmark{4E}%
+  }{},
+]
+line 1
+line 2
+line 3
+line 4
+line 5
+\end{CDRBlock}
+The prefix of line 2 goes here\tikzmark{2B},
+the postfix of line 3 goes here\tikzmark{3B}
+and the suffix of line 4 goes here\tikzmark{4B}.
+\begin{tikzpicture}[remember picture]
+\draw[overlay] (pic cs:2B) -- (pic cs:2E);
+\draw[overlay] (pic cs:3B) -- (pic cs:3E);
+\draw[overlay] (pic cs:4B) -- (pic cs:4E);
+\end{tikzpicture}
 \endinput
 
 \CDRCodeSave{ABCD}|\textbf{XYZ}|

@@ -4307,6 +4307,60 @@ if __name__ == '__main__':
   text~color .code:n = \CDR_tag_set_nn:,
   text~color .value_required:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed line prefix=\meta{instructions}]^^A
+% the given \meta{instructions} are executed
+% before the content. They will receive 
+% the physical line number as first argument
+% and the logical one as second.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  line~prefix .code:n = \CDR_tag_set_nn:,
+  line~prefix .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed line postfix=\meta{instructions}]^^A
+% the given \meta{instructions} are executed
+% after the content. They will receive 
+% the physical line number as first argument
+% and the logical one as second.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  line~postfix .code:n = \CDR_tag_set_nn:,
+  line~postfix .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed line suffix=\meta{instructions}]^^A
+% the given \meta{instructions} are executed
+% after the line. They will receive 
+% the physical line number as first argument
+% and the logical one as second.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  line~suffix .code:n = \CDR_tag_set_nn:,
+  line~suffix .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed line content=\meta{instructions}]^^A
+% the given \meta{instructions} are executed
+% to typeset the line content. They will receive 
+% the physical line number as first argument,
+% the logical one as second and the content as third.
+% Initially returns the third argument as is.
+%    \begin{MacroCode}[OK]
+  line~content .code:n = \CDR_tag_set_nnn:,
+  line~content .value_required:n = true,
+%    \end{MacroCode}
+%
+% \itemtt[\CDRCheckRed line depth=\meta{ratio}$\vert$auto]^^A
+% set the vertical space below the base line,
+% relative to |\baselineskip|.
+% The default is set to |auto| which means that this ratio is
+% automatically computed from the current font.
+% The \meta{ratio} is a floating point number,
+% something between |0.25| and |0.3| seems reasonable.
+% Initially |auto|.
+%    \begin{MacroCode}[OK]
+  line~depth .code:n = \CDR_tag_set:,
+  line~depth .value_required:n = true,
+%    \end{MacroCode}
+%
 %\itemtt[\CDRCheckRed use margin{[=true$\vert$false]}]^^A
 % to use the margin to display line numbers
 % and tag names, or not, UNUSED
@@ -4332,6 +4386,11 @@ if __name__ == '__main__':
     },
     line~color =,
     text~color =,
+    line~prefix = ,
+    line~postfix = ,
+    line~suffix  = ,
+    line~content = ##3,
+    line~depth = auto,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -6944,6 +7003,7 @@ if __name__ == '__main__':
   \group_begin:
   \fvset{ commandchars=\\\{\} }
   \FV@VerbatimBegin
+  \CDR_set_strut:
   \CDR_tag_get:c { format }
   \CDR_if_no_export:T {
     \CDR_tag_get:c { no~export~format }
@@ -7261,31 +7321,33 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRLineBox, \CDRLinePrefix, \CDRLineContent, \CDRLinePostfix}
-% \begin{syntax}
-% \cs{CDRLineBox} \Arg{physical lineno} \Arg{logical lineno} \Arg{boxed content}
-% \cs{CDRLinePrefix} \Arg{physical lineno} \Arg{logical lineno}
-% \cs{CDRLineContent} \Arg{physical lineno} \Arg{logical lineno} \Arg{content}
-% \cs{CDRLinePostfix} \Arg{physical lineno} \Arg{logical lineno}
-% \end{syntax}
-% \metatt{physical lineno} represents a physical line number,
-% whereas \metatt{logical lineno} represents a logical line number,
-% what is displayed if any.
-% \cs{CDRLinePrefix} and \cs{CDRLinePostfix}
-% are called at the start or end of each line.
-% Their default implementation does nothing.
-% \cs{CDRLineBox} is mainly the horizontal box containing
-% the material to build a line. The default implementation
-% is built dynamically for each block of code.
-% If a background color is given as an option, then
-% it wraps is third argument in a \cs{colorbox}, otherwise
-% it just use its third argument as is.
+% \begin{function}{\CDR_set_strut:}
+% The |\l_CDR_strut_tl| is used calibrate lines.
 % \end{function}
 %    \begin{MacroCode}
-\NewDocumentCommand \CDRLineBox { m m m } { #3 }
-\NewDocumentCommand \CDRLinePrefix  { m m   } {    }
-\NewDocumentCommand \CDRLineContent { m m m } { #3 }
-\NewDocumentCommand \CDRLinePostfix { m m   } {    }
+\tl_new:N \l_CDR_strut_tl
+\cs_new:Npn \CDR_set_strut: {
+  \tl_set:Nn \l_CDR_strut_tl {%[
+    \baselineskip]{0pt}{\baselineskip}
+  }
+  \CDR_if_tag_eq:cnTF { line~depth } { auto } {
+    \hbox_set:Nn \l_CDR_a_box { lp }
+    \tl_put_left:Nx \l_CDR_strut_tl {
+      -\fp_eval:n {
+        \dim_ratio:nn
+          { \box_dp:N \l_CDR_a_box }
+          {\box_ht_plus_dp:N \l_CDR_a_box}
+      }
+    }
+  } {
+    \tl_put_left:Nx \l_CDR_strut_tl {
+      -\CDR_tag_get:c { line~depth }
+    }
+  }
+  \tl_put_left:Nn \l_CDR_strut_tl {
+    \rule[%]
+  }
+}
 %    \end{MacroCode}
 %
 % \begin{function}{\CDR_line_box:nnn, \CDR_line_box_L:nn, \CDR_line_box_R:nn, \CDR_line_box:nn}
@@ -7327,15 +7389,22 @@ if __name__ == '__main__':
     }
     \hbox_set_to_wd:Nnn \l_CDR_a_box { \linewidth } {
       \FV@LeftListFrame
-      \exp_args:NVV
-      \CDRLinePrefix \l_CDR_p_tl \l_CDR_l_tl
-      \exp_args:NVV
-      \CDRLineContent \l_CDR_p_tl \l_CDR_l_tl {
-        \rule[-0.3\baselineskip]{0pt}{\baselineskip}
+      \exp_args:NnVV
+      \CDR_tag_get:c
+        { line~prefix } \l_CDR_p_tl \l_CDR_l_tl
+      \exp_args:NnVV
+      \CDR_tag_get:c
+        { line~content } \l_CDR_p_tl \l_CDR_l_tl {
+        \l_CDR_strut_tl
         #2
       }
+      \exp_args:NnVV
+      \CDR_tag_get:c
+        { line~postfix } \l_CDR_p_tl \l_CDR_l_tl
       \hss
-      \exp_args:NVV \CDRLinePostfix \l_CDR_p_tl \l_CDR_l_tl
+      \exp_args:NnVV
+      \CDR_tag_get:c
+        { line~suffix } \l_CDR_p_tl \l_CDR_l_tl
       \FV@RightListFrame
     }
     \tl_set:Nx \l_CDR_tl {
@@ -7346,7 +7415,7 @@ if __name__ == '__main__':
       \box_use_drop:N \l_CDR_a_box
     } {
       \hbox_set_to_wd:Nnn \l_CDR_b_box { \fboxsep } {
-        \rule[-0.3\baselineskip]{0pt}{\baselineskip}
+        \l_CDR_strut_tl
       }
       \fboxsep0pt
       \hbox_overlap_left:n {
@@ -7511,7 +7580,7 @@ if __name__ == '__main__':
       }
     }
  \CDR@Debug {\string\CDR@Line:STEP_3=(#1)}
-   \CDR_int_set:cn { __l } { 1 + \CDR_int:c { __start } - (#1) }
+   \CDR_logical_set:n { 1 + \CDR_int:c { __start } - (#1) }
  \CDR@Debug {\string\CDR@Line:STEP_4}
    \tl_set:Nx \@currentlabel { \CDR_int_use:c { __l } }
  \CDR@Debug {\string\CDR@Line:STEP_5}
@@ -7701,6 +7770,7 @@ if __name__ == '__main__':
   }
 \CDR@Debug{\string\CDRBlock_use_fv:c, \tl_to_str:V \l_CDR_vrb_tl}
   \FV@UseVerbatim {
+    \CDR_set_strut:
     \l_CDR_vrb_tl
   }
 \CDR@Debug {\string\CDRBlock_use_fv:c...DONE}
