@@ -686,6 +686,26 @@ local CDR_PY_PATH = kpse.find_file('coder-tool.py')
 %    \end{MacroCode}
 % \end{variable}
 %
+% \begin{function}{activate_debug}
+% \begin{syntax}
+% CDR:activate_debug(\meta{boolean})
+% \end{syntax}
+% Activate debuging messaging, or not.
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function activate_debug(self, activate)
+  if activate then
+    self.debug = function (...)
+      local args = { ... };
+      table.remove(args, 1)
+      print('**** CDR DEBUG ****', table.unpack(args))
+    end
+  else
+    self.debug = nil
+  end
+end
+%    \end{MacroCode}
+%
 % \begin{function}{set_python_path}
 % \begin{syntax}
 % CDR:set_python_path(\meta{path var})
@@ -931,12 +951,12 @@ end
 %
 % \subsection{Common}
 %
-% \begin{function}{hilight_set}
+% \begin{function}{hilight_set, hilight_set_var}
 % \begin{syntax}
 % CDR:hilight_set(...)
+% CDR:hilight_set_var(...)
 % \end{syntax}
-% Hilight the currently entered block.
-% Build a configuration table with all data necessary for the processing,
+% Build a configuration table named |.arguments| with all data necessary for the processing,
 % save it as a |JSON| file and launch \CDRPy{} with the proper arguments.
 % \end{function}
 %    \begin{MacroCode}
@@ -1539,6 +1559,7 @@ local function rescan_begin(self)
     table.insert(t, assert(token.get_macro(assert(tl_var))))
   end
   function self.rescan_end(me)
+    table.insert(t, '')
     tex.print(t);
     if ExplSyntaxOn then
       tex.print([[\ExplSyntaxOff]])
@@ -1729,7 +1750,7 @@ local function import_process(self, args)
   end or function (l)
     next_code(l)
   end
-  short = d.short and function (l)
+  local short = d.short and function (l)
   end or function (l)
     next_code(l)
   end
@@ -1760,7 +1781,7 @@ local function import_process(self, args)
     conclude()
   end
   for _,l in ipairs(ans) do
-    if self.debug then print('****', _, '====>', l) end
+    self:debug(_, '====>', l)
     tex.print(l)
   end  
   if d.teardown then
@@ -1816,6 +1837,313 @@ local function import_begin(self, source_var, driver_var)
 end
 %    \end{MacroCode}
 %
+% \subsection{Scan}
+%
+% Here we scan from the \pkg{lua} side as far as possible.
+%
+% \begin{variable}{CDR.catcodetable_string}
+% Store the catcode table number to be used by
+% |token.set_macro|.
+% Must be set as early as possible. 
+% \end{variable}
+%
+% \begin{variable}{CDR.catcodetable_atletter}
+% Store the catcode table number to be used by
+% |token.set_macro|.
+% Must be set as early as possible. 
+% \end{variable}
+%
+% \begin{variable}{CDR.scan}
+% The scanner is a controller for scanning input. 
+% \end{variable}
+%
+% \begin{function}{CDR:scan_setup, CDR:scan_teardown}
+% \begin{syntax}
+% CDR:scan_setup(\meta{identifier}, \meta{envir name})
+% CDR:scan_teardown()
+% \end{syntax}
+% Set the scanner and its associate closure for further scanning.
+% These functions are balancing each other.
+% Implementation detail: the teardown is defined dynamically.
+% \end{function}
+% We expect to catch different situations while scanning.
+% \begin{description}
+% \item[No body, no options]
+%    \begin{MacroCode}
+%</lua>
+%<*unused>
+\begin{CDRBlock}
+\end{CDRBlock}
+%</unused>
+%<*lua>
+%    \end{MacroCode}
+% \item[No body, one line options]
+%    \begin{MacroCode}
+%</lua>
+%<*unused>
+\begin{CDRBlock}[...]
+\end{CDRBlock}
+%</unused>
+%<*lua>
+%    \end{MacroCode}
+% \item[No body, many line options]
+%    \begin{MacroCode}
+%</lua>
+%<*unused>
+\begin{CDRBlock}[
+...]
+\end{CDRBlock}
+%</unused>
+%<*lua>
+%    \end{MacroCode}
+% \item[No options]
+%    \begin{MacroCode}
+%</lua>
+%<*unused>
+\begin{CDRBlock}
+body
+\end{CDRBlock}
+%</unused>
+%<*lua>
+%    \end{MacroCode}
+% \item[One line options]
+%    \begin{MacroCode}
+%</lua>
+%<*unused>
+\begin{CDRBlock}[...]
+body
+\end{CDRBlock}
+%</unused>
+%<*lua>
+%    \end{MacroCode}
+% \item[Many line options]
+%    \begin{MacroCode}
+%</lua>
+%<*unused>
+\begin{CDRBlock}[
+...]
+body
+\end{CDRBlock}
+%</unused>
+%<*lua>
+%    \end{MacroCode}
+%
+% \end{description}
+% To determine whether there are options, we first
+% define the environment with no options at all.
+% Then we peek the next character and test for a `['.
+% If there is one on the same line, we switch to the
+% |in_options| mode. If there is nothing on the same line,
+% then the callback will provide a fake |x| line
+% and record the real input for later use.
+% If there is actually any black character after the
+% |\begin{CDRBlock}| on the same line, an error is raised,
+% on error recovery, scanning is continued until
+% the next line.
+% Once we have peeked a |[|, |\CDR@ReadOptions| is called, where lines are required until
+% a balancing |]| is found.
+% Then we want to raise an error if there
+% is some black material after this closing bracket.
+% The scanner exits the |in_options| mode and is
+% not yet in the |in_body| mode.
+% As soon as the callback is asked for a new line,
+% it enters the |in_body| mode.
+% The controller is in safe mode as soon as the callback is called.
+%    \begin{MacroCode}
+local function scan_setup(self, id, env)
+  local lines = {}
+  local args = {}
+  local f_current
+  luatexbase.add_to_callback (
+    'process_input_buffer',
+    function (input)
+      if input then
+        return f_current(input)
+      else
+        return ([[\PackageError{coder}{Missing `\end{%s}'}{See %s documentation }]]):format(env, env)
+      end
+    end,
+    'CDRBlock'
+  )
+  luatexbase.add_to_callback (
+    'process_input_buffer',
+    function (input)
+      self:debug('BUFFER:', '<'..input..'>')
+      return input
+    end,
+    'CDRBlockDebug'
+  )
+  local function remove_from_callback ()
+    luatexbase.remove_from_callback(
+      'process_input_buffer',
+      'CDRBlock'
+    )
+    luatexbase.remove_from_callback(
+      'process_input_buffer',
+      'CDRBlockDebug'
+    )
+  end
+%    \end{MacroCode}
+% |f_current| is the state of the |process_input_buffer| callback.
+% It is defined by one of next functions.
+% State changes are below.
+%    \begin{MacroCode}
+  local f_start, f_options, f_body
+%    \end{MacroCode}
+% The start state of the callback called iff there is
+% no option after de |\begin{...}| instruction.
+% It stores the real |input| and return a fake |x%| line.
+% The return line must consist of a raw token.
+% The real input will be managed in the |in_body| method
+% which must be called afterwards.
+% This is only called through |f_current|: it is called
+% first and only once.
+%    \begin{MacroCode}
+  f_start = function (input)
+    f_current = nil
+    function self.scan.is_after_eol(this)
+      tex.print('T')
+      this.is_after_eol = nil
+    end
+    if input:match([[^%s*\end%s*]]
+      ..'{'..env..'}') then
+%    \end{MacroCode}
+% No option, no body: terminante environment.
+%    \begin{MacroCode}
+      remove_from_callback()
+self:debug('SCAN:end', '<'..input..'>')
+      return input
+    else
+self:debug('CALLBACK:START', '<'..input..'>')
+      lines[#lines+1] = input
+      return [[\relax]]
+    end
+  end
+  f_current = f_start
+%    \end{MacroCode}
+% The state of the callback iff there are real options.
+% Raise an error if the environment is closed too early.
+% Switching to and from this state is made from the
+% \LaTeX{} side.
+%    \begin{MacroCode}
+  f_options = function (input)
+self:debug('CALLBACK:IN_OPTIONS', '<'..input..'>')
+    local d, v, b = input:match([[^%s*(\\end)%s*]]
+      ..'({'..env..'})'..[[([^%]*)]])
+    if d then
+      remove_from_callback()--[
+self:debug('CALLBACK:END', '<'..input..'>')
+      return ']'
+        ..d..v
+        ..[[\PackageError{coder}]]
+        ..[[{Unterminated\space options}]]
+        ..'{'..[[a\space]]--}[
+        ..']'
+        ..[[\space is\space missing\space]]
+        ..[[before\space\end]]..'{'..env..'}'--{
+        ..'}'
+        ..b
+    else
+      return input
+    end
+  end
+%    \end{MacroCode}
+% Scanning the body of the environment:
+% if this is the closing instruction, stop processing input,
+% otherwise store it and return a fake |%| instead.
+% after real options.
+%    \begin{MacroCode}
+  f_body = function (input)
+self:debug('CALLBACK:IN_BODY', '<'..input..'>')
+    function self.scan.is_after_eol()
+      tex.print('T')
+    end
+    if input:match([[^%s*\end%s*]]
+      ..'{'..env..'}') then
+      remove_from_callback()
+      return [[\relax]]..input
+    else
+      lines[#lines+1] = input
+      return [[\relax]]
+    end
+  end
+%    \end{MacroCode}
+% The API:
+%    \begin{MacroCode}
+  self.scan = setmetatable({}, {__index = {
+    set = function (this, key, value)
+      args[key] = value
+    end,
+    set_var = function(this, key, var)
+      this:set(
+        key,
+        assert(token.get_macro(var or 'l_CDR_a_tl'))
+      )
+    end,
+    get = function(this, key)
+      return args[key]
+    end,
+%    \end{MacroCode}
+%    \begin{MacroCode}     
+    is_after_eol = function ()
+    end,
+    enter_body = function ()
+      self:debug{enter_body}
+      f_current = f_body
+    end,
+%    \end{MacroCode}
+% Must be called before reading the options
+% to manage an eventual |last_input|.
+%    \begin{MacroCode}      
+    enter_options = function ()
+      f_current = f_options
+    end,
+%    \end{MacroCode}
+% Options where scanned, only comments are allowed
+% on this line.
+% We switch back to the start state.
+%    \begin{MacroCode}
+    exit_options = function(this)
+      f_current = f_body
+      self.scan.is_after_eol = nil
+    end,
+    resume = function (this)
+      for k, v in ipairs(lines) do
+        self:debug('k', k, '--> v', v)
+      end
+      tex.print(lines)
+    end,
+    resume_pyg = function (this)
+      self:debug('scan.resume_pyg', #lines)
+      self['.lines'] = lines
+      token.set_macro(
+        self.catcodetable_string,
+        'CDR.seq/'..id,
+        tostring(#lines)
+      )
+    end,
+    resume_vrb = function (this)
+      token.set_macro(
+        self.catcodetable_string,
+        'CDR.seq/'..id,
+        tostring(#lines)
+      )
+      for k, v in ipairs(lines) do
+        self:debug('scan.resume_vrb', 'k', k, '--> v', v)
+        token.set_macro(
+          self.catcodetable_string,
+          'CDR.seq/'..id..'/'..k,
+          v
+        )
+      end
+    end,
+  }})
+  self.scan_free = function (this)
+    this.scan = nil
+  end
+end
+%    \end{MacroCode}
+%
 % \section{Return the module}
 %    \begin{MacroCode}
 return setmetatable({}, { __index = {
@@ -1823,49 +2151,50 @@ return setmetatable({}, { __index = {
 % Known fields are
 % \begin{description}
 %    \begin{MacroCode}
-  _DESCRIPTION       = _DESCRIPTION,
+  _DESCRIPTION    = _DESCRIPTION,
 %    \end{MacroCode}
 % \item[\texttt{_VERSION}] to store \meta{version string},
 %    \begin{MacroCode}
-  _VERSION           = token.get_macro('fileversion'),
+  _VERSION        = token.get_macro('fileversion'),
 %    \end{MacroCode}
 % \item[\texttt{date}] to store \meta{date string},
 %    \begin{MacroCode}
-  date               = token.get_macro('filedate'),
+  date            = token.get_macro('filedate'),
 %    \end{MacroCode}
 % \item[Various paths],
 %    \begin{MacroCode}
-  CDR_PY_PATH        = CDR_PY_PATH,
-  set_python_path    = set_python_path,
+  CDR_PY_PATH     = CDR_PY_PATH,
+  set_python_path = set_python_path,
+  activate_debug  = activate_debug,
 %    \end{MacroCode}
 % \itemtt[is_truthy]
 %    \begin{MacroCode}
-  is_truthy          = is_truthy,
+  is_truthy       = is_truthy,
 %    \end{MacroCode}
 % \itemtt[escape]
 %    \begin{MacroCode}
-  escape             = escape,
+  escape          = escape,
 %    \end{MacroCode}
 % \itemtt[make_directory]
 %    \begin{MacroCode}
-  make_directory     = make_directory,
+  make_directory  = make_directory,
 %    \end{MacroCode}
 % \itemtt[load_exec]
 %    \begin{MacroCode}
-  load_exec          = load_exec,
+  load_exec       = load_exec,
 %    \end{MacroCode}
 %    \begin{MacroCode}
-  load_exec_output   = load_exec_output,
+  load_exec_output = load_exec_output,
 %    \end{MacroCode}
 % \itemtt[record_line]
 %    \begin{MacroCode}
-  record_line        = record_line,
+  record_line     = record_line,
 %    \end{MacroCode}
 % \itemtt[hilight common]
 %    \begin{MacroCode}
-  hilight_set        = hilight_set,
-  hilight_set_var    = hilight_set_var,
-  hilight_source     = hilight_source,
+  hilight_set     = hilight_set,
+  hilight_set_var = hilight_set_var,
+  hilight_source  = hilight_source,
 %    \end{MacroCode}
 % \itemtt[hilight code]
 %    \begin{MacroCode}
@@ -1886,13 +2215,17 @@ return setmetatable({}, { __index = {
   synctex_line_set       = synctex_line_set,
   synctex_tag_will_catch = synctex_tag_will_catch,
 %    \end{MacroCode}
+% \itemtt[scan]
+%    \begin{MacroCode}
+  scan_setup = scan_setup,
+%    \end{MacroCode}
 % \itemtt[rescan]
 %    \begin{MacroCode}
   rescan_begin  = rescan_begin,
 %    \end{MacroCode}
 % \itemtt[input]
 %    \begin{MacroCode}
-  import_begin   = import_begin,
+  import_begin  = import_begin,
 %    \end{MacroCode}
 % \itemtt[cache]
 %    \begin{MacroCode}
@@ -1908,16 +2241,20 @@ return setmetatable({}, { __index = {
 % \itemtt[already] false at the beginning,
 % true after the first call of \CDRPy{}
 %    \begin{MacroCode}
-  already            = false,
+  already     = false,
 %    \end{MacroCode}
 % \itemtt[Other]
 %    \begin{MacroCode}
-  dir_p              = dir_p,
-  json_p             = json_p,
+  dir_p       = dir_p,
+  json_p      = json_p,
 %    \end{MacroCode}
 % \itemtt[Exportation]
 %    \begin{MacroCode}
-  export_file        = export_file,
+  export_file = export_file,
+%    \end{MacroCode}
+% \itemtt[Debug]
+%    \begin{MacroCode}
+  debug = function () end,
 %    \end{MacroCode}
 % \end{description}
 %    \begin{MacroCode}
@@ -1992,8 +2329,11 @@ class TeXOpts(BaseOpts):
 %    \begin{MacroCode}
   sty_template=r'''% !TeX root=...
 \makeatletter
-\CDR@StyleDefine{<placeholder:style_name>} {%
-  <placeholder:style_defs>}%
+\CDR@StyleDefine{<placeholder:style_name>}{%
+  \CDR@Debug{Loading style <placeholder:style_name>...}%
+  <placeholder:style_defs>%
+  \CDR@Debug{... DONE}%
+}%
 \makeatother'''
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
@@ -2448,7 +2788,7 @@ if __name__ == '__main__':
       \char_set_catcode:nn { `_ } {##1}
     } { _ }
     \exp_args:NNV
-    \tl_replace_all:Nnn \l_CDR_p_tl \l_CDR_l_tl
+    \tl_replace_all:Nnn \l_CDR_a_tl \l_CDR_b_tl
       { \CDRMeta_sub:n }
   }
   \exp_args:NnV \CDRMeta_angle:nn { #1 } \l_CDR_a_tl
@@ -2560,7 +2900,15 @@ if __name__ == '__main__':
     }
   }
 }
-\lua_now:n { CDR = require("coder-util") }
+\directlua {
+  CDR = require("coder-util");
+  CDR.catcodetable_string = \int_eval:n { 
+    \catcodetable@string
+  };
+  CDR.catcodetable_atletter = \int_eval:n { 
+    \catcodetable@atletter
+  };
+}
 \exp_args:Nx \CDR_pygments_setup:n {
   \lua_now:n { CDR:set_python_path() }
 }
@@ -2612,9 +2960,11 @@ if __name__ == '__main__':
   \cs_set:Npn \CDR@Debug ##1 {
     \typeout { ****~CDR~DEBUG~****~##1}
   }
+  \directlua { CDR:activate_debug(true) }
 }
 \cs_new:Npn \CDRDebugOff {
   \cs_set_eq:NN \CDR@Debug \use_none:n
+  \directlua { CDR:activate_debug(false) }
 }
 %    \end{MacroCode}
 % \section{Messages}
@@ -2758,6 +3108,7 @@ if __name__ == '__main__':
 \cs_new:Npn \CDR_physical_set:n #1 {
   \CDR_int_set:cn { __p }  { #1 }
   \tl_set:Nx \l_CDR_p_tl { \CDR_int_use:c { __p } }
+  \CDR@Debug{physical:~\l_CDR_p_tl}
 }
 %    \end{MacroCode}
 %
@@ -2780,6 +3131,7 @@ if __name__ == '__main__':
 \cs_new:Npn \CDR_logical_set:n #1 {
   \CDR_int_set:cn { __l }  { #1 }
   \tl_set:Nx \l_CDR_l_tl { \CDR_int_use:c { __l } }
+  \CDR@Debug{logical:~\l_CDR_p_tl}
 }
 %    \end{MacroCode}
 %
@@ -3009,17 +3361,23 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDR_tag_set_nn:ccn, \CDR_tag_set_nnn:ccn}
+% \begin{function}{\CDR_tag_set_n:ccn, \CDR_tag_set_nn:ccn, \CDR_tag_set_nnn:ccn}
 % \begin{syntax}
-% \cs{CDR_tag_set_nn:ccn} \Arg{tag name} \Arg{relative key path} \Arg{value}
+% \cs{CDR_tag_set_n:ccn} \Arg{tag name} \Arg{relative key path} \Arg{value}
 % \end{syntax}
 % Store \metatt{value}, which is further retrieved with the instruction
 % |\CDR_tag_get:cc {|\metatt{tag name}|}| \linebreak[3]|{|\metatt{relative key path}|}|.
-% The value is the body of a function with two arguments
-% in the |_nn| variant and with three arguments in the |_nnn|
+% The value is the body of a function with one arguments
+% in the |_n| variant,
+% two in the |_nn| variant and with three arguments in the |_nnn|
 % variant.
 % \end{function}
 %    \begin{MacroCode}[OK]
+\cs_new_protected:Npn \CDR_tag_set_n:ccn #1 #2 #3 {
+  \cs_set:cpn {
+    \CDR_tag_get_path:cc { #1 } { #2 }
+  } ##1 { #3 }
+}
 \cs_new_protected:Npn \CDR_tag_set_nn:ccn #1 #2 #3 {
   \cs_set:cpn {
     \CDR_tag_get_path:cc { #1 } { #2 }
@@ -3043,7 +3401,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{function}{\CDR_tag_set:n, \CDR_tag_set_nn:n, \CDR_tag_set_nnn:n}
+% \begin{function}{\CDR_tag_set:n, \CDR_tag_set_n:n, \CDR_tag_set_nn:n, \CDR_tag_set_nnn:n}
 % \begin{syntax}
 % \cs{CDR_tag_set:n} \Arg{value}
 % \end{syntax}
@@ -3061,6 +3419,20 @@ if __name__ == '__main__':
   \regex_extract_once:NnNTF \c_CDR_tag_regex
       \l_keys_path_str \l_CDR_seq {
     \CDR_tag_set:ccn
+      { \seq_item:Nn \l_CDR_seq 2 }
+      { \seq_item:Nn \l_CDR_seq 3 }
+  } {
+    \PackageWarning
+      { coder }
+      { Unexpected~key~path~`\l_keys_path_str' }
+    \use_none:n
+  }
+}
+\cs_new_protected:Npn \CDR_tag_set_n:n {
+  \exp_args:NnV
+  \regex_extract_once:NnNTF \c_CDR_tag_regex
+      \l_keys_path_str \l_CDR_seq {
+    \CDR_tag_set_n:ccn
       { \seq_item:Nn \l_CDR_seq 2 }
       { \seq_item:Nn \l_CDR_seq 3 }
   } {
@@ -3099,7 +3471,7 @@ if __name__ == '__main__':
   }
 }
 %    \end{MacroCode}
-% \begin{function}{\CDR_tag_set:, \CDR_tag_set_nn:, \CDR_tag_set_nnn:}
+% \begin{function}{\CDR_tag_set:, \CDR_tag_set_n:, \CDR_tag_set_nn:, \CDR_tag_set_nnn:}
 % \begin{syntax}
 % \cs{CDR_tag_set:}
 % \end{syntax}
@@ -3111,6 +3483,10 @@ if __name__ == '__main__':
 \cs_new_protected:Npn \CDR_tag_set: {
   \exp_args:NV
   \CDR_tag_set:n \l_keys_value_tl
+}
+\cs_new_protected:Npn \CDR_tag_set_n: {
+  \exp_args:NV
+  \CDR_tag_set_n:n \l_keys_value_tl
 }
 \cs_new_protected:Npn \CDR_tag_set_nn: {
   \exp_args:NV
@@ -3157,6 +3533,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \prg_generate_conditional_variant:Nnn \str_if_eq:nn { Vn } { p, T, F, TF }
+\prg_generate_conditional_variant:Nnn \tl_if_empty:n { x } { p, T, F, TF }
 
 \regex_const:Nn \c_CDR_root_regex { ^(.*)/.*$ } \use_none:n { $ }
 \cs_new:Npn \CDR_tag_choices: {
@@ -4034,10 +4411,32 @@ if __name__ == '__main__':
 % \itemtt[\CDRCheckRed format=\meta{format commands}]^^A
 % the format used to display the code (mainly font, size and color),
 % after the font has been selected.
-% Initially empty.
+% Overrides the default behavior.
+% Initially |\ttfamily|.
 %    \begin{MacroCode}[OK]
   format .code:n = \CDR_tag_set:,
   format .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed format*=\meta{format commands}]^^A
+% the format used to display the code (mainly font, size and color) after, added to the default behavior, after the normal format applies.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  format* .code:n = \CDR_tag_set:,
+  format* .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed hook=\meta{commands}]^^A
+% These commands are executed just before the code is displayed.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  hook .code:n = \CDR_tag_set:,
+  hook .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed hook*=\meta{commands}]^^A
+% These commands are executed just before the code is displayed, after the |hook|.
+% Initially empty.
+%    \begin{MacroCode}[OK]
+  hook* .code:n = \CDR_tag_set:,
+  hook* .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed cache]^^A
 % Set to |true| if \CDRPy{} should use already existing files
@@ -4071,15 +4470,26 @@ if __name__ == '__main__':
   reflabel .code:n = \CDR_tag_set:, 
   reflabel .value_required:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed show spaces{[=true$\vert$false]}]^^A
+% print a special character representing each space.
+% Initially |false|: spaces not shown.
+%    \begin{MacroCode}[OK]
+  show~spaces .code:n = \CDR_tag_boolean_set:x { #1 },
+  show~spaces .default:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed __initialize]^^A
 % to initialize storage properly. We cannot use |.initial:n| actions
 % because the |\l_keys_path_str| is not set up properly.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
-    format = ,
+    format  = \ttfamily,
+    format* = ,
+    hook  = ,
+    hook* = ,
     cache = true,
     debug = false,
     post~processor = ,
+    show~spaces,
     reflabel = ,
   },
   __initialize .value_forbidden:n = true,
@@ -4262,6 +4672,63 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % Known keys include:
 % \begin{description}
+% \itemtt[\CDRCheckRed tab size=\meta{integer}]^^A
+% number of spaces given by a tab character,
+% Initially 2 (8 for \pkg{fancyvrb}).
+%    \begin{MacroCode}[OK]
+  tab~size .code:n = \CDR_tag_set:,
+  tab~size .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed obey tabs=true$\vert$false]^^A
+% position characters according to the tabs.
+% Initially false: tab characters are added to the current position as spaces.
+%    \begin{MacroCode}[OK]
+  obey~tabs .code:n = \CDR_tag_boolean_set:x { #1 },
+  obey~tabs .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed show tabs=true$\vert$false]^^A
+% explicitly show tab characters.
+% Initially |false|: tab characters not shown.
+%    \begin{MacroCode}[OK]
+  show~tabs .code:n = \CDR_tag_boolean_set:x { #1 },
+  show~tabs .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed ++leftmargin=\meta{dimension}]^^A
+% indentation to add at the start of each line.
+% Initially |0pt|: no left margin.
+%    \begin{MacroCode}[OK]
+  left~margin* .code:n = \CDR_tag_set:, 
+  left~margin* .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed xrightmargin=\meta{dimension}]^^A
+% right margin to add after each line.
+% Initially |0pt|: no right margin.
+%    \begin{MacroCode}[OK]
+  right~margin* .code:n = \CDR_tag_set:, 
+  right~margin* .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed hfuzz=\meta{dimension}]^^A
+% value to give to the \TeX{} |\hfuzz| dimension for text to format.
+% This can be used to avoid seeing some unimportant overfull box messages.
+% Initially 2pt.
+%    \begin{MacroCode}[OK]
+  hfuzz .code:n = \CDR_tag_set:, 
+  hfuzz .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed vspace=\metatt{dimension}]^^A
+% the amount of vertical space added to |\parskip| before and after blocks.
+% Initially |\topsep|.
+%    \begin{MacroCode}[OK]
+  vspace .code:n = \CDR_tag_set:,
+  vspace .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed same~page{[=true$\vert$false]}]^^A
+% To avoid a page break inside a block of code, set the |same page| option to |true|.
+% Initially |false|: allow page break.
+%    \begin{MacroCode}[OK]
+  same~page .code:n = \CDR_tag_boolean_set:x { #1 },
+  same~page .default:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed tags format=\meta{format commands}]^^A
 %, where \meta{format} is used
 % the format used to display the tag names (mainly font, size and color),
@@ -4294,6 +4761,9 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed line color=\meta{color}]^^A
 % when non empty, the background color of each line.
+% They will receive 
+% the physical line number as first argument
+% and the logical one as second.
 % Initially empty.
 %    \begin{MacroCode}[OK]
   line~color .code:n = \CDR_tag_set_nn:,
@@ -4302,6 +4772,9 @@ if __name__ == '__main__':
 % \itemtt[\CDRCheckRed text color=\meta{color}]^^A
 % when non empty, the text color of each line.
 % \pkg{pygments} coloring takes precedence.
+% They will receive 
+% the physical line number as first argument
+% and the logical one as second.
 % Initially empty.
 %    \begin{MacroCode}[OK]
   text~color .code:n = \CDR_tag_set_nn:,
@@ -4361,6 +4834,28 @@ if __name__ == '__main__':
   line~depth .value_required:n = true,
 %    \end{MacroCode}
 %
+% \itemtt[\CDRCheckRed number main=\meta{instructions}]^^A
+% the given \meta{instructions} are executed
+% to typeset the main line numbers.
+% They will receive 
+% the logical line number as unique argument.
+% Initially returns its argument as is.
+%    \begin{MacroCode}[OK]
+  number~main .code:n = \CDR_tag_set_n:,
+  number~main .value_required:n = true,
+%    \end{MacroCode}
+%
+% \itemtt[\CDRCheckRed number other=\meta{instructions}]^^A
+% the given \meta{instructions} are executed
+% to typeset the line numbers which are not main.
+% They will receive 
+% the logical line number as unique argument.
+% Initially gobbles its argument.
+%    \begin{MacroCode}[OK]
+  number~other .code:n = \CDR_tag_set_n:,
+  number~other .value_required:n = true,
+%    \end{MacroCode}
+%
 %\itemtt[\CDRCheckRed use margin{[=true$\vert$false]}]^^A
 % to use the margin to display line numbers
 % and tag names, or not, UNUSED
@@ -4373,6 +4868,14 @@ if __name__ == '__main__':
 % Initialization.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
+    left~margin*  = 0pt,
+    right~margin* = 0pt,
+    hfuzz = 2pt,
+    vspace = \topsep,
+    same~page = false,
+    show~tabs = false,
+    obey~tabs = false,
+    tab~size = 2,
     show~tags = same,
     only~top = true,
     use~margin = true,
@@ -4391,6 +4894,8 @@ if __name__ == '__main__':
     line~suffix  = ,
     line~content = ##3,
     line~depth = auto,
+    number~main = ##1,
+    number~other = ,    
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -4630,51 +5135,6 @@ if __name__ == '__main__':
 % verbatim code. Of course, it is better to choose special characters which
 % are not used in the verbatim text.
 % Private to \pkg{coder}, unavailable to users.
-% \itemtt[\CDRCheckRed xleftmargin=\meta{dimension}]^^A
-% indentation to add at the start of each line.
-% Initially |0pt|: no left margin.
-%    \begin{MacroCode}[OK]
-  xleftmargin .code:n = \CDR_tag_set:, 
-  xleftmargin .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed xrightmargin=\meta{dimension}]^^A
-% right margin to add after each line.
-% Initially |0pt|: no right margin.
-%    \begin{MacroCode}[OK]
-  xrightmargin .code:n = \CDR_tag_set:, 
-  xrightmargin .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed resetmargins{[=true$\vert$false]}]^^A
-% reset the left margin, which is useful if we are inside other indented environments.
-% Initially |true|.
-%    \begin{MacroCode}[OK]
-  resetmargins .code:n = \CDR_tag_boolean_set:x { #1 }, 
-  resetmargins .default:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed hfuzz=\meta{dimension}]^^A
-% value to give to the \TeX{} |\hfuzz| dimension for text to format.
-% This can be used to avoid seeing some unimportant overfull box messages.
-% Initially 2pt.
-%    \begin{MacroCode}[OK]
-  hfuzz .code:n = \CDR_tag_set:, 
-  hfuzz .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed vspace=\metatt{dimension}]^^A
-% the amount of vertical space added to |\parskip| before and after blocks.
-% Initially |\topsep|.
-%    \begin{MacroCode}[OK]
-  vspace .code:n = \CDR_tag_set:,
-  vspace .value_required:n = true,
-%    \end{MacroCode}
-% \itemtt[\CDRCheckRed samepage{[=true$\vert$false]}]^^A
-% in very special circumstances, we may want to make sure that a verbatim environment
-% is not broken, even if it does not fit on the current page.
-% To avoid a page break, we can set the samepage parameter to |true|.
-% Initially |false|.
-%    \begin{MacroCode}[OK]
-  samepage .code:n = \CDR_tag_boolean_set:x { #1 },
-  samepage .default:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed label={\{[\meta{top string}]^^A
 %\meta{string}\}}]
 % label(s) to print on top, bottom or both, frame lines.
@@ -4697,12 +5157,6 @@ if __name__ == '__main__':
     commentchar = ,
     gobble = 0,
     baselinestretch = auto,
-    resetmargins = true,
-    xleftmargin = 0pt,
-    xrightmargin = 0pt,
-    hfuzz = 2pt,
-    vspace = \topset,
-    samepage = false,
     label = ,
   },
   __initialize .value_forbidden:n = true,
@@ -5450,6 +5904,18 @@ if __name__ == '__main__':
 % but the storage is managed on the \LaTeX{} side by \CDRSty{}.
 % This is a \LaTeX{} style API.
 %
+% \begin{function}{\CDR_style:c}
+% \begin{syntax}
+% \cs{CDR_style:c} \Arg{pygments style name}
+% \end{syntax}
+% Turn the \metatt{pygments style name} into a unique macro name.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\cs_set:Npn \CDR_style:c #1 {
+  g_CDR@Style/#1
+}
+%    \end{MacroCode}
+%
 % \begin{function}{\CDR@StyleDefine}
 % \begin{syntax}
 % \cs{CDR@StyleDefine} \Arg{pygments style name} \Arg{definitions}
@@ -5458,7 +5924,8 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_set:Npn \CDR@StyleDefine #1 {
-  \tl_gset:cn { g_CDR@Style/#1 }
+\CDR@Debug { \string\CDR@StyleDefine/#1 }
+  \tl_gset:cn { \CDR_style:c { #1 } }
 }
 %    \end{MacroCode}
 %
@@ -5474,7 +5941,8 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_set:Npn \CDR@StyleUse #1 {
-  \tl_use:c { g_CDR@Style/#1 }
+\CDR@Debug{\string\CDR@StyleUse/#1}
+  \tl_use:c { \CDR_style:c { #1 } }
 }
 \cs_set:Npn \CDR@StyleUseTag {
   \CDR@StyleUse { \CDR_tag_get:c { style } }
@@ -5490,7 +5958,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \prg_new_conditional:Nnn \CDR@StyleIfExist:c { TF } {
-  \tl_if_exist:cTF { g_CDR@Style/#1 } {
+  \tl_if_exist:cTF { \CDR_style:c { #1 } } {
     \prg_return_true:
   } {
     \prg_return_false:
@@ -5933,7 +6401,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR@DefinePygSp {
-  \CDR_if_tag_truthy:cTF { showspaces } {
+  \CDR_if_tag_truthy:cTF { show~spaces } {
     \cs_set:Npn \CDR@Sp {{\FancyVerbSpace}}
   } {
     \cs_set_eq:NN \CDR@Sp \space
@@ -6169,7 +6637,7 @@ if __name__ == '__main__':
         { No~default~tags~provided. }
     }
   }
-\CDR@Debug {CDRCode_tags_setup:N\space\g_CDR_tags_clist}
+\CDR@Debug {\string \CDRCode_tags_setup:N\space\g_CDR_tags_clist}
 %    \end{MacroCode}
 % Setup the inheritance tree for the |\CDR_tag_get:...| related functions.
 %    \begin{MacroCode}
@@ -6305,12 +6773,6 @@ if __name__ == '__main__':
   dry~numbers .code:n = \CDR_tag_boolean_set:x { #1 },
   dry~numbers .default:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed no top space{[=true$\vert$false]}]^^A
-% Initially |false|.
-%    \begin{MacroCode}[OK]
-  no~top~space .code:n = \CDR_tag_boolean_set:x { #1 },
-  no~top~space .default:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed test{[=true$\vert$false]}]^^A
 % whether the chunk is a test,
 %    \begin{MacroCode}[OK]
@@ -6330,7 +6792,6 @@ if __name__ == '__main__':
     no~export = false,
     no~export~format = ,
     dry~numbers  = false,
-    no~top~space = false,
     test   = false,
     obey~lines = false,
   },
@@ -6410,12 +6871,12 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRBlock_scan_begin: {
-\CDR@Debug{\string\CDRBlock_scan_begin:}
   \group_begin:
   \seq_clear:N  \l_CDR_vrb_seq
   \cs_set_protected_nopar:Npn \FV@ProcessLine ##1 {
     \seq_put_right:Nn \l_CDR_vrb_seq { ##1 }
   }
+\CDR@Debug{\string\CDRBlock_scan_begin:}
   \FV@Scan
 }
 \cs_new:Npn \CDRBlock_scan_end: {
@@ -6557,32 +7018,8 @@ if __name__ == '__main__':
       }
     }
 %    \end{MacroCode}
-% This is a patch to remove an extra space at the top.
+% TO BE REMOVED.
 %    \begin{MacroCode}
-    \cs_set:Npn \FV@ListVSpace {%
-%  \@topsepadd\topsep
-      \@topsepadd=\FancyVerbVspace
-      \if@noparlist\advance\@topsepadd\partopsep\fi
-      \if@inlabel
-        \vskip\parskip
-      \else
-        \if@nobreak
-          \vskip\parskip
-          \clubpenalty\@M
-        \else
-          \CDR_if_tag_truthy:cF { no~top~space } {
-            \addpenalty\@beginparpenalty
-            \@topsep\@topsepadd
-            \advance\@topsep\parskip
-            \addvspace\@topsep
-          }
-        \fi
-      \fi
-      \global\@nobreakfalse
-      \global\@inlabelfalse
-      \global\@minipagefalse
-      \global\@newlistfalse
-    }
     \clist_map_inline:nn {
       resetmargins, gobble, fontsize, fontshape, fontseries,
       showspaces, showtabs, reflabel,
@@ -7087,55 +7524,44 @@ if __name__ == '__main__':
   }
 }
 %    \end{MacroCode}
-% \begin{function}{\CDR_number_alt:n}
+% \begin{function}{\CDR_logical_alt:n}
 % First line.
 % \end{function}
 %    \begin{MacroCode}
-\cs_set:Npn \CDR_number_alt:n #1 {
-  \use:c { CDRNumber 
-    \CDR_if_number_main:nTF { #1 } { Main } { Other }
+\cs_set:Npn \CDR_logical_alt:n #1 {
+  \CDR_tag_get:c { number~
+    \CDR_if_logical_main:nTF { #1 } { main } { other }
   } { #1 }
 }
-\cs_set:Npn \CDR_number_alt: {
-\CDR@Debug{ALT: \CDR_int_use:c { __l } }
-  \CDR_number_alt:n { \CDR_int_use:c { __l } }
+\cs_set:Npn \CDR_logical_alt: {
+\CDR@Debug{\string\CDR_logical_alt:/\CDR_int_use:c { __l } }
+  \CDR_logical_alt:n { \CDR_int_use:c { __l } }
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRNumberMain, \CDRNumberOther, \CDRIfLR}
+% \begin{function}{\CDRIfLR}
 % \begin{syntax}
-% \cs{CDRNumberMain}  \Arg{integer expression}
-% \cs{CDRNumberOther} \Arg{integer expression}
 % \cs{CDRIfLR} \Arg{left commands} \Arg{right commands}
 % \end{syntax}
-% This is used when typesseting line numbers.
-% The default |...Other| function just gobble one argument.
-% The \metatt{integer expression} is exactly what will be displayed.
 % The |\cs{CDRIfLR}| allows to format the numbers differently on the left and on the right.
 % \end{function}
-%    \begin{MacroCode}
-\cs_new:Npn \CDRNumberMain {
-  \use:n
-}
-\cs_new:Npn \CDRNumberOther {
-  \use_none:n
-}
-%    \end{MacroCode}
 %
-% \begin{function}{\CDR@NumberMain, \CDR@NumberOther}
+% \begin{function}{\CDR_logical_main:, \CDR_logical_other:}
 % \begin{syntax}
-% \cs{CDR@NumberMain}
-% \cs{CDR@NumberOther}
+% \cs{CDR_logical_main:}
+% \cs{CDR_logical_other:}
 % \end{syntax}
-% Respectively apply |\CDR@NumberMain| or |\CDR@NumberOther|
+% Respectively apply |\CDR_logical_main:| or |\CDR_logical_other:|
 % on |\CDR_int_use:c { __l }|
 % \end{function}
 %    \begin{MacroCode}
-\cs_new:Npn \CDR@NumberMain {
-  \CDRNumberMain { \CDR_int_use:c { __l } }
+\cs_new:Npn \CDR_logical_main: {
+  \exp_args:Nnx
+  \CDR_tag_get:c {number~main} { \CDR_int_use:c { __l } }
 }
-\cs_new:Npn \CDR@NumberOther {
-  \CDRNumberOther { \CDR_int_use:c { __l } }
+\cs_new:Npn \CDR_logical_other: {
+  \exp_args:Nnx
+  \CDR_tag_get:c {number~other} { \CDR_int_use:c { __l } }
 }
 %    \end{MacroCode}
 %
@@ -7156,64 +7582,64 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_line_N_N:n {
-\CDR@Debug {Debug.CDR_line_N_N:n}
+\CDR@Debug {\string\CDR_line_N_N:n}
   \CDR_line_box_N:n
 }
 
 \cs_new:Npn \CDR_line_L_N:n #1 {
-\CDR@Debug {Debug.CDR_line_L_N:n}
+\CDR@Debug {\string\CDR_line_L_N:n}
   \CDR_line_box:nnn { \CDR_info_T_L:n { } } { #1 } { }
 }
 
 \cs_new:Npn \CDR_line_R_N:n #1 {
-\CDR@Debug {Debug.CDR_line_R_N:n}
+\CDR@Debug {\string\CDR_line_R_N:n}
   \CDR_line_box:nnn { } { #1 } { \CDR_info_T_R:n { } }
 }
 
 \cs_new:Npn \CDR_line_S_N:n {
-\CDR@Debug {Debug.CDR_line_S_N:n}
+\CDR@Debug {\string\CDR_line_S_N:n}
   \CDR_line_box_N:n
 }
 
 \cs_new:Npn \CDR_line_M_N:n {
-\CDR@Debug {STEP:CDR_line_M_N:n}
+\CDR@Debug {\string\CDR_line_M_N:n}
   \CDR_line_box_N:n
 }
 
 \cs_new:Npn \CDR_line_N_L:n #1 {
-\CDR@Debug {STEP:CDR_line_N_L:n}
+\CDR@Debug {\string\CDR_line_N_L:n}
   \CDR_if_no_number:TF {
     \CDR_line_box:nnn {
-      \CDR_info_N_L:n { \CDR@NumberMain }
+      \CDR_info_N_L:n { \CDR_logical_main: }
     } { #1 } {}
   } {
-    \CDR_if_number_main:nTF { \CDR_int:c { __l } + 1 } {
+    \CDR_if_logical_main:nTF { \CDR_int:c { __l } + 1 } {
       \CDR_line_box_L:n { #1 }
     } {
       \CDR_line_box:nnn {
-        \CDR_info_N_L:n { \CDR@NumberMain }
+        \CDR_info_N_L:n { \CDR_logical_main: }
       } { #1 } {}
     }
   }
 }
 
 \cs_new:Npn \CDR_line_L_L:n #1 {
-\CDR@Debug {STEP:CDR_line_L_L:n}
+\CDR@Debug {\string\CDR_line_L_L:n}
   \CDR_if_number_single:TF {
     \CDR_line_box:nnn {
-      \CDR_info_T_L:n { \space \CDR@NumberMain }
+      \CDR_info_T_L:n { \space \CDR_logical_main: }
     } { #1 } {}
   } {
     \CDR_if_no_number:TF {
       \cs_set:Npn \CDR@@Line {
         \cs_set:Npn \CDR@@Line {
-          \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR@NumberOther } }
+          \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_logical_other: } }
         }
-        \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR@NumberMain } }
+        \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_logical_main: } }
       }
     } {
       \cs_set:Npn \CDR@@Line {
-        \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_number_alt: } }
+        \CDR_line_box_L:nn { \CDR_info_N_L:n { \CDR_logical_alt: } }
       }
     }
     \CDR_line_box:nnn { \CDR_info_T_L:n { } } { #1 } { }
@@ -7221,22 +7647,22 @@ if __name__ == '__main__':
 }
 
 \cs_new:Npn \CDR_line_R_R:n #1 {
-\CDR@Debug {STEP:CDR_line_R_R:n}
+\CDR@Debug {\string\CDR_line_R_R:n}
   \CDR_if_number_single:TF {
     \CDR_line_box:nnn { } { #1 } {
-      \CDR_info_T_R:n { \CDR@NumberMain }
+      \CDR_info_T_R:n { \CDR_logical_main: }
     }
   } {
     \CDR_if_no_number:TF {
       \cs_set:Npn \CDR@@Line {
         \cs_set:Npn \CDR@@Line {
-          \CDR_line_box_R:nn { \CDR_info_N_R:n { \CDR@NumberOther } }
+          \CDR_line_box_R:nn { \CDR_info_N_R:n { \CDR_logical_other: } }
         }
-        \CDR_line_box_R:nn { \CDR_info_N_R:n { \CDR@NumberMain } }
+        \CDR_line_box_R:nn { \CDR_info_N_R:n { \CDR_logical_main: } }
       }
     } {
       \cs_set:Npn \CDR@@Line {
-        \CDR_line_box_R:nn { \CDR_info_N_R:n { \CDR_number_alt: } }
+        \CDR_line_box_R:nn { \CDR_info_N_R:n { \CDR_logical_alt: } }
       }
     }
     \CDR_line_box:nnn { } { #1 } { \CDR_info_T_R:n { } }
@@ -7244,15 +7670,15 @@ if __name__ == '__main__':
 }
 
 \cs_new:Npn \CDR_line_R_L:n #1 {
-\CDR@Debug {STEP:CDR_line_R_L:n}
+\CDR@Debug {\string\CDR_line_R_L:n}
   \CDR_line_box:nnn {
     \CDR_if_no_number:TF {
-      \CDR_info_N_L:n { \CDR@NumberMain }
+      \CDR_info_N_L:n { \CDR_logical_main: }
     } {
-      \CDR_if_number_main:nTF { \CDR_int:c { __l } + 1 } {
-        \CDR_info_N_L:n { \CDR_number_alt: }
+      \CDR_if_logical_main:nTF { \CDR_int:c { __l } + 1 } {
+        \CDR_info_N_L:n { \CDR_logical_alt: }
       } {
-        \CDR_info_N_L:n { \CDR@NumberMain }
+        \CDR_info_N_L:n { \CDR_logical_main: }
       }
     }
   } { #1 } {
@@ -7264,34 +7690,34 @@ if __name__ == '__main__':
 \cs_set_eq:NN \CDR_line_M_L:n \CDR_line_R_L:n
 
 \cs_new:Npn \CDR_line_N_R:n #1 {
-\CDR@Debug {STEP:CDR_line_N_R:n}
+\CDR@Debug {\string\CDR_line_N_R:n}
   \CDR_if_no_number:TF {
     \CDR_line_box:nnn {} { #1 } {
-      \CDR_info_N_R:n { \CDR@NumberMain }
+      \CDR_info_N_R:n { \CDR_logical_main: }
     }
   } {
-    \CDR_if_number_main:nTF { \CDR_int:c { __l } + 1 } {
+    \CDR_if_logical_main:nTF { \CDR_int:c { __l } + 1 } {
       \CDR_line_box_R:n { #1 }
     } {
       \CDR_line_box:nnn {} { #1 } {
-        \CDR_info_N_R:n { \CDR@NumberMain }
+        \CDR_info_N_R:n { \CDR_logical_main: }
       }
     }
   }
 }
 
 \cs_new:Npn \CDR_line_L_R:n #1 {
-\CDR@Debug {STEP:CDR_line_L_R:n}
+\CDR@Debug {\string\CDR_line_L_R:n}
   \CDR_line_box:nnn {
     \CDR_info_T_L:n { }
   } { #1 } {
     \CDR_if_no_number:TF {
-      \CDR_info_N_R:n { \CDR@NumberMain }
+      \CDR_info_N_R:n { \CDR_logical_main: }
     } {
-      \CDR_if_number_main:nTF { \CDR_int:c { __l } + 1 } {
-        \CDR_info_N_R:n { \CDR_number_alt: }
+      \CDR_if_logical_main:nTF { \CDR_int:c { __l } + 1 } {
+        \CDR_info_N_R:n { \CDR_logical_alt: }
       } {
-        \CDR_info_N_R:n { \CDR@NumberMain }
+        \CDR_info_N_R:n { \CDR_logical_main: }
       }
     }
   }
@@ -7302,21 +7728,21 @@ if __name__ == '__main__':
 
 
 \cs_new:Npn \CDR_line_box_N:n #1 {
-\CDR@Debug {STEP:CDR_line_box_N:n}
+\CDR@Debug {\string\CDR_line_box_N:n}
   \CDR_line_box:nnn { } { #1 } {}
 }
 
 \cs_new:Npn \CDR_line_box_L:n #1 {
-\CDR@Debug {STEP:CDR_line_box_L:n}
+\CDR@Debug {\string\CDR_line_box_L:n}
   \CDR_line_box:nnn {
-    \CDR_info_N_L:n { \CDR_number_alt: }
+    \CDR_info_N_L:n { \CDR_logical_alt: }
   } { #1 } {}
 }
 
 \cs_new:Npn \CDR_line_box_R:n #1 {
-\CDR@Debug {STEP:CDR_line_box_R:n}
+\CDR@Debug {\string\CDR_line_box_R:n}
   \CDR_line_box:nnn { } { #1 } { 
-    \CDR_info_N_R:n { \CDR_number_alt: }
+    \CDR_info_N_R:n { \CDR_logical_alt: }
   }
 }
 %    \end{MacroCode}
@@ -7439,11 +7865,11 @@ if __name__ == '__main__':
   \CDR_line_box:nnn { #1 } { #2 } {}
 }
 \cs_new:Npn \CDR_line_box_R:nn #1 #2 {
-\CDR@Debug {STEP:CDR_line_box_R:nn}
+\CDR@Debug {\string\CDR_line_box_R:nn}
   \CDR_line_box:nnn { } {#2} { #1 }
 }
 \cs_new:Npn \CDR_line_box_N:nn #1 #2 {
-\CDR@Debug {STEP:CDR_line_box_N:nn}
+\CDR@Debug {\string\CDR_line_box_N:nn}
   \CDR_line_box:nnn { } { #2 } {}
 }
 %    \end{MacroCode}
@@ -7483,9 +7909,9 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \cs_new:Npn \CDR@Line #1 {
 \CDR@Debug {\string\CDR@Line}
+  \CDR_logical_set:n  { 1 }
+  \CDR_physical_set:n { 1 }
   \CDR_if_number_on:TF {
-    \CDR_logical_set:n  { 1 }
-    \CDR_physical_set:n { 1 }
 %    \end{MacroCode}
 % Set the first line number.
 %    \begin{MacroCode}
@@ -7511,7 +7937,7 @@ if __name__ == '__main__':
 \CDR@Debug{****** TEST: \CDR_if_number_single:TF { SINGLE } { MULTI } }
     \CDR_int_add:cn { __last } { \CDR_int:c { __start } - 1 }
     \CDR_int_set:cn { __step } { \CDR_tag_get:c { stepnumber } }
-\CDR@Debug {CDR_line:nnn:START/STEP/LAST=\CDR_int_use:c { __start }/\CDR_int_use:c { __step } /\CDR_int_use:c { __last }, #1}
+\CDR@Debug {\string\CDR@Line/START/STEP/LAST=\CDR_int_use:c { __start }/\CDR_int_use:c { __step } /\CDR_int_use:c { __last }, #1}
 %    \end{MacroCode}
 % \begin{function}[EXP,pTF]{\CDR_if_visible_at_index:n}
 % \begin{syntax}
@@ -7534,11 +7960,11 @@ if __name__ == '__main__':
     }
     \CDR_int_compare:cNnTF { __step } < 2 {
       \CDR_int_set:cn { __step } { 1 }
-      \CDR_set_conditional_alt:Nn \CDR_if_number_main:n {
+      \CDR_set_conditional_alt:Nn \CDR_if_logical_main:n {
         \CDR_if_number_visible_p:n { ##1 }
       }
     } {
-      \CDR_set_conditional_alt:Nn \CDR_if_number_main:n {
+      \CDR_set_conditional_alt:Nn \CDR_if_logical_main:n {
         \int_compare_p:nNn {
           ( ##1 ) / \CDR_int:c { __step }  * \CDR_int:c { __step }
         } = { ##1 }
@@ -7842,7 +8268,7 @@ if __name__ == '__main__':
         { No~default~tags~provided. }
     }
   }
-\CDR@Debug {CDRBlock_tags_setup:N\space\g_CDR_tags_clist}
+\CDR@Debug {\string \CDRBlock_tags_setup:N\space\g_CDR_tags_clist}
 %    \end{MacroCode}
 % Setup the inheritance tree for the |\CDR_tag_get:...| related functions.
 %    \begin{MacroCode}
