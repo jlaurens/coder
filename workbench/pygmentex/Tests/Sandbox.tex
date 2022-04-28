@@ -1,580 +1,91 @@
 % !TeX program=lualatex
 % !TeX root=../coder_test.tex
-\CDRDebugOn
+%\CDRDebugOn
 %\begin{CDRBlock}[tags=latex]
 %\textbf{In eu orci massa}
 %\end{CDRBlock}
+\par\noindent
 
-
+\CDRDebugOn
+\CDRCodeSave{ABCD}|ab  \textbf{c} de|
+\def\My{a b c}
 \makeatletter
 
 \ExplSyntaxOn
-\cs_new:Npn \CDR_activate_whitespace: {
-  \char_set_catcode_active:n { `\    }
-  \char_set_catcode_active:n { `\^^I }
+\def\TEST{
+  \CDRCode_scan:NN\DIDSCAN
 }
-\group_begin:
-\CDR_activate_whitespace:%
-\cs_gset:Npn\CDR_define_whitespace:{%
-\CDR@Debug{\string\CDR_define_whitespace:}%
-\cs_set:Npn {\CDR@Space}%
-\cs_set:Npn^^I{\CDR@Tab}%
-}%
-\group_end:
-
-\cs_new:Npn \CDR_setup_whitespace: {
-\CDR@Debug{\string\CDR_setup_whitespace:}
-  \CDR_activate_whitespace:
-  \CDR_define_whitespace:
-  \CDR_if_tag_truthy:cTF { show~spaces } {
-    \cs_set:Npn \CDR@Space { { \textvisiblespace } }
-  } {
-    \cs_set:Npn \CDR@Space { \  }
-  }
-}
-
-\cs_new:Npn \CDRBlock_nothing_expected: {
-  \tl_clear:N \l_CDR_tl
-  \tl_set:Nn  \l_CDR_a_tl {}
-  \peek_analysis_map_inline:n {
-\CDR@Debug{\string\CDRBlock_nothing_expected:/\tl_to_str:n{##1}/##2}
-    \directlua{ CDR.scan:analyze('l_CDR_tl') }
-    \tl_if_eq:NnT \l_CDR_tl { body } {
-      \tl_clear:N \l_CDR_a_tl
-      \peek_analysis_map_break:
-    }
-  }
-}
-\int_eval:n{\catcodetable@string}
-CDR@Read@Options
-\par\noindent
-\cs_new:Npn \CDRBlock_scan: {
-\CDR@Debug{\string\CDRBlock_scan:}
-  \directlua{ CDR.is_scanning = true }
-}
-
-
-\cs_set_eq:NN \CDRBlock@Scan \CDRBlock_scan:
-
-
-%    \end{MacroCode}
-%
-% \begin{function}{\CDR_scan_skip_comment:}
-% \begin{syntax}
-% \cs{CDR_scan_skip_comment:}
-% \end{syntax}
-% It checks for allowed characters after the |[...]|.
-% Skip any comment, but raises when there is another black character.
-% \end{function}
-%    \begin{MacroCode}
-\cs_set:Npn \CDR_scan_skip_comment: {
-  \cs_set:Npn \CDR@Scan@After@EOL {
-    \peek_analysis_map_break:n { \l_peek_token }
-  }
-  \peek_analyzis_map_inline:n {
-    \tl_if_eq:NNTF \l_peek_token \c_percent_str {
-%    \end{MacroCode}
-% The rest of the line is a comment.
-% Continue to analyze until the \pkg{lua} |CDR| controller
-% has provided a new fake line.
-%    \begin{MacroCode}
-      \peek_analysis_map_break:n {
-%        \directlua { CDR.scan:skip_to_eol() }
-        \peek_analysis_map_inline:n {
-          \directlua { CDR.scan:after_eol() }
-        }
-      }
-    } {
-      \str_if_eq:nnF { ##3 } { A } {
-%    \end{MacroCode}
-% This is a forbidden black character.
-% Raise and skip the end of the line.
-%    \begin{MacroCode}
-        \PackageError
-          { coder }
-          { Only\space`\c_percent_str'\space%[
-            after\space`]' }
-          { See\space\@currenvir\space documentation }
-        \peek_analysis_map_break:n {
-%          \directlua { CDR.scan:skip_to_eol() }
-          \peek_analysis_map_inline:n {
-            \directlua { CDR.scan:after_eol() }
-          }
-        }
-      }
-    }
-  }
-}
-%    \end{MacroCode}
-%
-% \begin{function}{\CDR@Read@Options}
-% \begin{syntax}
-% \cs{CDR@Read@Options} \Arg{instructions} \oarg{key[=value] options}
-% \end{syntax}
-% This is just an options catcher.
-% It happens to allways be called with optional arguments.
-% Execute \meta{instructions} at the end.
-% \end{function}
-%    \begin{MacroCode}
-\NewDocumentCommand \CDR@Read@Options { O{} } {
-\CDR@Debug{\string\CDR@Read@Options}
-  \clist_set:Nn \l_CDR_kv_clist { #1 }
-  \directlua { CDR.scan:exit_options() }
-\CDR@Debug{\string\CDR@Read@Options/SKIP}
-  \peek_analysis_map_inline:n {
-\CDR@Debug{\string\CDR@Read@Options/##1/##2/##3/}
-    \exp_args:Nx
-    \tl_if_empty:nTF {
-      \directlua { CDR.scan:is_after_eol() }
-    } {
-\CDR@Debug{BEFORE_EOL}
-    \exp_args:Nx
-      \str_if_eq:nnF { ##3 } { A } {
-%    \end{MacroCode}
-% This is a forbidden black character.
-%    \begin{MacroCode}
-        \PackageError
-          { coder }
-          { Only\space`\c_percent_str'\space%[
-            after\space] }
-          { See\space\@currenvir\space documentation }
-        \CDR_skip_to_next_line:
-      }
-    } {
-\CDR@Debug{TOP_AFTER_EOL/##1/##2/##3/}
-      \peek_analysis_map_break:
-    }
-  }
-}
-\cs_new:Npn \CDR_seq_count:c #1 {
-  \use:c { CDR.seq / #1 }
-}
-\cs_new:Npn \CDR_seq_item:cn #1 #2 {
-  \use:c { CDR.seq / #1 / #2 }
-}
-\CDR_set_conditional_alt:Nn \CDR_seq_if_exist:c {
-  \cs_if_exist_p:c { CDR.seq / #1 }
-}
-\cs_new:Npn \CDR_seq_map_inline:cn #1 #2 {
-  \cs_set:Npn \CDR:nn ##1 ##2 { #2 }
-  \int_step_inline:nn { \CDR_seq_count:c { #1 } } {
-    \exp_args:Nnx \CDR:nn { ##1 } {
-      \CDR_seq_item:cn { #1 } { ##1 }
-    }
-  }
-}
-\NewDocumentEnvironment { CDRBlockII } { } {
-\CDR@Debug{CDRBlockII...}
-  \CDRBlock_scan_begin_II:
-}{
-\CDR@Debug{...CDRBlockII}
-  \CDRBlock_scan_end_II:
-  \exp_args:Nx
-  \lua_now:n { CDR:synctex_state_save(-1-\CDR_seq_count:c {} ) }
-%  \prop_clear:c { CDR.prop/ }
-%  \prop_put:cnx { CDR.prop/ } { synctex_tag } {
-%    \lua_now:n { tex.print( CDR.synctex_tag ) }
-%  }
-%  \prop_put:cnx { CDR.prop/ } { synctex_line } {
-%    \lua_now:n { tex.print( CDR.synctex_line ) }
-%  }
-  \CDRBlock_use_II:c { }
-%  \lua_now:n { CDR:synctex_state_restore() } 
-}
-
-\cs_new:Npn \CDRBlock_use_II:c #1 {
-  \CDR_seq_if_exist:cTF { #1 } {
-    \CDR@Debug{
-      \string\CDRBlock_use:c, COUNT: \CDR_seq_count:c {#1}
-    }
-    \CDRBlock_setup_II:
-    \CDRBlock_engine_begin:
-%    \end{MacroCode}
-% We export all the lines if requested except what was escaped to \LaTeX.
-% As we use regular expressions, we must take care of characters with a special
-% meaning. For that purpose we enclose between square brackets, this is why
-% the carret |^| is not allowed, as it would negate the class.
-%
-% If |texcomment| has been set and the language is not |tex|,
-% for each line, only the part before the first |%| will be exported.
-%
-% If |texcomment| has not been set, and |escapeinside| has been provided with
-% two characters, then what is inside the delimiter and the delimiters is not exported.
-%
-% Actually, no alternate possibility is offered.
-% Line numbering is not delegated to \pkg{fancyvrb}, the main difficulty
-% is to manage the |__mini| and |__maxi| values because they can be defined either
-% explicitly by a number or implicitly by a regular expression.
-% Let us start by the minimum index.
-%    \begin{MacroCode}  
-    \CDR_int_set:cn { __mini } { 1 }
-    \CDR_tag_get:cNT { firstline } \l_CDR_a_tl {
-      \tl_if_empty:NF \l_CDR_a_tl {
-        \exp_args:NNV
-        \regex_match:NnTF \c_CDR_int_regex \l_CDR_a_tl {
-          \int_compare:nNnTF { \l_CDR_a_tl } > 0 {
-            \CDR_int_set:cn { __mini } { \l_CDR_a_tl }
-          } {
-            \CDR_int_set:cn { __mini } { \CDR_seq_count:c { #1 } + \l_CDR_a_tl }
-          }
-        } {
-          \regex_set:NV \l_CDR_regex \l_CDR_a_tl
-          \CDR_seq_map_inline:cn { #1 } {
-            \regex_match:NnT \l_CDR_regex { ##2 } {
-              \CDR_int_set:cn { __mini } { ##1 }
-              \seq_map_break:
-            }
-          }
-        }
-      }
-    }
-%    \end{MacroCode}
-% Let us go now for the maximum index.
-%    \begin{MacroCode}  
-    \CDR_int_set:cn { __maxi } { \CDR_seq_count:c { #1 } }
-    \CDR_tag_get:cNT { lastline } \l_CDR_a_tl {
-      \tl_if_empty:NF \l_CDR_a_tl {
-        \exp_args:NNV
-        \regex_match:NnTF \c_CDR_int_regex \l_CDR_a_tl {
-          \int_compare:nNnTF { \l_CDR_a_tl } > 0 {
-            \CDR_int_set:cn { __maxi } { \l_CDR_a_tl }
-          } {
-            \CDR_int_set:cn { __maxi } { \CDR_seq_count:c { #1 } + \l_CDR_a_tl }
-          }
-        } {
-          \regex_set:NV \l_CDR_regex \l_CDR_a_tl
-          \CDR_seq_map_indexed_inline:cn { #1 } {
-            \CDR_int_compare:cNnF { __mini } > { ##1 } {
-              \regex_match:NnT \l_CDR_regex { ##2 } {
-                \CDR_int_set:cn { __maxi } { ##1 }
-                \seq_map_break:
-              }
-            }
-          }
-        }
-      }
-    }
-%    \end{MacroCode}
-% This is a patch to remove an extra space at the top.
-%    \begin{MacroCode}
-\CDR@Debug{\string\CDRBlock_use:c\space 2}
-    \CDR_if_tag_truthy:cT { obey~lines } {
-      \tl_set:Nn \l_CDR_obey_tl { __l }
-    }
-    \CDR_if_pygments:TF {
-      \CDRBlock_use_pyg_II:c { #1 }
-    } {
-      \CDRBlock_use_fv:c { #1 }
-    }
-    \CDRBlock_teardown:c { #1 }
-    \CDRBlock_engine_end:
-%  \endgroup
-  } {
-    \PackageError
-      { coder }
-      { Unknown~block~identifier:~#1 }
-      { See~CDRBlockSave~environment. }
-  }
-}
-
-\cs_set:Npn \CDR_enter_body_and_gobble:n #1 {
-\CDR@Debug{WILL_ENTER_BODY}
-  \directlua { CDR.scan:enter_body() }
-  \ignorespaces
-}
-
-\cs_set:Npn \CDR_skip_to_next_line: {
-  \peek_analysis_map_break:n {
-\CDR@Debug{SKIP_LINE_TAIL}
-    \peek_analysis_map_inline:n {
-      \exp_args:Nx
-      \tl_if_empty:nTF {
-        \directlua { CDR.scan:is_after_eol() }
-      } {
-\CDR@Debug{BEFORE_EOL/####1/####2/####3/}
-      } {
-\CDR@Debug{AFTER_EOL/####1/####2/####3/}
-        \peek_analysis_map_break:n {
-\CDR@Debug{ENTER_BODY}
-          \CDR_enter_body_and_gobble:n
-        }
-      }
-    }
-  }
-}
-
-\cs_new:Npn \CDRBlock_scan_begin_II: {
-\CDR@Debug{\string\CDRBlock_scan_begin_II:}
-  \directlua{
-    CDR:scan_setup(
-      '',
-      '\@currenvir'
-    )
-  }
-%    \end{MacroCode}
-% Function to break the analysis, skip the end of the line,
-% and execute |\CDR_read_options:n { }| on new line:
-%    \begin{MacroCode}
-  \peek_analysis_map_inline:n {
-    \exp_args:Nx
-    \tl_if_empty:nTF {
-      \directlua { CDR.scan:is_after_eol() }
-    } {
-\CDR@Debug{TOP_BEFORE_EOL/##1/##2/##3/}
-      \tl_if_eq:NNTF \l_peek_token [%]
-      {
-%    \end{MacroCode}
-% This is the start of the options section.
-%    \begin{MacroCode}
-\CDR@Debug{BEGIN_OPTION}
-        \peek_analysis_map_break:n {
-          \directlua { CDR.scan:enter_options() }
-          \CDR@Read@Options
-        }
-      } {
-        \str_if_eq:nnF { ##3 } { A } {
-%    \end{MacroCode}
-% This is a forbidden black character.
-%    \begin{MacroCode}
-          \PackageError
-            { coder }
-            { Only\space`['\space or\space`\c_percent_str'\space%]
-              after\space\string\begin{\@currenvir} }
-            { See\space\@currenvir\space documentation }
-          \CDR_skip_to_next_line:
-        }
-      }
-    } {
-\CDR@Debug{TOP_AFTER_EOL/##1/##2/##3/}
-      \peek_analysis_map_break:n {
-        \directlua { CDR.scan:enter_body() }
-      }
-    }
-  }   
-}
-\cs_new:Npn \CDRBlock_scan_end_II: {
-\CDR@Debug{ \string\CDRBlock_scan_end_II: }
-  \directlua{ CDR.scan:resume_pyg() }
-}
-
-
-\cs_new_protected:Npn \CDRBlock_use_pyg_II:c #1 {
-\CDR@Debug { \string\CDRBlock_use_pyg:c / #1 }
-  \trivlist\item
-  \group_begin:
-  \prop_get:cnNT { CDR.prop/#1 } { synctex_tag } \l_CDR_a_tl {
-    \lua_now:n { CDR:hilight_set_var('synctex_tag') }
-  }
-  \prop_get:cnNT { CDR.prop/#1 } { synctex_line } \l_CDR_a_tl {
-    \lua_now:n { CDR:hilight_set_var('synctex_line') }
-  }
-  \CDR_tag_get:cN {lang} \l_CDR_a_tl
-  \lua_now:n { CDR:hilight_set_var('lang') }
-  \CDR_tag_get:cN {cache} \l_CDR_a_tl
-  \lua_now:n { CDR:hilight_set_var('cache') }
-  \CDR_tag_get:cN {debug} \l_CDR_a_tl
-  \lua_now:n { CDR:hilight_set_var('debug') }
-  \CDR_tag_get:cN {texcomments} \l_CDR_a_tl
-  \lua_now:n { CDR:hilight_set_var('texcomments') }
-  \CDR_tag_get:cN {escapeinside} \l_CDR_a_tl
-  \lua_now:n { CDR:hilight_set_var('escapeinside') }
-  \CDR_tag_get:cN {mathescape} \l_CDR_a_tl
-  \lua_now:n { CDR:hilight_set_var('mathescape') }
-  \CDR_tag_get:cN {style} \l_CDR_a_tl
-  \lua_now:n { CDR:hilight_set_var('style') }
-\CDR@Debug { \string\CDRBlock_use_pyg:c / Style:\l_CDR_a_tl }
-  \CDR@StyleIfExist { \l_CDR_a_tl } { } {
-    \lua_now:n { CDR:hilight_source(true, false) }
-    \input { \l_CDR_pyg_sty_tl }
-  }
-  \CDR@StyleUseTag
-  \directlua{ CDR.scan:resume_pyg() }
-  \lua_now:n { CDR:hilight_source(false, true) }
-  \CDR_setup_v_space:
-  \CDR_setup_line_width:
-  \CDR_interlinepenalty:
-  \frenchspacing
-  \CDR_setup_whitespace:
-\CDR@Debug{STEP~1}
-  \@ifundefined{CDR@Space}{\CDR@Debug{FAILURE!!!!!!!}}{}
-  \CDR_tag_get:c  { format }
-  \CDR_tag_get:cc { default } { format* }
-  \CDR_tag_get:cc { default.block } { format* }
-  \CDR_tag_get:cc { pygments.block } { format* }
-  \CDR_tag_get:c  { format* }
-  \CDR_if_no_export:T {
-    \CDR_tag_get:c { no~export~format }
-  }
-  \CDR_set_strut:
-  \CDR_tag_get:c  { hook }
-  \CDR_tag_get:cc { default } { hook* }
-  \CDR_tag_get:cc { default.block } { hook* }
-  \CDR_tag_get:cc { pygments.block } { hook* }
-  \CDR_tag_get:c  { hook* }
-  \@ifundefined{CDR@Space}{\CDR@Debug{FAILURE!!!!!!!}}{}
-\CDR@Debug{WILL~INPUT~\l_CDR_pyg_tex_tl...}
-  \makeatletter
-  \input { \l_CDR_pyg_tex_tl }
-  \makeatother
-\CDR@Debug{...~DONE}
-  \group_end:
-  \endtrivlist
-}
-
-
-\cs_new_protected_nopar:Npn \CDRBlock_setup_II: {
-\CDR@Debug { \string \CDRBlock_setup:n ,\tl_to_str:V \l_CDR_kv_clist }
-  \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
-    \prg_return_true:
-  }
-  \CDR_tag_keys_set:nn { __block } { __initialize }
-%    \end{MacroCode}
-% Read and catch the key value arguments,
-% except the ones related to \pkg{fancyvrb}.
-% Then build the dynamic keys matching
-% \metatt{engine name}| engine options| for appropriate
-% engine names.
-%    \begin{MacroCode}
-  \CDRBlock_tags_setup:N \l_CDR_kv_clist
-  \CDRBlock_engine_setup:N \l_CDR_kv_clist
-  \CDR_local_inherit:n {
-    __block, __pygments.block, default.block,
-    __pygments, default
-  }
-  \CDR_local_set_known:N \l_CDR_kv_clist
-  \CDR_tag_provide_from_kv:V \l_CDR_kv_clist
-  \CDR_local_set_known:N \l_CDR_kv_clist
-\CDR@Debug{\string \CDRBlock_setup:n.KV1:}
-%    \end{MacroCode}
-% Now |\l_CDR_kv_clist| is meant to contains only keys
-% related to \pkg{fancyvrb} but we still need to filter them out.
-% If the display engine is not the default one, we catch any key related
-% to framing. Anyways, we catch keys related to numbering because
-% line numbering is completely performed by \pkg{\jobname}.
-%    \begin{MacroCode}
-  \CDR_local_inherit:n {
-    \CDR_if_tag_eq:cnF { engine } { default } {
-      __fancyvrb.frame,
-    },
-    __fancyvrb.number,
-  }
-  \CDR_local_set_known:N \l_CDR_kv_clist
-\CDR@Debug{\string \CDRBlock_setup:n, \l_CDR_kv_clist}
-%    \end{MacroCode}
-% These keys are read without removing them
-% later and eventually forwarded to \pkg{fancyvrb}
-% through its natural |\FV@UseKeyValues| mechanism.
-%    \begin{MacroCode}  
-  \CDR_local_inherit:n {
-    __fancyvrb.block,
-    __fancyvrb,
-  }
-  \CDR_local_set_known:N \l_CDR_kv_clist
-  \lua_now:n {
-    CDR:hilight_block_setup('g_CDR_tags_clist')
-  }
-  \CDR_set_conditional:Nn \CDR_if_pygments:
-    { \CDR_has_pygments_p: && \CDR_if_tag_truthy_p:c { pygments } }
-  \CDR_set_conditional:Nn \CDR_if_no_export:
-    { \CDR_if_tag_truthy_p:c { no~export } }
-  \CDR_set_conditional:Nn \CDR_if_numbers_dry:
-    { \CDR_if_tag_truthy_p:c { dry~numbers } }
-  \CDR_set_conditional:Nn \CDR_if_dry_tags:
-    { \CDR_if_tag_eq_p:cn { show~tags } { dry } }
-  \CDR_set_conditional:Nn \CDR_if_number_on:
-    { ! \CDR_if_tag_eq_p:cn { numbers } { none } }
-  \CDR_set_conditional:Nn \CDR_if_already_tags: {
-    \CDR_if_tag_truthy_p:c { only~top } &&
-    \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
-  }
-  \CDR_if_number_on:T {
-    \clist_map_inline:Nn \g_CDR_tags_clist {
-      \CDR_int_if_exist:cF { ##1 } {
-        \CDR_int_new:cn { ##1 } { 1 }
-      }
-    }
-  }
-}
-
-
-\cs_new:Npn \CDR_interlinepenalty: {
-  \CDR_if_tag_truthy:cT { same~page } {
-    \interlinepenalty\@M
-  }
-}
-
-\cs_new:Npn \CDR_setup_v_space: {
-  \exp_last_unbraced:Nx
-  \@topsepadd {
-    \CDR_tag_get:c { vspace }
-  } \relax
-}
-
-\cs_new:Npn \CDR_setup_line_width: {%
-  \CDR_if_tag_truthy:cT { list~margins } {
-    \advance\leftmargin\@totalleftmargin
-  }
-  \exp_last_unbraced:NNf
-  \advance\leftmargin {
-    \CDR_tag_get:c { left~margin* }
-  } \relax
-  \exp_last_unbraced:NNf
-  \advance\leftmargin {
-    \CDR_tag_get:c { right~margin* }
-  } \relax
-  \linewidth\hsize
-  \advance\linewidth-\leftmargin
-  \advance\linewidth-\rightmargin
-  \exp_last_unbraced:Nx
-  \hfuzz {
-    \CDR_tag_get:c { hfuzz }
-  } \relax
-}
-
+\def\DIDSCAN#1{/WHAT\space IS\space SCANNED:\tl_to_str:n{#1}/\tl_count:n{#1}}
 \ExplSyntaxOff
 \makeatother
 %
-\begin{CDRBlockII} [
-  pygments,
-  show spaces
+\bgroup
+\ExplSyntaxOn
+\char_set_catcode_active:n{`\ }
+\ExplSyntaxOff
+ab cd
+\egroup
+\TEST|ab㍤cde|
+ab\textbf{c}de
+\ExplSyntaxOn
+\char_set_active_eq:nN { `\  } \FOO
+\ExplSyntaxOff
+\def\FOO{Y}
+ab cd
+\bgroup
+\ExplSyntaxOn
+\def\FOO{Y}
+\char_set_active_eq:nN { `\c  } \FOO
+\char_set_catcode_active:n{`\c }
+\letc=\FOO
+\ExplSyntaxOff
+ab cd
+\egroup
+\ttfamily\\
+\TEST|ab\textbf    {c}de|\\
+C'est ce qui était demandé\\
+\newpage
+X\CDRCodeUse{ABCD}Y
+X%
+\CDRCodeUse[show spaces,pygments]{ABCD}%
+Y%
+\typeout{========}%
+\CDRCode[pygments, show spaces]|AB \textbf{C} DE|
+
+\CDRDebugOn
+\begin{CDRBlock}
+RIEN
+\end{CDRBlock}
+Lorem
+\begin{CDRBlock} [
+  pygments=false,
+%  pygments,
+  show spaces,
+  tab size=3,
+  escape inside=(),
 ]%  % A
-RIEN1
+RIEN2
 \textbf{abcde}
-    \textbf{abcde}
+    \textbf{abcde}(X \textbf{abcde} X)  \textbf{ABCDE}
 	\textbf{abcde}
-		\textbf{abcde}
-\end{CDRBlockII}
-\endinput
+	(\bgroup\color{red})	(\egroup)\textbf{abcde}
+\end{CDRBlock}
 \lipsum[3]
 Afterwards
 \typeout{-------------------}
 \CDRSet{pygments}
-\begin{CDRBlockII}
+\begin{CDRBlock}
 RIEN2
 \def\foo#1{
   \textbf{#1}
 }
-\end{CDRBlockII}
+\end{CDRBlock}
 ABCDE
 \trivlist\item ABCDE
 \endtrivlist
 GHJKL
 \endinput
 
-
-
-
-\NewDocumentEnvironment { CDRBlockIII } { o } {
-  \IfValueTF { #1 } {
-    \clist_set:Nn \FV@KeyValues { #1 }
-    \def\FV@BeginScanning{}
-  } {
-    \clist_clear:N \FV@KeyValue
-  }
-  \FVB@CDRBlock
-} {
-  \FVE@CDRBlock
-}
 \ExplSyntaxOff
 \makeatother
 
@@ -618,7 +129,7 @@ GHJKL
 %  line color=\ifnumodd{#2}{green!20!white}{green!10!white},
 %]{BASE}
 %
-\CDRDebugOn
+%\CDRDebugOn
 \begin{CDRBlockSave}{5 lines}
 \begin{CDRBlock}[
   firstnumber=10,
@@ -711,18 +222,18 @@ GHI
 T==\CDR_if_TEST:TF TF\\
 
 
-\tl_set:Nn \l_CDR_tl { \prg_return_true: }
+\tl_set:Nn \l_CDR_a_tl { \prg_return_true: }
 \exp_args:NNnV
-\prg_set_conditional:Nnn \CDR_if_TEST: { p, T, F, TF } \l_CDR_tl
+\prg_set_conditional:Nnn \CDR_if_TEST: { p, T, F, TF } \l_CDR_a_tl
 
 T==\CDR_if_TEST:TF TF\\
 
 
-\tl_set:Nn \l_CDR_tl { \prg_return_true: }
-\tl_put_left:Nn \l_CDR_tl {
+\tl_set:Nn \l_CDR_a_tl { \prg_return_true: }
+\tl_put_left:Nn \l_CDR_a_tl {
 \prg_set_conditional:Nnn \CDR_if_TEST: { p, T, F, TF }
 }
-\l_CDR_tl
+\l_CDR_a_tl
 T==\CDR_if_TEST:TF TF\\
 
 
