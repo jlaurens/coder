@@ -1953,7 +1953,7 @@ end
 % Must be set as early as possible. 
 % \end{variable}
 %
-% \begin{variable}{CDR.scan}
+% \begin{variable}{CDR.Block}
 % The scanner is a controller for scanning input. 
 % \end{variable}
 %
@@ -2019,7 +2019,7 @@ end
 % \subsubsection{Block}
 % \begin{function}{CDR:Block_new, CDR:Block_free}
 % \begin{syntax}
-% CDR:Block_new(\meta{identifier var}, \meta{envir name var})
+% CDR:Block_new()
 % CDR:Block_free()
 % \end{syntax}
 % Set the scanner and its associate closure for further scanning.
@@ -2104,10 +2104,10 @@ local function inline_save (self)
 end
 %    \end{MacroCode}
 %
-% \begin{function}{inline_contain,inline_contain_print}
+% \begin{function}{inline_known,inline_known_print}
 % \begin{syntax}
-% CDR:inline_contain()
-% CDR:inline_contain_print()
+% CDR:inline_known()
+% CDR:inline_known_print()
 % \end{syntax}
 % Return whether there is some text for the current
 % \metatt{id}.
@@ -2115,11 +2115,11 @@ end
 % \TeX\ stream for |true|, and nothing for |false|.
 % \end{function}
 %    \begin{MacroCode}
-local function inline_contain(self)
+local function inline_known(self)
   return self['inline by id'][self.id] and true or false
 end
-local function inline_contain_print(self)
-  if self:inline_contain() then
+local function inline_known_print(self)
+  if self:inline_known() then
     tex.sprint('T')
   end
 end
@@ -2228,13 +2228,12 @@ end
 % it enters the |in_body| mode.
 % The controller is in safe mode as soon as the callback is called.
 %    \begin{MacroCode}
-local function Block_new(self, env_var)
-  local env = assert(token.get_macro(
-    env_var or '@currenvir'
-  ))
+local function Block_new(self)
+  local env = assert( token.get_macro(
+    '@currenvir'
+  ) )
 self:debug('Block_new', env)
   local lines = self:lines_get()
-  local args = {}
   local f_current
   ltb.add_to_callback (
     'process_input_buffer',
@@ -2287,7 +2286,7 @@ self:debug('Block_new', env)
 %    \begin{MacroCode}
   f_start = function (input)
     f_current = nil
-    function self.scan.is_after_eol(this)
+    function self.Block.is_after_eol(this)
       tex.sprint('T')
       this.is_after_eol = nil
     end
@@ -2341,7 +2340,7 @@ self:debug('CALLBACK:END', '<'..input..'>')
 %    \begin{MacroCode}
   f_body = function (input)
 self:debug('CALLBACK:IN_BODY', '<'..input..'>')
-    function self.scan.is_after_eol()
+    function self.Block.is_after_eol()
       tex.sprint('T')
     end
     if input:match([[^%s*\end%s*]]
@@ -2356,21 +2355,7 @@ self:debug('CALLBACK:IN_BODY', '<'..input..'>')
 %    \end{MacroCode}
 % The API:
 %    \begin{MacroCode}
-  self.scan = setmetatable({}, {__index = {
-    set = function (this, key, value)
-      args[key] = value
-    end,
-    set_var = function(this, key, var)
-      this:set(
-        key,
-        assert(token.get_macro(var or 'l_CDR_a_tl'))
-      )
-    end,
-    get = function(this, key)
-      return args[key]
-    end,
-%    \end{MacroCode}
-%    \begin{MacroCode}     
+  self.Block = setmetatable({}, {__index = {
     is_after_eol = function ()
     end,
     enter_body = function ()
@@ -2391,11 +2376,11 @@ self:debug('CALLBACK:IN_BODY', '<'..input..'>')
 %    \begin{MacroCode}
     exit_options = function(this)
       f_current = f_body
-      self.scan.is_after_eol = nil
+      this.is_after_eol = nil
     end,
   }})
   self.Block_free = function (this)
-    this.scan = nil
+    this.Block = nil
     this.Block_free = nil
   end
 end
@@ -2508,8 +2493,8 @@ return setmetatable({}, { __index = {
 %    \begin{MacroCode}
   ['inline by id']  = {},
   inline_save    = inline_save,
-  inline_contain = inline_contain,
-  inline_contain_print = inline_contain_print,
+  inline_known = inline_known,
+  inline_known_print = inline_known_print,
   inline_to_ltx  = inline_to_ltx,
 %    \end{MacroCode}
 % \itemtt[already] false at the beginning,
@@ -6727,7 +6712,7 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRCode_id_setup:c, \CDRCode_id_teardown:}
+% \begin{function}{\CDRCode_id_setup:c, \CDR_id_teardown:}
 % Prepare the current id, and feed |\l_CDR_id_tl|
 % as well as |\l_CDR_id_short_tl|.
 % \end{function}
@@ -6748,25 +6733,11 @@ if __name__ == '__main__':
     CDR:id_teardown()
   }
 }
-\cs_new:Npn \CDRCodeUse_id:c #1 {
-  CDRCodeUse / #1 :
-}
 \cs_new:Npn \CDRCodeSave #1 {
   \CDR@Debug{\string\CDRCodeSave/\tl_to_str:n{#1}}
   \group_begin:
   \CDRCode_id_setup:c { #1 }
   \CDR_synctex_store:n {}
-%  \cs_set:Npn \CDR:n ##1 {
-%    \tl_gset:cn { CDRCodeUse / #1 : } { \CDR@Setup { ##1 } }
-%  }
-%  \exp_args:Nx \CDR:n {
-%    synctex_tag  = \directlua {
-%      CDR:synctex_store_print{'tag'}
-%    },
-%    synctex_line  = \directlua {
-%      CDR:synctex_store_print{'line'}
-%    },
-%  }
   \CDRCode_peek:NN \prg_do_nothing:
 }
 \cs_new:Npn \CDR@Source {}
@@ -6798,23 +6769,44 @@ if __name__ == '__main__':
 }
 \NewDocumentCommand \CDRCodeUse { O{} m } {
 \CDR@Debug{\string\CDRCodeUse=#2}
-  \cs_if_exist:cTF { \CDRCode_id:c { #2 } } {
+  \CDRCode_id_setup:c { #2 }
+  \CDRCode_if_unknown:TF {
+    \PackageError
+      { coder }
+      { Unknown~identifier:\space#2 }
+      { See\space\string\CDRCodeSave }
+  } {
     \group_begin:
-    \CDRCode_id_setup:c { #2 }
-    \lua_now:n { CDR:synctex_state_save() }        
+    \directlua {
+      CDR:synctex_state_save();
+      CDR:inline_to_ltx();
+    }        
     \CDRCode_prepare:n { #1 }
     \CDR_if_pygments:TF {
       \CDRCode_pyg_use:
     } {
       \CDRCode_vrb_use:
     }
-    \lua_now:n { CDR:synctex_state_restore() }
+    \directlua { CDR:synctex_state_restore() }
     \group_end:
-  } {
+    \CDR_id_teardown:
+  }
+}
+\NewDocumentCommand \CDRCodeExe { m } {
+\CDR@Debug{\string\CDRCodeExe=#1}
+  \CDRCode_id_setup:c { #1 }
+  \CDRCode_if_unknown:TF {
     \PackageError
       { coder }
-      { Unknown~identifier:\space#2 }
+      { Unknown~identifier:\space#1 }
       { See\space\string\CDRCodeSave }
+  } {
+    \directlua {
+      CDR:synctex_state_save();
+      CDR:inline_to_ltx('auto');
+      CDR:synctex_state_restore();
+    }        
+    \CDR_id_teardown:
   }
 }
 %    \end{MacroCode}
@@ -6873,13 +6865,13 @@ if __name__ == '__main__':
   \tl_clear:N \l_CDR_peek_tl
   \cs_set:Npn \CDRCode_peek_end:n ##1 {
     \directlua {
-      CDR:inline_save()
+      CDR:inline_save();
     }
     \exp_args:NNNV
     \group_end:
     \tl_set:Nn \l_CDR_peek_tl \l_CDR_peek_tl
     \directlua {
-      CDR:inline_to_ltx()
+      CDR:inline_to_ltx();
     }
     #1
     \group_end:
@@ -7350,13 +7342,13 @@ if __name__ == '__main__':
 \NewDocumentCommand \CDRBlock@Read@Options { O{} } {
 \CDR@Debug{\string\CDRBlock@Read@Options}
   \clist_set:Nn \l_CDR_kv_clist { #1 }
-  \directlua { CDR.scan:exit_options() }
+  \directlua { CDR.Block:exit_options() }
 \CDR@Debug{\string\CDRBlock@Read@Options/SKIP}
   \peek_analysis_map_inline:n {
 \CDR@Debug{\string\CDRBlock@Read@Options/##1/##2/##3/}
     \exp_args:Nx
     \tl_if_empty:nTF {
-      \directlua { CDR.scan:is_after_eol() }
+      \directlua { CDR.Block:is_after_eol() }
     } {
 \CDR@Debug{BEFORE_EOL}
     \exp_args:Nx
@@ -7379,7 +7371,7 @@ if __name__ == '__main__':
 }
 \cs_set:Npn \CDR_enter_body_and_gobble:n #1 {
 \CDR@Debug{WILL_ENTER_BODY}
-  \directlua { CDR.scan:enter_body() }
+  \directlua { CDR.Block:enter_body() }
   \ignorespaces
 }
 \cs_set:Npn \CDR_skip_to_next_line: {
@@ -7388,7 +7380,7 @@ if __name__ == '__main__':
     \peek_analysis_map_inline:n {
       \exp_args:Nx
       \tl_if_empty:nTF {
-        \directlua { CDR.scan:is_after_eol() }
+        \directlua { CDR.Block:is_after_eol() }
       } {
 \CDR@Debug{BEFORE_EOL/####1/####2/####3/}
       } {
@@ -7405,14 +7397,9 @@ if __name__ == '__main__':
 %
 % \subsubsection{Utilities}
 %
-% In next functions, when no \metatt{id} argument is
-% required, the value of |\l_CDR_id_tl| is taken.
-%
-% \begin{function}{\CDR_seq_count:c,\CDR_seq_item:cn,\CDR_seq_count:,\CDR_seq_item:n}
+% \begin{function}{\CDR_seq_count:,\CDR_seq_item:n}
 % \begin{syntax}
-% \cs{CDR_seq_count:c} \Arg{id}
 % \cs{CDR_seq_count:}
-% \cs{CDR_seq_item:cn} \Arg{id} \Arg{index}
 % \cs{CDR_seq_item:n}  \Arg{index}
 % \end{syntax}
 % Storage for the lines of a verbatim code environment.
@@ -7422,55 +7409,61 @@ if __name__ == '__main__':
 % whereas written from \CDRLua{}.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new:Npn \CDR_seq_count:c #1 {
-  \use:c { CDR.seq / #1 }
-}
-\cs_new:Npn \CDR_seq_item:cn #1 #2 {
-  \use:c { CDR.seq / #1 / #2 }
-}
 \cs_new:Npn \CDR_seq_count: {
-  \CDR_seq_count:c { \l_CDR_id_tl }
+  \use:c { CDR.seq / \l_CDR_id_tl }
 }
-\cs_new:Npn \CDR_seq_item:n {
-  \CDR_seq_item:cn { \l_CDR_id_tl }
+\cs_new:Npn \CDR_seq_item:n #1 {
+  \use:c { CDR.seq / \l_CDR_id_tl / #1 }
 }
 %    \end{MacroCode}
 %
-% \begin{function}[EXP,pTF]{\CDR_if_unknown:}
+% \begin{function}[EXP,pTF]{\CDRCode_if_unknown:}
 % \begin{syntax}
-% \cs{CDR_if_unknown:TF} \Arg{true code} \Arg{false code}
+% \cs{CDRBlock_if_unknown:TF} \Arg{true code} \Arg{false code}
 % \end{syntax}
 % Assuming |\l_CDR_id_tl| has been properly set up,
 % execute \metatt{true code} when a code or block
 % is available, \metatt{false code} otherwise.
 % \end{function}
 %    \begin{MacroCode}
-\CDR_set_conditional_alt:Nn \CDR_if_unknown: {
+\CDR_set_conditional_alt:Nn \CDRCode_if_unknown: {
+  \exp_args:Nf \tl_if_empty_p:n { \directlua {
+    CDR:inline_known_print()
+  } }
+}
+%    \end{MacroCode}
+%
+% \begin{function}[EXP,pTF]{\CDRBlock_if_unknown:}
+% \begin{syntax}
+% \cs{CDRBlock_if_unknown:TF} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Assuming |\l_CDR_id_tl| has been properly set up,
+% execute \metatt{true code} when a code or block
+% is available, \metatt{false code} otherwise.
+% \end{function}
+%    \begin{MacroCode}
+\CDR_set_conditional_alt:Nn \CDRBlock_if_unknown: {
   \exp_args:Nf \tl_if_empty_p:n { \directlua {
     CDR:lines_contain_print()
   } }
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDR_seq_map_indexed_inline:cn,\CDR_seq_map_indexed_inline:n}
+% \begin{function}{\CDR_seq_map_indexed_inline:n}
 % \begin{syntax}
-% \cs{CDR_seq_map_indexed_inline:cn} \Arg{id} \Arg{instructions}
 % \cs{CDR_seq_map_indexed_inline:n} \Arg{instructions}
 % \end{syntax}
 % Standard iterator.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new:Npn \CDR_seq_map_indexed_inline:cn #1 #2 {
-  \cs_set:Npn \@CDR_seq_map_indexed_inline:nn ##1 ##2 { #2 }
-  \int_step_inline:nn { \CDR_seq_count:c { #1 } } {
+\cs_new:Npn \CDR_seq_map_indexed_inline:n #1 {
+  \cs_set:Npn \@CDR_seq_map_indexed_inline:nn ##1 ##2 { #1 }
+  \int_step_inline:nn { \CDR_seq_count: } {
     \exp_args:Nnx
     \@CDR_seq_map_indexed_inline:nn { ##1 } {
-      \CDR_seq_item:cn { #1 } { ##1 }
+      \CDR_seq_item:n { ##1 }
     }
   }
-}
-\cs_new:Npn \CDR_seq_map_indexed_inline:n {
-  \CDR_seq_map_indexed_inline:cn { \l_CDR_id_tl }
 }
 %    \end{MacroCode}
 %
@@ -7528,7 +7521,7 @@ if __name__ == '__main__':
   \peek_analysis_map_inline:n {
     \exp_args:Nx
     \tl_if_empty:nTF {
-      \directlua { CDR.scan:is_after_eol() }
+      \directlua { CDR.Block:is_after_eol() }
     } {
 \CDR@Debug{TOP_BEFORE_EOL:analysis/##1/##2/##3/}
       \tl_if_eq:NNTF \l_peek_token [%]
@@ -7538,8 +7531,8 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \CDR@Debug{BEGIN_OPTION}
         \peek_analysis_map_break:n {
-          \directlua { CDR.scan:enter_options() }
-          \CDRBlock@Read@Options
+          \directlua { CDR.Block:enter_options() }
+          \CDRBlock@Read@Options[
         }
       } {
         \str_if_eq:nnF { ##3 } { A } {
@@ -7557,7 +7550,7 @@ if __name__ == '__main__':
     } {
 \CDR@Debug{TOP_AFTER_EOL/##1/##2/##3/}
       \peek_analysis_map_break:n {
-        \directlua { CDR.scan:enter_body() }
+        \directlua { CDR.Block:enter_body() }
       }
     }
   }   
@@ -8010,7 +8003,7 @@ if __name__ == '__main__':
   \peek_analysis_map_inline:n {
     \exp_args:Nx
     \tl_if_empty:nTF {
-      \directlua { CDR.scan:is_after_eol() }
+      \directlua { CDR.Block:is_after_eol() }
     } {
 \CDR@Debug{TOP_BEFORE_EOL:analysis/##1/##2/##3/}
       \tl_if_eq:NNTF \l_peek_token [%]
@@ -8020,7 +8013,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \CDR@Debug{BEGIN_OPTION}
         \peek_analysis_map_break:n {
-          \directlua { CDR.scan:enter_options() }
+          \directlua { CDR.Block:enter_options() }
           \CDRBlock@Read@Options
         }
       } {
@@ -8039,7 +8032,7 @@ if __name__ == '__main__':
     } {
 \CDR@Debug{TOP_AFTER_EOL/##1/##2/##3/}
       \peek_analysis_map_break:n {
-        \directlua { CDR.scan:enter_body() }
+        \directlua { CDR.Block:enter_body() }
       }
     }
   }
@@ -8054,7 +8047,7 @@ if __name__ == '__main__':
     CDR:Block_free();
   }
   \CDR@Debug{\l_CDR_id_tl+\l_CDR_id_short_tl+}
-  \CDR_if_unknown:T {
+  \CDRBlock_if_unknown:T {
     \PackageError
       { coder }
       { ERROR 17 }
@@ -8072,7 +8065,7 @@ if __name__ == '__main__':
 \NewDocumentCommand\CDRBlockUse{ O{} m } {
 \CDR@Debug{\string\CDRBlockUse/#2}
   \CDRBlock_id_setup:c { #2 }
-  \CDR_if_unknown:TF {
+  \CDRBlock_if_unknown:TF {
     \PackageError
       { coder }
       { Unknown~block~identifier:~#2 }
@@ -8110,7 +8103,7 @@ if __name__ == '__main__':
 \NewDocumentCommand\CDRBlockExe{ O{} m } {
 \CDR@Debug{\string\CDRBlockExe/#2}
   \CDRBlock_id_setup:c { #2 }
-  \CDR_if_unknown:TF {
+  \CDRBlock_if_unknown:TF {
     \PackageError
       { coder }
       { Unknown~block~identifier:~#2 }
