@@ -370,7 +370,8 @@ and the derived files           \jobname.ins,
 % in conjunction with \CDRSty{}.
 % \end{enumerate}
 %
-% The package \CDRSty{} only exchanges with \CDRLua{} using |\directlua|, |tex.print| and |token.get_macro|.
+% The package \CDRSty{} only exchanges with \CDRLua{} using |\directlua|, |tex.print|, |tex.sprint|,
+% |token.get_macro| and |token.set_macro|.
 % \CDRPy{} in turn only exchanges with \CDRLua{}:
 % we put in \CDRPy{} as few \LaTeX{} logic as possible.
 % It receives instructions from \CDRSty{} as command line arguments,
@@ -723,9 +724,9 @@ local function set_python_path(self, path_var)
     print('**** CDR path, mode', path, mode)
     self.PYGMENTIZE_PATH = path
     if mode == 'file' or mode == 'link' then
-      tex.print('true')
+      tex.sprint('true')
     else
-      tex.print('false')
+      tex.sprint('false')
     end
   else
     self.PYTHON_PATH = nil    
@@ -977,26 +978,45 @@ local function pyg_set_var(self, key, var)
 end
 %    \end{MacroCode}
 %
-% \begin{function}{lines_get, lines_set}
+% \begin{function}{lines_get}
 % \begin{syntax}
-% CDR:lines_get(\meta{id})
+% CDR:lines_get()
 % \end{syntax}
+% Return the line table for the current \metatt{id}.
+% Create a table if it does not exist yet.
 % \end{function}
 %    \begin{MacroCode}
-local function lines_set(self, id, lines)
-  self['lines by id'][id] = assert(lines)
-self:debug('lines_set', id, self:lines_get(id)==lines, #lines)
-end
-local function lines_get(self, id)
-  local ans = self['lines by id'][id] or {}
-  self['lines by id'][id] = ans
+local function lines_get(self)
+  local ans = self['lines by id'][self.id] or {}
+  self['lines by id'][self.id] = ans
   return ans
+end
+%    \end{MacroCode}
+%
+% \begin{function}{lines_contain,lines_contain_print}
+% \begin{syntax}
+% CDR:lines_contain()
+% CDR:lines_contain_print()
+% \end{syntax}
+% Return whether there is a table for the current
+% \metatt{id}.
+% The |_print| variant prints something to the
+% \TeX\ stream for |true|, and nothing for |false|.
+% \end{function}
+%    \begin{MacroCode}
+local function lines_contain(self)
+  return self['lines by id'][self.id] and true or false
+end
+local function lines_contain_print(self)
+  if self['lines by id'][self.id] then
+    tex.sprint('T')
+  end
 end
 %    \end{MacroCode}
 %
 % \begin{function}{pyg_source}
 % \begin{syntax}
-% CDR:pyg_source(\meta{sty}, \meta{id_var})
+% CDR:pyg_source(\meta{sty}, \meta{src})
 % \end{syntax}
 % Hilight the currently entered block if \metatt{src} is |true|,
 % build the style definitions if \metatt{sty} is |true|.
@@ -1006,7 +1026,7 @@ end
 % depending on \metatt{src} and \metatt{sty}.
 % \end{function}
 %    \begin{MacroCode}
-local function pyg_source(self, sty, id_var)
+local function pyg_source(self, sty, src)
   if not self.PYTHON_PATH then
     return
   end
@@ -1037,15 +1057,14 @@ local function pyg_source(self, sty, id_var)
     self:cache_record(pyg_sty_p)
   end
   local pyg_tex_p
-  if id_var then
+  if src then
     local source
     if inline then
       source = args.source
     else
-      local id = assert(id_var and token.get_macro(id_var))
-      local lines = self:lines_get(id)
+      local lines = self:lines_get()
       source = table.concat(lines, '\n')
-self:debug('pyg_source', '<'..id..'>', lines, #lines)
+self:debug('pyg_source', '<'..self.id..'>', lines, #lines)
     end
     local hash = md5.sumhexa( ('%s:%s:%s'
       ):format(
@@ -1162,7 +1181,7 @@ end
 %
 % \begin{function}{pyg_block_setup}
 % \begin{syntax}
-% CDR:pyg_block_setup(\meta{tags clist var})
+% CDR:pyg_block_setup(\meta{id var}, \meta{tags clist var})
 % \end{syntax}
 % Records the contents of the \metatt{tags clist var} \LaTeX{} variable
 % to prepare block hilighting.
@@ -1170,12 +1189,11 @@ end
 % is exactly the first after the last line of code.
 % \end{function}
 %    \begin{MacroCode}
-local function pyg_block_setup(self, id_var, tags_clist_var)
-self:debug('pyg_block_setup', id_var)
-  local id = token.get_macro(id_var)
+local function pyg_block_setup(self, tags_clist_var)
+self:debug('pyg_block_setup')
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
   self['.tags clist'] = tags_clist
-  local lines = assert(self:lines_get(id))
+  local lines = assert(self:lines_get())
   self['.arguments'] = {
     __cls__ = 'Arguments',
     cache   = JSON_boolean_false,
@@ -1247,15 +1265,14 @@ end
 %
 % \begin{function}{pyg_block_teardown}
 % \begin{syntax}
-% CDR:pyg_block_teardown([\meta{id_var}])
+% CDR:pyg_block_teardown()
 % \end{syntax}
 % Records the contents of the \metatt{tags clist var} \LaTeX{} variable
 % to prepare block hilighting.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function pyg_block_teardown(self, id_var)
-  local id = token.get_macro(id_var or 'l_CDR_id_tl')
-  local ll = self:lines_get(id)
+local function pyg_block_teardown(self)
+  local ll = self:lines_get()
   if #ll > 0 then
     local args = self['.arguments']
     local t, code
@@ -1532,18 +1549,18 @@ local function synctex_store_get(self, kvargs)
   return 0
 end
 local function synctex_store_print(self, kvargs)
-  tex.print(self:synctex_store_get(kvargs))
+  tex.sprint(self:synctex_store_get(kvargs))
 end
 local function synctex_store_print_tag(self)
-  tex.print(self:synctex_store_get({
+  tex.sprint(self:synctex_store_get({
     'tag',
-    id=self.current_id
+    id=self.id
   }))
 end
 local function synctex_store_print_line(self)
-  tex.print(self:synctex_store_get({
+  tex.sprint(self:synctex_store_get({
     'line',
-    id=self.current_id
+    id=self.id
   }))
 end
 %    \end{MacroCode}
@@ -1611,52 +1628,49 @@ local _DESCRIPTION = [[Global coder utilities on the lua side]]
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{function}{rescan_begin, rescan_push_line, rescan_end}
+% \begin{function}{BlockExe_new, BlockExe_free}
 % \begin{syntax}
-% CDR:rescan_begin()
-% CDR:rescan_push_line(\metatt{tl line variable})
-% CDR:rescan_end()
+% CDR:BlockExe_new()
+% CDR:BlockExe_free()
 % \end{syntax}
-% This is a strong replacement to the various rescan functions (including |\scantokens|) assuming that
-% what is rescan is a string.
-% Initialize the rescan with |CDR:rescan_begin()|,
-% then put each line in turn with |CDR:rescan_push_line(...)| and finally
-% teminate the process with |CDR:rescan_end()|
+% Execute the block code stored under the current id.
+% Initialize |CDR:BlockExe_new()|,
+% do some management then teminate the process with
+% |CDR:BlockExe_free()|.
 % Implementation detail: use a closure.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function rescan_begin(self)
+local function BlockExe_new(self)
   local t = {}
-  local makeatletter = false
   local ExplSyntaxOn = false
-  function self.rescan_makeatletter(this, yorn)
-    makeatletter = yorn
-    if makeatletter then
-      tex.print([[\makeatletter]])
-    end
-  end
-  function self.rescan_ExplSyntaxOn(this, yorn)
-    ExplSyntaxOn = yorn
-    if ExplSyntaxOn then
-      tex.print([[\ExplSyntaxOn]])
-    end
-  end
-  function self.rescan_push_line(this, tl_var)
-    table.insert(t, assert(token.get_macro(assert(tl_var))))
-  end
-  function self.rescan_end(me)
-    table.insert(t, '')
-    tex.print(t);
-    if ExplSyntaxOn then
-      tex.print([[\ExplSyntaxOff]])
-    end
-    if makeatletter then
-      tex.print([[\makeatother]])
-    end
-    self.rescan_makeatletter = nil
-    self.rescan_ExplSyntaxOn = nil
-    self.rescan_push_line = nil;
-    self.rescan_end = nil;
+  self.BlockExe = {
+    makeatletter = function (this, yorn)
+      if yorn ~= false then
+        tex.sprint([[\makeatletter]])
+        this.makeatother = function()
+          tex.sprint([[\makeatother]])
+        end
+      end
+    end,
+    makeatother = function() end,
+    ExplSyntaxOn = function (this, yorn)
+      if yorn ~= false then
+        tex.sprint([[\ExplSyntaxOn]])
+        this.ExplSyntaxOff = function()
+          tex.sprint([[\ExplSyntaxOff]])
+        end
+      end
+    end,
+    ExplSyntaxOff = function() end,
+  }
+  function self.BlockExe_free(this)
+    local lines = this:lines_get()
+    tex.print(lines)
+    tex.print('')
+    this.BlockExe:ExplSyntaxOff()
+    this.BlockExe:makeatother()
+    this.BlockExe = nil
+    this.BlockExe_free = nil;
   end
 end
 %    \end{MacroCode}
@@ -1927,13 +1941,13 @@ end
 %
 % Here we scan from the \pkg{lua} side as far as possible.
 %
-% \begin{variable}{CDR.catcodetable_string}
+% \begin{variable}{CDR.string_cctab}
 % Store the catcode table number to be used by
 % |token.set_macro|.
 % Must be set as early as possible. 
 % \end{variable}
 %
-% \begin{variable}{CDR.catcodetable_atletter}
+% \begin{variable}{CDR.atletter_cctab}
 % Store the catcode table number to be used by
 % |token.set_macro|.
 % Must be set as early as possible. 
@@ -1943,12 +1957,27 @@ end
 % The scanner is a controller for scanning input. 
 % \end{variable}
 %
+%    \begin{MacroCode}
+local function id_setup(self)
+  self.id = assert(token.get_macro(
+    'l_CDR_id_tl'
+  ))
+  self.id_short = assert(token.get_macro(
+    'l_CDR_id_short_tl'
+  ))
+  function self.id_teardown(self)
+    self.id = nil
+    self.id_teardown = nil
+  end
+end 
+%    \end{MacroCode}
+%
 % \subsubsection{Inline}
 %
-% \begin{function}{CDR:code_scan_setup, CDR:code_scan_teardown}
+% \begin{function}{CDR:Code_peek_new, CDR:Code_peek_free}
 % \begin{syntax}
-% CDR:code_scan_setup(\meta{identifier})
-% CDR:code_scan_teardown()
+% CDR:Code_peek_new(\meta{identifier})
+% CDR:Code_peek_free()
 % \end{syntax}
 % Set the scanner and its associate closure for further scanning.
 % These functions are balancing each other.
@@ -1956,12 +1985,12 @@ end
 % \end{function}
 % The only purpose is to catch a new line very early. This is achieved by using callbacks.
 %    \begin{MacroCode}
-local function code_scan_setup ( self, verb )
+local function Code_peek_new ( self, verb )
   ltb.add_to_callback (
     'process_input_buffer',
     function (input)
       if input then
-        function self.scan.status(this)
+        function self.Code.status(this)
           tex.print('error')
         end
         return verb..input
@@ -1975,23 +2004,23 @@ local function code_scan_setup ( self, verb )
       'CDRCode'
     )
   end
-  self.scan = setmetatable({}, { __index = {
+  self.Code = setmetatable({}, { __index = {
     status = function (this)
     end
   }})
-  function self.code_scan_teardown(this)
+  function self.Code_peek_free(this)
     remove_from_callback()
-    this.scan = nil
-    this.code_scan_teardown = nil
+    this.Code = nil
+    this.Code_peek_free = nil
   end
 end
 %    \end{MacroCode}
 % 
 % \subsubsection{Block}
-% \begin{function}{CDR:block_scan_setup, CDR:block_scan_teardown}
+% \begin{function}{CDR:Block_new, CDR:Block_free}
 % \begin{syntax}
-% CDR:block_scan_setup(\meta{identifier var}, \meta{envir name var})
-% CDR:block_scan_teardown()
+% CDR:Block_new(\meta{identifier var}, \meta{envir name var})
+% CDR:Block_free()
 % \end{syntax}
 % Set the scanner and its associate closure for further scanning.
 % These functions are balancing each other.
@@ -2061,11 +2090,120 @@ body
 %
 % \end{description}
 %
+% \begin{function}{inline_save}
+% \begin{syntax}
+% CDR:inline_save()
+% \end{syntax}
+% Save the content of the |\l_CDR_peek_tl| macro
+% at some place associate with the current \metatt{id}.
+% \end{function}
 %    \begin{MacroCode}
-local function id_setup(self, id_var)
-  self.current_id = assert(token.get_macro(
-    id_var or 'l_CDR_id_tl'
-  ))
+local function inline_save (self)
+  local peek = token.get_macro('l_CDR_peek_tl')
+  self['inline by id'][self.id] = peek
+end
+%    \end{MacroCode}
+%
+% \begin{function}{inline_contain,inline_contain_print}
+% \begin{syntax}
+% CDR:inline_contain()
+% CDR:inline_contain_print()
+% \end{syntax}
+% Return whether there is some text for the current
+% \metatt{id}.
+% The |_print| variant prints something to the
+% \TeX\ stream for |true|, and nothing for |false|.
+% \end{function}
+%    \begin{MacroCode}
+local function inline_contain(self)
+  return self['inline by id'][self.id] and true or false
+end
+local function inline_contain_print(self)
+  if self:inline_contain() then
+    tex.sprint('T')
+  end
+end
+%    \end{MacroCode}
+%
+%    \begin{MacroCode}
+local function count_print (self)
+  local lines = self:lines_get()
+  tex.sprint(#lines)
+end
+%    \end{MacroCode}
+%
+% \begin{function}{inline_to_ltx}
+% \begin{syntax}
+% CDR:inline_to_ltx(\metatt{mode})
+% \end{syntax}
+% Export the inline source to \LaTeX{} to feed various
+% macro named |\l_CDR_id_tl|.
+% Assignments are local.
+%
+% When \metatt{mode} is |"unescaped"|,
+% spaces and tabs are active,
+% every other character is a letter.
+% When \metatt{mode} is |"string"|,
+% every character is a letter.
+% In other cases, the current catcode regime applies.
+% \end{function}
+%    \begin{MacroCode}
+local function inline_to_ltx (self, mode)
+  local cctab
+  if mode == 'string' then
+    cctab = self.string_cctab
+  elseif mode == 'unescaped' then
+    cctab = self.unescaped_cctab
+  else
+    cctab = -1
+  end
+  token.set_macro(
+    cctab,
+    self.id,
+    self['inline by id'][self.id] or ''
+  )
+end
+%    \end{MacroCode}
+%
+% \begin{function}{lines_to_ltx}
+% \begin{syntax}
+% CDR:lines_to_ltx(\meta{mode})
+% \end{syntax}
+% Export the lines to \LaTeX{} to feed various |\CDR_seq_...| macros.
+% Assignments are local.
+%
+% When \metatt{mode} is |"unescaped"|,
+% spaces and tabs are active,
+% every other character is a letter.
+% When \metatt{mode} is |"string"|,
+% every character is a letter.
+% In other cases, the current catcode regime applies.
+% \end{function}
+%    \begin{MacroCode}
+local function lines_to_ltx (self, mode)
+  local lines = self:lines_get()
+  self:debug('restore_to_latex', #lines)
+  local cctab
+  if mode == 'string' then
+    cctab = self.string_cctab
+  elseif mode == 'unescaped' then
+    cctab = self.unescaped_cctab
+  else
+    cctab = -1
+  end
+  for k, v in ipairs(lines) do
+    self:debug('lines_to_ltx', 'k', k, '--> v', v)
+    token.set_macro( cctab, 'CDR.seq/'..self.id..'/'..k, v )
+  end
+end
+local function count_to_ltx (self)
+  local lines = self:lines_get()
+  self:debug('count_to_ltx', #lines)
+  token.set_macro(
+    self.string_cctab,
+    'CDR.seq/'..self.id,
+    #lines
+  )
 end
 %    \end{MacroCode}
 %
@@ -2080,7 +2218,7 @@ end
 % |\begin{CDRBlock}| on the same line, an error is raised,
 % on error recovery, scanning is continued until
 % the next line.
-% Once we have peeked a |[|, |\CDR@ReadOptions| is called, where lines are required until
+% Once we have peeked a |[|, |\CDRBlock@Read@Options| is called, where lines are required until
 % a balancing |]| is found.
 % Then we want to raise an error if there
 % is some black material after this closing bracket.
@@ -2090,14 +2228,12 @@ end
 % it enters the |in_body| mode.
 % The controller is in safe mode as soon as the callback is called.
 %    \begin{MacroCode}
-local function block_scan_setup(self, env_var)
-  local id = self.current_id
+local function Block_new(self, env_var)
   local env = assert(token.get_macro(
     env_var or '@currenvir'
   ))
-self:debug('block_scan_setup',id, env)
-  self:lines_set(id, {})
-  local lines = self:lines_get(id)
+self:debug('Block_new', env)
+  local lines = self:lines_get()
   local args = {}
   local f_current
   ltb.add_to_callback (
@@ -2152,7 +2288,7 @@ self:debug('block_scan_setup',id, env)
   f_start = function (input)
     f_current = nil
     function self.scan.is_after_eol(this)
-      tex.print('T')
+      tex.sprint('T')
       this.is_after_eol = nil
     end
     if input:match([[^%s*\end%s*]]
@@ -2206,7 +2342,7 @@ self:debug('CALLBACK:END', '<'..input..'>')
   f_body = function (input)
 self:debug('CALLBACK:IN_BODY', '<'..input..'>')
     function self.scan.is_after_eol()
-      tex.print('T')
+      tex.sprint('T')
     end
     if input:match([[^%s*\end%s*]]
       ..'{'..env..'}') then
@@ -2257,39 +2393,10 @@ self:debug('CALLBACK:IN_BODY', '<'..input..'>')
       f_current = f_body
       self.scan.is_after_eol = nil
     end,
-    resume = function (this)
-      self:debug('scan.resume', #lines)
-      this:pyg_resume()
-      this:vrb_resume()
-    end,
-    resume_cnt = function (this)
-      token.set_macro(
-        self.catcodetable_string,
-        'CDR.seq/'..id,
-        tostring(#lines)
-      )
-    end,
-    pyg_resume = function (this)
-      self:debug('scan.pyg_resume', #lines)
-      this:resume_cnt()
-    end,
-    vrb_resume = function (this)
-      self:debug('scan.vrb_resume', #lines)
-      this:resume_cnt()
-      for k, v in ipairs(lines) do
-        self:debug('scan.resume', 'k', k, '--> v', v)
-        token.set_macro(
-          self.catcodetable_string,
-          'CDR.seq/'..id..'/'..k,
-          v
-        )
-      end
-    end,
   }})
-  self.block_scan_teardown = function (this)
+  self.Block_free = function (this)
     this.scan = nil
-    this.block_scan_teardown = nil
-    this.current_id = nil
+    this.Block_free = nil
   end
 end
 %    \end{MacroCode}
@@ -2373,13 +2480,14 @@ return setmetatable({}, { __index = {
 %    \end{MacroCode}
 % \itemtt[scan]
 %    \begin{MacroCode}
-  id_setup   = id_setup,
-  block_scan_setup = block_scan_setup,
-  code_scan_setup  = code_scan_setup,
+  id_setup  = id_setup,
+  count_print = count_print,
+  Block_new = Block_new,
+  Code_peek_new  = Code_peek_new,
 %    \end{MacroCode}
 % \itemtt[rescan]
 %    \begin{MacroCode}
-  rescan_begin  = rescan_begin,
+  BlockExe_new  = BlockExe_new,
 %    \end{MacroCode}
 % \itemtt[input]
 %    \begin{MacroCode}
@@ -2396,13 +2504,24 @@ return setmetatable({}, { __index = {
   ['.style_set']   = {},
   ['.colored_set'] = {},
 %    \end{MacroCode}
-% \itemtt[lines]
+% \itemtt[inline]
 %    \begin{MacroCode}
-  lines_get = lines_get,
-  lines_set = lines_set,
-  ['lines by id']  = {},
+  ['inline by id']  = {},
+  inline_save    = inline_save,
+  inline_contain = inline_contain,
+  inline_contain_print = inline_contain_print,
+  inline_to_ltx  = inline_to_ltx,
 %    \end{MacroCode}
 % \itemtt[already] false at the beginning,
+% \itemtt[lines]
+%    \begin{MacroCode}
+  ['lines by id']  = {},
+  lines_contain = lines_contain,
+  lines_get     = lines_get,
+  lines_contain_print = lines_contain_print,
+  lines_to_ltx  = lines_to_ltx,
+  count_to_ltx  = count_to_ltx,
+%    \end{MacroCode}
 % true after the first call of \CDRPy{}
 %    \begin{MacroCode}
   already     = false,
@@ -3059,10 +3178,10 @@ if __name__ == '__main__':
 }
 \directlua {
   CDR = require("coder-util");
-  CDR.catcodetable_string = \int_eval:n { 
+  CDR.string_cctab = \int_eval:n { 
     \catcodetable@string
   };
-  CDR.catcodetable_atletter = \int_eval:n { 
+  CDR.atletter_cctab = \int_eval:n { 
     \catcodetable@atletter
   };
 }
@@ -3479,6 +3598,12 @@ if __name__ == '__main__':
   \char_set_catcode_active:n { `\^^I }  
   \char_set_catcode_active:n { `\    }
 }
+\directlua {
+  CDR.unescaped_cctab = \int_eval:n { 
+    \c_CDR_unescaped_cctab
+  };
+}
+
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -6602,14 +6727,25 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRCode_id_setup:c}
-% Prepare the current id, and feed |\l_CDR_id_tl|.
+% \begin{function}{\CDRCode_id_setup:c, \CDRCode_id_teardown:}
+% Prepare the current id, and feed |\l_CDR_id_tl|
+% as well as |\l_CDR_id_short_tl|.
 % \end{function}
 %    \begin{MacroCode}
+\tl_new:N \l_CDR_id_tl
+\tl_new:N \l_CDR_id_short_tl
 \cs_new:Npn \CDRCode_id_setup:c #1 {
+  \tl_set:Nx \l_CDR_id_short_tl { #1 }
   \tl_set:Nx \l_CDR_id_tl { \CDRCode_id:c { #1 } }
   \directlua{
     CDR:id_setup()
+  }
+}
+\cs_new:Npn \CDR_id_teardown: {
+  \tl_clear:N \l_CDR_id_short_tl
+  \tl_clear:N \l_CDR_id_tl
+  \directlua{
+    CDR:id_teardown()
   }
 }
 \cs_new:Npn \CDRCodeUse_id:c #1 {
@@ -6631,14 +6767,7 @@ if __name__ == '__main__':
 %      CDR:synctex_store_print{'line'}
 %    },
 %  }
-  \cs_set:Npn \CDR:n ##1 {
-    \CDR@Debug{\string\CDRCode_scan:NN/\string\CDR:n/##1}
-    \exp_args:NNV
-    \group_end: \tl_set:cn \l_CDR_id_tl {
-      ##1
-    }
-  }
-  \CDRCode_scan:NN \CDR:n
+  \CDRCode_peek:NN \prg_do_nothing:
 }
 \cs_new:Npn \CDR@Source {}
 \cs_new:Npn \CDRCode_prepare:n #1 {
@@ -6675,10 +6804,6 @@ if __name__ == '__main__':
     \lua_now:n { CDR:synctex_state_save() }        
     \CDRCode_prepare:n { #1 }
     \CDR_if_pygments:TF {
-      \cs_set:Npn \CDR@StyleUseTag {
-        \CDR@StyleUse { \CDR_tag_get:c { style } }
-        \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
-      }
       \CDRCode_pyg_use:
     } {
       \CDRCode_vrb_use:
@@ -6688,7 +6813,7 @@ if __name__ == '__main__':
   } {
     \PackageError
       { coder }
-      { Bad~identifier:\space#2 }
+      { Unknown~identifier:\space#2 }
       { See\space\string\CDRCodeSave }
   }
 }
@@ -6735,22 +6860,40 @@ if __name__ == '__main__':
     }
   }
 }
-\cs_set:Npn \CDRCode_scan:NN #1 {
+%    \end{MacroCode}
+%
+% \begin{function}{\CDRCode_peek:NN}
+% \begin{syntax}
+% \cs{CDRCode_peek:NN} \metatt{function} \metatt{delimiter}
+% \end{syntax}
+% \end{function}
+%    \begin{MacroCode}
+\cs_set:Npn \CDRCode_peek:NN #1 {
   \group_begin:
   \tl_clear:N \l_CDR_peek_tl
-  \cs_set:Npn \CDRCode_scan_end:n ##1 {
-    \exp_args:NNV \group_end: #1 \l_CDR_peek_tl
+  \cs_set:Npn \CDRCode_peek_end:n ##1 {
+    \directlua {
+      CDR:inline_save()
+    }
+    \exp_args:NNNV
+    \group_end:
+    \tl_set:Nn \l_CDR_peek_tl \l_CDR_peek_tl
+    \directlua {
+      CDR:inline_to_ltx()
+    }
+    #1
+    \group_end:
   }
-  \cs_set:Npn \CDRCode_scan_continue:n ##1 {
+  \cs_set:Npn \CDRCode_peek_continue:n ##1 {
     \typeout{ADDING/##1/}
     \tl_put_right:Nn \l_CDR_peek_tl { ##1 }
-    \CDRCode_scan:
+    \CDRCode_peek:
   }
   \cctab_select:N \c_str_cctab
-  \CDRCode_scan_begin:N
+  \CDRCode_peek_begin:N
 }
-\cs_set:Npn \CDRCode_scan_begin:N #1 {
-  \directlua{ CDR:code_scan_setup([[#1]]) }
+\cs_set:Npn \CDRCode_peek_begin:N #1 {
+  \directlua{ CDR:Code_peek_new([[#1]]) }
   \char_set_active_eq:nN { `\    } \ %
   \char_set_active_eq:nN { `\^^I } \^^I %
   \char_set_active_eq:nN { `\^^M } \ %
@@ -6758,51 +6901,40 @@ if __name__ == '__main__':
   \char_set_catcode_active:n { `\^^I }  
   \char_set_catcode_active:n { `\    }
   \typeout{START/#1/}
-  \cs_set:Npn \CDRCode_scan: {
+  \cs_set:Npn \CDRCode_peek: {
     \peek_meaning:NTF #1 {
-      \exp_args:Nx \tl_if_empty:nF { \directlua{ CDR.scan:status() } } {
+      \exp_args:Nx \tl_if_empty:nF { \directlua{ CDR.Code:status() } } {
         \PackageError
           {coder}
           {Missing\space#1\space before\space next\space line}
           {Unterminated\space short\space verbatim\space input}
       }
-      \directlua{ CDR:code_scan_teardown() }
-      \CDRCode_scan_end:n
+      \directlua{ CDR:Code_peek_free() }
+      \CDRCode_peek_end:n
     } {
-      \CDRCode_scan_continue:n
+      \CDRCode_peek_continue:n
     }
   }
-  \CDRCode_scan:
+  \CDRCode_peek:
 }
-\cs_set:Npn \CDRCode_scan_process:nn #1 #2 {
+\cs_set:Npn \CDRCode_peek_process:nn #1 #2 {
 }
 
 \NewDocumentCommand \CDRCode { O{} } {
   \group_begin:
+  \CDRCode_id_setup:c {}
   \CDR_synctex_store:n {}
   \CDRCode_prepare:n { #1 }
   \CDR_if_pygments:TF {
-    \cs_set:Npn \CDR@StyleUseTag {
-      \CDR@StyleUse { \CDR_tag_get:c { style } }
-      \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
-    }
-    \cs_set:Npn \CDR:n ##1 {
-      \tl_set:cn { \l_CDR_id_tl } {
-        ##1
-      }
+    \cs_set:Npn \CDR: {
       \CDRCode_pyg_use:
-      \group_end:      
     }
   } {
-    \cs_set:Npn \CDR:n ##1 {
-      \tl_set:cn { \l_CDR_id_tl } {
-        ##1
-      }
+    \cs_set:Npn \CDR: {
       \CDRCode_vrb_use:
-      \group_end:      
     }
   }
-  \CDRCode_scan:NN \CDR:n
+  \CDRCode_peek:NN \CDR:
 }
 %    \end{MacroCode}
 %
@@ -6864,12 +6996,14 @@ if __name__ == '__main__':
 % \cs{CDRCode_pyg_use:}
 % \end{syntax}
 % Utility used by |\CDRCode|.
-% The main tricky part is that we must collect the \metatt{key[=value]}
-% items and feed |\FV@KeyValues| with them in the |aftersave| handler.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new_protected_nopar:Npn \CDRCode_pyg_use: {
 \CDR@Debug{\string\CDRCode_pyg_use:}
+  \cs_set:Npn \CDR@StyleUseTag {
+    \CDR@StyleUse { \CDR_tag_get:c { style } }
+    \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
+  }
   \lua_now:n { CDR:pyg_code_setup() }
   \CDR_tag_get:cN {lang} \l_CDR_a_tl
   \lua_now:n { CDR:pyg_set_var('lang') }
@@ -7204,22 +7338,22 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDR@Read@Options}
+% \begin{function}{\CDRBlock@Read@Options}
 % \begin{syntax}
-% \cs{CDR@Read@Options} \Arg{instructions} \oarg{key[=value] options}
+% \cs{CDRBlock@Read@Options} \Arg{instructions} \oarg{key[=value] options}
 % \end{syntax}
 % This is just an options catcher.
 % It happens to allways be called with optional arguments.
 % Execute \meta{instructions} at the end.
 % \end{function}
 %    \begin{MacroCode}
-\NewDocumentCommand \CDR@Read@Options { O{} } {
-\CDR@Debug{\string\CDR@Read@Options}
+\NewDocumentCommand \CDRBlock@Read@Options { O{} } {
+\CDR@Debug{\string\CDRBlock@Read@Options}
   \clist_set:Nn \l_CDR_kv_clist { #1 }
   \directlua { CDR.scan:exit_options() }
-\CDR@Debug{\string\CDR@Read@Options/SKIP}
+\CDR@Debug{\string\CDRBlock@Read@Options/SKIP}
   \peek_analysis_map_inline:n {
-\CDR@Debug{\string\CDR@Read@Options/##1/##2/##3/}
+\CDR@Debug{\string\CDRBlock@Read@Options/##1/##2/##3/}
     \exp_args:Nx
     \tl_if_empty:nTF {
       \directlua { CDR.scan:is_after_eol() }
@@ -7302,18 +7436,19 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}[EXP,pTF]{\CDR_seq_if_exist:c, \CDR_seq_if_exist:c}
+% \begin{function}[EXP,pTF]{\CDR_if_unknown:}
 % \begin{syntax}
-% \cs{CDR_seq_if_exist:cTF} \Arg{id} \Arg{true code} \Arg{false code}
+% \cs{CDR_if_unknown:TF} \Arg{true code} \Arg{false code}
 % \end{syntax}
-% Standard conditional family.
+% Assuming |\l_CDR_id_tl| has been properly set up,
+% execute \metatt{true code} when a code or block
+% is available, \metatt{false code} otherwise.
 % \end{function}
 %    \begin{MacroCode}
-\CDR_set_conditional_alt:Nn \CDR_seq_if_exist:c {
-  \cs_if_exist_p:c { CDR.seq / #1 }
-}
-\CDR_set_conditional_alt:Nn \CDR_seq_if_exist: {
-  \cs_if_exist_p:c { CDR.seq / \l_CDR_id_tl }
+\CDR_set_conditional_alt:Nn \CDR_if_unknown: {
+  \exp_args:Nf \tl_if_empty_p:n { \directlua {
+    CDR:lines_contain_print()
+  } }
 }
 %    \end{MacroCode}
 %
@@ -7375,7 +7510,7 @@ if __name__ == '__main__':
 % \begin{syntax}
 % \cs{CDRBlock_scan:}
 % \end{syntax}
-% Helper to begin/end the |CDRBlock| and |CDRBlockSave| environments.
+% Helper to begin/end the |CDRBlock| environment.
 % These functions must be balanced.
 % The purpose is to record the verbatim text in a sequence of lines,
 % this is done inside a group to keep the catcodes intact from the outer world.
@@ -7384,7 +7519,7 @@ if __name__ == '__main__':
 \cs_new:Npn \CDRBlock_scan_begin: {
 \CDR@Debug{\string\CDRBlock_scan_begin:}
   \directlua{
-    CDR:block_scan_setup()
+    CDR:Block_new()
   }
 %    \end{MacroCode}
 % Function to break the analysis, skip the end of the line,
@@ -7404,7 +7539,7 @@ if __name__ == '__main__':
 \CDR@Debug{BEGIN_OPTION}
         \peek_analysis_map_break:n {
           \directlua { CDR.scan:enter_options() }
-          \CDR@Read@Options
+          \CDRBlock@Read@Options
         }
       } {
         \str_if_eq:nnF { ##3 } { A } {
@@ -7437,10 +7572,13 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRBlock_id_setup:c #1 {
+  \tl_set:Nx \l_CDR_id_short_tl { #1 }
   \tl_set:Nx \l_CDR_id_tl { \CDRBlock_id:c { #1 } }
   \directlua{
     CDR:id_setup()
   }
+\CDR@Debug{\string\l_CDR_id_short_tl=\l_CDR_id_short_tl}
+\CDR@Debug{\string\l_CDR_id_tl=\l_CDR_id_tl}
 }
 \cs_new:Npn \CDR_synctex_store:n #1 {
 \CDR@Debug{ \string\CDR_synctex_store:n }
@@ -7449,24 +7587,22 @@ if __name__ == '__main__':
     CDR:synctex_store {
       tag  = CDR.synctex_tag,
       line = CDR.synctex_line,
-      id   = CDR.current_id
+      id   = CDR.id
     }
   }
   \lua_now:n { CDR:synctex_state_restore() } 
 }
 \cs_new:Npn \CDRBlock_scan_end: {
 \CDR@Debug{ \string\CDRBlock_scan_end: }
-  \directlua { CDR.scan:resume_cnt() }
+  \directlua { CDR:count_to_ltx() }
   \CDR_synctex_store:n { -1 - \CDR_seq_count: }
   \CDRBlock_setup:n {
-    \CDR_if_pygments:TF {
-      \directlua { CDR.scan:pyg_resume() }
-    } {
-      \directlua { CDR.scan:vrb_resume() }
+    \CDR_if_pygments:F {
+      \directlua { CDR:lines_to_ltx('unescaped') }
     }
   }
   \CDRBlock_use:
-  \directlua { CDR:block_scan_teardown() }
+  \directlua { CDR:Block_free() }
 }
 %    \end{MacroCode}
 %
@@ -7692,22 +7828,8 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\FVE@CDRBlock}
-% \pkg{fancyvrb} helper to end the |CDRBlock| environment.
-% \end{function}
 %    \begin{MacroCode}
 \cs_generate_variant:Nn \regex_set:Nn { Nx, NV }
-%    \end{MacroCode}
-%
-% \begin{function}{\CDRBlock_use:c}
-% \begin{syntax}
-% \cs{CDRBlock_use:nc} \Arg{sequence name}
-% \end{syntax}
-% Helper to complete the |CDRBlock| environments and and |CDRBlockUse| command.
-% \pkg{fancyvrb} helper to end the |CDRBlock| environment.
-% \end{function}
-%    \begin{MacroCode}
-\cs_generate_variant:Nn \seq_map_indexed_inline:Nn { cn }
 %    \end{MacroCode}
 % Read and catch the key value arguments,
 % except the ones related to \pkg{fancyvrb}.
@@ -7723,8 +7845,7 @@ if __name__ == '__main__':
   }
   \CDR_tag_keys_set:nn { __block } { __initialize }
 %    \end{MacroCode}
-% Read and catch the key value arguments,
-% except the ones related to \pkg{fancyvrb}.
+% Read and catch the key value arguments.
 % Then build the dynamic keys matching
 % \metatt{engine name}| engine options| for appropriate
 % engine names.
@@ -7762,7 +7883,7 @@ if __name__ == '__main__':
   }
   \CDR_local_set_known:N \l_CDR_kv_clist
   \lua_now:n {
-    CDR:pyg_block_setup('l_CDR_id_tl', 'g_CDR_tags_clist')
+    CDR:pyg_block_setup('g_CDR_tags_clist')
   }
   \CDR_set_conditional:Nn \CDR_if_pygments:
     { \CDR_has_pygments_p: && \CDR_if_tag_truthy_p:c { pygments } }
@@ -7803,7 +7924,6 @@ if __name__ == '__main__':
 % If numbering was off or |dry|, no number update is performed.
 % \end{function}
 %    \begin{MacroCode}
-\tl_new:N \l_CDR_id_tl
 \cs_new_protected_nopar:Npn \CDRBlock_teardown: {
 \CDR@Debug{ \string \CDRBlock_teardown:c }
   \bool_if:nT { \CDR_if_number_on_p: && !\CDR_if_numbers_dry_p: } {
@@ -7859,13 +7979,12 @@ if __name__ == '__main__':
 % Now the |CDRBlockSave| environment.
 %    \begin{MacroCode}
 \NewDocumentEnvironment { CDRBlockSave } { m } {
-\CDR@Debug{CDRBlockSave...\the\inputlineno }
+\CDR@Debug{\@currenvir...\the\inputlineno }
   \CDRBlock_id_setup:c { #1 }
   \CDRBlockSave_scan_begin:
 }{
-\CDR@Debug{\the\inputlineno...CDRBlock}
-  \exp_args:NV
-  \CDRBlockSave_scan_end:c \l_CDR_id_tl
+  \CDRBlockSave_scan_end:
+\CDR@Debug{\the\inputlineno...\@currenvir}
 }
 %    \end{MacroCode}
 %
@@ -7882,7 +8001,7 @@ if __name__ == '__main__':
 \cs_new:Npn \CDRBlockSave_scan_begin: {
 \CDR@Debug{\string\CDRBlockSave_scan_begin:}
   \directlua{
-    CDR:block_scan_setup()
+    CDR:Block_new()
   }
 %    \end{MacroCode}
 % Function to break the analysis, skip the end of the line,
@@ -7902,7 +8021,7 @@ if __name__ == '__main__':
 \CDR@Debug{BEGIN_OPTION}
         \peek_analysis_map_break:n {
           \directlua { CDR.scan:enter_options() }
-          \CDR@Read@Options
+          \CDRBlock@Read@Options
         }
       } {
         \str_if_eq:nnF { ##3 } { A } {
@@ -7926,41 +8045,22 @@ if __name__ == '__main__':
   }
 }
 \cs_new:Npn \CDRBlockSave_scan_end: {
-\CDR@Debug{ \string\CDRBlockSave_scan_end: }
-  \directlua { CDR.scan:resume_cnt() }
+\CDR@Debug{ \string\CDRBlockSave_scan_end:...\the\inputlineno}
+  \directlua {
+    CDR:count_to_ltx();
+  }
   \CDR_synctex_store:n { -1 - \CDR_seq_count: }
-  \CDRBlock_setup:n { }
-   directlua {
-     CDR.scan:vrb_resume();
-     CDR.scan:pyg_resume();
-     CDR:block_scan_teardown();
-   }
+  \directlua {
+    CDR:Block_free();
+  }
+  \CDR@Debug{\l_CDR_id_tl+\l_CDR_id_short_tl+}
+  \CDR_if_unknown:T {
+    \PackageError
+      { coder }
+      { ERROR 17 }
+      { Please~report. }
+  }
 }
-%    \end{MacroCode}
-%
-% \begin{function}[EXP,pTF]{\CDRBlock_if_saved:c}
-% \begin{syntax}
-% \cs{CDRBlock_if_saved:cTF} \Arg{identifier} \Arg{true code} \Arg{false code}
-% \end{syntax}
-% Set of conditionals.
-% If some code was saved under \Arg{identifier},
-% execute \Arg{true code} otherwise, execute \Arg{false code}.
-% \end{function}
-%    \begin{MacroCode}
-\CDR_set_conditional_alt:Nn \CDRBlock_if_saved:c {
-  \seq_if_exist_p:c { CDRBlockUse / #1_seq }
-}
-%    \end{MacroCode}
-%
-% \begin{function}{\CDRBlockIfSaved}
-% \begin{syntax}
-% \cs{CDRBlockIfSaved} \Arg{identifier} \Arg{true code} \Arg{false code}
-% \end{syntax}
-% If some code was saved under \Arg{identifier},
-% execute \Arg{true code} otherwise, execute \Arg{false code}.
-% \end{function}
-%    \begin{MacroCode}
-\cs_set_eq:NN \CDRBlockIfSaved \CDRBlock_if_saved:cTF
 %    \end{MacroCode}
 %
 % \begin{function}{\CDRBlockUse}
@@ -7972,15 +8072,15 @@ if __name__ == '__main__':
 \NewDocumentCommand\CDRBlockUse{ O{} m } {
 \CDR@Debug{\string\CDRBlockUse/#2}
   \CDRBlock_id_setup:c { #2 }
-  \CDR_seq_if_exist:TF {
-    \clist_set:Nn \l_CDR_kv_clist { #1 }
-    \CDRBlock_setup:n {}
-    \CDRBlock_use:
-  } {
+  \CDR_if_unknown:TF {
     \PackageError
       { coder }
       { Unknown~block~identifier:~#2 }
       { See~CDRBlockUse~documentation. }
+  } {
+    \clist_set:Nn \l_CDR_kv_clist { #1 }
+    \CDRBlock_setup:n {}
+    \CDRBlock_use:
   }
 }
 %    \end{MacroCode}
@@ -7990,13 +8090,13 @@ if __name__ == '__main__':
   makeatletter .choices:nn =
     { {}, true, false }
     { \directlua{
-      CDR:rescan_makeatletter(\l_keys_choice_tl)
+      CDR.BlockExe:makeatletter(\l_keys_choice_tl)
     } },
   makeatletter .default:n = true,
   ExplSyntaxOn .choices:nn =
     { {}, true, false }
     { \directlua{
-      CDR:rescan_ExplSyntaxOn(\l_keys_choice_tl)
+      CDR.BlockExe:ExplSyntaxOn(\l_keys_choice_tl)
     } },
   ExplSyntaxOn .default:n = true,
 }
@@ -8010,16 +8110,22 @@ if __name__ == '__main__':
 \NewDocumentCommand\CDRBlockExe{ O{} m } {
 \CDR@Debug{\string\CDRBlockExe/#2}
   \CDRBlock_id_setup:c { #2 }
-  \directlua {
-    CDR:rescan_begin();
-    CDR:synctex_state_save()
-  }
-  \exp_args:Nnx
-  \keys_set:nn { CDRBlockExe } {
-    \tl_if_empty:nT { #1 } { makeatletter=false, }
-    #1
-  }
-  \CDR_seq_if_exist:TF {
+  \CDR_if_unknown:TF {
+    \PackageError
+      { coder }
+      { Unknown~block~identifier:~#2 }
+      { See~\string\CDRBlockSave~documentation. }
+  } {
+    \directlua {
+      CDR:synctex_state_save();
+      CDR:BlockExe_new();
+    }
+    \exp_args:Nnx
+    \keys_set:nn { CDRBlockExe } {
+      \tl_if_empty:nTF { #1 }
+        { makeatletter=false }
+        { #1 }
+    }
     \CDR@Setup {
       synctex_tag  = \directlua {
         CDR:synctex_store_print_tag()
@@ -8028,18 +8134,14 @@ if __name__ == '__main__':
         CDR:synctex_store_print_line()
       },
     }
-    \CDR_seq_map_indexed_inline:n {
-      \tl_set:Nn \l_CDR_a_tl { ##2 }
-      \directlua{CDR:rescan_push_line('l_CDR_a_tl')}      
+\CDR@Debug{\string\l_CDR_id_short_tl=\l_CDR_id_short_tl}
+\CDR@Debug{\string\l_CDR_id_tl=\l_CDR_id_tl}
+    \directlua {
+      CDR:BlockExe_free();
+      CDR:synctex_state_restore();
     }
-    \directlua{CDR:rescan_end()}    
-    \directlua { CDR:synctex_state_restore() }
+    \CDR_id_teardown:
     \ignorespaces
-  } {
-    \PackageError
-      { coder }
-      { Unknown~block~identifier:~#2 }
-      { See~\string\CDRBlockExe~documentation. }
   }
 }
 %    \end{MacroCode}
