@@ -2125,13 +2125,6 @@ local function inline_known_print(self)
 end
 %    \end{MacroCode}
 %
-%    \begin{MacroCode}
-local function count_print (self)
-  local lines = self:lines_get()
-  tex.sprint(#lines)
-end
-%    \end{MacroCode}
-%
 % \begin{function}{inline_to_ltx}
 % \begin{syntax}
 % CDR:inline_to_ltx(\metatt{mode})
@@ -2195,15 +2188,6 @@ local function lines_to_ltx (self, mode)
     self:debug('lines_to_ltx', 'k', k, '--> v', v)
     token.set_macro( cctab, 'CDR.seq/'..self.id..'/'..k, v )
   end
-end
-local function count_to_ltx (self)
-  local lines = self:lines_get()
-  self:debug('count_to_ltx', #lines)
-  token.set_macro(
-    self.string_cctab,
-    'CDR.seq/'..self.id,
-    #lines
-  )
 end
 %    \end{MacroCode}
 %
@@ -2466,7 +2450,6 @@ return setmetatable({}, { __index = {
 % \itemtt[scan]
 %    \begin{MacroCode}
   id_setup  = id_setup,
-  count_print = count_print,
   Block_new = Block_new,
   Code_peek_new  = Code_peek_new,
 %    \end{MacroCode}
@@ -2505,7 +2488,6 @@ return setmetatable({}, { __index = {
   lines_get     = lines_get,
   lines_contain_print = lines_contain_print,
   lines_to_ltx  = lines_to_ltx,
-  count_to_ltx  = count_to_ltx,
 %    \end{MacroCode}
 % true after the first call of \CDRPy{}
 %    \begin{MacroCode}
@@ -7402,24 +7384,32 @@ if __name__ == '__main__':
 % \cs{CDR_seq_count:}
 % \cs{CDR_seq_item:n}  \Arg{index}
 % \end{syntax}
-% Storage for the lines of a verbatim code environment.
+% Storage for the lines of the current verbatim code environment.
 % These are not the standard sequence storage because
 % we take great advantage of more control from the \pkg{lua} side.
 % The items are read from the Lua\LaTeX{} side
 % whereas written from \CDRLua{}.
+% Implementation detail: |\CDR_seq_item:n| ensures that
+% code lines have been properly exported to \LaTeX.
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_seq_count: {
-  \use:c { CDR.seq / \l_CDR_id_tl }
+  \directlua { 
+    tex.sprint(''..#(CDR:lines_get()));
+  }
 }
-\cs_new:Npn \CDR_seq_item:n #1 {
-  \use:c { CDR.seq / \l_CDR_id_tl / #1 }
+\cs_new:Npn \CDR_seq_item:n {
+  \directlua { CDR:lines_to_ltx('string') }
+  \cs_new:Npn \CDR_seq_item:n ##1 {
+    \use:c { CDR.seq / \l_CDR_id_tl / ##1 }
+  }
+  \CDR_seq_item:n
 }
 %    \end{MacroCode}
 %
 % \begin{function}[EXP,pTF]{\CDRCode_if_unknown:}
 % \begin{syntax}
-% \cs{CDRBlock_if_unknown:TF} \Arg{true code} \Arg{false code}
+% \cs{CDRCode_if_unknown:TF} \Arg{true code} \Arg{false code}
 % \end{syntax}
 % Assuming |\l_CDR_id_tl| has been properly set up,
 % execute \metatt{true code} when a code or block
@@ -7492,14 +7482,20 @@ if __name__ == '__main__':
 \NewDocumentEnvironment { CDRBlock } { } {
 \CDR@Debug{CDRBlock...\the\inputlineno }
   \CDRBlock_id_setup:c { }
-  \CDRBlock_scan_begin:
+  \CDRBlock_save_begin:
 }{
 \CDR@Debug{\the\inputlineno...CDRBlock}
-  \CDRBlock_scan_end:
+  \CDRBlock_save_end:
+  \CDRBlock_setup:n {
+    \CDR_if_pygments:F {
+      \directlua { CDR:lines_to_ltx('unescaped') }
+    }
+  }
+  \CDRBlock_use:
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRBlock_scan_begin:, \CDRBlock_scan_end:}
+% \begin{function}{\CDRBlock_save_begin:, \CDRBlock_save_end:}
 % \begin{syntax}
 % \cs{CDRBlock_scan:}
 % \end{syntax}
@@ -7509,8 +7505,8 @@ if __name__ == '__main__':
 % this is done inside a group to keep the catcodes intact from the outer world.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new:Npn \CDRBlock_scan_begin: {
-\CDR@Debug{\string\CDRBlock_scan_begin:}
+\cs_new:Npn \CDRBlock_save_begin: {
+\CDR@Debug{\string\CDRBlock_save_begin:}
   \directlua{
     CDR:Block_new()
   }
@@ -7585,16 +7581,11 @@ if __name__ == '__main__':
   }
   \lua_now:n { CDR:synctex_state_restore() } 
 }
-\cs_new:Npn \CDRBlock_scan_end: {
-\CDR@Debug{ \string\CDRBlock_scan_end: }
-  \directlua { CDR:count_to_ltx() }
-  \CDR_synctex_store:n { -1 - \CDR_seq_count: }
-  \CDRBlock_setup:n {
-    \CDR_if_pygments:F {
-      \directlua { CDR:lines_to_ltx('unescaped') }
-    }
+\cs_new:Npn \CDRBlock_save_end: {
+\CDR@Debug{ \string\CDRBlock_save_end: }
+  \CDR_synctex_store:n {
+    -1 - \CDR_seq_count:
   }
-  \CDRBlock_use:
   \directlua { CDR:Block_free() }
 }
 %    \end{MacroCode}
@@ -7756,7 +7747,7 @@ if __name__ == '__main__':
     }
 %    \end{MacroCode}
 % Let us go now for the maximum index.
-%    \begin{MacroCode}  
+%    \begin{MacroCode}
     \CDR_int_set:cn { __maxi } { \CDR_seq_count: }
     \CDR_tag_get:cNT { lastline } \l_CDR_a_tl {
       \tl_if_empty:NF \l_CDR_a_tl {
@@ -7974,85 +7965,10 @@ if __name__ == '__main__':
 \NewDocumentEnvironment { CDRBlockSave } { m } {
 \CDR@Debug{\@currenvir...\the\inputlineno }
   \CDRBlock_id_setup:c { #1 }
-  \CDRBlockSave_scan_begin:
+  \CDRBlock_save_begin:
 }{
-  \CDRBlockSave_scan_end:
+  \CDRBlock_save_end:
 \CDR@Debug{\the\inputlineno...\@currenvir}
-}
-%    \end{MacroCode}
-%
-% \begin{function}{\CDRBlockSave_scan_begin:, \CDRBlockSave_scan_end:}
-% \begin{syntax}
-% \cs{CDRBlockSave_scan_begin:}
-% \end{syntax}
-% Helper to begin/end the |CDRBlockSave| environment.
-% These functions must be balanced.
-% The purpose is to record the verbatim text in a sequence of lines,
-% this is done inside a group to keep the catcodes intact from the outer world.
-% \end{function}
-%    \begin{MacroCode}
-\cs_new:Npn \CDRBlockSave_scan_begin: {
-\CDR@Debug{\string\CDRBlockSave_scan_begin:}
-  \directlua{
-    CDR:Block_new()
-  }
-%    \end{MacroCode}
-% Function to break the analysis, skip the end of the line,
-% and execute |\CDR_read_options:n { }| on new line:
-%    \begin{MacroCode}
-  \peek_analysis_map_inline:n {
-    \exp_args:Nx
-    \tl_if_empty:nTF {
-      \directlua { CDR.Block:is_after_eol() }
-    } {
-\CDR@Debug{TOP_BEFORE_EOL:analysis/##1/##2/##3/}
-      \tl_if_eq:NNTF \l_peek_token [%]
-      {
-%    \end{MacroCode}
-% This is the start of the options section.
-%    \begin{MacroCode}
-\CDR@Debug{BEGIN_OPTION}
-        \peek_analysis_map_break:n {
-          \directlua { CDR.Block:enter_options() }
-          \CDRBlock@Read@Options
-        }
-      } {
-        \str_if_eq:nnF { ##3 } { A } {
-%    \end{MacroCode}
-% This is a forbidden black character.
-%    \begin{MacroCode}
-          \PackageError
-            { coder }
-            { Only\space`['\space or\space`\c_percent_str'\space%]
-              after\space\string\begin{\@currenvir} }
-            { See\space\@currenvir\space documentation }
-          \CDR_skip_to_next_line:
-        }
-      }
-    } {
-\CDR@Debug{TOP_AFTER_EOL/##1/##2/##3/}
-      \peek_analysis_map_break:n {
-        \directlua { CDR.Block:enter_body() }
-      }
-    }
-  }
-}
-\cs_new:Npn \CDRBlockSave_scan_end: {
-\CDR@Debug{ \string\CDRBlockSave_scan_end:...\the\inputlineno}
-  \directlua {
-    CDR:count_to_ltx();
-  }
-  \CDR_synctex_store:n { -1 - \CDR_seq_count: }
-  \directlua {
-    CDR:Block_free();
-  }
-  \CDR@Debug{\l_CDR_id_tl+\l_CDR_id_short_tl+}
-  \CDRBlock_if_unknown:T {
-    \PackageError
-      { coder }
-      { ERROR 17 }
-      { Please~report. }
-  }
 }
 %    \end{MacroCode}
 %
