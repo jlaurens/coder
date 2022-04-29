@@ -654,14 +654,13 @@ local ltb = _ENV.luatexbase
 %    \end{MacroCode}
 % \section{Module declaration}
 %    \begin{MacroCode}[OK]
-local CDR_PY_PATH = kpse.find_file('coder-tool.py')
-%    \end{MacroCode}
-luatexbase.provides_module{
+ltb.provides_module{
   name = 'coder',
   date = token.get_macro('CDRFileDate'),
   version = token.get_macro('CDRFileVersion'),
   description = 'Code inside LaTeX, LaTeX inside code',
 }
+%    \end{MacroCode}
 % \section{General purpose material}
 % \begin{variable}{CDR_PY_PATH}
 % Location of the \CDRPy{} utility.
@@ -679,16 +678,19 @@ local CDR_PY_PATH = kpse.find_file('coder-tool.py')
 % Activate debuging messaging, or not.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function f_debug (...)
-  local args = { ... };
+local debug_msg
+local function f_debug_msg (...)
+  local args = { ... }
   table.remove(args, 1)
   print('**** CDR DEBUG ****', table.unpack(args))
 end
+local function noop ()
+end
 local function activate_debug(self, activate)
   if activate then
-    self.debug = f_debug
+    debug_msg = f_debug_msg
   else
-    self.debug = nil
+    debug_msg = noop
   end
 end
 %    \end{MacroCode}
@@ -934,6 +936,513 @@ local function load_exec_output(self, s)
 end
 %    \end{MacroCode}
 %
+% \section{Storage}
+%
+% \subsection{Code}
+% \begin{variable}{inline_by_id}
+% Storage for the |CDRCode| and |CDRCodeSave| command body. 
+%    \begin{MacroCode}
+local inline_by_id = {}
+%    \end{MacroCode}
+% \end{variable}
+%
+%
+% \subsection{Block}
+% \begin{variable}{lines_by_id}
+% Storage for the |CDRBlock| and |CDRBlockSave| environments body. 
+%    \begin{MacroCode}
+local lines_by_id = {}
+%    \end{MacroCode}
+% \end{variable}
+%
+% \section{Metatables}
+%
+% \subsection{Object}
+%
+% \begin{variable}{Object}
+% The |Code| and |Block| are descendant of |Object|.
+% \end{variable}
+%
+%    \begin{MacroCode}
+local Object = setmetatable({}, {
+  __index = function (self, k)
+    local ans
+    if k == 'id' then
+      ans = token.get_macro('lt_CDR_id_tl')
+    elseif k == 'delimiters' then
+      ans = token.get_macro('l_CDR_delimiters_tl')
+    elseif k == 'id_short' then
+      ans = token.get_macro('lt_CDR_id_short_tl')
+    end
+    if ans then
+      rawset(self, k, ans)
+      return ans
+    end
+  end,
+})
+%    \end{MacroCode}
+%
+% \subsection{Code}
+%
+% \begin{variable}{CDR.Code}
+% The |Code| contains attribute and methods to properly
+% deal with |CDRCode|, |CDRCodeSave|,
+% |CDRCodeUse| and |CDRCodeExe| commands. 
+% \end{variable}
+%
+%    \begin{MacroCode}
+local Code = setmetatable({}, {
+  __index = function (self, k)
+    local ans = Object[k]
+    if ans then
+      rawset(self, k, ans)
+      return ans
+    end
+    if k == 'inline' then
+      return inline_by_id[self.id]
+    elseif k == 'debug' then
+      return debug
+    end
+  end,
+  __new = function (self, k, v )
+    if k == 'inline' then
+      inline_by_id[self.id] = v
+    else
+      rawset(self, k, v)
+    end
+  end
+})
+%    \end{MacroCode}
+%
+% \subsubsection{Inline}
+%
+% \begin{function}{Code.peek_begin, Code.peek_end}
+% \begin{syntax}
+% CDR.Code:peek_begin(\meta{identifier})
+% CDR.Code:peek_end()
+% \end{syntax}
+% Set the peeker and its associate closure for further peeking.
+% These functions are balancing each other.
+% Implementation detail: the |peek_end| is defined dynamically.
+% \end{function}
+% The only purpose is to catch a new line very early. This is achieved by using callbacks.
+%    \begin{MacroCode}
+function Code:peek_begin ( delimiter )
+  ltb.add_to_callback (
+    'process_input_buffer',
+    function (input)
+      if input then
+        function self.status(this)
+          tex.print('error')
+        end
+        return delimiter..input
+      end
+    end,
+    'CDRCode'
+  )
+  local function remove_from_callback ()
+    ltb.remove_from_callback(
+      'process_input_buffer',
+      'CDRCode'
+    )
+  end
+end
+function Code:peek_end ()
+  error('Build time error: unexpected Code.peek_end')
+end
+function Code_new(self)
+  self.Code = setmetatable({}, MTCode)
+  self.Code_free = function (this)
+    this.Code = nil
+    this.Code_free = nil
+  end
+end
+function Code_free (self)
+  error('Build time error: unexpected Code_free')
+end
+%    \end{MacroCode}
+% 
+% \subsection{Block}
+%
+% \begin{variable}{CDR.Block}
+% The |Block| contains attribute and methods to properly
+% deal with |CDRBlock| and |CDRBlockSave| environments,
+% as well as |CDRBlockUse| and |CDRBlockExe| commands. 
+% \end{variable}
+%
+%    \begin{MacroCode}
+local Block = setmetatable({}, {
+  __index = function (self, k)
+    local ans = Object[k]
+    if ans then
+      rawset(self, k, ans)
+      return ans
+    end
+    if k == 'lines' then
+      return lines_by_id[self.id]
+    elseif k == 'env' then
+      ans = token.get_macro('@currenvir')
+      rawset(self, k, ans)
+      return ans
+    end
+  end,
+  __new = function (self, k, v )
+    if k == 'inline' then
+      inline_by_id[self.id] = v
+    else
+      rawset(self, k, v)
+    end
+  end
+})
+%    \end{MacroCode}
+%
+% \subsubsection{Save}
+%
+% |CDRBlock| and |CDRBlockSave| environments globally
+% save their body on the \pkg{lua} side.
+% In order to do some error checking,
+% we determine whether there are options.
+% For that, we will
+% define the environments with no options at all,
+% then we peek the next character and test for a `['.
+% If there is one on the same line, we switch to the
+% |in_options| mode. If there is nothing on the same line,
+% then the callback will provide a fake |\relax| line
+% and record the real input for later use.
+% If there is actually any black character after the
+% |\begin{CDRBlock}| or |\begin{CDRBlockSave}|
+% on the same line, an error is raised.
+% On error recovery, scanning is peeking until
+% the next line. Once we have peeked a |[|,
+% |\CDRBlock@Read@Options| is called,
+% where lines are required until a balancing |]|
+% is found.
+% Then we want to raise an error if there
+% is some black material after this closing bracket.
+% The peeker exits the |in_options| mode and is
+% not yet in the |in_body| mode.
+% As soon as the callback is asked for a new line,
+% it enters the |in_body| mode.
+% The controller is in safe mode as soon as the callback is called.
+%    \begin{MacroCode}
+function Block:save_begin ()
+  local env = assert(self.env)
+debug_msg('self_save_begin', env)
+  self.lines = {}
+  local f_current
+  ltb.add_to_callback (
+    'process_input_buffer',
+    function (input)
+      if input then
+        return f_current(input)
+      else
+        return ([[\PackageError{coder}{Missing `\end{%s}'}{See %s documentation }]]):format(env, env)
+      end
+    end,
+    'CDRBlock'
+  )
+  if debug_msg ~= f_debug_msg then
+    ltb.add_to_callback (
+      'process_input_buffer',
+      function (input)
+        debug_msg('BUFFER:', '<'..input..'>')
+        return input
+      end,
+      'CDRBlockDebug'
+    )
+  end
+  local function remove_from_callback ()
+    ltb.remove_from_callback(
+      'process_input_buffer',
+      'CDRBlock'
+    )
+    if ltb.in_callback('process_input_buffer', 'CDRBlockDebug') then
+      ltb.remove_from_callback(
+        'process_input_buffer',
+        'CDRBlockDebug'
+      )
+    end
+  end
+%    \end{MacroCode}
+% |f_current| is the state of the |process_input_buffer| callback.
+% It is defined by one of next functions.
+% State changes are below.
+%    \begin{MacroCode}
+  local f_start, f_options, f_body
+%    \end{MacroCode}
+% The start state of the callback called iff there is
+% no option after de |\begin{...}| instruction.
+% It stores the real |input| and return a fake |x%| line.
+% The return line must consist of a raw token.
+% The real input will be managed in the |in_body| method
+% which must be called afterwards.
+% This is only called through |f_current|: it is called
+% first and only once.
+%    \begin{MacroCode}
+  f_start = function (input)
+    f_current = nil
+    function self.is_after_eol(this)
+      tex.sprint('T')
+      this.is_after_eol = nil
+    end
+    if input:match([[^%s*\end%s*]]
+      ..'{'..env..'}') then
+%    \end{MacroCode}
+% No option, no body: terminante environment.
+%    \begin{MacroCode}
+      remove_from_callback()
+debug_msg('SCAN:end', '<'..input..'>')
+      return input
+    else
+debug_msg('CALLBACK:START', '<'..input..'>')
+      self.lines[#self.lines+1] = input
+      return [[\relax]]
+    end
+  end
+  f_current = f_start
+%    \end{MacroCode}
+% The state of the callback iff there are real options.
+% Raise an error if the environment is closed too early.
+% Switching to and from this state is made from the
+% \LaTeX{} side.
+%    \begin{MacroCode}
+  f_options = function (input)
+debug_msg('CALLBACK:IN_OPTIONS', '<'..input..'>')
+    local d, v, b = input:match([[^%s*(\\end)%s*]]
+      ..'({'..env..'})'..[[([^%]*)]])
+    if d then
+      remove_from_callback()--[
+debug_msg('CALLBACK:END', '<'..input..'>')
+      return ']'
+        ..d..v
+        ..[[\PackageError{coder}]]
+        ..[[{Unterminated\space options}]]
+        ..'{'..[[a\space]]--}[
+        ..']'
+        ..[[\space is\space missing\space]]
+        ..[[before\space\end]]..'{'..env..'}'--{
+        ..'}'
+        ..b
+    else
+      return input
+    end
+  end
+%    \end{MacroCode}
+% Scanning the body of the environment:
+% if this is the closing instruction, stop processing input,
+% otherwise store it and return a fake |%| instead.
+% after real options.
+%    \begin{MacroCode}
+  f_body = function (input)
+debug_msg('CALLBACK:IN_BODY', '<'..input..'>')
+    function self.is_after_eol (this)
+      tex.sprint('T')
+    end
+    if input:match([[^%s*\end%s*]]
+      ..'{'..env..'}') then
+      remove_from_callback()
+      return [[\relax]]..input
+    else
+      lines[#lines+1] = input
+      return [[\relax]]
+    end
+  end
+  self.enter_body = function (this)
+    debug_msg('Block.enter_body')
+    f_current = f_body
+  end
+%    \end{MacroCode}
+% Must be called before reading the options
+% to manage an eventual |last_input|.
+%    \begin{MacroCode}  
+  self.enter_options = function (this)
+    f_current = f_options
+  end
+%    \end{MacroCode}
+% Options where scanned, only comments are allowed
+% on this line.
+% We switch back to some default state.
+%    \begin{MacroCode}
+  self.exit_options = function (this)
+    f_current = f_body
+    this.is_after_eol = nil
+  end
+end
+%    \end{MacroCode}
+% The default state:
+%    \begin{MacroCode}
+function Block:is_after_eol ()
+end
+Block:enter_body = function ()
+  error('Buid time error: unexpected enter_body')
+end
+Block:enter_options = function ()
+  error('Buid time error: unexpected enter_options')
+end
+Block:exit_options = function ()
+  error('Buid time error: unexpected exit_options')
+end
+%    \end{MacroCode}
+%
+%    \begin{MacroCode}
+Block:sprint_known = function ()
+  if self.lines then
+    tex.sprint('T')
+  end
+end
+Block:sprint_count = function ()
+  local lines = self.lines
+  local ans = lines and #lines or -1
+  tex.sprint(''..ans)
+end
+Block:save_begin = function ()
+  self.lines = {}
+  self.save_end = function (this) end
+end
+Block:save_end = function ()
+  error('Buid time error: unexpected save_end')
+end
+%    \end{MacroCode}
+%
+% \subsubsection{filter}
+%
+% \begin{function}{filter_setup}
+% \begin{syntax}
+% CDR.Block:filter_setup(\metatt{})
+% \end{syntax}
+% The reader is asked for the lines.
+% \end{function}
+%    \begin{MacroCode}
+Block:filter_setup = function (texcomments)
+  local delimiters = token.get_macro(
+    'l_CDR_delimiters_tl'
+  )
+  self.filter = self.filter_none
+end
+Block:filter_none = function (input)
+  return input
+end
+Block:sprint_line = function (n)
+  tex.sprint(self:filter(self.lines[n]))
+end
+%    \end{MacroCode}
+%
+% \subsubsection{Execute}
+% 
+% \begin{function}{do_makeatletter, do_makeatother,doExplSyntaxOn, doExplSyntaxOff}
+% \begin{syntax}
+% CDR.Block:do_makeatletter()
+% \end{syntax}
+% Same syntax for both functions.
+% Setup the context of execution.
+% Calls are balanced based on the normal category code.
+% The real catcode regime before the execution is ignored,
+% and may not be recovered afterwards.
+% \end{function}
+%    \begin{MacroCode}[OK]
+Block:do_makeatletter = function (yorn)
+  if yorn ~= false then
+    tex.sprint([[\makeatletter]])
+    self.do_makeatother = function (this)
+      tex.sprint([[\makeatother]])
+    end
+  end
+end
+Block:do_makeatother = function ()
+end
+Block:doExplSyntaxOn = function (yorn)
+  if yorn ~= false then
+    tex.sprint([[\ExplSyntaxOn]])
+    self.doExplSyntaxOff = function (this)
+      tex.sprint([[\ExplSyntaxOff]])
+    end
+  end
+end
+doExplSyntaxOff = function()
+end
+%    \end{MacroCode}
+%
+% \subsubsection{Execute}
+% 
+% \begin{function}{exe_begin, exe_end}
+% \begin{syntax}
+% CDR.Block:exe_begin(\metatt{makeatletter}, \metatt{ExplSyntaxOn})
+% CDR.Block:exe_end()
+% \end{syntax}
+% Execute the block code stored under the current id.
+% Initialize |CDR.Block:exe_begin()|,
+% do some management then teminate the process with
+% |CDR.Block:exe_end()|.
+% Change the catcode regime according to the arguments.
+% \end{function}
+%    \begin{MacroCode}[OK]
+exe_end = function (self)
+  tex.print(self.lines)
+  tex.print('')
+  self:do_ExplSyntaxOff()
+  self:do_makeatother()
+end
+%    \end{MacroCode}
+%
+% \begin{function}{lines_to_ltx}
+% \begin{syntax}
+% CDR:lines_to_ltx(\meta{mode})
+% \end{syntax}
+% Export the lines to \LaTeX{} to feed various |\CDR_seq_...| macros.
+% Assignments are local.
+%
+% When \metatt{mode} is |"unescaped"|,
+% spaces and tabs are active,
+% every other character is a letter.
+% When \metatt{mode} is |"string"|,
+% every character is a letter.
+% In other cases, the current catcode regime applies.
+% \end{function}
+%    \begin{MacroCode}
+Block:lines_to_ltx = function (mode)
+  local lines = self.lines
+  debug_msg('Block.lines_to_ltx', #lines)
+  local cctab
+  if mode == 'string' then
+    cctab = self.string_cctab
+  elseif mode == 'unescaped' then
+    cctab = self.unescaped_cctab
+  else
+    cctab = -1
+  end
+  for k, v in ipairs(lines) do
+    debug_msg('Block.lines_to_ltx', 'k', k, '--> v', v)
+    token.set_macro(
+      cctab,
+      'CDR.seq/'..self.id..'/'..k,
+      v
+    )
+  end
+end
+%    \end{MacroCode}
+%
+% \begin{function}{Block_new, Block_free}
+% \begin{syntax}
+% CDR:Block_new()
+% CDR:Block_free()
+% \end{syntax}
+% Create a new table that will contain everything
+% related to the current block.
+% These must be properly balanced.
+% \end{function}
+%    \begin{MacroCode}
+local function Block_new(self)
+  self.Block = setmetatable({}, MTBlock)
+  function self.Block_free(this)
+    this.Block = nil
+    this.Block_free = nil
+  end
+end
+local function Block_free(self)
+  error('Buid time error: unexpected Block_free')
+end
+%    \end{MacroCode}
+%
 % \section{Hiligting with \pkg{pygments}}
 %
 % \subsection{Common}
@@ -962,7 +1471,7 @@ local function pyg_set(self, kvargs)
         end
       end
     end
-self:debug('pyg_set', key, value)
+debug_msg('pyg_set', key, value)
     if t[key] == JSON_boolean_true or t[key] == JSON_boolean_false then
       t[key] = value == 'true' and JSON_boolean_true or JSON_boolean_false
     else
@@ -975,42 +1484,6 @@ local function pyg_set_var(self, key, var)
   self:pyg_set{
     [key] = assert(token.get_macro(var or 'l_CDR_a_tl'))
   }
-end
-%    \end{MacroCode}
-%
-% \begin{function}{lines_get}
-% \begin{syntax}
-% CDR:lines_get()
-% \end{syntax}
-% Return the line table for the current \metatt{id}.
-% Create a table if it does not exist yet.
-% \end{function}
-%    \begin{MacroCode}
-local function lines_get(self)
-  local ans = self['lines by id'][self.id] or {}
-  self['lines by id'][self.id] = ans
-  return ans
-end
-%    \end{MacroCode}
-%
-% \begin{function}{lines_contain,lines_contain_print}
-% \begin{syntax}
-% CDR:lines_contain()
-% CDR:lines_contain_print()
-% \end{syntax}
-% Return whether there is a table for the current
-% \metatt{id}.
-% The |_print| variant prints something to the
-% \TeX\ stream for |true|, and nothing for |false|.
-% \end{function}
-%    \begin{MacroCode}
-local function lines_contain(self)
-  return self['lines by id'][self.id] and true or false
-end
-local function lines_contain_print(self)
-  if self['lines by id'][self.id] then
-    tex.sprint('T')
-  end
 end
 %    \end{MacroCode}
 %
@@ -1062,9 +1535,9 @@ local function pyg_source(self, sty, src)
     if inline then
       source = args.source
     else
-      local lines = self:lines_get()
+      local lines = lines_by_id[self.id]
       source = table.concat(lines, '\n')
-self:debug('pyg_source', '<'..self.id..'>', lines, #lines)
+debug_msg('pyg_source', '<'..self.id..'>', lines, #lines)
     end
     local hash = md5.sumhexa( ('%s:%s:%s'
       ):format(
@@ -1119,7 +1592,7 @@ self:debug('pyg_source', '<'..self.id..'>', lines, #lines)
   end  
   self:cache_record(
     sty and pyg_sty_p or nil,
-    id  and pyg_tex_p or nil
+    src  and pyg_tex_p or nil
   )
 end
 %    \end{MacroCode}
@@ -1179,9 +1652,9 @@ end
 %
 % \subsection{Block}
 %
-% \begin{function}{pyg_block_setup}
+% \begin{function}{Block.block_setup}
 % \begin{syntax}
-% CDR:pyg_block_setup(\meta{id var}, \meta{tags clist var})
+% CDR.Block:pyg_setup(\meta{tags clist var})
 % \end{syntax}
 % Records the contents of the \metatt{tags clist var} \LaTeX{} variable
 % to prepare block hilighting.
@@ -1189,11 +1662,11 @@ end
 % is exactly the first after the last line of code.
 % \end{function}
 %    \begin{MacroCode}
-local function pyg_block_setup(self, tags_clist_var)
-self:debug('pyg_block_setup')
+function MTBlock.pyg_setup (self, tags_clist_var)
+debug_msg('Block:pyg_setup')
   local tags_clist = assert(token.get_macro(assert(tags_clist_var)))
   self['.tags clist'] = tags_clist
-  local lines = assert(self:lines_get())
+  local lines = assert(self.lines)
   self['.arguments'] = {
     __cls__ = 'Arguments',
     cache   = JSON_boolean_false,
@@ -1263,16 +1736,23 @@ local function escape_inside (text, delimiters)
 end
 %    \end{MacroCode}
 %
-% \begin{function}{pyg_block_teardown}
+% \begin{variable}{records_by_tag}
+% Global storage for exportation.
+% \end{variable}
+%    \begin{MacroCode}[OK]
+local records_by_tag = {}
+%    \end{MacroCode}
+%
+% \begin{function}{Block.pyg_teardown}
 % \begin{syntax}
-% CDR:pyg_block_teardown()
+% CDR.Block:pyg_teardown()
 % \end{syntax}
 % Records the contents of the \metatt{tags clist var} \LaTeX{} variable
 % to prepare block hilighting.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function pyg_block_teardown(self)
-  local ll = self:lines_get()
+local function Block.pyg_teardown(self)
+  local ll = self.lines
   if #ll > 0 then
     local args = self['.arguments']
     local t, code
@@ -1285,15 +1765,13 @@ local function pyg_block_teardown(self)
     else
       code = escape_inside(table.concat(ll,'\n'),args.pygopts.escapeinside)
     end
-    local records = self['.records'] or {}
-    self['.records'] = records
     t = {
       already = {},
       code = code
     }
     for tag in self['.tags clist']:gmatch('([^,]+)') do
-      local tt = records[tag] or {}
-      records[tag] = tt
+      local tt = records_by_tag[tag] or {}
+      records_by_tag[tag] = tt
       tt[#tt+1] = t
     end
   end
@@ -1367,9 +1845,8 @@ print('**** CDR', tags, raw, once)
         tt[#tt+1] = t
       end
     end
-    local records = self['.records'] or {}
     for tag in string.gmatch(export.tags, '([^,]+)') do
-      local Rs = records[tag]
+      local Rs = records_by_tag[tag]
       if Rs then
         for _,R in ipairs(Rs) do
           if not R.already[name] or not once then
@@ -1413,7 +1890,7 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function synctex_tag_set(self, tag)
-self:debug('synctex_tag_set', tag)
+debug_msg('synctex_tag_set', tag)
   if assert(tag, 'Unexpected nil tag') > 0 then
     self.synctex_tag  = tag
   end
@@ -1428,7 +1905,7 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function synctex_line_set(self, line)
-self:debug('synctex_line_set', line)
+debug_msg('synctex_line_set', line)
   if line >= 0 then
     self.synctex_line  = line
   end
@@ -1476,7 +1953,7 @@ end
 % \end{function}
 %    \begin{MacroCode}
 local function synctex_target_set(self, line_number)
-self:debug('synctex_target_set', self.synctex_tag, self.synctex_line, line_number )
+debug_msg('synctex_target_set', self.synctex_tag, self.synctex_line, line_number )
   tex.force_synctex_tag( self.synctex_tag )
   tex.force_synctex_line(self.synctex_line + line_number )
 end
@@ -1627,53 +2104,6 @@ end
 local _DESCRIPTION = [[Global coder utilities on the lua side]]
 %    \end{MacroCode}
 % \end{variable}
-%
-% \begin{function}{BlockExe_new, BlockExe_free}
-% \begin{syntax}
-% CDR:BlockExe_new()
-% CDR:BlockExe_free()
-% \end{syntax}
-% Execute the block code stored under the current id.
-% Initialize |CDR:BlockExe_new()|,
-% do some management then teminate the process with
-% |CDR:BlockExe_free()|.
-% Implementation detail: use a closure.
-% \end{function}
-%    \begin{MacroCode}[OK]
-local function BlockExe_new(self)
-  local t = {}
-  local ExplSyntaxOn = false
-  self.BlockExe = {
-    makeatletter = function (this, yorn)
-      if yorn ~= false then
-        tex.sprint([[\makeatletter]])
-        this.makeatother = function()
-          tex.sprint([[\makeatother]])
-        end
-      end
-    end,
-    makeatother = function() end,
-    ExplSyntaxOn = function (this, yorn)
-      if yorn ~= false then
-        tex.sprint([[\ExplSyntaxOn]])
-        this.ExplSyntaxOff = function()
-          tex.sprint([[\ExplSyntaxOff]])
-        end
-      end
-    end,
-    ExplSyntaxOff = function() end,
-  }
-  function self.BlockExe_free(this)
-    local lines = this:lines_get()
-    tex.print(lines)
-    tex.print('')
-    this.BlockExe:ExplSyntaxOff()
-    this.BlockExe:makeatother()
-    this.BlockExe = nil
-    this.BlockExe_free = nil;
-  end
-end
-%    \end{MacroCode}
 %
 % \section{Import}
 %
@@ -1881,7 +2311,7 @@ local function import_process(self, args)
     conclude()
   end
   for _,l in ipairs(ans) do
-    self:debug(_, '====>', l)
+    debug_msg(_, '====>', l)
     tex.print(l)
   end  
   if d.teardown then
@@ -1953,10 +2383,6 @@ end
 % Must be set as early as possible. 
 % \end{variable}
 %
-% \begin{variable}{CDR.Block}
-% The scanner is a controller for scanning input. 
-% \end{variable}
-%
 %    \begin{MacroCode}
 local function id_setup(self)
   self.id = assert(token.get_macro(
@@ -1972,50 +2398,6 @@ local function id_setup(self)
 end 
 %    \end{MacroCode}
 %
-% \subsubsection{Inline}
-%
-% \begin{function}{CDR:Code_peek_new, CDR:Code_peek_free}
-% \begin{syntax}
-% CDR:Code_peek_new(\meta{identifier})
-% CDR:Code_peek_free()
-% \end{syntax}
-% Set the scanner and its associate closure for further scanning.
-% These functions are balancing each other.
-% Implementation detail: the teardown is defined dynamically.
-% \end{function}
-% The only purpose is to catch a new line very early. This is achieved by using callbacks.
-%    \begin{MacroCode}
-local function Code_peek_new ( self, verb )
-  ltb.add_to_callback (
-    'process_input_buffer',
-    function (input)
-      if input then
-        function self.Code.status(this)
-          tex.print('error')
-        end
-        return verb..input
-      end
-    end,
-    'CDRCode'
-  )
-  local function remove_from_callback ()
-    ltb.remove_from_callback(
-      'process_input_buffer',
-      'CDRCode'
-    )
-  end
-  self.Code = setmetatable({}, { __index = {
-    status = function (this)
-    end
-  }})
-  function self.Code_peek_free(this)
-    remove_from_callback()
-    this.Code = nil
-    this.Code_peek_free = nil
-  end
-end
-%    \end{MacroCode}
-% 
 % \subsubsection{Block}
 % \begin{function}{CDR:Block_new, CDR:Block_free}
 % \begin{syntax}
@@ -2158,220 +2540,20 @@ local function inline_to_ltx (self, mode)
 end
 %    \end{MacroCode}
 %
-% \begin{function}{lines_to_ltx}
-% \begin{syntax}
-% CDR:lines_to_ltx(\meta{mode})
-% \end{syntax}
-% Export the lines to \LaTeX{} to feed various |\CDR_seq_...| macros.
-% Assignments are local.
-%
-% When \metatt{mode} is |"unescaped"|,
-% spaces and tabs are active,
-% every other character is a letter.
-% When \metatt{mode} is |"string"|,
-% every character is a letter.
-% In other cases, the current catcode regime applies.
-% \end{function}
-%    \begin{MacroCode}
-local function lines_to_ltx (self, mode)
-  local lines = self:lines_get()
-  self:debug('restore_to_latex', #lines)
-  local cctab
-  if mode == 'string' then
-    cctab = self.string_cctab
-  elseif mode == 'unescaped' then
-    cctab = self.unescaped_cctab
-  else
-    cctab = -1
-  end
-  for k, v in ipairs(lines) do
-    self:debug('lines_to_ltx', 'k', k, '--> v', v)
-    token.set_macro( cctab, 'CDR.seq/'..self.id..'/'..k, v )
-  end
-end
-%    \end{MacroCode}
-%
-% To determine whether there are options, we first
-% define the environment with no options at all.
-% Then we peek the next character and test for a `['.
-% If there is one on the same line, we switch to the
-% |in_options| mode. If there is nothing on the same line,
-% then the callback will provide a fake |\relax| line
-% and record the real input for later use.
-% If there is actually any black character after the
-% |\begin{CDRBlock}| on the same line, an error is raised,
-% on error recovery, scanning is continued until
-% the next line.
-% Once we have peeked a |[|, |\CDRBlock@Read@Options| is called, where lines are required until
-% a balancing |]| is found.
-% Then we want to raise an error if there
-% is some black material after this closing bracket.
-% The scanner exits the |in_options| mode and is
-% not yet in the |in_body| mode.
-% As soon as the callback is asked for a new line,
-% it enters the |in_body| mode.
-% The controller is in safe mode as soon as the callback is called.
-%    \begin{MacroCode}
-local function Block_new(self)
-  local env = assert( token.get_macro(
-    '@currenvir'
-  ) )
-self:debug('Block_new', env)
-  local lines = self:lines_get()
-  local f_current
-  ltb.add_to_callback (
-    'process_input_buffer',
-    function (input)
-      if input then
-        return f_current(input)
-      else
-        return ([[\PackageError{coder}{Missing `\end{%s}'}{See %s documentation }]]):format(env, env)
-      end
-    end,
-    'CDRBlock'
-  )
-  if self.debug ~= f_debug then
-    ltb.add_to_callback (
-      'process_input_buffer',
-      function (input)
-        self:debug('BUFFER:', '<'..input..'>')
-        return input
-      end,
-      'CDRBlockDebug'
-    )
-  end
-  local function remove_from_callback ()
-    ltb.remove_from_callback(
-      'process_input_buffer',
-      'CDRBlock'
-    )
-    if ltb.in_callback('process_input_buffer', 'CDRBlockDebug') then
-      ltb.remove_from_callback(
-        'process_input_buffer',
-        'CDRBlockDebug'
-      )
-    end
-  end
-%    \end{MacroCode}
-% |f_current| is the state of the |process_input_buffer| callback.
-% It is defined by one of next functions.
-% State changes are below.
-%    \begin{MacroCode}
-  local f_start, f_options, f_body
-%    \end{MacroCode}
-% The start state of the callback called iff there is
-% no option after de |\begin{...}| instruction.
-% It stores the real |input| and return a fake |x%| line.
-% The return line must consist of a raw token.
-% The real input will be managed in the |in_body| method
-% which must be called afterwards.
-% This is only called through |f_current|: it is called
-% first and only once.
-%    \begin{MacroCode}
-  f_start = function (input)
-    f_current = nil
-    function self.Block.is_after_eol(this)
-      tex.sprint('T')
-      this.is_after_eol = nil
-    end
-    if input:match([[^%s*\end%s*]]
-      ..'{'..env..'}') then
-%    \end{MacroCode}
-% No option, no body: terminante environment.
-%    \begin{MacroCode}
-      remove_from_callback()
-self:debug('SCAN:end', '<'..input..'>')
-      return input
-    else
-self:debug('CALLBACK:START', '<'..input..'>')
-      lines[#lines+1] = input
-      return [[\relax]]
-    end
-  end
-  f_current = f_start
-%    \end{MacroCode}
-% The state of the callback iff there are real options.
-% Raise an error if the environment is closed too early.
-% Switching to and from this state is made from the
-% \LaTeX{} side.
-%    \begin{MacroCode}
-  f_options = function (input)
-self:debug('CALLBACK:IN_OPTIONS', '<'..input..'>')
-    local d, v, b = input:match([[^%s*(\\end)%s*]]
-      ..'({'..env..'})'..[[([^%]*)]])
-    if d then
-      remove_from_callback()--[
-self:debug('CALLBACK:END', '<'..input..'>')
-      return ']'
-        ..d..v
-        ..[[\PackageError{coder}]]
-        ..[[{Unterminated\space options}]]
-        ..'{'..[[a\space]]--}[
-        ..']'
-        ..[[\space is\space missing\space]]
-        ..[[before\space\end]]..'{'..env..'}'--{
-        ..'}'
-        ..b
-    else
-      return input
-    end
-  end
-%    \end{MacroCode}
-% Scanning the body of the environment:
-% if this is the closing instruction, stop processing input,
-% otherwise store it and return a fake |%| instead.
-% after real options.
-%    \begin{MacroCode}
-  f_body = function (input)
-self:debug('CALLBACK:IN_BODY', '<'..input..'>')
-    function self.Block.is_after_eol()
-      tex.sprint('T')
-    end
-    if input:match([[^%s*\end%s*]]
-      ..'{'..env..'}') then
-      remove_from_callback()
-      return [[\relax]]..input
-    else
-      lines[#lines+1] = input
-      return [[\relax]]
-    end
-  end
-%    \end{MacroCode}
-% The API:
-%    \begin{MacroCode}
-  self.Block = setmetatable({}, {__index = {
-    is_after_eol = function ()
-    end,
-    enter_body = function ()
-      self:debug('enter_body')
-      f_current = f_body
-    end,
-%    \end{MacroCode}
-% Must be called before reading the options
-% to manage an eventual |last_input|.
-%    \begin{MacroCode}      
-    enter_options = function ()
-      f_current = f_options
-    end,
-%    \end{MacroCode}
-% Options where scanned, only comments are allowed
-% on this line.
-% We switch back to the start state.
-%    \begin{MacroCode}
-    exit_options = function(this)
-      f_current = f_body
-      this.is_after_eol = nil
-    end,
-  }})
-  self.Block_free = function (this)
-    this.Block = nil
-    this.Block_free = nil
-  end
-end
-%    \end{MacroCode}
-%
 % \section{Return the module}
+% We only setup the metatable tree there to allow
+% changes to occur at different locations.
 %    \begin{MacroCode}
+MTCode = {
+  __index = setmetatable(MTCode, {
+    __index = Object
+  }
+} )
+MTBlock = {
+  __index = setmetatable(MTBlock, {
+    __index = Object
+  }
+} )
 return setmetatable({}, { __index = {
 %    \end{MacroCode}
 % Known fields are
@@ -2412,10 +2594,6 @@ return setmetatable({}, { __index = {
 %    \begin{MacroCode}
   load_exec_output = load_exec_output,
 %    \end{MacroCode}
-% \itemtt[record_line]
-%    \begin{MacroCode}
-  record_line     = record_line,
-%    \end{MacroCode}
 % \itemtt[hilight common]
 %    \begin{MacroCode}
   pyg_set     = pyg_set,
@@ -2429,7 +2607,6 @@ return setmetatable({}, { __index = {
 %    \end{MacroCode}
 % \itemtt[hilight block]
 %    \begin{MacroCode}
-  pyg_block_setup    = pyg_block_setup,
   pyg_block_teardown = pyg_block_teardown,
 %    \end{MacroCode}
 % \itemtt[Sync\TeX]
@@ -2449,13 +2626,12 @@ return setmetatable({}, { __index = {
 %    \end{MacroCode}
 % \itemtt[scan]
 %    \begin{MacroCode}
-  id_setup  = id_setup,
-  Block_new = Block_new,
+  id_setup   = id_setup,
+  Code_new   = Code_new,
+  Code_free  = Code_free,
+  Block_new  = Block_new,
+  Block_free = Block_free,
   Code_peek_new  = Code_peek_new,
-%    \end{MacroCode}
-% \itemtt[rescan]
-%    \begin{MacroCode}
-  BlockExe_new  = BlockExe_new,
 %    \end{MacroCode}
 % \itemtt[input]
 %    \begin{MacroCode}
@@ -2481,14 +2657,6 @@ return setmetatable({}, { __index = {
   inline_to_ltx  = inline_to_ltx,
 %    \end{MacroCode}
 % \itemtt[already] false at the beginning,
-% \itemtt[lines]
-%    \begin{MacroCode}
-  ['lines by id']  = {},
-  lines_contain = lines_contain,
-  lines_get     = lines_get,
-  lines_contain_print = lines_contain_print,
-  lines_to_ltx  = lines_to_ltx,
-%    \end{MacroCode}
 % true after the first call of \CDRPy{}
 %    \begin{MacroCode}
   already     = false,
@@ -7382,28 +7550,24 @@ if __name__ == '__main__':
 % \begin{function}{\CDR_seq_count:,\CDR_seq_item:n}
 % \begin{syntax}
 % \cs{CDR_seq_count:}
-% \cs{CDR_seq_item:n}  \Arg{index}
+% \cs{CDR_seq_item:n}  \Arg{integer index}
 % \end{syntax}
 % Storage for the lines of the current verbatim code environment.
 % These are not the standard sequence storage because
 % we take great advantage of more control from the \pkg{lua} side.
 % The items are read from the Lua\LaTeX{} side
 % whereas written from \CDRLua{}.
-% Implementation detail: |\CDR_seq_item:n| ensures that
-% code lines have been properly exported to \LaTeX.
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR_seq_count: {
   \directlua { 
-    tex.sprint(''..#(CDR:lines_get()));
+    CDR.Block:sprint_count();
   }
 }
-\cs_new:Npn \CDR_seq_item:n {
-  \directlua { CDR:lines_to_ltx('string') }
-  \cs_new:Npn \CDR_seq_item:n ##1 {
-    \use:c { CDR.seq / \l_CDR_id_tl / ##1 }
+\cs_new:Npn \CDR_seq_item:n #1 {
+  \directlua { 
+    CDR.Block:sprint_lines(#1)
   }
-  \CDR_seq_item:n
 }
 %    \end{MacroCode}
 %
@@ -7434,7 +7598,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \CDR_set_conditional_alt:Nn \CDRBlock_if_unknown: {
   \exp_args:Nf \tl_if_empty_p:n { \directlua {
-    CDR:lines_contain_print()
+    CDR.Block:sprint_known()
   } }
 }
 %    \end{MacroCode}
@@ -7481,25 +7645,27 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \NewDocumentEnvironment { CDRBlock } { } {
 \CDR@Debug{CDRBlock...\the\inputlineno }
-  \CDRBlock_id_setup:c { }
+  \CDRBlock_new:c { }
   \CDRBlock_save_begin:
 }{
 \CDR@Debug{\the\inputlineno...CDRBlock}
   \CDRBlock_save_end:
   \CDRBlock_setup:n {
     \CDR_if_pygments:F {
-      \directlua { CDR:lines_to_ltx('unescaped') }
+      \directlua { CDR.Block:lines_to_ltx('unescaped') }
     }
   }
   \CDRBlock_use:
+  \CDRBlock_free:
 }
 %    \end{MacroCode}
 %
 % \begin{function}{\CDRBlock_save_begin:, \CDRBlock_save_end:}
 % \begin{syntax}
-% \cs{CDRBlock_scan:}
+% \cs{CDRBlock_save_begin:}
+% \cs{CDRBlock_save_end:}
 % \end{syntax}
-% Helper to begin/end the |CDRBlock| environment.
+% Helper to begin/end the |CDRBlock| and |CDRBlockSave|environments.
 % These functions must be balanced.
 % The purpose is to record the verbatim text in a sequence of lines,
 % this is done inside a group to keep the catcodes intact from the outer world.
@@ -7508,7 +7674,7 @@ if __name__ == '__main__':
 \cs_new:Npn \CDRBlock_save_begin: {
 \CDR@Debug{\string\CDRBlock_save_begin:}
   \directlua{
-    CDR:Block_new()
+    CDR.Block:save_begin()
   }
 %    \end{MacroCode}
 % Function to break the analysis, skip the end of the line,
@@ -7556,18 +7722,29 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
-% \begin{function}{\CDRBlock_id_setup:c}
+% \begin{function}{\CDRBlock_new:c,\CDRBlock_free:}
+% \begin{syntax}
+% \cs{CDRBlock_new:c} \Arg{identifier}
+% \cs{CDRBlock_free:}
+% \end{syntax}
 % Prepare the current id, and feed |\l_CDR_id_tl|.
+% Prepare a dedicated storage with attributes and methods
+% as |CDR.Block| with the help of |Block_new| of \CDRLua.
 % \end{function}
 %    \begin{MacroCode}
-\cs_new:Npn \CDRBlock_id_setup:c #1 {
+\cs_new:Npn \CDRBlock_new:c #1 {
   \tl_set:Nx \l_CDR_id_short_tl { #1 }
   \tl_set:Nx \l_CDR_id_tl { \CDRBlock_id:c { #1 } }
   \directlua{
-    CDR:id_setup()
+    CDR:Block_new()
   }
 \CDR@Debug{\string\l_CDR_id_short_tl=\l_CDR_id_short_tl}
 \CDR@Debug{\string\l_CDR_id_tl=\l_CDR_id_tl}
+}
+\cs_new:Npn \CDRBlock_free: {
+  \directlua{
+    CDR:Block_free()
+  }
 }
 \cs_new:Npn \CDR_synctex_store:n #1 {
 \CDR@Debug{ \string\CDR_synctex_store:n }
@@ -7586,7 +7763,7 @@ if __name__ == '__main__':
   \CDR_synctex_store:n {
     -1 - \CDR_seq_count:
   }
-  \directlua { CDR:Block_free() }
+  \directlua { CDR.Block:save_end() }
 }
 %    \end{MacroCode}
 %
@@ -7867,7 +8044,7 @@ if __name__ == '__main__':
   }
   \CDR_local_set_known:N \l_CDR_kv_clist
   \lua_now:n {
-    CDR:pyg_block_setup('g_CDR_tags_clist')
+    CDR.Block:pyg_setup('g_CDR_tags_clist')
   }
   \CDR_set_conditional:Nn \CDR_if_pygments:
     { \CDR_has_pygments_p: && \CDR_if_tag_truthy_p:c { pygments } }
@@ -7939,7 +8116,7 @@ if __name__ == '__main__':
     }
   }
   \lua_now:n {
-    CDR:pyg_block_teardown()
+    CDR.Block:pyg_teardown()
   }
   \CDR_if_dry_tags:F {
     \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
@@ -7964,7 +8141,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \NewDocumentEnvironment { CDRBlockSave } { m } {
 \CDR@Debug{\@currenvir...\the\inputlineno }
-  \CDRBlock_id_setup:c { #1 }
+  \CDRBlock_new:c { #1 }
   \CDRBlock_save_begin:
 }{
   \CDRBlock_save_end:
@@ -7980,7 +8157,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \NewDocumentCommand\CDRBlockUse{ O{} m } {
 \CDR@Debug{\string\CDRBlockUse/#2}
-  \CDRBlock_id_setup:c { #2 }
+  \CDRBlock_new:c { #2 }
   \CDRBlock_if_unknown:TF {
     \PackageError
       { coder }
@@ -7990,6 +8167,7 @@ if __name__ == '__main__':
     \clist_set:Nn \l_CDR_kv_clist { #1 }
     \CDRBlock_setup:n {}
     \CDRBlock_use:
+    \CDRBlock_free:
   }
 }
 %    \end{MacroCode}
@@ -8018,7 +8196,7 @@ if __name__ == '__main__':
 %    \begin{MacroCode}
 \NewDocumentCommand\CDRBlockExe{ O{} m } {
 \CDR@Debug{\string\CDRBlockExe/#2}
-  \CDRBlock_id_setup:c { #2 }
+  \CDRBlock_new:c { #2 }
   \CDRBlock_if_unknown:TF {
     \PackageError
       { coder }
@@ -8027,7 +8205,7 @@ if __name__ == '__main__':
   } {
     \directlua {
       CDR:synctex_state_save();
-      CDR:BlockExe_new();
+      CDR.Block:exe_begin();
     }
     \exp_args:Nnx
     \keys_set:nn { CDRBlockExe } {
@@ -8046,10 +8224,10 @@ if __name__ == '__main__':
 \CDR@Debug{\string\l_CDR_id_short_tl=\l_CDR_id_short_tl}
 \CDR@Debug{\string\l_CDR_id_tl=\l_CDR_id_tl}
     \directlua {
-      CDR:BlockExe_free();
+      CDR.Block:exe_end();
       CDR:synctex_state_restore();
     }
-    \CDR_id_teardown:
+    \CDRBlock_free:
     \ignorespaces
   }
 }
@@ -8792,6 +8970,12 @@ if __name__ == '__main__':
   \CDR_whitespace_setup:
   \CDR_whitespace_define:
   \CDRBlock_hook_before:
+  \directlua {
+    CDR.Block:filter_setup (
+      \CDR_if_tag_truthy:cTF { texcomments }
+        { true } { false }
+    )
+  }
   \cs_set:Npn \CDR:n ##1 {
     \tl_put_right:Nn \l_CDR_vrb_tl { { ##1 } }
   }
