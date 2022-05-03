@@ -794,6 +794,9 @@ function CDR:activate_debug(yorn)
     debug_msg = noop
   end
 end
+function CDR.debug(...)
+  debug_msg(...)
+end
 %    \end{MacroCode}
 %
 % \begin{function}{set_python_path}
@@ -936,9 +939,6 @@ else
 end
 %    \end{MacroCode}
 % \begin{variable}{Object.dir_p}
-% \begin{syntax}
-% <variable> = safe_equals(<string>)
-% \end{syntax}
 % |Code| and |Block| can be used for \metatt{Object}.
 % \end{variable}
 %    \begin{MacroCode}[OK]
@@ -1072,7 +1072,8 @@ local lines_by_id = {}
 % \subsection{Object}
 %
 % \begin{variable}{Object}
-% The |Code| and |Block| are descendant of |Object|.
+% The |Code| and |Block| are descendants of |Object|,
+% they inherit its methods ad attributes.
 % |Object| defines dynamic attributes
 % |id|, |id_short| and |delimiters|.
 % |id| is retrieved from the content of the |\l_CDR_id_tl|
@@ -1112,16 +1113,14 @@ Object.__index = Object
 %
 %    \begin{MacroCode}
 local Code = {
-  ['.Super'] = { Object },
+  Super = Object,
 }
 setmetatable(Code, {
   __index = function (self, k)
-    for _, Super in ipairs(Code['.Super']) do
-      local ans = Super[k]
-      if ans ~= nil then
-        rawset(self, k, ans)
-        return ans
-      end
+    local ans = Code.Super[k]
+    if ans ~= nil then
+      rawset(self, k, ans)
+      return ans
     end
     if k == 'inline' then
       return inline_by_id[self.id]
@@ -1315,18 +1314,16 @@ end
 %
 %    \begin{MacroCode}
 local Block = {
-  ['.Super'] = { Object },
+  Super = Object,
 }
 setmetatable(Block, {
   __index = function (self, k)
     local ans = Object[k]
 -- debug_msg('Block MT __index/Object', k, ans)
-    for _, Super in ipairs(Code['.Super']) do
-      local ans = Super[k]
-      if ans ~= nil then
-        rawset(self, k, ans)
-        return ans
-      end
+    local ans = Code.Super[k]
+    if ans ~= nil then
+      rawset(self, k, ans)
+      return ans
     end
     if k == 'lines' then
       ans = lines_by_id[self.id]
@@ -1678,17 +1675,14 @@ end
 % \end{function}
 %    \begin{MacroCode}
 function Block:pre_setup (gobble, comment_chars)
-  local ds = assert(token.get_macro(
-    'l_CDR_delimiters_tl'
-  ))
-  local p
+  local p, p_c
   if comment_chars then
-    p = P(1) - P(comment_chars)
+    p_c = P(comment_chars)
+    p = P(1) - p_c
   else
     p = P(1)
   end
   local pattern
-  local n = utf8.len(ds)
   local function escape_f (s)
 debug_msg('print_line escape =', s)
     if #s>0 then
@@ -1696,13 +1690,17 @@ debug_msg('print_line escape =', s)
     end
   end
   local function active_f (s)
-debug_msg('print_line unescape =', s)
+debug_msg('print_line active =', s)
     if #s>0 then
       return { CDR.active_cctab, s }
     end
   end
+  local ds = assert(token.get_macro(
+    'l_CDR_delimiters_tl'
+  ))
+  local n = utf8.len(ds)
   if n>1 then
-    local p_l = P(utf8.sub(ds, 1, 1))
+    local p_l = assert(P(utf8.sub(ds, 1, 1)))
     local p_m = P(utf8.sub(ds, 2, 2))
     local p_u = C((p - p_l)^0) / active_f 
     local p_e
@@ -1718,28 +1716,78 @@ debug_msg('print_line unescape =', s)
           * C((p - p_m)^0) / escape_f
           * p_m
     end
-    pattern = Ct(p_u * ( p_e * p_u )^0)
+    pattern = p_u * ( p_e * p_u )^0
   else
-    pattern = Ct(C(p^0) / active_f)
+    pattern = C(p^0) / active_f
   end
+  if p_c then
+    local function string_f (s)
+debug_msg('print_line string =', s)
+      if #s>0 then
+        return { CDR.string_cctab, s }
+      end
+    end
+    local p_s = C(P(1)^0) / string_f
+    pattern = pattern
+      * Cg(p_c * p_s * ( p_e * p_s )^0, 'comment')
+  end
+  pattern = Ct( pattern )
   self.print_line_escape = function(this, n)
-    local line = this.lines[n]
-    line = utf8.sub(line, 1+gobble)
-    if #line == 0 then
+    local l = this.lines[n]
+    l = utf8.sub(l, 1+gobble)
+    if #l == 0 then
       return
     end
-    local t = pattern:match(line)
+    local t = pattern:match(l)
 debug_msg(t, #t)
-    local last = table.remove(t)
     for _,v in ipairs(t) do
       tex.sprint(table.unpack(v))
     end
-    tex.print(table.unpack(last))
+  end
+  self.sprint_line_ltx2 = function(this, n)
+    CDR.sprint_escape([[\color{magenta!50!black}\bfseries ABCD]])
+    CDR.sprint_string([[FAKE]])
+  end
+  local comment
+  self.sprint_line_ltx = function(this, n)
+    local l = this.lines[n]
+    l = utf8.sub(l, 1+gobble)
+    if #l == 0 then
+      return
+    end
+    local t = pattern:match(l)
+debug_msg(t, #t)
+    for _,v in ipairs(t) do
+      tex.sprint(table.unpack(v))
+    end
+    comment = t.comment
+    local t = t.comment
+    if t then
+      CDR.sprint_escape(
+        [[\CDR@Comment]]..'{'--}
+      )
+      for _,v in ipairs(t) do
+        tex.sprint(table.unpack(v))
+      end
+      tex.sprint_escape(--{
+        '}'
+      )
+    end
+  end
+  self.sprint_comment_ltx = function(this)
+    if comment then
+      CDR.sprint_escape(
+        [[\CDR@Comment]]..'{'--}
+      )
+      for _,v in ipairs(comment) do
+        tex.sprint(table.unpack(v))
+      end
+    end
   end
 end
 %    \end{MacroCode}
 %
-% \begin{function}{print_line_raw,print_line_active,print_line_escape}
+% \begin{function}{print_line_raw,print_line_active,print_line_escape,sprint_line_ltx,sprint_comment_ltx}
 % \begin{syntax}
 % CDR.Block:print_line_\metatt{variant}(\metatt{integer})
 % \end{syntax}
@@ -1764,6 +1812,12 @@ end
 function Block:print_line_escape (n)
   error('Build time error: unexpected print_line')
 end
+function Block:sprint_line_ltx (n)
+  error('Build time error: unexpected sprint_line_ltx')
+end
+function Block:sprint_comment_ltx ()
+  error('Build time error: unexpected sprint_comment_ltx')
+end
 %    \end{MacroCode}
 %
 % \begin{function}{vrb_print_line}
@@ -1774,15 +1828,10 @@ end
 % \end{function}
 %    \begin{MacroCode}[OK]
 function Block:vrb_print_lines (gobble, comment_chars)
-  
-  for i,l in ipairs(this.lines) do
-    l = utf8.sub(l, 1+gobble)
-    if #l == 0 then
-      tex.print(-1,[[]])
-    else
-    end
-  end
-  
+  self:pre_setup (gobble, comment_chars)
+  for n=1,#self.lines do
+    self:sprint_line_ltx(n)
+  end  
 end
 %    \end{MacroCode}
 %
@@ -1845,43 +1894,6 @@ function Block:exe_begin (makeatletter, ExplSyntaxOn)
 end
 function Block:exe_end ()
   error('Build time error: unexpected exe_end')
-end
-%    \end{MacroCode}
-%
-% \begin{function}{lines_to_ltx}
-% \begin{syntax}
-% CDR.Block:lines_to_ltx(\meta{mode})
-% \end{syntax}
-% Export the lines to \LaTeX{} to feed various |\CDR_seq_...| macros.
-% Assignments are local.
-%
-% When \metatt{mode} is ``|active|'',
-% spaces and tabs are active,
-% every other character is a letter.
-% When \metatt{mode} is |"string"|,
-% every character is a letter.
-% In other cases, the current catcode regime applies.
-% \end{function}
-%    \begin{MacroCode}
-function Block:lines_to_ltx (mode)
-  local lines = self.lines
-  debug_msg('Block.lines_to_ltx', #lines)
-  local cctab
-  if mode == 'string' then
-    cctab = CDR.string_cctab
-  elseif mode == 'active' then
-    cctab = CDR.active_cctab
-  else
-    cctab = -1
-  end
-  for k, v in ipairs(lines) do
-    debug_msg('Block.lines_to_ltx', 'k', k, '--> v', v)
-    token.set_macro(
-      cctab,
-      'CDR.seq/'..self.id..'/'..k,
-      v
-    )
-  end
 end
 %    \end{MacroCode}
 %
@@ -2764,15 +2776,43 @@ end
 % Must be set as early as possible. 
 % \end{variable}
 %
+% \begin{function}{CDR.print_string, CDR.sprint_string}
+% Use |tex.print| or |tex.sprint| with the |CDR.string_cctab|.
+% \end{function}
+%    \begin{MacroCode}[OK]
+CDR.print_string = function(...)
+debug_msg('CDR.print_string', ...)
+  tex.print(CDR.string_cctab, ...)
+end
+CDR.sprint_string = function(...)
+debug_msg('CDR.sprint_string', ...)
+  tex.sprint(CDR.string_cctab, ...)
+end
+%    \end{MacroCode}
+%
 % \begin{variable}{CDR.atletter_cctab}
 % Store the catcode table number to be used by
 % |token.set_macro|.
 % Must be set as early as possible. 
 % \end{variable}
 %
-% \begin{variable}{CDR.global_cctab}
+% \begin{variable}{CDR.escape_cctab}
 % Store the catcode regime in use at the begining of the document.
 % \end{variable}
+%
+% \begin{function}{CDR.print_escape, CDR.sprint_escape}
+% Use |tex.print| or |tex.sprint| with the |CDR.escape_cctab|.
+% \end{function}
+%    \begin{MacroCode}[OK]
+CDR.print_escape = function(...)
+debug_msg('CDR.print_escape', ...)
+  tex.print(CDR.escape_cctab, ...)
+end
+CDR.sprint_escape = function(...)
+debug_msg('CDR.sprint_escape', ...)
+  tex.sprint(CDR.escape_cctab, ...)
+end
+%    \end{MacroCode}
 %
 % \section{Return the module}
 %
@@ -3432,6 +3472,7 @@ if __name__ == '__main__':
     }
   }
 }
+\cctab_const:Nn \c_CDR_escape_cctab { }
 \directlua {
   CDR = require("coder-util");
   CDR.string_cctab = \int_eval:n { 
@@ -3440,18 +3481,16 @@ if __name__ == '__main__':
   CDR.atletter_cctab = \int_eval:n { 
     \catcodetable@atletter
   };
+  CDR.escape_cctab = \int_eval:n { 
+    \c_CDR_escape_cctab
+  };
+CDR.debug('string_cctab', CDR.string_cctab);
+CDR.debug('atletter_cctab', CDR.atletter_cctab);
+CDR.debug('escape_cctab', CDR.escape_cctab);
 }
 %    \end{MacroCode}
 % Catch the current catcode table after all packages are loaded.
 %    \begin{MacroCode}
-\AddToHook{begindocument/end}{
-  \cctab_const:Nn \c_CDR_global_cctab { }
-  \directlua {
-    CDR.global_cctab = \int_eval:n { 
-      \c_CDR_global_cctab
-    };
-  }
-}
 \exp_args:Nx \CDR_pygments_setup:n {
   \directlua { CDR:set_python_path() }
 }
@@ -4461,7 +4500,7 @@ if __name__ == '__main__':
 % The property value stored for \metatt{tag name}
 % and \metatt{relative key path}.
 % Takes care of inheritance.
-% In the second version, the \metatt{tag name} is not provided an set to |__local|.
+% In the second version, the \metatt{tag name} is not provided and set to |__local|.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDRTag_get:cc #1 #2 {
@@ -4471,11 +4510,11 @@ if __name__ == '__main__':
     \seq_if_exist:cT { \CDRTag_parent_seq:c { #1 } } {
       \seq_map_tokens:cn
         { \CDRTag_parent_seq:c { #1 } }
-        { \CDRTag_get_f:cn { #2 } }
+        { \CDRT@g_get:cn { #2 } }
     }
   }
 }
-\cs_new:Npn \CDRTag_get_f:cn #1 #2 {
+\cs_new:Npn \CDRT@g_get:cn #1 #2 {
   \quark_if_no_value:nF { #2 } {
     \CDRTag_if_exist_here:ccT { #2 } { #1 } {
       \seq_map_break:n {
@@ -4496,7 +4535,7 @@ if __name__ == '__main__':
 % \end{syntax}
 % Put in \metatt{tl variable} the property value stored
 % for the |__local| \metatt{tag name} and \metatt{relative key path}.
-% In the second version, the \metatt{tag name} is not provided an set to |__local|.
+% In the second version, the \metatt{tag name} is not provided and set to |__local|.
 %    \begin{MacroCode}[OK]
 \cs_new_protected:Npn \CDRTag_get:ccN #1 #2 #3 {
   \tl_set:Nf #3 { \CDRTag_get:cc { #1 } { #2 } }
@@ -4506,6 +4545,30 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 % \end{function}
+%
+% \begin{function}[EXP]{\CDRTag_get_all:c}
+% \begin{syntax}
+% \cs{CDRTag_get_all:c} \Arg{relative key path}
+% \end{syntax}
+% Successfully calls |\CDRTag_get:cc| for
+% \metatt{relative key path} and each parent of the
+% |__local| tag.
+% This assumes that inheritance is properly setup.
+% Implemetation detail: use of |\l_CDR_seq|.
+% \end{function}
+%    \begin{MacroCode}[OK]
+\cs_new:Npn \CDRTag_get_all:c #1 {
+  \seq_if_exist:cT { \CDRTag_parent_seq:c { #1 } } {
+    \seq_set_eq:Nc \l_CDR_seq { \CDRTag_parent_seq:c { #1 } }
+    \seq_reverse:N \l_CDR_seq
+    \seq_map_inline:Nn \l_CDR_seq {
+      \use:c { \CDRTag_get_path:cc { ##1 } { #1 } }
+    }
+  }
+  \use:c { \CDRTag_get_path:cc { __local } { #1 } }
+  \CDRTag_get:c { #1 * }
+}
+%    \end{MacroCode}
 %
 % \begin{function}[TF]{\CDRTag_get:ccN, \CDRTag_get:cN}
 % \begin{syntax}
@@ -4517,7 +4580,7 @@ if __name__ == '__main__':
 % save the value into \metatt{tl var} and
 % execute \meta{true code}.
 % Otherwise, execute \metatt{false code}.
-% In the second version, the \metatt{tag name} is not provided an set to |__local|.
+% In the second version, the \metatt{tag name} is not provided and set to |__local|.
 % \end{function}
 %    \begin{MacroCode}[OK]
 \prg_new_protected_conditional:Nnn \CDRTag_get:ccN { T, F, TF } {
@@ -4553,25 +4616,26 @@ if __name__ == '__main__':
   l_CDR:parent.tag @ #1 _seq
 }
 %    \end{MacroCode}
-% \begin{function}{\CDR_get_inherit:cn, \CDR_get_inherit:cf,\CDR_get_inherit:n, \CDR_get_inherit:f}
+% \begin{function}{\CDRTag_get_inherit:cn, \CDRTag_get_inherit:cf,\CDRTag_get_inherit:n, \CDRTag_get_inherit:f}
 % \begin{syntax}
-% \cs{CDR_get_inherit:cn} \Arg{child name} \Arg{parent names comma list}
+% \cs{CDRTag_get_inherit:cn} \Arg{child name} \Arg{parent names comma list}
 % \end{syntax}
+% Setup the behavior of the |\CDRTag_get:...| commands.
 % Set the parents of \metatt{child name} to the
 % given list.
 % When the \metatt{child name} is not provided, it defaults to |__local|.
 % Implementation detail: uses |\l_CDR_a_tl|.
 % \end{function}
 %    \begin{MacroCode}[OK]
-\cs_new:Npn \CDR_get_inherit:cn #1 #2 {
+\cs_new:Npn \CDRTag_get_inherit:cn #1 #2 {
   \tl_set:Nx \l_CDR_a_tl { \CDRTag_parent_seq:c { #1 } }
   \seq_set_from_clist:cn { \l_CDR_a_tl } { #2 }
   \seq_remove_duplicates:c { \l_CDR_a_tl }
   \seq_remove_all:cn { \l_CDR_a_tl } {}
   \seq_put_right:cn { \l_CDR_a_tl } { \q_no_value }
 }
-\cs_new:Npn \CDR_get_inherit:cf {
-  \exp_args:Nnf \CDR_get_inherit:cn
+\cs_new:Npn \CDRTag_get_inherit:cf {
+  \exp_args:Nnf \CDRTag_get_inherit:cn
 }
 \cs_new:Npn \CDRTag_parents:c #1 {
   \seq_map_inline:cn { \CDRTag_parent_seq:c { #1 } } {
@@ -4580,11 +4644,11 @@ if __name__ == '__main__':
     }
   }
 }
-\cs_new:Npn \CDR_get_inherit:n {
-  \CDR_get_inherit:cn { __local }
+\cs_new:Npn \CDRTag_get_inherit:n {
+  \CDRTag_get_inherit:cn { __local }
 }
-\cs_new:Npn \CDR_get_inherit:f {
-  \CDR_get_inherit:cf { __local }
+\cs_new:Npn \CDRTag_get_inherit:f {
+  \CDRTag_get_inherit:cf { __local }
 }
 %    \end{MacroCode}
 % \section{Cache management}
@@ -5643,6 +5707,42 @@ if __name__ == '__main__':
 }
 %    \end{MacroCode}
 %
+% \subsubsection{\texttt{default.block} \pkg{l3keys} module}
+%    \begin{MacroCode}[OK]
+\CDRTag_keys_define:nn { default.block.vrb } {
+%    \end{MacroCode}
+% Known keys include:
+% \begin{description}
+% \itemtt[\CDRCheckRed comment~format=\meta{integer}]^^A
+% Commands for font and color.
+%    \begin{MacroCode}[OK]
+  comment~format .code:n = \CDRTag_set:,
+  comment~format .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed comment~command=\metatt{instructions}]^^A
+% The result of the \metatt{instructions} applied
+% to the comment .
+%    \begin{MacroCode}[OK]
+  comment~command .code:n = \CDRTag_set_n:,
+  comment~command .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed __initialize]^^A
+% Initialization.
+%    \begin{MacroCode}[OK]
+  __initialize .meta:n = {
+    comment~format =,
+    comment~command = ##1,
+  },
+  __initialize .value_forbidden:n = true,
+%    \end{MacroCode}
+% \end{description}
+%    \begin{MacroCode}[OK]
+}
+\AtBeginDocument{
+  \CDRTag_keys_set:nn { default.block.vrb } { __initialize }
+}
+%    \end{MacroCode}
+%
 % \subsection{\pkg{fancyvrb}}
 % These are \pkg{fancyvrb} options verbatim.
 % The \pkg{fancyvrb} manual has more details, only some parts are reproduced hereafter.
@@ -5945,7 +6045,7 @@ if __name__ == '__main__':
   \CDRTag_expand_kv:N \l_CDR_kv_clist
   \clist_map_inline:nn {
     __pygments,
-    __tags, __engine, default.block, default.code, default,
+    __tags, __engine, default.block, default.block.vrb, default.code, default,
     __fancyvrb.block, __numbering, __fancyvrb.all
   } {
     \CDRTag_keys_set_known:nN { ##1 } \l_CDR_kv_clist
@@ -7244,7 +7344,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % Setup the inheritance tree for the |\CDRTag_get:...| related functions.
 %    \begin{MacroCode}
-  \CDR_get_inherit:f {
+  \CDRTag_get_inherit:f {
     \g_CDR_tags_clist,
     __tags, __engine,
     __code, default.code, __pygments, default,
@@ -7278,21 +7378,21 @@ if __name__ == '__main__':
   }
   \lua_now:n { CDR.Code:pyg_setup() }
   \CDRTag_get:cN {lang} \l_CDR_a_tl
-  \lua_now:n { CDR.Code:pyg_set_var('lang') }
+  \directlua { CDR.Code:pyg_set_var('lang') }
   \CDRTag_get:cN {cache} \l_CDR_a_tl
-  \lua_now:n { CDR.Code:pyg_set_var('cache') }
+  \directlua { CDR.Code:pyg_set_var('cache') }
   \CDRTag_get:cN {debug} \l_CDR_a_tl
-  \lua_now:n { CDR.Code:pyg_set_var('debug') }
+  \directlua { CDR.Code:pyg_set_var('debug') }
   \CDRTag_get:cN {escape~inside} \l_CDR_a_tl
   \lua_now:n { CDR.Code:pyg_set_var('escapeinside') }
   \CDRTag_get:cN {mathescape} \l_CDR_a_tl
-  \lua_now:n { CDR.Code:pyg_set_var('mathescape') }
+  \directlua { CDR.Code:pyg_set_var('mathescape') }
   \CDRTag_get:cN {style} \l_CDR_a_tl
-  \lua_now:n { CDR.Code:pyg_set_var('style') }
+  \directlua { CDR.Code:pyg_set_var('style') }
   \tl_set:Nx \l_CDR_a_tl { \directlua {
     CDR.Code:synctex_sprint_tag()
   } }
-  \lua_now:n { CDR.Code:pyg_set_var('synctex_tag') }
+  \directlua { CDR.Code:pyg_set_var('synctex_tag') }
   \tl_set:Nx \l_CDR_a_tl { \directlua {
     CDR.Code:synctex_sprint_line()
   } }
@@ -7796,11 +7896,7 @@ if __name__ == '__main__':
 }{
 \CDR@Debug{\the\inputlineno...CDRBlock}
   \CDRBlock_save_end:
-  \CDRBlock_setup:n {
-    \CDR_if_pygments:F {
-      \directlua { CDR.Block:lines_to_ltx('active') }
-    }
-  }
+  \CDRBlock_setup:n { }
   \CDR_if_pygments:TF {
     \CDR@Debug{THIS\space IS\space PYGMENTS}
   } {
@@ -7810,7 +7906,7 @@ if __name__ == '__main__':
   \CDRBlock_free:
 }
 %    \end{MacroCode}
-%
+%%
 % \begin{function}{\CDRBlock_save_begin:, \CDRBlock_save_end:}
 % \begin{syntax}
 % \cs{CDRBlock_save_begin:}
@@ -8156,7 +8252,8 @@ if __name__ == '__main__':
   \CDRBlockTags_setup:N \l_CDR_kv_clist
   \CDRBlock_engine_setup:N \l_CDR_kv_clist
   \CDR_local_inherit:n {
-    __block, __pygments.block, default.block,
+    __block, __pygments.block, default.block, default.block.vrb, __numbering,
+    __fancyvrb.block,
     __pygments, default
   }
   \CDR_local_set_known:N \l_CDR_kv_clist
@@ -8164,22 +8261,7 @@ if __name__ == '__main__':
   \CDR_local_set_known:N \l_CDR_kv_clist
 \CDR@Debug{\string \CDRBlock_setup:n.KV1:}
 %    \end{MacroCode}
-% Now |\l_CDR_kv_clist| is meant to contains only keys
-% related to \pkg{fancyvrb} but we still need to filter them out.
-% If the display engine is not the default one, we catch any key related
-% to framing. Anyways, we catch keys related to numbering because
-% line numbering is completely performed by \pkg{\jobname}.
-%    \begin{MacroCode}
-  \CDR_local_inherit:n {
-    __numbering,
-  }
-  \CDR_local_set_known:N \l_CDR_kv_clist
-\CDR@Debug{\string \CDRBlock_setup:n,kv= \tl_to_str:V\l_CDR_kv_clist}
-%    \end{MacroCode}
 %    \begin{MacroCode}  
-  \CDR_local_inherit:n {
-    __fancyvrb.block,
-  }
   \CDR_local_set_known:N \l_CDR_kv_clist
   \lua_now:n {
     CDR.Block:pyg_setup('g_CDR_tags_clist')
@@ -8888,9 +8970,18 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}
 \keys_define:nn { CDR@Setup } {
-  last         .code:n = \CDR_int_set:cn { __last } { #1 },
-  synctex_tag  .code:n = \directlua { CDR.Block:synctex_tag_set( #1 ) },
-  synctex_line .code:n = \directlua { CDR.Block:synctex_line_set( #1 ) },
+  last         .code:n = {
+\CDR@Debug {\string\CDR@Setup/last=#1}
+    \CDR_int_set:cn { __last } { #1 }
+  },
+  synctex_tag  .code:n = {
+\CDR@Debug {\string\CDR@Setup/synctex_tag=#1}
+    \directlua { CDR.Block:synctex_tag_set( #1 ) }
+  },
+  synctex_line .code:n = {
+\CDR@Debug {\string\CDR@Setup/synctex_line=#1}
+    \directlua { CDR.Block:synctex_line_set( #1 ) }
+  },
 }
 \cs_new:Npn \CDR@Setup #1 {
 \CDR@Debug {\string\CDR@Setup}
@@ -8904,10 +8995,7 @@ if __name__ == '__main__':
 % This is the very first command called when typesetting.
 % Some setup are made for line numbering, in particular the |\CDRLine_if_visible_at_index:n...|
 % family is set here.
-% The first line must read |\CDR@Line[last=...]{1}{...}|,
-% be it input from any |...pyg.tex| files or directly,
-% like for \pkg{fancyvrb} usage.
-% The line index refers to the lines in the source, what is displayed is a line number.
+% The line index refers to the lines in the source, what is displayed is a physical line number.
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDR@Line #1 {
@@ -9091,6 +9179,19 @@ if __name__ == '__main__':
   }
 }
 %    \end{MacroCode}
+% \begin{function}{\CDR@Comment}
+% \begin{syntax}
+% \cs{CDR@Comment} \Arg{line comment}
+% \end{syntax}
+% \end{function}
+%    \begin{MacroCode}
+\cs_new:Npn \CDR@Comment #1 {
+  {
+    \CDRTag_get_all:c { comment~format }
+    \CDRTag_get:c { comment~command } { #1 }
+  }
+}
+%    \end{MacroCode}
 %
 % \subsubsection{\pkg{fancyvrb} only}
 %
@@ -9106,6 +9207,69 @@ if __name__ == '__main__':
 \cs_new_protected:Npn \CDRBlock_vrb_use: {
 \CDR@Debug {\string\CDRBlock_vrb_use:}
   \CDRTag_get:cN { escape~inside } \l_CDR_delimiters_tl
+  \makeatletter
+  \savecatcodetable \c_CDR_escape_cctab
+  \CDR_whitespace_setup:
+  \CDR_whitespace_define:
+  \CDRBlock_hook_before:
+  \cs_set:Npn \CDR:n ##1 {
+    \tl_put_right:Nn \l_CDR_vrb_tl { { ##1 } }
+  }
+  \directlua {
+    CDR.Block:synctex_save();
+  }
+  \tl_set:Nn \l_CDR_vrb_tl \CDR@Setup
+  \exp_args:Nx \CDR:n {
+    last = \CDRBlock_count:,
+    synctex_tag  = \directlua {
+      CDR.Block:synctex_sprint_tag()
+    },
+    synctex_line = \directlua {
+      CDR.Block:synctex_sprint_line()
+    },
+  }
+  \l_CDR_vrb_tl
+  \directlua {
+    CDR.Block:pre_setup (
+      \CDRTag_get:c { gobble }
+      \CDRTag_if_truthy:cT { texcomments }
+        { , '\c_percent_str' }
+    )
+  }
+  %\def\CDR@Line##1##2{##1##2}
+%      \directlua{
+%        CDR.Block:sprint_line_ltx(##1);
+%      }
+%      \directlua{
+%        tex.print([[\string\textbf{FAKE}]])
+%      }
+%      \directlua{
+%        CDR.sprint_escape([[\CDR@Line{1}{]]);
+%        CDR.sprint_string([[BEFORE\string\RIEN AFTER]]);
+%        CDR.sprint_escape([[}]]);
+%      }
+  \exp_args:Nx \int_step_inline:nn { \CDRBlock_count: } {
+\CDR@Debug {\string\CDRBlock_vrb_use:/line##1}
+    \tl_set:Nf \l_CDR_vrb_tl {
+      \directlua{
+        CDR.Block:sprint_line_ltx(##1);
+      }
+    }
+\CDR@Debug {\string\CDRBlock_vrb_use:/\tl_to_str:V \l_CDR_vrb_tl}
+    \exp_args:NnV \CDR@Line { ##1 } \l_CDR_vrb_tl
+  }
+  \directlua {
+    CDR.Block:synctex_restore();
+  }
+  \CDRBlock_hook_after:
+\CDR@Debug {\string\CDRBlock_vrb_use:c...DONE}
+}
+
+\cs_new_protected:Npn \CDRBlock_vrb_useX: {
+\CDR@Debug {\string\CDRBlock_vrb_use:}
+  \CDRTag_get:cN { escape~inside } \l_CDR_delimiters_tl
+  \makeatletter
+  \savecatcodetable \c_CDR_escape_cctab
   \exp_args:NV
   \CDR_make_escape_inside:nNNN \l_CDR_delimiters_tl \CDR_rescan_raw:n \CDR_rescan_escape:n \use_none:n
   \CDR_whitespace_setup:
@@ -9264,7 +9428,7 @@ if __name__ == '__main__':
 %    \end{MacroCode}
 % Setup the inheritance tree for the |\CDRTag_get:...| related functions.
 %    \begin{MacroCode}
-  \CDR_get_inherit:f {
+  \CDRTag_get_inherit:f {
     \g_CDR_tags_clist,
     __block, __tags, __engine, default.block,
     __fancyvrb.block, __numbering,
@@ -9530,7 +9694,7 @@ return {
   \tl_set:Nn \l_CDR_import_tl { #2 }
   \CDR_local_inherit:n { CDRBlockImport }
   \CDR_local_set_known:nN { #1 } \l_CDR_kv_clist
-  \CDR_get_inherit:n { CDRBlockImport }
+  \CDRTag_get_inherit:n { CDRBlockImport }
   \CDRTag_get:cN { driver } \l_CDR_a_tl
   \directlua { CDR.Block:import_begin() }
   \CDRTag_get:cN { show~code } \l_CDR_a_tl
