@@ -1135,7 +1135,7 @@ setmetatable(Code, {
           lang    = 'tex',
           style   = 'default',
           mathescape   = JSON_boolean_false,
-          escapeinside = '',
+          escapeinside = self.delimiters,
         },
         texopts = {
           __cls__ = 'TeXOpts',
@@ -1232,7 +1232,7 @@ function Code:inline_to_ltx (mode)
   local cctab
   if mode == 'string' then
     cctab = CDR.string_cctab
-  elseif mode == 'unescaped' then
+  elseif mode == 'active' then
     cctab = CDR.active_cctab
   else
     cctab = -1
@@ -1242,6 +1242,25 @@ function Code:inline_to_ltx (mode)
     self.id,
     self.inline or ''
   )
+end
+%    \end{MacroCode}
+%
+% \begin{function}{sprint_inline_string, sprint_inline_active, sprint_inline_escape}
+% \begin{syntax}
+% CDR.Code:sprint_inline_\metatt{variant}()
+% \end{syntax}
+% Prints the code to the \TeX\ stream using
+% |CDR.|\metatt{variant}|_cctab| catcode table.
+% \end{function}
+%    \begin{MacroCode}
+function Code:sprint_inline_string ()
+  tex.sprint(CDR.string_cctab, self.inline or '')
+end
+function Code:sprint_inline_active ()
+  tex.sprint(CDR.string_active, self.inline or '')
+end
+function Code:sprint_inline_escaped ()
+  tex.sprint(CDR.string_escaped, self.inline or '')
 end
 %    \end{MacroCode}
 %
@@ -1342,9 +1361,11 @@ setmetatable(Block, {
           __cls__ = 'PygOpts',
           lang = 'tex',
           style = 'default',
-          texcomments  = JSON_boolean_false,
+          texcomments  = self.tex_comments
+            and JSON_boolean_true
+            or JSON_boolean_false,
           mathescape   = JSON_boolean_false,
-          escapeinside = '',
+          escapeinside = self.delimiters,
         },
         texopts = {
           __cls__ = 'TeXOpts',
@@ -1674,115 +1695,29 @@ end
 % but sometimes a pre treatment is necessary.
 % \end{function}
 %    \begin{MacroCode}
-function Block:pre_setup (gobble, comment_chars)
-  local p, p_c
-  if comment_chars then
-    p_c = P(comment_chars)
-    p = P(1) - p_c
-  else
-    p = P(1)
+function Block:pre_setup (gobble)
+  local print_active_f = function(s)
+    tex.print(CDR.active_cctab, s)
   end
-  local pattern
-  local function escape_f (s)
-debug_msg('print_line escape =', s)
-    if #s>0 then
-      return { -1, s }
-    end
+  local print_escape_f = function(s)
+    tex.print(CDR.escape_cctab, s)
   end
-  local function active_f (s)
-debug_msg('print_line active =', s)
-    if #s>0 then
-      return { CDR.active_cctab, s }
-    end
-  end
-  local ds = assert(token.get_macro(
-    'l_CDR_delimiters_tl'
-  ))
-  local n = utf8.len(ds)
-  if n>1 then
-    local p_l = assert(P(utf8.sub(ds, 1, 1)))
-    local p_m = P(utf8.sub(ds, 2, 2))
-    local p_u = C((p - p_l)^0) / active_f 
-    local p_e
-    if n > 2 then
-      local p_r = P(utf8.sub(ds, 3, 3))
-      p_e = p_l
-          * C((p - p_r - p_m)^0) / escape_f
-          * p_m^-1
-          * (p - p_r)^0
-          * p_r
-    else
-      p_e = p_l
-          * C((p - p_m)^0) / escape_f
-          * p_m
-    end
-    pattern = p_u * ( p_e * p_u )^0
-  else
-    pattern = C(p^0) / active_f
-  end
-  if p_c then
-    local function string_f (s)
-debug_msg('print_line string =', s)
-      if #s>0 then
-        return { CDR.string_cctab, s }
-      end
-    end
-    local p_s = C(P(1)^0) / string_f
-    pattern = pattern
-      * Cg(p_c * p_s * ( p_e * p_s )^0, 'comment')
-  end
-  pattern = Ct( pattern )
-  self.print_line_escape = function(this, n)
-    local l = this.lines[n]
-    l = utf8.sub(l, 1+gobble)
-    if #l == 0 then
-      return
-    end
-    local t = pattern:match(l)
-debug_msg(t, #t)
-    for _,v in ipairs(t) do
-      tex.sprint(table.unpack(v))
-    end
-  end
+  local escape_inside = self:escape_inside_maker{
+    active_f   = print_active_f,
+    escape_f   = print_escape_f,
+    alter_f    = noop,
+  }
   self.sprint_line_ltx2 = function(this, n)
     CDR.sprint_escape([[\color{magenta!50!black}\bfseries ABCD]])
     CDR.sprint_string([[FAKE]])
   end
-  local comment
   self.sprint_line_ltx = function(this, n)
     local l = this.lines[n]
     l = utf8.sub(l, 1+gobble)
     if #l == 0 then
       return
     end
-    local t = pattern:match(l)
-debug_msg(t, #t)
-    for _,v in ipairs(t) do
-      tex.sprint(table.unpack(v))
-    end
-    comment = t.comment
-    local t = t.comment
-    if t then
-      CDR.sprint_escape(
-        [[\CDR@Comment]]..'{'--}
-      )
-      for _,v in ipairs(t) do
-        tex.sprint(table.unpack(v))
-      end
-      tex.sprint_escape(--{
-        '}'
-      )
-    end
-  end
-  self.sprint_comment_ltx = function(this)
-    if comment then
-      CDR.sprint_escape(
-        [[\CDR@Comment]]..'{'--}
-      )
-      for _,v in ipairs(comment) do
-        tex.sprint(table.unpack(v))
-      end
-    end
+    escape_inside(l)
   end
 end
 %    \end{MacroCode}
@@ -1822,13 +1757,13 @@ end
 %
 % \begin{function}{vrb_print_line}
 % \begin{syntax}
-% CDR.Block:vrb_print_lines(\metatt{gobble}, \metatt{comment_chars})
+% CDR.Block:vrb_print_lines(\metatt{gobble})
 % \end{syntax}
 
 % \end{function}
 %    \begin{MacroCode}[OK]
-function Block:vrb_print_lines (gobble, comment_chars)
-  self:pre_setup (gobble, comment_chars)
+function Block:vrb_print_lines (gobble)
+  self:pre_setup (gobble)
   for n=1,#self.lines do
     self:sprint_line_ltx(n)
   end  
@@ -2118,7 +2053,7 @@ local records_by_tag = {}
 % Private function (upvalue)
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function escape_inside (text, delimiters)
+local function escape_inside_old (text, delimiters)
   local i = 1
   local t = {}
   local r
@@ -2147,6 +2082,85 @@ local function escape_inside (text, delimiters)
 end
 %    \end{MacroCode}
 %
+% \begin{function}{escape_inside_maker}
+% \begin{syntax}
+% CDR.Object:escape_inside\{\meta{kvargs}\}
+% \end{syntax}
+% Return a function that parses some text and applies filters
+% to its parts. Attributes of \metatt{kvargs}.
+% \begin{description}
+% \item[delimiters, escape_f, alter_f] for the escape inside feature.
+% What is between the 2 first chars of |delimiters| is extracted
+% and the |escape_f| filter is applied.
+% What is between the 2 last chars is extracted and the
+% |alter_f| filter is applied, if there are 3 characters.
+% \item [active_f] this filter is applied to the text outside
+% the delimiters and before the comments.
+% \end{description}
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function Object:escape_inside_maker (kvargs)
+  local p_1 = P(1)
+  local pattern
+  local escape_f  = kvargs.escape_f
+  local do_escape = escape_f and function (s)
+debug_msg('do_escape =', s)
+    if #s>0 then
+      return { escape_f, s }
+    end
+  end or noop
+  local alter_f   = kvargs.alter_f
+  local do_alter = alter_f and function (s)
+debug_msg('do_alter =', s)
+    if #s>0 then
+      return { alter_f, s }
+    end
+  end or noop
+  local active_f  = kvargs.active_f
+  local do_active = active_f and function (s)
+debug_msg('do_active =', s)
+    if #s>0 then
+      return { active_f, s }
+    end
+  end or noop
+  local ds = self.delimiters
+  local n = utf8.len(ds)
+  if n>0 then
+    local p_l = assert(P(utf8.sub(ds, 1, 1)))
+    local p_u = C((p_1 - p_l)^0) / do_active
+    local p_e
+    if n>1 then
+      local p_m = P(utf8.sub(ds, 2, 2))
+      if n > 2 then
+        local p_r = P(utf8.sub(ds, 3, 3))
+        p_e = p_l
+            * C((p_1 - p_m - p_r)^0) / do_escape
+            * ( p_m * C((p_1 - p_r)^0) / do_alter )^-1
+            * p_r^-1
+      else
+        p_e = p_l
+            * C((p_1 - p_m)^0) / do_escape
+            * p_m^-1
+      end
+      pattern = p_u * ( p_e * p_u )^0
+    else
+      p_e = p_l * C(p_1^0) / do_escape
+      pattern = p_u * p_e^0
+    end
+  else
+    pattern = C(p_1^0) / do_active
+  end
+  pattern = Ct( pattern )
+  return function (l)
+    local t = pattern:match(l)
+debug_msg(t, #t)
+    for _,v in ipairs(t) do
+      v[1](v[2])
+    end
+  end
+end
+%    \end{MacroCode}
+%
 % \begin{function}{Block.pyg_teardown}
 % \begin{syntax}
 % CDR.Block:pyg_teardown()
@@ -2158,17 +2172,22 @@ end
 function Block:pyg_teardown()
   local ll = self.lines
   if #ll > 0 then
-    local args = self['.arguments']
-    local t, code
-    if is_truthy(args.pygopts.texcomments) then
-      t = {}
-      for _,l in ipairs(ll) do
-        t[#t+1] = l:gsub('(.-)%?','%1')
-      end
-      code = table.concat(t,'\n')
-    else
-      code = escape_inside(table.concat(ll,'\n'),args.pygopts.escapeinside)
+    local s
+    local append_f = function (text)
+      s = s..text
     end
+    local escape_inside = self:escape_inside_maker {
+      active_f   = append_f,
+      escape_f   = noop,
+      alter_f    = append_f,
+    }
+    local code
+    local t = {}
+    for _,l in ipairs(ll) do
+      s = ''
+      t[#t+1] = escape_inside(l)
+    end
+    code = table.concat(t,'\n')
     t = {
       already = {},
       code = code
@@ -5248,14 +5267,6 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   escape~inside .code:n = \CDRTag_set:,
   escape~inside .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed tex comments{[=true$\vert$false]}]^^A
-% If set to |true|, enables \LaTeX{} comment lines.  That is, \LaTeX{} markup
-%        in comment tokens is not escaped so that \LaTeX{} can render it.
-% Initially |false|.
-%    \begin{MacroCode}[OK]
-  tex~comments .code:n = \CDRTag_boolean_set:x { #1 },
-  tex~comments .default:n = true,
-%    \end{MacroCode}
 % \itemtt[\CDRCheckRed __initialize]^^A
 % to initialize storage properly. We cannot use |.initial:n| actions
 % because the |\l_keys_path_str| is not set up properly.
@@ -5276,7 +5287,6 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     post~processor = ,
     show~spaces,
     obey~tabs = false,
-    tex~comments = false,
     ref~label = ,
     escape~inside = ,
   },
@@ -7103,6 +7113,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}
 \tl_new:N \l_CDR_id_tl
 \tl_new:N \l_CDR_id_short_tl
+\tl_new:N \l_CDR_delimiters_tl
 
 \cs_new:Npn \CDRCodeSave #1 {
   \CDR@Debug{\string\CDRCodeSave/\tl_to_str:n{#1}}
@@ -7136,6 +7147,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
       \CDRTag_get:c { ref~label }
     }
   }
+  \CDRTag_get:cN { escape~inside  } \l_CDR_delimiters_tl
 }
 \NewDocumentCommand \CDRCodeUse { O{} m } {
 \CDR@Debug{\string\CDRCodeUse=#2}
@@ -7150,7 +7162,6 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     \group_begin:
     \directlua {
       CDR:synctex_save();
-      CDR.Code:inline_to_ltx();
     }        
     \CDRCode_setup:n { #1 }
     \CDR_if_pygments:TF {
@@ -7376,15 +7387,13 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     \CDR@StyleUse { \CDRTag_get:c { style } }
     \cs_set_eq:NN \CDR@StyleUseTag \prg_do_nothing:
   }
-  \lua_now:n { CDR.Code:pyg_setup() }
+  \directlua { CDR.Code:pyg_setup() }
   \CDRTag_get:cN {lang} \l_CDR_a_tl
   \directlua { CDR.Code:pyg_set_var('lang') }
   \CDRTag_get:cN {cache} \l_CDR_a_tl
   \directlua { CDR.Code:pyg_set_var('cache') }
   \CDRTag_get:cN {debug} \l_CDR_a_tl
   \directlua { CDR.Code:pyg_set_var('debug') }
-  \CDRTag_get:cN {escape~inside} \l_CDR_a_tl
-  \lua_now:n { CDR.Code:pyg_set_var('escapeinside') }
   \CDRTag_get:cN {mathescape} \l_CDR_a_tl
   \directlua { CDR.Code:pyg_set_var('mathescape') }
   \CDRTag_get:cN {style} \l_CDR_a_tl
@@ -7396,45 +7405,15 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   \tl_set:Nx \l_CDR_a_tl { \directlua {
     CDR.Code:synctex_sprint_line()
   } }
-  \lua_now:n { CDR.Code:pyg_set_var('synctex_line') }
-  \CDRTag_get:cN { escape~inside } \l_CDR_b_tl
-  \int_compare:nNnTF 3 = {
-    \tl_count:N \l_CDR_b_tl
-  } {
-    \cs_set_eq:Npn \CDR:nn ##1 ##2 {
-      \cs_set_eq:Npn \CDR:n ####1 {
-        ##1
-        ####1
-        ##2
-      }
-    }
-    \exp_args:Nxx
-    \CDR:nn {
-      \tl_item:Nn \l_CDR_b_tl { 1 }
-    } {
-      \tl_item:Nn \l_CDR_b_tl { 3 }
-    }
-    \exp_args:NV
-    \CDR_make_escape_inside:nNNN \l_CDR_b_tl \use:n \CDR:n \use_none:n
-    \tl_clear:N \l_CDR_a_tl
-    \exp_args:NNv
-    \CDR_escape_inside:Nn \l_CDR_a_tl {
-      \l_CDR_id_tl
-    }
-  } {
-    \tl_set:Nv \l_CDR_a_tl {
-      \l_CDR_id_tl
-    }
-  }
-  \lua_now:n { CDR.Code:pyg_set_var('source') }
+  \directlua { CDR.Code:pyg_set_var('synctex_line') }
   \CDR@StyleIfExist {
     \CDRTag_get:c { style }
   } { } {
-    \lua_now:n { CDR.Code:pyg_source(true) }
+    \directlua { CDR.Code:pyg_source(true) }
     \input { \l_CDR_pyg_sty_tl }
   }
   \CDR@StyleUseTag
-  \lua_now:n { CDR.Code:pyg_source(false, true) }        
+  \directlua { CDR.Code:pyg_source(false, true) }        
   \CDR@CodeEngineApply {
     \CDRTag_if_truthy:cT { mbox } { \mbox } {
       \makeatletter
@@ -7570,7 +7549,6 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     }
     \CDRCode_format:
     \CDRCode_hook_before:
-    \CDRTag_get:cN { escape~inside } \l_CDR_delimiters_tl
     \exp_args:NV
     \CDR_make_escape_inside:nNNN \l_CDR_delimiters_tl \CDR_rescan_active:n \CDR_rescan_escape:n \use_none:n
     \CDR_whitespace_setup:
@@ -8263,7 +8241,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %    \end{MacroCode}
 %    \begin{MacroCode}  
   \CDR_local_set_known:N \l_CDR_kv_clist
-  \lua_now:n {
+  \directlua {
     CDR.Block:pyg_setup('g_CDR_tags_clist')
   }
   \CDR_set_conditional:Nn \CDR_if_pygments:
@@ -8292,6 +8270,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
       \CDRTag_get:c { ref~label }
     }
   }
+  \CDRTag_get:cN { escape~inside } \l_CDR_delimiters_tl
   #1
 }
 %    \end{MacroCode}
@@ -8335,7 +8314,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
       }
     }
   }
-  \lua_now:n {
+  \directlua {
     CDR.Block:pyg_teardown()
   }
   \CDR_if_dry_tags:F {
@@ -8499,10 +8478,6 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   \directlua { CDR.Block:pyg_set_var('cache') }
   \CDRTag_get:cN {debug} \l_CDR_a_tl
   \directlua { CDR.Block:pyg_set_var('debug') }
-  \CDRTag_get:cN {texcomments} \l_CDR_a_tl
-  \directlua { CDR.Block:pyg_set_var('texcomments') }
-  \CDRTag_get:cN {escape~inside} \l_CDR_a_tl
-  \directlua { CDR.Block:pyg_set_var('escapeinside') }
   \CDRTag_get:cN {mathescape} \l_CDR_a_tl
   \directlua { CDR.Block:pyg_set_var('mathescape') }
   \CDRTag_get:cN {style} \l_CDR_a_tl
@@ -9203,10 +9178,8 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % \end{syntax}
 % \end{function}
 %    \begin{MacroCode}
-\tl_new:N \l_CDR_delimiters_tl
 \cs_new_protected:Npn \CDRBlock_vrb_use: {
 \CDR@Debug {\string\CDRBlock_vrb_use:}
-  \CDRTag_get:cN { escape~inside } \l_CDR_delimiters_tl
   \makeatletter
   \savecatcodetable \c_CDR_escape_cctab
   \CDR_whitespace_setup:
@@ -9232,8 +9205,6 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   \directlua {
     CDR.Block:pre_setup (
       \CDRTag_get:c { gobble }
-      \CDRTag_if_truthy:cT { texcomments }
-        { , '\c_percent_str' }
     )
   }
   %\def\CDR@Line##1##2{##1##2}
@@ -9261,99 +9232,6 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   \directlua {
     CDR.Block:synctex_restore();
   }
-  \CDRBlock_hook_after:
-\CDR@Debug {\string\CDRBlock_vrb_use:c...DONE}
-}
-
-\cs_new_protected:Npn \CDRBlock_vrb_useX: {
-\CDR@Debug {\string\CDRBlock_vrb_use:}
-  \CDRTag_get:cN { escape~inside } \l_CDR_delimiters_tl
-  \makeatletter
-  \savecatcodetable \c_CDR_escape_cctab
-  \exp_args:NV
-  \CDR_make_escape_inside:nNNN \l_CDR_delimiters_tl \CDR_rescan_raw:n \CDR_rescan_escape:n \use_none:n
-  \CDR_whitespace_setup:
-  \CDR_whitespace_define:
-  \CDRBlock_hook_before:
-  \directlua {
-    CDR.Block:pre_setup (
-      \CDRTag_get:c { gobble }
-      \CDRTag_if_truthy:cT { texcomments }
-        { , '\c_percent_str' }
-    )
-  }
-  \cs_set:Npn \CDR:n ##1 {
-    \tl_put_right:Nn \l_CDR_vrb_tl { { ##1 } }
-  }
-  \tl_set:Nn \l_CDR_vrb_tl \CDR@Setup
-  \exp_args:Nx \CDR:n {
-    last = \CDRBlock_count:,
-    synctex_tag  = \directlua {
-      CDR.Block:synctex_sprint_tag()
-    },
-    synctex_line = \directlua {
-      CDR.Block:synctex_sprint_line()
-    },
-  }
-  \cs_set:Npn \CDR:nn ##1 ##2 {
-    \tl_put_right:Nn \l_CDR_vrb_tl {
-      \CDR@Line { ##1 } { ##2 }
-    }
-  }
-  \cs_set:Npn \CDR:nf ##1 ##2 {
-    \exp_args:Nnf
-    \CDR:nn { ##1 } { ##2 }
-  }
-  \cs_set:Npn \CDR:nnn ##1 ##2 ##3 {
-    \tl_put_right:Nn \l_CDR_vrb_tl {
-      \CDR@Line { ##1 } { ##2 \CDR@@Comment { ##3 } }
-    }
-  }
-  \cs_set:Npn \CDR:nff ##1 ##2 ##3 {
-    \exp_args:Nnff
-    \CDR:nnn
-      { ##1 }
-      { \CDR_escape_inside:n { ##2 } }
-      { ##3 }
-  }
-\CDR@Debug{\string\CDRBlock_vrb_use:c\space 11}
-  \CDRTag_if_truthy:cTF { texcomments } {
-\CDR@Debug{\string\CDRBlock_vrb_use:c\space 111}
-    \CDRTag_if_eq:cnTF { lang } { tex } {
-\CDR@Debug{\string\CDRBlock_vrb_use:c\space 1111}
-      \CDRBlock_map_indexed_inline:nn { active } {
-        \CDR:nn { ##1 } { ##2 }
-      }
-    } {
-\CDR@Debug{\string\CDRBlock_vrb_use:c\space 1112}
-      \regex_set:Nx \l_CDR_regex { ^ (.*?) ( \c_percent_str .* ) }
-      \CDRBlock_map_indexed_inline:nn { active } {
-        \regex_extract_once:NnNTF \l_CDR_regex { ##2 } \l_CDR_seq {
-          \exp_args:NNf
-          \CDR_escape_inside:Nn \l_CDR_a_tl { \seq_item:Nn \l_CDR_seq 1 }
-          \exp_args:NnV
-          \CDR:nff { ##1 }
-            \l_CDR_a_tl
-            { \seq_item:Nn \l_CDR_seq 2 }
-        } {
-          \CDR_escape_inside:Nn \l_CDR_a_tl { ##2 }
-          \exp_args:NnV
-          \CDR:nf { ##1 } \l_CDR_a_tl
-        }
-      }
-    }
-  } {
-\CDR@Debug{\string\CDRBlock_vrb_use:c\space 112}
-    \CDRBlock_map_indexed_inline:nn { active } {
-      \CDR_escape_inside:Nn \l_CDR_a_tl { ##2 }
-      \exp_args:NnV
-      \CDR:nf { ##1 } \l_CDR_a_tl
-    }
-  }
-\CDR@Debug{\string\CDRBlock_vrb_use:c, \tl_to_str:V \l_CDR_vrb_tl}
-  \directlua { CDR.Block:synctex_save() }
-  \l_CDR_vrb_tl
-  \directlua { CDR.Block:synctex_restore() }
   \CDRBlock_hook_after:
 \CDR@Debug {\string\CDRBlock_vrb_use:c...DONE}
 }
