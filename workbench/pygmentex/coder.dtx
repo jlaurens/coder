@@ -1058,6 +1058,22 @@ local inline_by_id = {}
 %    \end{MacroCode}
 % \end{variable}
 %
+% \begin{function}{Block_list_all}
+% \begin{syntax}
+% CDR:Block_list_all()
+% \end{syntax}
+% Debug diagnostic. 
+% \end{function}
+%    \begin{function}
+function CDR:Code_list_all()
+  print('**** CDR INFO: known Codes ***********')
+  for k, v in pairs(inline_by_id) do
+    print(k, '->', v)
+  end
+  print('**************************************')
+end
+%    \end{MacroCode}
+%
 %
 % \subsection{Block}
 % \begin{variable}{lines_by_id}
@@ -1066,6 +1082,22 @@ local inline_by_id = {}
 local lines_by_id = {}
 %    \end{MacroCode}
 % \end{variable}
+%
+% \begin{function}{Block_list_all}
+% \begin{syntax}
+% CDR:Block_list_all()
+% \end{syntax}
+% Debug diagnostic. 
+% \end{function}
+%    \begin{function}
+function CDR:Block_list_all()
+  print('**** CDR INFO: known Blocks **********')
+  for k, v in pairs(lines_by_id) do
+    print(k, '->', #v .. 'lines')
+  end
+  print('**************************************')
+end
+%    \end{MacroCode}
 %
 % \section{Objects and metatables}
 %
@@ -1186,27 +1218,21 @@ end
 % \end{function}
 %    \begin{MacroCode}
 function Code:inline_save ()
-  inline_by_id[self.id] =
-    token.get_macro('l_CD_peek_tl')
+  inline_by_id[self.id] = token.get_macro('l_CDR_peek_tl')
+debug_msg('Code:inline_save', self.id, '->', inline_by_id[self.id])
 end
 %    \end{MacroCode}
 %
-% \begin{function}{Code.known,Code.known_print}
+% \begin{function}{Code.sprint_known}
 % \begin{syntax}
-% CDR.Code:known()
-% CDR.Code:known_print()
+% CDR.Code:sprint_known()
 % \end{syntax}
-% Return whether there is some text for the current
-% \metatt{id}.
-% The |_print| variant prints something to the
-% \TeX\ stream for |true|, and nothing for |false|.
+% % Print something to the \TeX\ stream when there is some code
+% for the current \metatt{id}, nothing otherwise.
 % \end{function}
 %    \begin{MacroCode}
-function Code:known()
-  return self.inline and true or false
-end
 function Code:sprint_known()
-  if self:known() then
+  if self.inline then
     tex.sprint('T')
   end
 end
@@ -1228,6 +1254,19 @@ end
 % In other cases, the current catcode regime applies.
 % \end{function}
 %    \begin{MacroCode}
+local sprint_active_f = function(s)
+  tex.sprint(CDR.active_cctab, s)
+end
+local sprint_escape_f = function(s)
+  tex.sprint(CDR.escape_cctab, s)
+end
+function Code:sprint_inline ()
+  self:escape_inside_maker{
+    active_f   = sprint_active_f,
+    escape_f   = sprint_escape_f,
+    alter_f    = noop,
+  } ( self.inline or '' )
+end
 function Code:inline_to_ltx (mode)
   local cctab
   if mode == 'string' then
@@ -1264,16 +1303,18 @@ function Code:sprint_inline_escaped ()
 end
 %    \end{MacroCode}
 %
-% \begin{function}{Code.peek_begin, Code.peek_end}
+% \begin{function}{Code.peek_begin, Code.peek_end, Code.status}
 % \begin{syntax}
 % CDR.Code:peek_begin(\meta{identifier})
 % CDR.Code:peek_end()
+% CDR.Code:status()
 % \end{syntax}
 % Set the peeker and its associate closure for further peeking.
 % These functions are balancing each other.
 % Implementation detail: the |peek_end| is defined dynamically.
 % \end{function}
 % The only purpose is to catch a new line very early. This is achieved by using callbacks.
+% The |status| will print something to the \TeX\ stream in case of error.
 %    \begin{MacroCode}
 function Code:peek_begin ( delimiter )
   ltb.add_to_callback (
@@ -1298,6 +1339,7 @@ end
 function Code:peek_end ()
   error('Build time error: unexpected Code.peek_end')
 end
+Code.status = noop
 %    \end{MacroCode}
 % 
 % \begin{function}{Code_new, Code_free}
@@ -1650,8 +1692,7 @@ debug_msg('CALLBACK:IN_BODY', '<'..input..'>')
     f_current = f_body
     this.is_after_eol = nil
   end
-  self.save_end = function (this)
-  end
+  self.save_end = noop
 end
 function Block:save_end ()
   error('Buid time error: unexpected save_end')
@@ -1672,6 +1713,13 @@ function Block:exit_options ()
 end
 %    \end{MacroCode}
 %
+% \begin{function}{Block.sprint_known}
+% \begin{syntax}
+% CDR.Block:sprint_known()
+% \end{syntax}
+% Print something to the \TeX\ stream when there is some lines
+% of code for the current \metatt{id}, nothing otherwise.
+% \end{function}
 %    \begin{MacroCode}
 function Block:sprint_known ()
   if self.lines then
@@ -1696,15 +1744,9 @@ end
 % \end{function}
 %    \begin{MacroCode}
 function Block:pre_setup (gobble)
-  local print_active_f = function(s)
-    tex.print(CDR.active_cctab, s)
-  end
-  local print_escape_f = function(s)
-    tex.print(CDR.escape_cctab, s)
-  end
   local escape_inside = self:escape_inside_maker{
-    active_f   = print_active_f,
-    escape_f   = print_escape_f,
+    active_f   = sprint_active_f,
+    escape_f   = sprint_escape_f,
     alter_f    = noop,
   }
   self.sprint_line_ltx2 = function(this, n)
@@ -1772,9 +1814,9 @@ end
 %
 % \subsubsection{Execute}
 % 
-% \begin{function}{do_makeatletter, do_makeatother,doExplSyntaxOn, doExplSyntaxOff}
+% \begin{function}{exe_makeatletter, exe_makeatother,exeExplSyntaxOn, exeExplSyntaxOff}
 % \begin{syntax}
-% CDR.Block:do_makeatletter(\metatt{truthy value})
+% CDR.Block:exe_makeatletter(\metatt{truthy value})
 % \end{syntax}
 % Same syntax for both functions.
 % Set up the context of execution.
@@ -1783,25 +1825,25 @@ end
 % and may not be recovered afterwards.
 % \end{function}
 %    \begin{MacroCode}[OK]
-function Block:do_makeatletter (yorn)
-  if yorn ~= false then
-    tex.sprint([[\makeatletter]])
-    self.do_makeatother = function (this)
-      tex.sprint([[\makeatother]])
+function Block:exe_makeatletter (torf)
+  if torf ~= false then
+    tex.print([[\makeatletter]])
+    self.exe_makeatother = function (this)
+      tex.print([[\makeatother]])
     end
   end
 end
-function Block:do_makeatother ()
+function Block:exe_makeatother ()
 end
-function Block:doExplSyntaxOn (yorn)
+function Block:exeExplSyntaxOn (yorn)
   if yorn ~= false then
-    tex.sprint([[\ExplSyntaxOn]])
-    self.doExplSyntaxOff = function (this)
-      tex.sprint([[\ExplSyntaxOff]])
+    tex.print([[\ExplSyntaxOn]])
+    self.exeExplSyntaxOff = function (this)
+      tex.print([[\ExplSyntaxOff]])
     end
   end
 end
-function Block:doExplSyntaxOff ()
+function Block:exeExplSyntaxOff ()
 end
 %    \end{MacroCode}
 %
@@ -1817,14 +1859,12 @@ end
 % Change the catcode regime according to the arguments.
 % \end{function}
 %    \begin{MacroCode}[OK]
-function Block:exe_begin (makeatletter, ExplSyntaxOn)
-  self:do_makeatletter(makeatletter)
-  self:do_ExplSyntaxOn(ExplSyntaxOn)
+function Block:exe_begin ()
   self.exe_end = function (this)
     tex.print(self.lines)
     tex.print('')
-    this:do_ExplSyntaxOff()
-    this:do_makeatother()
+    this:exeExplSyntaxOff()
+    this:exe_makeatother()
   end
 end
 function Block:exe_end ()
@@ -1922,11 +1962,33 @@ function Object:pyg_source(sty, src)
   end
   local pyg_tex_p
   if src then
+    local ds = self.delimiters
+    local n = utf8.len(ds)
+    local l = n>0 and utf8.sub(ds, 1, 1) or ''
+    local m = n>1 and utf8.sub(ds, 2, 2) or ''
+    local r = n>2 and utf8.sub(ds, 3, 3) or nil
+    local s
+    local escape_inside = self:escape_inside_maker{
+      active_f = function (ss)
+        s = s .. ss
+      end,
+      escape_f = function (ss)
+        s = s .. l .. ss .. (r or m )
+      end
+    }
     local source
     if inline then
-      source = args.source
+      s = ''
+      escape_inside(self.inline or '')
+      source = s
+      args.source = source
     else
-      local lines = lines_by_id[self.id]
+      local lines = {}
+      for _,l in ipairs(lines_by_id[self.id]) do
+        s = ''
+        escape_inside(l)
+        lines[#lines+1] = s
+      end
       source = table.concat(lines, '\n')
 debug_msg('pyg_source', '<'..self.id..'>', lines, #lines)
     end
@@ -1939,7 +2001,7 @@ debug_msg('pyg_source', '<'..self.id..'>', lines, #lines)
     )
     local base = CDR.dir_p..hash
     pyg_tex_p = base..'.pyg.tex'
-    token.set_macro('l_CDR_pyg_tex_tl', pyg_tex_p)
+    token.set_macro(-2, 'l_CDR_pyg_tex_tl', pyg_tex_p)
     local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
     if not mode or not use_cache then
       use_py = true
@@ -1962,6 +2024,7 @@ debug_msg('pyg_source', '<'..self.id..'>', lines, #lines)
     end
   end
   if use_py then
+debug_msg('JSON', json_p, json.tostring(args, true))
     local f = assert(io.open(json_p, 'w'))
     local ok, err = f:write(json.tostring(args, true))
     f:close()
@@ -2099,7 +2162,7 @@ end
 % \end{description}
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function Object:escape_inside_maker (kvargs)
+function Object:escape_inside_maker (kvargs)
   local p_1 = P(1)
   local pattern
   local escape_f  = kvargs.escape_f
@@ -2310,6 +2373,8 @@ end
 % CDR.\metatt{Object}:synctex_tag_set(\meta{new tag})
 % \end{syntax}
 % Set the Sync\TeX\ tag, does nothing if the argument is not positive.
+% When \metatt{Object} is not provided,
+% `|Code|' or `|Block|' is given according to the context.
 % \end{function}
 %    \begin{MacroCode}
 function Object:synctex_tag_set(tag)
@@ -2318,19 +2383,36 @@ debug_msg('Object.synctex_tag_set', tag)
     self.synctex_tag  = tag
   end
 end
+function CDR:synctex_tag_set(tag)
+  if CDR.Block then
+    CDR.Block:synctex_tag_set(tag)
+  elseif CDR.Code then
+    CDR.Code:synctex_tag_set(tag)
+  end
+end
 %    \end{MacroCode}
 %
 % \begin{function}{synctex_line_set}
 % \begin{syntax}
 % CDR.\metatt{Object}:synctex_line_set(\meta{new line})
+% CDR:synctex_line_set(\meta{new line})
 % \end{syntax}
 % Set the Sync\TeX\ line, does nothing if the argument is not positive.
+% When \metatt{Object} is not provided,
+% `|Code|' or `|Block|' is given according to the context.
 % \end{function}
 %    \begin{MacroCode}
 function Object:synctex_line_set(line)
 debug_msg('Object.synctex_line_set', line)
   if line >= 0 then
     self.synctex_line  = line
+  end
+end
+function CDR:synctex_line_set(tag)
+  if CDR.Block then
+    CDR.Block:synctex_line_set(tag)
+  elseif CDR.Code then
+    CDR.Code:synctex_line_set(tag)
   end
 end
 %    \end{MacroCode}
@@ -2958,17 +3040,18 @@ class PygOpts(BaseOpts):
   escapeinside = ""
   envname = 'Verbatim'
   lang = 'tex'
+  gobble = 0
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
     self.linenostart = abs(int(self.linenostart))
     self.linenostep  = abs(int(self.linenostep))
+    self.gobble  = abs(int(self.gobble))
 %    \end{MacroCode}
 %
 % \subsection{\texttt{FV}class}
 % 
 %    \begin{MacroCode}
 class FVOpts(BaseOpts):
-  gobble = 0
   linenosep = '0pt'
   commentchar = ''
   label = ''
@@ -2988,7 +3071,6 @@ class FVOpts(BaseOpts):
   samepage = False
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
-    self.gobble  = abs(int(self.gobble))
     if self.firstnumber != 'auto':
       self.firstnumber = abs(int(self.firstnumber))
     self.stepnumber = abs(int(self.stepnumber))
@@ -3188,8 +3270,13 @@ file name with extension, contains processing information.
       left  = escapeinside[0]
       right = escapeinside[1]
       lexer = self.lexer = LatexEmbeddedLexer(left, right, lexer)
+    elif len(escapeinside) == 3:
+      left   = escapeinside[0]
+      middle = escapeinside[1]
+      right  = escapeinside[2]
+      lexer  = self.lexer = LatexEmbeddedLexer(left, right, lexer)
 
-    gobble = fv_opts.gobble
+    gobble = pygopts.gobble
     if gobble:
       lexer.add_filter('gobble', n=gobble)
     tabsize = texopts.tabsize
@@ -7068,12 +7155,15 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %
 % \subsection{Implementation}
 %
-% \begin{function}{\CDRCodeSave}
-% \begin{syntax}
-% \cs{CDRCodeSave} \Arg{unique id} \metatt{delimiter}
-% \end{syntax}
-% \metatt{unique id} will be the argument of \cs{CDRCodeUse}.
-% \end{function}
+% \begin{variable}{\l_CDR_id_tl,\l_CDR_id_short_tl,\l_CDR_delimiters_tl}
+% Storage on the \LaTeX\ side.
+% \end{variable}
+%    \begin{MacroCode}
+\tl_new:N \l_CDR_id_tl
+\tl_new:N \l_CDR_id_short_tl
+\tl_new:N \l_CDR_delimiters_tl
+%    \end{MacroCode}
+%
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDR_to_str:c #1 {
   \exp_last_unbraced:Nx \string { \use:c{#1} }
@@ -7107,14 +7197,31 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     CDR:Code_free()
   }
 }
-% \begin{variable}{\l_CDR_id_tl,\l_CDR_id_short_tl}
-% Storage on the \LaTeX\ side.
-% \end{variable}
+%    \end{MacroCode}
+%
+% \begin{function}[EXP,pTF]{\CDRCode_if_unknown:}
+% \begin{syntax}
+% \cs{CDRCode_if_unknown:TF} \Arg{true code} \Arg{false code}
+% \end{syntax}
+% Assuming |\l_CDR_id_tl| has been properly set up,
+% execute \metatt{true code} when a code or block
+% is available, \metatt{false code} otherwise.
+% \end{function}
 %    \begin{MacroCode}
-\tl_new:N \l_CDR_id_tl
-\tl_new:N \l_CDR_id_short_tl
-\tl_new:N \l_CDR_delimiters_tl
-
+\CDR_set_conditional_alt:Nn \CDRCode_if_unknown: {
+  \exp_args:Nf \tl_if_empty_p:n { \directlua {
+    CDR.Code:sprint_known()
+  } }
+}
+%    \end{MacroCode}
+%
+% \begin{function}{\CDRCodeSave}
+% \begin{syntax}
+% \cs{CDRCodeSave} \Arg{unique id} \metatt{delimiter}
+% \end{syntax}
+% \metatt{unique id} will be the argument of \cs{CDRCodeUse}.
+% \end{function}
+%    \begin{MacroCode}
 \cs_new:Npn \CDRCodeSave #1 {
   \CDR@Debug{\string\CDRCodeSave/\tl_to_str:n{#1}}
   \group_begin:
@@ -7122,7 +7229,11 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   \directlua {
     CDR.Code:synctex_store()
   }
-  \CDRCode_peek:NN \CDRCode_free:
+  \cs_set:Npn \CDR: {
+    \CDRCode_free:
+    \group_end:
+  }
+  \CDRCode_peek:NN \CDR:
 }
 \cs_new:Npn \CDR@Source {}
 \cs_new:Npn \CDRCode_setup:n #1 {
@@ -7153,6 +7264,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\CDRCodeUse=#2}
   \CDRCode_new:c { #2 }
   \CDRCode_if_unknown:TF {
+\CDR@Debug{ \directlua { CDR:Code_list_all() } }
     \PackageError
       { coder }
       { Unknown~identifier:\space#2 }
@@ -7161,7 +7273,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   } {
     \group_begin:
     \directlua {
-      CDR:synctex_save();
+      CDR.Code:synctex_save();
     }        
     \CDRCode_setup:n { #1 }
     \CDR_if_pygments:TF {
@@ -7180,6 +7292,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\CDRCodeExe=#1}
   \CDRCode_new:c { #1 }
   \CDRCode_if_unknown:TF {
+\CDR@Debug{ \directlua { CDR:Code_list_all() } }
     \PackageError
       { coder }
       { Unknown~identifier:\space#1 }
@@ -7187,9 +7300,9 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     \CDRCode_free:
   } {
     \directlua {
-      CDR:synctex_save();
-      CDR.Code:inline_to_ltx('auto');
-      CDR:synctex_restore();
+      CDR.Code:synctex_save();
+      CDR.Code:sprint_inline();
+      CDR.code:synctex_restore();
     }        
     \CDRCode_free:
   }
@@ -7243,8 +7356,10 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % \begin{syntax}
 % \cs{CDRCode_peek:NN} \metatt{function} \metatt{delimiter}
 % \end{syntax}
+% Implementation detail: change the category code regime inside a group.
 % \end{function}
 %    \begin{MacroCode}
+\tl_new:N \l_CDR_peek_tl
 \cs_set:Npn \CDRCode_peek:NN #1 {
   \group_begin:
   \tl_clear:N \l_CDR_peek_tl
@@ -7255,11 +7370,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     \exp_args:NNNV
     \group_end:
     \tl_set:Nn \l_CDR_peek_tl \l_CDR_peek_tl
-    \directlua {
-      CDR.Code:inline_to_ltx();
-    }
     #1
-    \group_end:
   }
   \cs_set:Npn \CDRCode_peek_continue:n ##1 {
     \typeout{ADDING/##1/}
@@ -7271,7 +7382,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 }
 \cs_set:Npn \CDRCode_peek_begin:N #1 {
   \directlua{
-    CDR.Code:peek_begin([[#1]])
+    CDR.Code:peek_begin('\luaescapestring{ #1 }')
   }
   \char_set_active_eq:nN { `\    } \ %
   \char_set_active_eq:nN { `\^^I } \^^I %
@@ -7282,7 +7393,9 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   \typeout{START/#1/}
   \cs_set:Npn \CDRCode_peek: {
     \peek_meaning:NTF #1 {
-      \exp_args:Nx \tl_if_empty:nF { \directlua{ CDR.Code:status() } } {
+      \exp_args:Nx \tl_if_empty:nF {
+        \directlua{ CDR.Code:status() }
+      } {
         \PackageError
           {coder}
           {Missing\space#1\space before\space next\space line}
@@ -7549,16 +7662,9 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     }
     \CDRCode_format:
     \CDRCode_hook_before:
-    \exp_args:NV
-    \CDR_make_escape_inside:nNNN \l_CDR_delimiters_tl \CDR_rescan_active:n \CDR_rescan_escape:n \use_none:n
     \CDR_whitespace_setup:
     \CDR_whitespace_define:
-    \tl_clear:N \l_CDR_a_tl
-    \exp_args:NNv
-    \CDR_escape_inside:Nn \l_CDR_a_tl {
-      \l_CDR_id_tl
-    }
-    \l_CDR_a_tl
+    \directlua { CDR.Code:sprint_inline() }
     \CDRCode_hook_after:
   } }
 }
@@ -7789,22 +7895,6 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   \directlua { 
     CDR.Block:print_line_escape(#1)
   }
-}
-%    \end{MacroCode}
-%
-% \begin{function}[EXP,pTF]{\CDRCode_if_unknown:}
-% \begin{syntax}
-% \cs{CDRCode_if_unknown:TF} \Arg{true code} \Arg{false code}
-% \end{syntax}
-% Assuming |\l_CDR_id_tl| has been properly set up,
-% execute \metatt{true code} when a code or block
-% is available, \metatt{false code} otherwise.
-% \end{function}
-%    \begin{MacroCode}
-\CDR_set_conditional_alt:Nn \CDRCode_if_unknown: {
-  \exp_args:Nf \tl_if_empty_p:n { \directlua {
-    CDR.Code:sprint_known()
-  } }
 }
 %    \end{MacroCode}
 %
@@ -8358,10 +8448,12 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\CDRBlockUse/#2}
   \CDRBlock_new:c { #2 }
   \CDRBlock_if_unknown:TF {
+\CDR@Debug{ \directlua { CDR:Block_list_all() } }
     \PackageError
       { coder }
       { Unknown~block~identifier:~#2 }
       { See~CDRBlockUse~documentation. }
+    \CDRBlock_free:
   } {
     \clist_set:Nn \l_CDR_kv_clist { #1 }
     \CDRBlock_setup:n {}
@@ -8376,13 +8468,13 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   makeatletter .choices:nn =
     { {}, true, false }
     { \directlua{
-      CDR.BlockExe:makeatletter(\l_keys_choice_tl)
+      CDR.Block:exe_makeatletter(\l_keys_choice_tl)
     } },
   makeatletter .default:n = true,
   ExplSyntaxOn .choices:nn =
     { {}, true, false }
     { \directlua{
-      CDR.BlockExe:ExplSyntaxOn(\l_keys_choice_tl)
+      CDR.Block:exe_ExplSyntaxOn(\l_keys_choice_tl)
     } },
   ExplSyntaxOn .default:n = true,
 }
@@ -8397,13 +8489,15 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\CDRBlockExe/#2}
   \CDRBlock_new:c { #2 }
   \CDRBlock_if_unknown:TF {
+\CDR@Debug{ \directlua { CDR:Block_list_all() } }
     \PackageError
       { coder }
       { Unknown~block~identifier:~#2 }
       { See~\string\CDRBlockSave~documentation. }
+    \CDRBlock_free:
   } {
     \directlua {
-      CDR:synctex_save();
+      CDR.Block:synctex_save();
       CDR.Block:exe_begin();
     }
     \exp_args:Nnx
@@ -8424,7 +8518,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\l_CDR_id_tl=\l_CDR_id_tl}
     \directlua {
       CDR.Block:exe_end();
-      CDR:synctex_restore();
+      CDR.Block:synctex_restore();
     }
     \CDRBlock_free:
     \ignorespaces
@@ -8951,11 +9045,11 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   },
   synctex_tag  .code:n = {
 \CDR@Debug {\string\CDR@Setup/synctex_tag=#1}
-    \directlua { CDR.Block:synctex_tag_set( #1 ) }
+    \directlua { CDR:synctex_tag_set( #1 ) }
   },
   synctex_line .code:n = {
 \CDR@Debug {\string\CDR@Setup/synctex_line=#1}
-    \directlua { CDR.Block:synctex_line_set( #1 ) }
+    \directlua { CDR:synctex_line_set( #1 ) }
   },
 }
 \cs_new:Npn \CDR@Setup #1 {

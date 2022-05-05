@@ -5,14 +5,20 @@
 %\textbf{In eu orci massa}
 %\end{CDRBlock}
 \par\noindent
-POC%
+POC
 \CDRDebugOn
-\begin{CDRBlock}[pygments=false,show spaces=true,escape inside=xyz]
+\CDRCode[pygments]|\textbf{abcde}|
+AFTER
+\CDRCodeUse[pygments=false]{}
+END
+\endinput
+\begin{CDRBlock}[pygments,show spaces=false,escape inside=xyz]
   BEFOREx\textcolor{red}{RIEN}yRIENzAFTER
   BEFOREx\textcolor{red}{RIEN}yRIENzAFTER
   BEFOREx\textcolor{red}{RIEN}yRIENzAFTER
   BEFOREx\textcolor{red}{RIEN}yRIENzAFTER
 \end{CDRBlock}
+AFTER
 \endinput
 
 \begin{CDRBlockSave}{ABCD}
