@@ -469,6 +469,17 @@ local kpse  = _ENV.kpse
 local rep   = string.rep
 local json  = require('lualibs-util-jsn')
 local ltb = _ENV.luatexbase
+local ltb_callback_descriptions = ltb.callback_descriptions
+local ltb_add_to_callback       = ltb.add_to_callback
+local ltb_remove_from_callback  = ltb.remove_from_callback
+local ltb_in_callback           = ltb.in_callback
+local lpeg  = require("lpeg")
+local C       = lpeg.C
+local Cg      = lpeg.Cg
+local Cp      = lpeg.Cp
+local Ct      = lpeg.Ct
+local P       = lpeg.P
+local V       = lpeg.V
 %    \end{MacroCode}
 % \section{Module declaration}
 %    \begin{MacroCode}[OK]
@@ -492,94 +503,6 @@ local CDR = {}
 % as a separate library.
 %    \begin{MacroCode}[OK]
 local utf8  = _ENV.unicode.utf8
-local lpeg  = require("lpeg")
-local locale  = lpeg.locale()
-local B       = lpeg.B
-local C       = lpeg.C
-local Cc      = lpeg.Cc
-local Cf      = lpeg.Cf
-local Cg      = lpeg.Cg
-local Cmt     = lpeg.Cmt
-local Cp      = lpeg.Cp
-local Ct      = lpeg.Ct
-local P       = lpeg.P
-local R       = lpeg.R
-local S       = lpeg.S
-local V       = lpeg.V
-%    \end{MacroCode}
-% Next \pkg{lpeg} patterns are not capturing material.
-% \begin{variable}{white_p}
-% White space, exclude "\n", no unicode space neither.
-% \end{variable}
-%    \begin{MacroCode}[OK]
-local white_p = S(' \t')
-%    \end{MacroCode}
-% \begin{variable}{eol_p}
-% Consume an eol if any.
-% \end{variable}
-%    \begin{MacroCode}[OK]
-local eol_p   = P('\n')^-1
-%    \end{MacroCode}
-% \begin{variable}{eol_p}
-% One ascii char.
-% \end{variable}
-%    \begin{MacroCode}[OK]
-local ascii_p     = R('\x00\x7F')
-%    \end{MacroCode}
-% \begin{variable}{utf8_p}
-% One utf8 char.
-% \end{variable}
-%    \begin{MacroCode}[OK]
-local x_utf8_p   = R('\x80\xBF')
-local strict_utf8_2_p =
-  R('\xC2\xDF') * x_utf8_p
-local strict_utf8_3_p =
-    P('\xE0')     * R('\xA0\xBF') * x_utf8_p
-  + P('\xED')     * R('\x80\x9F') * x_utf8_p
-  + R('\xE1\xEF') * x_utf8_p      * x_utf8_p
-local strict_utf8_4_p =
-    P('\xF0')     * R('\x90\xBF') * x_utf8_p * x_utf8_p
-  + P('\xF4')     * R('\x80\x8F') * x_utf8_p * x_utf8_p
-  + R('\xF1\xF3') * x_utf8_p      * x_utf8_p * x_utf8_p
-local strict_utf8_p =
-      strict_utf8_2_p
-    + strict_utf8_3_p
-    + strict_utf8_4_p
-local utf8_p      = ascii_p + strict_utf8_p
-
-local alt_ascii_p = R('\x00\x7F') - P('\n') -- one ascii char but a newline
-local alt_utf8_p  = alt_ascii_p + strict_utf8_p
-%    \end{MacroCode}
-% \begin{variable}{utf8_p}
-% One utf8 char but horizontal space or LF.
-% \end{variable}
-%    \begin{MacroCode}[OK]
-local black_p = utf8_p - S(' \t\n')
-%    \end{MacroCode}
-% \begin{variable}{after_no_black_p}
-% |black_p| has no fixed length and can't be backed matched.
-% \end{variable}
-%    \begin{MacroCode}[OK]
-local after_no_black_p =
-    B( S(' \t\n') )
-  + - B(ascii_p)
-  * - B(strict_utf8_2_p)
-  * - B(strict_utf8_3_p)
-  * - B(strict_utf8_4_p)
-%    \end{MacroCode}
-% \begin{variable}{alt_utf8_check_p}
-% |alt_utf8_p| or consume one byte (but a LF) for an erroneous UTF8 character
-% \end{variable}
-%    \begin{MacroCode}[OK]
-local alt_utf8_check_p =
-    alt_utf8_p
-  + Cmt(
-    1 - P('\n'),   -- and consume one byte for an erroneous UTF8 character
-    function (s, i)
-      CDR.UFT8_DECODING_ERROR = true
-      print('UTF8 problem '.. s:sub(i-1, i-1))
-    end
-  )
 %    \end{MacroCode}
 %
 % \section{General purpose material}
@@ -604,7 +527,11 @@ local function noop (...)
 end
 local debug_msg = noop
 local function f_debug_msg (...)
-  print('**** CDR:'..token.get_macro('CurrentFile')..':'..tostring(tex.inputlineno)..'  :', ...)
+  local s = token.get_macro('CurrentFile')
+  if #s == 0 then
+    s = tex.jobname
+  end
+  print('*--* CDR:'..s..':'..tostring(tex.inputlineno)..':', ...)
 end
 function CDR:activate_debug(yorn)
   if yorn then
@@ -1116,7 +1043,7 @@ end
 % The |status| will print something to the \TeX\ stream in case of error.
 %    \begin{MacroCode}
 function Code:peek_begin ( delimiter )
-  ltb.add_to_callback (
+  ltb_add_to_callback (
     'process_input_buffer',
     function (input)
       if input then
@@ -1129,7 +1056,7 @@ function Code:peek_begin ( delimiter )
     'CDRCode'
   )
   self.peek_end = function (this)
-    ltb.remove_from_callback(
+    ltb_remove_from_callback(
       'process_input_buffer',
       'CDRCode'
     )    
@@ -1143,19 +1070,22 @@ Code.status = noop
 % 
 % \begin{function}{Code_new, Code_free}
 % \begin{syntax}
-% CDR.Code:peek_begin(\meta{identifier})
-% CDR.Code:peek_end()
+% CDR.Code_new()
+% CDR.Code_free()
 % \end{syntax}
-% Set the peeker and its associate closure for further peeking.
-% These functions are balancing each other.
-% Implementation detail: the |peek_end| is defined dynamically.
+% These functions are balancing each other
+% and must be called accordingly.
+% This is reentrant, usefull for |\CDRCodeExe| command.
 % \end{function}
 %    \begin{MacroCode}
 function CDR:Code_new()
-  self.Code = setmetatable({}, Code)
+  self.Code = setmetatable({
+    ['..Code'] = self.Code,
+    ['..Code_free'] = rawget(self, 'Code_free'),
+  }, Code)
   self.Code_free = function (this)
-    this.Code = nil
-    this.Code_free = nil
+    this.Code_free = this.Code['Code_free']
+    this.Code = this.Code['..Code']
   end
 end
 function Code_free (self)
@@ -1240,16 +1170,19 @@ end
 % CDR:Block_new()
 % CDR:Block_free()
 % \end{syntax}
-% Create a new table that will contain everything
-% related to the current block.
-% These functions must be properly balanced.
+% These functions are balancing each other
+% and must be called accordingly.
+% This is reentrant, usefull for |CDRBlockExe| command.
 % \end{function}
 %    \begin{MacroCode}
 function CDR:Block_new()
-  self.Block = setmetatable({}, Block)
-  function self.Block_free(this)
-    this.Block = nil
-    this.Block_free = nil
+  self.Block = setmetatable({
+    ['..Block'] = self.Block,
+    ['..Block_free'] = rawget(self, 'Block_free'),
+  }, Block)
+  self.Block_free = function (this)
+    this.Block_free = this.Block['..Block_free']
+    this.Block = this.Block['..Block']
   end
 end
 function CDR:Block_free()
@@ -1347,7 +1280,7 @@ debug_msg('Block:save_begin', env)
   self.lines = lines
   assert(lines == self.lines)
   local f_current
-  ltb.add_to_callback (
+  ltb_add_to_callback (
     'process_input_buffer',
     function (input)
       if input then
@@ -1359,7 +1292,7 @@ debug_msg('Block:save_begin', env)
     'CDRBlock'
   )
   if debug_msg ~= f_debug_msg then
-    ltb.add_to_callback (
+    ltb_add_to_callback (
       'process_input_buffer',
       function (input)
         debug_msg('BUFFER:', '<'..input..'>')
@@ -1369,12 +1302,12 @@ debug_msg('Block:save_begin', env)
     )
   end
   local function remove_from_callback ()
-    ltb.remove_from_callback(
+    ltb_remove_from_callback(
       'process_input_buffer',
       'CDRBlock'
     )
-    if ltb.in_callback('process_input_buffer', 'CDRBlockDebug') then
-      ltb.remove_from_callback(
+    if ltb_in_callback('process_input_buffer', 'CDRBlockDebug') then
+      ltb_remove_from_callback(
         'process_input_buffer',
         'CDRBlockDebug'
       )
@@ -1637,17 +1570,49 @@ end
 % \end{syntax}
 % Execute the block code stored under the current \meta{id}.
 % Initialize |CDR.Block:exe_begin()|,
-% do some management then teminate the process with
+% do some management then terminate the process with
 % |CDR.Block:exe_end()|.
-% Change the catcode regime according to the arguments.
+% Implementation detail: Use a fake file to execute these commands.
 % \end{function}
 %    \begin{MacroCode}[OK]
 function Block:exe_begin ()
   self.exe_end = function (this)
-    tex.print(self.lines)
-    tex.print('')
-    this:exeExplSyntaxOff()
-    this:exe_makeatother()
+    if #this.lines == 0 then
+      return
+    end
+    local FAKE = '.CDR_fake'
+    local pop_frf
+    pop_frf = exclusive_callback_push(
+      'find_read_file',
+      function (id_number, asked_name)
+debug_msg('find_read_file:', asked_name)
+        return FAKE
+      end,
+      'CDRBlockExe'
+    )
+    local pop_orf
+    pop_orf = exclusive_callback_push(
+      'open_read_file',
+      function (file_name)
+debug_msg('open_read_file:', file_name)
+        assert( file_name == FAKE, 'Unexpected input '..file_name)
+        local i = 0
+        local lines = { table.unpack(self.lines) }
+        return {
+          reader = function(this)
+            if i < #lines then
+              i = i+1
+              return lines[i]
+            end
+            pop_orf()
+            pop_frf()
+            return nil
+          end,
+        }
+      end,
+      'CDRBlockExe'
+    )
+    tex.print([[\input{.CDR_fake}]])
   end
 end
 function Block:exe_end ()
@@ -2415,18 +2380,34 @@ end
 % containing \cs{relax}.
 % \end{function}
 %    \begin{MacroCode}[OK]
+function exclusive_callback_push(callback_name, callback, description)
+  local saved = {}
+  for _,d in pairs(
+    ltb_callback_descriptions(callback_name)
+  ) do
+    local v = ltb_remove_from_callback(callback_name, d )
+    saved[d] = v
+    break
+  end
+  ltb_add_to_callback(callback_name, callback, description)
+  return function ()
+    local f, d = ltb_remove_from_callback(callback_name, description )
+    for k, v in pairs(saved) do
+      ltb_add_to_callback(callback_name, v, k)
+    end
+    return f, d
+  end
+end
 function Block:synctex_tag_catch()
-  ltb.add_to_callback(
+  local pop
+  pop = exclusive_callback_push(
     'open_read_file',
     function (file_name)
       return {
         reader = function(this)
           self.synctex_tag_catched = tex.get_synctex_tag()
           this.reader = function(me)
-            ltb.remove_from_callback(
-              'open_read_file',
-              'CDRBlockImport'
-            )
+            pop()
             return nil
           end
           return [[\relax]]
@@ -3431,7 +3412,11 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDRDebugOn {
   \cs_set:Npn \CDR@Debug ##1 {
-    \typeout { ****~CDR:\CurrentFile :\the\inputlineno :\space##1}
+    \tl_if_empty:NTF \CurrentFile {
+      \typeout { ****~CDR:\jobname :\the\inputlineno :\space##1}
+    } {
+      \typeout { ****~CDR:\CurrentFile :\the\inputlineno :\space##1}
+    }
   }
   \directlua { CDR:activate_debug(true) }
 }
@@ -5363,14 +5348,20 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   show~tabs .code:n = \CDRTag_boolean_set:x { #1 },
   show~tabs .default:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed ++leftmargin=\meta{dimension}]^^A
+% \itemtt[\CDRCheckRed list indent=true$\vert$false]^^A
+% When set to |true|, follow list indentation.
+%    \begin{MacroCode}[OK]
+  list~indent .code:n = \CDRTag_boolean_set:x { #1 }, 
+  list~indent .value_required:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed left margin*=\meta{dimension}]^^A
 % indentation to add at the start of each line.
 % Initially |0pt|: no left margin.
 %    \begin{MacroCode}[OK]
   left~margin* .code:n = \CDRTag_set:, 
   left~margin* .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed xrightmargin=\meta{dimension}]^^A
+% \itemtt[\CDRCheckRed right margin*=\meta{dimension}]^^A
 % right margin to add after each line.
 % Initially |0pt|: no right margin.
 %    \begin{MacroCode}[OK]
@@ -5549,6 +5540,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % Initialization.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
+    list~indent = false,
     left~margin*  = 0pt,
     right~margin* = 0pt,
     hfuzz = 2pt,
@@ -7934,7 +7926,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 }
 
 \cs_new:Npn \CDRBlock_linewidth: {%
-  \CDRTag_if_truthy:cT { list~margins } {
+  \CDRTag_if_truthy:cT { list~indent } {
     \advance\leftmargin\@totalleftmargin
   }
   \exp_last_unbraced:NNf
@@ -8298,9 +8290,17 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\l_CDR_id_tl=\l_CDR_id_tl}
     \directlua {
       CDR.Block:exe_end();
-      CDR.Block:synctex_restore();
+      CDR.Block:exeExplSyntaxOff()
+      CDR.Block:exe_makeatother()
     }
+%    \end{MacroCode}
+% In a separate |\directlua| call for synchronization.
+%    \begin{MacroCode}
+    \directlua {
+      CDR.Block:synctex_restore();
+    }    
     \CDRBlock_free:
+\CDR@Debug{\string\CDRBlockExe/#2/DONE}
     \ignorespaces
   }
 }

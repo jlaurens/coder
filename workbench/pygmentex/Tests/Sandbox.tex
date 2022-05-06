@@ -5,6 +5,19 @@
 %\textbf{In eu orci massa}
 %\end{CDRBlock}
 \CDRDebugOn
+\begin{CDRBlockSave}{5 lines}
+\begin{CDRBlock}[
+  line color=green!\ifnumodd{#1}{2}{1}0!white,
+]
+line 1
+line 2
+line 3
+line 4
+line 5
+\end{CDRBlock}
+\end{CDRBlockSave}
+\CDRBlockExe{5 lines}
+\endinput
 \begin{CDRBlock}[pygments=true, show spaces = false, style=xcode, lang = lua]
 function factorial(n)
   --[[Compute n!]]
