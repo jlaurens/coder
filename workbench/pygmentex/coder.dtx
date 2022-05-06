@@ -322,6 +322,7 @@ and the derived files           \jobname.ins,
 % \pkg{\jobname} focuses on code inlining and interfaces very well with \pkg{pygments}
 % for a smart and efficient syntax hilighting.
 % \item The \pkg{pygmentex} and \pkg{minted} packages were somehow source of inspiration.
+% \item The \pkg{listings} packages must be mentionned.
 % \end{description}
 %
 % \section{Known bugs and limitations}
@@ -451,7 +452,7 @@ and the derived files           \jobname.ins,
 % \part{\CDRLua{} implementation}
 % \section{Usage}
 % This \texttt{lua} library is loaded by \CDRSty{}
-% with the instruction \texttt{CDR=require("\jobname-util")}.
+% with instruction |CDR=require("\jobname-util")|.
 % In the sequel, the syntax to call class methods and instance methods are
 % presented with either a \texttt{CDR.} or a \texttt{CDR:} prefix.
 % This is what is used in the library for convenience.
@@ -603,7 +604,7 @@ local function noop (...)
 end
 local debug_msg = noop
 local function f_debug_msg (...)
-  print('**** CDR:'..token.get_macro('g_file_curr_name_str')..':'..tostring(tex.inputlineno)..'  :', ...)
+  print('**** CDR:'..token.get_macro('CurrentFile')..':'..tostring(tex.inputlineno)..'  :', ...)
 end
 function CDR:activate_debug(yorn)
   if yorn then
@@ -958,48 +959,41 @@ Object.__index = Object
 % \end{variable}
 %
 %    \begin{MacroCode}
-local Code = {
-  Super = Object,
-}
-setmetatable(Code, {
-  __index = function (self, k)
-    local ans = Code.Super[k]
-    if ans ~= nil then
-      return ans
-    end
-    if k == 'inline' then
-      return inline_by_id[self.id]
-    elseif k == '.arguments' then
-      ans = {
-        __cls__ = 'Arguments',
-        source  = '',
-        cache   = JSON_boolean_true,
-        debug   = JSON_boolean_false,
-        pygopts = {
-          __cls__ = 'PygOpts',
-          lang    = 'tex',
-          style   = 'default',
-          mathescape   = JSON_boolean_false,
-          escapeinside = self.delimiters,
-        },
-        texopts = {
-          __cls__ = 'TeXOpts',
-          tags    = '',
-          is_inline = JSON_boolean_true,
-          pyg_sty_p = '',
-          synctex_tag  = 0,
-          synctex_line = 0,
-        },
-        fv_opts = {
-          __cls__ = 'FVOpts',
-        }
-      }
-      return ans
-    end
-  end,
+local Code = setmetatable({}, {
+  __index = Object
 })
 function Code:__index (k)
 -- debug_msg('Code:__index', k)
+  if k == 'inline' then
+    return inline_by_id[self.id]
+  elseif k == '.arguments' then
+    local ans = {
+      __cls__ = 'Arguments',
+      source  = '',
+      cache   = JSON_boolean_true,
+      debug   = JSON_boolean_false,
+      pygopts = {
+        __cls__ = 'PygOpts',
+        lang    = 'tex',
+        style   = 'default',
+        mathescape   = JSON_boolean_false,
+        escapeinside = self.delimiters,
+      },
+      texopts = {
+        __cls__ = 'TeXOpts',
+        tags    = '',
+        is_inline = JSON_boolean_true,
+        pyg_sty_p = '',
+        synctex_tag  = 0,
+        synctex_line = 0,
+      },
+      fv_opts = {
+        __cls__ = 'FVOpts',
+      }
+    }
+    rawset(self, k, ans)
+    return ans
+  end
   return Code[k]
 end
 function Code:__newindex (k, v)
@@ -1175,70 +1169,62 @@ end
 % The |Block| contains attributes and methods to properly
 % deal with |CDRBlock| and |CDRBlockSave| environments,
 % as well as |CDRBlockUse| and |CDRBlockExe| commands. 
-% Its metatable is the local |Code| table.
+% Its metatable is the local |Block| table.
 % \end{variable}
 %
 %    \begin{MacroCode}
-local Block = {
-  Super = Object,
-}
-setmetatable(Block, {
-  __index = function (self, k)
-    local ans = Object[k]
--- debug_msg('Block MT __index/Object', k, ans)
-    local ans = Code.Super[k]
-    if ans ~= nil then
-      return ans
-    end
-    if k == 'lines' then
-      ans = lines_by_id[self.id]
--- debug_msg('Block MT __index', k, self.id, ans)
-      return ans
-    elseif k == 'env' then
-      ans = token.get_macro('@currenvir')
--- debug_msg('Block MT __index', k, ans)
-      return ans
-    elseif k == 'gobble' then
-      ans = token.get_macro('l_CDR_gobble_tl')
-      return ans
-    elseif k == '.arguments' then
-      ans = {
-        __cls__ = 'Arguments',
-        cache   = JSON_boolean_false,
-        debug   = JSON_boolean_false,
-        pygopts = {
-          __cls__ = 'PygOpts',
-          lang = 'tex',
-          style = 'default',
-          texcomments  = self.tex_comments
-            and JSON_boolean_true
-            or JSON_boolean_false,
-          mathescape   = JSON_boolean_false,
-          escapeinside = self.delimiters,
-        },
-        texopts = {
-          __cls__ = 'TeXOpts',
-          tags    = self['.tags clist'],
-          is_inline = JSON_boolean_false,
-          pyg_sty_p = '',
-          synctex_tag  = 0,
-          synctex_line = 0,
-        },
-        fv_opts = {
-          __cls__ = 'FVOpts',
-          firstnumber = 1,
-          stepnumber  = 1,
-        }
-      }
-      return ans
-    end
-  end,
+local Block = setmetatable({}, {
+  __index = Object,
 })
-function Block:__index (k)
--- debug_msg('Block:__index', k)
+function Block:__index(k)
+  local ans
+  if k == 'lines' then
+    ans = lines_by_id[self.id]
+-- debug_msg('Block MT __index', k, self.id, ans)
+    return ans
+  elseif k == 'env' then
+    ans = token.get_macro('@currenvir')
+-- debug_msg('Block MT __index', k, ans)
+    rawset(self, k, ans)
+    return ans
+  elseif k == 'gobble' then
+    ans = token.get_macro('l_CDR_gobble_tl')
+    return ans
+  elseif k == '.arguments' then
+    ans = {
+      __cls__ = 'Arguments',
+      cache = JSON_boolean_false,
+      debug = JSON_boolean_false,
+      pygopts = {
+        __cls__ = 'PygOpts',
+        lang = 'tex',
+        style = 'default',
+        texcomments= self.tex_comments
+          and JSON_boolean_true
+          or JSON_boolean_false,
+        mathescape = JSON_boolean_false,
+        escapeinside = self.delimiters,
+      },
+      texopts = {
+        __cls__ = 'TeXOpts',
+        tags  = self['.tags clist'],
+        is_inline = JSON_boolean_false,
+        pyg_sty_p = '',
+        synctex_tag= 0,
+        synctex_line = 0,
+      },
+      fv_opts = {
+        __cls__ = 'FVOpts',
+        firstnumber = 1,
+        stepnumber= 1,
+      }
+    }
+    rawset(self, k, ans)
+    return ans
+  end
   return Block[k]
 end
-function Block:__newindex (k, v)
+function Block:__newindex(k, v)
 -- debug_msg('Block:__newindex', k, v)
   if k == 'lines' then
 -- debug_msg('Setting lines')
@@ -3445,7 +3431,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDRDebugOn {
   \cs_set:Npn \CDR@Debug ##1 {
-    \typeout { ****~CDR:\g_file_curr_name_str :\the\inputlineno :\space##1}
+    \typeout { ****~CDR:\CurrentFile :\the\inputlineno :\space##1}
   }
   \directlua { CDR:activate_debug(true) }
 }
