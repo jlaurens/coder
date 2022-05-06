@@ -309,7 +309,7 @@ and the derived files           \jobname.ins,
 % \end{abstract}
 %
 % \section{Package dependencies}
-% \pkg{datetime2}, \pkg{xcolor}, \pkg{fancyvrb} and dependencies of these packages.
+% \pkg{datetime2}, \pkg{xcolor} and dependencies of these packages.
 %
 % \section{Similar technologies}
 % \begin{description}
@@ -321,7 +321,7 @@ and the derived files           \jobname.ins,
 % many more that are unrelated.
 % \pkg{\jobname} focuses on code inlining and interfaces very well with \pkg{pygments}
 % for a smart and efficient syntax hilighting.
-% \item The \pkg{pygmentex} and \pkg{minted} packages were somehow a source of inspiration.
+% \item The \pkg{pygmentex} and \pkg{minted} packages were somehow source of inspiration.
 % \end{description}
 %
 % \section{Known bugs and limitations}
@@ -346,23 +346,27 @@ and the derived files           \jobname.ins,
 % \CDRSty{} mainly declares the \cs{CDRCode} command and the |CDRBlock| environment.
 % The former allows to insert code chunks as running text whereas the latter allows
 % to instert code snippets as blocks.
-% Moreover, block code chunks can be exported to files, once declared with \cs{CDRExport} command.
+% For multiple use in \pkg{beamer} for example,
+% we have \cs{CDRCodeSave} and \cs{CDRCodeUse}
+% as well as |CDRBlockSave| environment and \cs{CDRBlockUse}.
+% Moreover, block code chunks can be exported to files, once declared with \cs{CDRBlockExport} command.
 % The \cs{CDRSet} command is used to set various parameters,
 % including display engines declared with either \cs{CDRCodeEngineNew} or \cs{CDRBlockEngineNew}\footnote{Work in progress}.
 % Finally, the \cs{CDRBlockImport} command is used to include source files
 % and typeset with \LaTeX\ the embedded documentation.
 %
 % \subsection{Code flow}
-% The normal code flow os syntax highlighting is
+% The normal code flow of syntax highlighting is
 % \begin{enumerate}
 % \item from \CDRSty{}, \LaTeX{} parses a code snippet as |\CDRCode| argument
 % of |CDRBlock| environment body, somehow stores it,
-% and calls |CDR.\metatt{Object}:pyg_source| where
-% \metatt{Object} is one of \metatt{Block} or \metatt{Code},
+% and calls |CDR.|\metatt{Object}|:pyg_source| where
+% \metatt{Object} is one of |Block| or |Code|,
 % \item \CDRLua{} reads the content of some command, and stores it in a |json| file,
 % together with informations to process this code snippet properly,
 % \item \CDRPy{} is then asked by \CDRLua{} to read the |json| file and eventually uses \pkg{pygments} to translate
-% the code snippet into dedicated \LaTeX{} coloring commands. These are stored in a |*.pyg.tex| file
+% the code snippet into dedicated \LaTeX{} coloring commands.
+% These are stored in a |*.pyg.tex| file
 % named after the md5 digest of the original code chunck,
 % a |*.pyg.sty| \LaTeX{} style file is recorded as well.
 % On return, \CDRSty{} is able to input both the |*.pyg.sty| and
@@ -381,7 +385,7 @@ and the derived files           \jobname.ins,
 % \subsection{File exportation}
 % \begin{enumerate}
 % \item
-% The \cs{CDRExport} command declares a file path, a list of tags and other
+% The \cs{CDRBlockExport} command declares a file path, a list of tags and other
 % usefull informations like a coding language. These data are saved as export records
 % by \CDRLua.
 % \item
@@ -423,6 +427,12 @@ and the derived files           \jobname.ins,
 % \pkg{expl3} identifiers also start with |CDR|, after and eventual leading |c_|, |l_| or |g_|.
 % \pkg{l3keys} module path's first component is either |CDR|
 % or starts with |CDR@|.
+% Commands related to inline code contain |CDRCode| in their name,
+% whereas commands related to block code contain |CDRBlock| in
+% their names.
+% When a name contains |_pyg_| it is related to \pkg{pygments},
+% there is a |_vrb_| counterpart used with no \pkg{pygments}.
+% Both are equivalent except in a small area.
 %
 % \lua{} objects (functions and variables) are collected
 % in the \texttt{CDR} table automatically created
@@ -785,7 +795,7 @@ local function noop (...)
 end
 local debug_msg = noop
 local function f_debug_msg (...)
-  print('**** CDR DEBUG LUA ****', ...)
+  print('**** CDR:'..token.get_macro('g_file_curr_name_str')..':'..tostring(tex.inputlineno)..'  :', ...)
 end
 function CDR:activate_debug(yorn)
   if yorn then
@@ -1064,7 +1074,7 @@ local inline_by_id = {}
 % \end{syntax}
 % Debug diagnostic. 
 % \end{function}
-%    \begin{function}
+%    \begin{MacroCode}
 function CDR:Code_list_all()
   print('**** CDR INFO: known Codes ***********')
   for k, v in pairs(inline_by_id) do
@@ -1073,7 +1083,6 @@ function CDR:Code_list_all()
   print('**************************************')
 end
 %    \end{MacroCode}
-%
 %
 % \subsection{Block}
 % \begin{variable}{lines_by_id}
@@ -1089,11 +1098,11 @@ local lines_by_id = {}
 % \end{syntax}
 % Debug diagnostic. 
 % \end{function}
-%    \begin{function}
+%    \begin{MacroCode}
 function CDR:Block_list_all()
   print('**** CDR INFO: known Blocks **********')
   for k, v in pairs(lines_by_id) do
-    print(k, '->', #v .. 'lines')
+    print(k, '->', v .. 'lines')
   end
   print('**************************************')
 end
@@ -1125,10 +1134,7 @@ local Object = setmetatable({}, {
       ans = token.get_macro('l_CDR_id_short_tl')
     end
 -- debug_msg('Object MT __index', k, ans)
-    if ans ~= nil then
-      rawset(self, k, ans)
-      return ans
-    end
+    return ans
   end,
 })
 Object.__index = Object
@@ -1151,7 +1157,6 @@ setmetatable(Code, {
   __index = function (self, k)
     local ans = Code.Super[k]
     if ans ~= nil then
-      rawset(self, k, ans)
       return ans
     end
     if k == 'inline' then
@@ -1181,17 +1186,9 @@ setmetatable(Code, {
           __cls__ = 'FVOpts',
         }
       }
-      rawset(self, k, ans)
       return ans
     end
   end,
-  __newindex = function (self, k, v )
-    if k == 'inline' then
-      inline_by_id[self.id] = v
-    else
-      rawset(self, k, v)
-    end
-  end
 })
 function Code:__index (k)
 -- debug_msg('Code:__index', k)
@@ -1199,7 +1196,7 @@ function Code:__index (k)
 end
 function Code:__newindex (k, v)
 -- debug_msg('Code:__newindex', k, v)
-  if k == 'ilines' then
+  if k == 'inline' then
 -- debug_msg('Setting inline')
     inline_by_id[self.id] = v
   else
@@ -1383,7 +1380,6 @@ setmetatable(Block, {
 -- debug_msg('Block MT __index/Object', k, ans)
     local ans = Code.Super[k]
     if ans ~= nil then
-      rawset(self, k, ans)
       return ans
     end
     if k == 'lines' then
@@ -1392,7 +1388,10 @@ setmetatable(Block, {
       return ans
     elseif k == 'env' then
       ans = token.get_macro('@currenvir')
-      rawset(self, k, ans)
+-- debug_msg('Block MT __index', k, ans)
+      return ans
+    elseif k == 'gobble' then
+      ans = token.get_macro('l_CDR_gobble_tl')
       return ans
     elseif k == '.arguments' then
       ans = {
@@ -1423,7 +1422,6 @@ setmetatable(Block, {
           stepnumber  = 1,
         }
       }
-      rawset(self, k, ans)
       return ans
     end
   end,
@@ -1605,6 +1603,7 @@ debug_msg('Block:save_begin', env)
 % first and only once.
 %    \begin{MacroCode}
   f_start = function (input)
+debug_msg('CALLBACK:IN_START', '<'..input..'>')
     f_current = nil
     function self.is_after_eol(this)
       tex.sprint('T')
@@ -1673,6 +1672,7 @@ debug_msg('CALLBACK:IN_BODY', '<'..input..'>')
     end
   end
   self.enter_body = function (this)
+debug_msg('Block:enter_body')
     debug_msg('Block.enter_body')
     f_current = f_body
   end
@@ -1681,6 +1681,7 @@ debug_msg('CALLBACK:IN_BODY', '<'..input..'>')
 % to manage an eventual |last_input|.
 %    \begin{MacroCode}  
   self.enter_options = function (this)
+debug_msg('Block:enter_options')
     f_current = f_options
   end
 %    \end{MacroCode}
@@ -1689,10 +1690,12 @@ debug_msg('CALLBACK:IN_BODY', '<'..input..'>')
 % We switch back to some default state.
 %    \begin{MacroCode}
   self.exit_options = function (this)
+debug_msg('Block:exit_options')
     f_current = f_body
     this.is_after_eol = nil
   end
   self.save_end = noop
+debug_msg('Block:save_begin... DONE')
 end
 function Block:save_end ()
   error('Buid time error: unexpected save_end')
@@ -1737,13 +1740,14 @@ end
 %
 % \begin{function}{pre_setup}
 % \begin{syntax}
-% CDR.Block:pre_setup(\metatt{gobble}, \metatt{comment char})
+% CDR.Block:pre_setup()
 % \end{syntax}
 % The reader is asked for some line,
 % but sometimes a pre treatment is necessary.
 % \end{function}
 %    \begin{MacroCode}
-function Block:pre_setup (gobble)
+function Block:pre_setup ()
+  local gobble = self.gobble
   local escape_inside = self:escape_inside_maker{
     active_f   = sprint_active_f,
     escape_f   = sprint_escape_f,
@@ -1794,21 +1798,6 @@ function Block:sprint_line_ltx (n)
 end
 function Block:sprint_comment_ltx ()
   error('Build time error: unexpected sprint_comment_ltx')
-end
-%    \end{MacroCode}
-%
-% \begin{function}{vrb_print_line}
-% \begin{syntax}
-% CDR.Block:vrb_print_lines(\metatt{gobble})
-% \end{syntax}
-
-% \end{function}
-%    \begin{MacroCode}[OK]
-function Block:vrb_print_lines (gobble)
-  self:pre_setup (gobble)
-  for n=1,#self.lines do
-    self:sprint_line_ltx(n)
-  end  
 end
 %    \end{MacroCode}
 %
@@ -1967,6 +1956,7 @@ function Object:pyg_source(sty, src)
     local l = n>0 and utf8.sub(ds, 1, 1) or ''
     local m = n>1 and utf8.sub(ds, 2, 2) or ''
     local r = n>2 and utf8.sub(ds, 3, 3) or nil
+    local gobble = self.gobble
     local s
     local escape_inside = self:escape_inside_maker{
       active_f = function (ss)
@@ -1984,9 +1974,10 @@ function Object:pyg_source(sty, src)
       args.source = source
     else
       local lines = {}
+      local gobble = self.gobble
       for _,l in ipairs(lines_by_id[self.id]) do
         s = ''
-        escape_inside(l)
+        escape_inside(utf8.sub(l, 1+gobble))
         lines[#lines+1] = s
       end
       source = table.concat(lines, '\n')
@@ -3646,7 +3637,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}[OK]
 \cs_new:Npn \CDRDebugOn {
   \cs_set:Npn \CDR@Debug ##1 {
-    \typeout { ****~CDR~DEBUG~****~##1}
+    \typeout { ****~CDR:\g_file_curr_name_str :\the\inputlineno :\space##1}
   }
   \directlua { CDR:activate_debug(true) }
 }
@@ -3974,7 +3965,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %
 % \begin{variable}{\g_CDR_tags_clist, \g_CDR_all_tags_clist, \g_CDR_last_tags_clist}
 % Store the current list of tags used by |\CDRCode| and the
-% |CDRBlock| environment, or declared by |\CDRExport|.
+% |CDRBlock| environment, or declared by |\CDRBlockExport|.
 % All the tags are recorded, if there is an only one, it is not shown
 % in block code chunks.
 % The |\g_CDR_last_tags_clist| variable contains the last list of tags that was displayed.
@@ -6168,10 +6159,10 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %    \end{MacroCode}
 %
 %
-% \section{\cs{CDRExport}}
-% \begin{function}{\CDRExport}
+% \section{\cs{CDRBlockExport}}
+% \begin{function}{\CDRBlockExport}
 % \begin{syntax}
-% \cs{CDRExport} \Arg{key[=value] controls}
+% \cs{CDRBlockExport} \Arg{key[=value] controls}
 % \end{syntax}
 % The \texttt{\meta{key}[=\meta{value}]} controls are defined by
 % \texttt{CDR@Export} \pkg{l3keys} module.
@@ -6419,7 +6410,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}[OK]
 \str_set_eq:NN \CDRPercent \c_percent_str
 \str_set_eq:NN \CDRHash \c_hash_str
-\NewDocumentCommand \CDRExport { m } {
+\NewDocumentCommand \CDRBlockExport { m } {
   \keys_set:nn { CDR@Export } { __initialize }
   \keys_set:nn { CDR@Export } { #1 }
   \tl_if_empty:NTF \l_CDR_file_tl {
@@ -6645,7 +6636,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % \end{function}
 %    \begin{MacroCode}[OK]
 \cs_set:Npn \CDR_style:c #1 {
-  g_CDR@Style/#1
+  g_CDR@Style/#1:
 }
 %    \end{MacroCode}
 %
@@ -7155,13 +7146,14 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %
 % \subsection{Implementation}
 %
-% \begin{variable}{\l_CDR_id_tl,\l_CDR_id_short_tl,\l_CDR_delimiters_tl}
+% \begin{variable}{\l_CDR_id_tl,\l_CDR_id_short_tl,\l_CDR_delimiters_tl,\l_CDR_gobble_tl}
 % Storage on the \LaTeX\ side.
 % \end{variable}
 %    \begin{MacroCode}
 \tl_new:N \l_CDR_id_tl
 \tl_new:N \l_CDR_id_short_tl
 \tl_new:N \l_CDR_delimiters_tl
+\tl_new:N \l_CDR_gobble_tl
 %    \end{MacroCode}
 %
 %    \begin{MacroCode}[OK]
@@ -7259,6 +7251,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     }
   }
   \CDRTag_get:cN { escape~inside  } \l_CDR_delimiters_tl
+  \CDRTag_get:cN { gobble  } \l_CDR_gobble_tl
 }
 \NewDocumentCommand \CDRCodeUse { O{} m } {
 \CDR@Debug{\string\CDRCodeUse=#2}
@@ -7442,7 +7435,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % Utility to setup the tags, the tag inheritance tree and the engine.
 % When not provided explicitly with the |tags=...| user interface,
 % a code chunk will have the list of tags stored in |\g_CDR_tags_clist|
-% by last |\CDRExport|, |\CDRSet| or |\CDRBlock| environment.
+% by last |\CDRBlockExport|, |\CDRSet| or |\CDRBlock| environment.
 % At least one tag must be provided, either implicitly or explicitly.
 % \end{function}
 %    \begin{MacroCode}
@@ -7845,9 +7838,9 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
       \tl_if_empty:nTF {
         \directlua { CDR.Block:is_after_eol() }
       } {
-\CDR@Debug{BEFORE_EOL/####1/####2/####3/}
+\CDR@Debug{BEFORE_EOL/##1/##2/##3/}
       } {
-\CDR@Debug{AFTER_EOL/####1/####2/####3/}
+\CDR@Debug{AFTER_EOL/##1/##2/##3/}
         \peek_analysis_map_break:n {
 \CDR@Debug{ENTER_BODY}
           \CDR_enter_body_and_gobble:n
@@ -7987,10 +7980,8 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRBlock_save_begin: {
-\CDR@Debug{\string\CDRBlock_save_begin:}
-  \directlua{
-    CDR.Block:save_begin()
-  }
+\CDR@Debug{ \string\CDRBlock_save_begin: }
+  \directlua{ CDR.Block:save_begin() }
 %    \end{MacroCode}
 % Function to break the analysis, skip the end of the line,
 % and execute |\CDR_read_options:n { }| on new line:
@@ -8051,23 +8042,17 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \cs_new:Npn \CDRBlock_new:c #1 {
   \tl_set:Nx \l_CDR_id_short_tl { #1 }
   \tl_set:Nx \l_CDR_id_tl { \CDRBlock_id:c { #1 } }
-  \directlua{
-    CDR:Block_new()
-  }
+  \directlua{ CDR:Block_new() }
 \CDR@Debug{\string\l_CDR_id_short_tl=\l_CDR_id_short_tl}
 \CDR@Debug{\string\l_CDR_id_tl=\l_CDR_id_tl}
 }
 \cs_new:Npn \CDRBlock_free: {
-  \directlua{
-    CDR:Block_free()
-  }
+  \directlua{ CDR:Block_free() }
 }
 \cs_new:Npn \CDRBlock_save_end: {
 \CDR@Debug{ \string\CDRBlock_save_end: }
   \directlua {
-    CDR.Block:synctex_store(
-      -1 - \CDRBlock_count:
-    );
+    CDR.Block:synctex_store( -1 - \CDRBlock_count: );
     CDR.Block:save_end();
   }
 }
@@ -8361,6 +8346,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     }
   }
   \CDRTag_get:cN { escape~inside } \l_CDR_delimiters_tl
+  \CDRTag_get:cN { gobble } \l_CDR_gobble_tl
   #1
 }
 %    \end{MacroCode}
@@ -9296,11 +9282,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     },
   }
   \l_CDR_vrb_tl
-  \directlua {
-    CDR.Block:pre_setup (
-      \CDRTag_get:c { gobble }
-    )
-  }
+  \directlua { CDR.Block:pre_setup () }
   %\def\CDR@Line##1##2{##1##2}
 %      \directlua{
 %        CDR.Block:sprint_line_ltx(##1);
@@ -9375,7 +9357,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % Utility to setup the tags, the tag inheritance tree and the engine.
 % When not provided explicitly with the |tags=...| user interface,
 % a code chunk will have the list of tags stored in |\g_CDR_tags_clist|
-% by last |\CDRExport|, |\CDRSet| or |\CDRBlock| environment.
+% by last |\CDRBlockExport|, |\CDRSet| or |\CDRBlock| environment.
 % At least one tag must be provided, either implicitly or explicitly.
 % \end{function}
 %    \begin{MacroCode}

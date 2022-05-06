@@ -4,14 +4,42 @@
 %\begin{CDRBlock}[tags=latex]
 %\textbf{In eu orci massa}
 %\end{CDRBlock}
+\CDRDebugOn
+\begin{CDRBlock}[pygments=true, show spaces = false, style=xcode]
+function factorial(n)
+  --[[Compute n!]]
+  if n > 1 then
+    return n * factorial(n - 1)
+  end
+  return 1
+end
+\end{CDRBlock}
+\endinput
+\begin{center}
+\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
+\begin{minipage}[t]{0.9\linewidth}
+\CDRBlockUse[tags=lua]{1}
+\end{minipage}%
+\hspace{0.09\linewidth}
+&
+\hspace{0.09\linewidth}%
+\begin{minipage}[t]{0.8\linewidth}
+\CDRBlockUse[tags=py]{2}
+\end{minipage}%
+\end{tabular}
+\end{center}
+\caption{First example}
+\label{fig:First example}
+\end{figure}
+\end{document}
+
 \par\noindent
 POC
-\CDRDebugOn
-\CDRCode[pygments]|\textbf{abcde}|
-AFTER
-\CDRCodeUse[pygments=false]{}
-END
+\begin{tabular}{p{10cm}}
+\TEST[...]
+\end{tabular}
 \endinput
+\CDRDebugOn
 \begin{CDRBlock}[pygments,show spaces=false,escape inside=xyz]
   BEFOREx\textcolor{red}{RIEN}yRIENzAFTER
   BEFOREx\textcolor{red}{RIEN}yRIENzAFTER
