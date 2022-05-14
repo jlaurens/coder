@@ -4,20 +4,229 @@
 %\begin{CDRBlock}[tags=latex]
 %\textbf{In eu orci massa}
 %\end{CDRBlock}
+\makeatletter
 \CDRDebugOn
-\begin{CDRBlockSave}{5 lines}
-\begin{CDRBlock}[
-  line color=green!\ifnumodd{#1}{2}{1}0!white,
-]
-line 1
-line 2
-line 3
-line 4
-line 5
-\end{CDRBlock}
-\end{CDRBlockSave}
-\CDRBlockExe{5 lines}
+\ExplSyntaxOn
+\RenewDocumentCommand\CDRBlockImport { O{} m } {
+\CDR@Debug{\string\CDRBlockImport/#1/#2}
+  \group_begin:
+  \cs_set:Npn \SyncTeXLC:##1:##2: {
+    \directlua{CDR.Block:synctex_target_set(##1, ##2) }
+  }
+  \CDRBlock_new:c {}
+  \tl_set:Nn \l_CDR_input_tl { #2 }
+  \CDR_local_inherit:n { CDRBlockImport }
+  \CDR_local_set_known:nN { #1 } \l_CDR_kv_clist
+\CDR@Debug{\string\CDRBlockImport: STEP0}
+  \directlua {
+    local s = '\luaescapestring{#2}';
+    tex.print(s)
+  }
+  \group_end:
+  \endinput
+\CDR@Debug{\string\CDRBlockImport: STEP1}
+  \directlua {
+    CDR.Block:synctex_tag_catch('\luaescapestring{#2}')
+  }
+\CDR@Debug{\string\CDRBlockImport: STEP2}
+  \CDRTag_get_inherit:n { CDRBlockImport }
+  \CDRTag_get:cN { driver } \l_CDR_driver_tl
+\CDR@Debug{\string\CDRBlockImport: STEP3}
+  \directlua { CDR.Block:import_begin() }
+  \tl_if_empty:NT \l_CDR_status_tl {
+    \CDRTag_get:cN { show~code } \l_CDR_a_tl
+    \directlua {
+      CDR.Block:import_set_boolean('show_code')
+    }
+    \CDRTag_get:cN { show~doc } \l_CDR_a_tl
+    \directlua {
+      CDR.Block:import_set_boolean('show_doc')
+    }
+    \CDRTag_get:cN { first~line } \l_CDR_a_tl
+    \directlua {
+      CDR.Block:import_set_integer('first_line')
+    }
+    \CDRTag_get:cN { last~line } \l_CDR_a_tl
+    \directlua {
+      CDR.Block:import_set_integer('last_line')
+    }
+\CDR@Debug{\string\CDRBlockImport\string\input{#2}}
+    \input { #2 }
+  }
+  \CDRBlock_free:
+  \group_end:
+  %\@doendpe\global\@ignorefalse\ignorespaces
+}
+\ExplSyntaxOff
+\makeatother
+\directlua{
+  require('./Tests/sandbox.lua')
+  debug_msg = function(...)
+    print('**** **** CDR DEBUG', ...)
+  end
+}
+
+\directlua{
+  local Object = CDR.TEST.Object
+  local o = setmetatable({}, Object)
+  debug_msg(Object.coroutine_create)
+  debug_msg(o.coroutine_create)
+  CDR:Block_new()
+  CDR.Block:coroutine_create(function()
+    token.set_macro('foo','chi')
+    tex.print([[\string\foo]])
+debug_msg('WILL SYNCHRONIZE')
+    CDR.Block.synchonize()
+    token.set_macro('foo','mee')
+    tex.print([[\string\foo]])
+debug_msg('WILL SYNCHRONIZE')
+    CDR.Block:synchonize()
+  end)
+  debug_msg('WILL RESUME')
+  CDR.Block:resume()
+  debug_msg('DID RESUME')
+  CDR.Block:resume()
+  CDR.Block:resume()
+  CDR.Block:resume()
+  CDR:Block_free()
+}
+POC
+%\CDRBlockImport{./Tests/CDRBlockImport-raw.txt}
 \endinput
+
+\makeatother
+\directlua{
+  require('./Tests/sandbox.lua')
+}
+\CDRBlockImport{./Tests/CDRBlockImport-raw.txt}
+\endinput
+
+\leavevmode
+\directlua{
+  tex.print(CDR.token_register);
+  tex.settoks(421, [[\string\textbf{ABCDE}]]);
+  tex.runtoks(421)
+}
+POC
+\endinput
+\directlua{
+  print('DRIVER ????????????????????????? ')
+  local d = CDR:import_driver_get({
+    driver='c'
+  })
+  print('DRIVER +++++++++++++++++++++++++ ', d, d.open, d.close)
+}
+POC
+\endinput
+\colorlet{CDROptions}{magenta!66!black}
+\CDRSet{
+  only top,
+  tags/lua={
+    lang=lua,
+    style=xcode,
+    numbers=right,
+    show tags=mirror,
+  },
+  tags/py={
+    lang=python,
+    style=trac,
+    numbers=left,
+    show tags=mirror,
+  },
+  tags/latex|src|options={
+    lang=tex,
+    style=default,
+    numbers=none,
+    show tags=none,
+    escape inside=⟨⟩,
+  },
+  tags/options={
+    format=\color{CDROptions}\bfseries,
+  },
+  tags/xcode={
+    style=xcode,
+    show tags=none,
+    numbers=left,
+  },
+  show spaces=false,
+}
+\CDRDebugOn
+\begin{center}
+\begin{CDRBlockSave}{1}
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}firstline=2⟩,
+  ⟨\color{CDROptions}lastline=4⟩,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlockSave}
+\begin{CDRBlockSave}{2}
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}firstline=-3⟩,
+  ⟨\color{CDROptions}lastline=-1⟩,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlockSave}
+\begin{CDRBlockSave}{3}
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}firstline=L.*2⟩,
+  ⟨\color{CDROptions}lastline=L.*4⟩,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlockSave}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
+\CDRBlockUse[tags=src]{1}
+The output reads
+\CDRBlockUse[
+  firstline=2+4,
+  lastline=4+4,
+]{1}
+&
+\CDRBlockUse[tags=src]{2}
+The output reads
+\CDRBlockUse[
+  firstline=-3-1,
+  lastline=-1-1,
+]{2}
+&
+\CDRBlockUse[tags=src]{3}
+The output reads
+\CDRBlockUse[
+  firstline=^L.*2,
+  lastline=^L.*4,
+]{3}
+\end{tabular}
+\end{center}
+poc
+\endinput
+\begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
+\RequirePackage{coder}
+\end{CDRBlock}
+poc
+\endinput
+\begin{CDRBlockSave}{textbf}
+\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
+\end{CDRBlockSave}
+\CDRBlockExe{textbf}
+poc
+\CDRCodeUse[pygments,escape inside=⟨⟩]{UNIK key}
+\endinput
+\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
 \begin{CDRBlock}[pygments=true, show spaces = false, style=xcode, lang = lua]
 function factorial(n)
   --[[Compute n!]]

@@ -1,0 +1,122 @@
+\documentclass{article}
+\begin{document}
+\section{\string\newtoks}
+The <token register> is the number or the name.
+\newtoks\MyToks
+\directlua{
+  myToks=\the\count15;
+  tex.print(myToks);
+}
+\MyToks{ABC}
+\directlua{
+  tex.runtoks(myToks);
+  tex.settoks(myToks,'CBA');
+}
+\the\MyToks
+\MyToks{ABCD}
+\directlua{
+  tex.runtoks('MyToks');
+  tex.settoks('MyToks','DCBA');
+}
+\the\MyToks
+\MyToks{ABCDE}
+\directlua{
+  tex.print(tex.toks.MyToks);
+  tex.toks.MyToks='EDCBA';
+  tex.runtoks(myToks);
+  tex.runtoks(myToks);
+}
+\the\MyToks
+\section{\string\scantoks}
+\the\MyToks
+\directlua{
+  tex.print(tex.toks.MyToks);
+  tex.scantoks(0,myToks,"e=mc");
+  tex.runtoks(myToks);
+  tex.runtoks(0);
+  tex.scantoks('MyToks',0,"$e=mc^2$");
+}
+\the\MyToks
+\directlua{
+  tex.toks.MyToks=[[\string\textbf{ABCDE}]];
+  tex.runtoks(myToks);
+  tex.scantoks('MyToks',0,[[\string\textbf{ABCDE}]]);
+  tex.runtoks(myToks);
+}
+\section {\string\input}
+runtoks is restricted.
+The \string\input\ may works only in certain circumstances that I did not find.
+\directlua{
+  luatexbase.add_to_callback(
+    'open_read_file',
+    function (file_name)
+      texio.write_nl('');
+      texio.write_nl('**** OPEN READ FILE '..file_name);
+      local i = 0
+      return {
+        reader = function ()
+          i = i+1;
+          texio.write_nl('READER LINE '..i);
+          if i < 5 then
+            return 'READER LINE '..i
+          end
+        end
+      }
+    end,
+    'CDR runtoks input'
+  );
+}
+\input{input_1}
+Here is the test:
+\directlua{
+  texio.write_nl('From scantoks');
+  tex.scantoks('MyToks',0,[[\string\textbf{BEFORE}\string\input{input_1}\string\textbf{AFTER}]]);
+  tex.runtoks('MyToks');
+}
+\directlua{
+  luatexbase.remove_from_callback(
+    'open_read_file',
+    'CDR runtoks input'
+  );
+}
+
+TEST without the callback
+\textbf{BEFORE}
+\input{input_1}
+\textbf{AFTER}
+\directlua{
+  texio.write_nl('From scantoks wihtout callbacks');
+  tex.scantoks('MyToks',0,[[\string\textbf{BEFORE}\string\input{input_1}\string\textbf{AFTER}]]);
+  tex.runtoks('MyToks');
+}
+\section{with function}
+\directlua{
+  tex.forcehmode();
+  luatexbase.add_to_callback(
+    'open_read_file',
+    function (file_name)
+      texio.write_nl('');
+      texio.write_nl('**** OPEN READ FILE '..file_name);
+      local i = 0
+      return {
+        reader = function ()
+          i = i+1;
+          texio.write_nl('READER LINE '..i);
+          if i < 5 then
+            return 'READER LINE '..i
+          end
+        end
+      }
+    end,
+    'CDR runtoks input'
+  );
+  tex.runtoks(function()
+    tex.sprint([[\string\textbf{BEFORE}\string\input{input_1}\string\textbf{AFTER}]])
+  end);
+  luatexbase.remove_from_callback(
+    'open_read_file',
+    'CDR runtoks input'
+  );
+}
+
+\end{document}

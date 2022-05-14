@@ -180,8 +180,8 @@ and the derived files           \jobname.ins,
 \NeedsTeXFormat{LaTeX2e}
 \ExplSyntaxOff
 
-\RequirePackage{fontspec, xcolor, fancyvrb}
-\RequirePackage{ifthen, multicol}
+\RequirePackage{xcolor}
+\RequirePackage{luatexbase}
 \AddToHook { begindocument / before } {
   \RequirePackage{datetime2}
 }
@@ -283,8 +283,8 @@ and the derived files           \jobname.ins,
 %
 %\title{^^A
 %  \pkg{\jobname}\\
-% code inside \LaTeX\\
-% \LaTeX\ inside code}
+% \LaTeX\ inside code\\
+% code inside \LaTeX}
 %\author{^^A
 %  Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}^^A
 %}
@@ -297,8 +297,11 @@ and the derived files           \jobname.ins,
 %\changes{v1.0a}{2022/01/20}{First public release}
 %
 % \begin{abstract}
-% Usually, documentation is put inside the code,
-% \pkg{\jobname} allows to work the other way round
+% Usually, the documentation is put inside the code,
+% with a limited formatting.
+% \pkg{\jobname} allows to interpret and manage this
+% documentation as \LaTeX\ input.
+% \pkg{\jobname} also allows to work the other way round
 % by putting code inside the documentation.
 % This is particularly interesting when different code files share some logic
 % and should be documented all at once.
@@ -309,7 +312,7 @@ and the derived files           \jobname.ins,
 % \end{abstract}
 %
 % \section{Package dependencies}
-% \pkg{datetime2}, \pkg{xcolor} and dependencies of these packages.
+% \pkg{luatexbase}, \pkg{datetime2}, \pkg{xcolor} and dependencies of these packages.
 %
 % \section{Similar technologies}
 % \begin{description}
@@ -317,20 +320,18 @@ and the derived files           \jobname.ins,
 % it is on some respect more powerful than \pkg{\jobname} at the cost of
 % more technicality and less practicality,
 % \item The \pkg{ydoc.cls} and \pkg{skdoc.cls} are
-% full document classes with similar features but
+% full document classes with some similar features but
 % many more that are unrelated.
 % \pkg{\jobname} focuses on code inlining and interfaces very well with \pkg{pygments}
 % for a smart and efficient syntax hilighting.
 % \item The \pkg{pygmentex} and \pkg{minted} packages were somehow source of inspiration.
-% \item The \pkg{listings} packages must be mentionned.
+% \item The \pkg{listings} and \pkg{fancyvrb} packages must be mentionned.
 % \end{description}
 %
 % \section{Known bugs and limitations}
 % \begin{itemize}
 % \item
 % \pkg{\jobname} does not play well with \pkg{docstrip}.
-% \item
-% \pkg{\jobname} exportation does not play well with \pkg{beamer}.
 % \end{itemize}
 %
 % \end{documentation}
@@ -469,10 +470,8 @@ local kpse  = _ENV.kpse
 local rep   = string.rep
 local json  = require('lualibs-util-jsn')
 local ltb = _ENV.luatexbase
-local ltb_callback_descriptions = ltb.callback_descriptions
-local ltb_add_to_callback       = ltb.add_to_callback
-local ltb_remove_from_callback  = ltb.remove_from_callback
-local ltb_in_callback           = ltb.in_callback
+local ltb_add_to_callback      = ltb.add_to_callback
+local ltb_remove_from_callback = ltb.remove_from_callback
 local lpeg  = require("lpeg")
 local C       = lpeg.C
 local Cg      = lpeg.Cg
@@ -495,6 +494,7 @@ ltb.provides_module{
 % The return module is based on it.
 %    \begin{MacroCode}
 local CDR = {}
+local TEST = {}
 %    \end{MacroCode}
 % \end{variable}
 %
@@ -516,16 +516,17 @@ local CDR_PY_PATH = kpse.find_file('coder-tool.py')
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{function}{activate_debug}
+% \begin{function}{debug_msg, activate_debug}
 % \begin{syntax}
 % CDR:activate_debug(\meta{boolean})
+% debug_msg(...)
 % \end{syntax}
 % Activate debuging messaging, or not.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function noop (...)
+local function f_noop (...)
 end
-local debug_msg = noop
+local debug_msg = f_noop
 local function f_debug_msg (...)
   local s = token.get_macro('CurrentFile')
   if #s == 0 then
@@ -533,16 +534,138 @@ local function f_debug_msg (...)
   end
   print('*--* CDR:'..s..':'..tostring(tex.inputlineno)..':', ...)
 end
+TEST.debug_msg = function(...)
+  debug_msg(...)
+end
 function CDR:activate_debug(yorn)
   if yorn then
     debug_msg = f_debug_msg
   else
-    debug_msg = noop
+    debug_msg = f_noop
+  end
+end
+function CDR:activate_test(yorn)
+  if yorn then
+    self.TEST = TEST
+  else
+    self.TEST = nil
   end
 end
 function CDR.debug(...)
   debug_msg(...)
 end
+%    \end{MacroCode}
+%
+% \begin{function}{print_now, sprint_now}
+% \begin{syntax}
+% CDR.print_now(\meta{tex.print arguments})
+% \end{syntax}
+% Print now through |tex.runtoks|.
+% \end{function}
+%    \begin{MacroCode}[OK]
+function CDR.print_now(...)
+  local args = {...}
+  tex.runtoks(function ()
+    tex.print(table.unpack(args))
+  end)
+end
+function CDR.sprint_now(...)
+  local args = {...}
+  tex.runtoks(function ()
+    tex.sprint(table.unpack(args))
+  end)
+end
+%    \end{MacroCode}
+%
+% \begin{function}{run_toks}
+% \begin{syntax}
+% CDR.run_toks(\meta{tokens}[, \meta{cctab number}])
+% \end{syntax}
+% Shortcut to |tex.runtoks|.
+% The \metatt{tokens} are parsed with category code table
+% \metatt{cctab number} or the current one.
+% \end{function}
+%    \begin{MacroCode}[OK]
+function CDR.run_toks(cctab, ...)
+  local s = ''
+  if type(cctab) == 'string' then
+    s = cctab
+    cctab = 0
+  end
+  for _,ss in ipairs({...}) do
+    s = s .. ss
+  end
+  tex.scantoks('CDR@toks',cctab,s);
+  tex.runtoks('CDR@toks');
+end
+%    \end{MacroCode}
+%
+% \begin{function}{coroutine_create, coroutine_resume}
+% \begin{syntax}
+% local resume, synchronize
+% resume, synchronize = CDR:coroutine_create(\meta{f})
+% \end{syntax}
+% This is handy for synchronized TeX vs lua code.
+% \end{function}
+%    \begin{MacroCode}[OK]
+do
+  local coroutines = {}
+  function CDR:coroutine_create(f)
+    local n = #coroutines + 1
+    coroutines[n] = coroutine.create(function (...)
+debug_msg('CDR:coroutine_... START', n)
+      local ans = { f(...) }
+      coroutines[n] = nil
+debug_msg('CDR:coroutine_... RETURN', n)
+      return table.unpack(ans)
+    end)
+    return function (...)
+debug_msg('CDR:coroutine_... RESUME', n)
+      return coroutine.resume(coroutines[n], ...)
+    end, function (...)
+      tex.sprint([[\directlua]]..'{CDR:coroutine_resume__('..n..')}')
+debug_msg('CDR:coroutine_... YIELD', n)
+      return coroutine.yield(...)
+    end
+  end
+  function CDR:coroutine_resume__(n)
+    coroutine.resume(coroutines[n])
+  end
+end
+%    \end{MacroCode}
+%
+% \begin{function}{callback_push}
+% \begin{syntax}
+% callback_push(\metatt{callback_name},\metatt{callback}, \metatt{description})
+% \end{syntax}
+% Save the current callback and restore it at the end.
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function callback_push(callback_name, callback, description)
+debug_msg('callback_push', callback_name, description)
+  local saved = {}
+  for _,d in pairs(
+    ltb.callback_descriptions(callback_name)
+  ) do
+    local v = ltb_remove_from_callback(callback_name, d )
+    saved[d] = v
+    break
+  end
+  ltb_add_to_callback(callback_name, callback, description)
+  local fired
+  return function ()
+debug_msg('exclusive_callback_pop', callback_name, description)
+    if not fired then
+      fired = true
+      local f, d = ltb_remove_from_callback(callback_name, description )
+      for k, v in pairs(saved) do
+        ltb_add_to_callback(callback_name, v, k)
+      end
+      return f, d
+    end
+  end
+end
+TEST.callback_push = callback_push
 %    \end{MacroCode}
 %
 % \begin{function}{set_python_path}
@@ -684,8 +807,7 @@ else
   json_p = dir_p..'input.pyg.json'
 end
 %    \end{MacroCode}
-% \begin{variable}{Object.dir_p}
-% |Code| and |Block| can be used for \metatt{Object}.
+% \begin{variable}{CDR.dir_p}
 % \end{variable}
 %    \begin{MacroCode}[OK]
 CDR.dir_p = dir_p
@@ -874,6 +996,15 @@ local Object = setmetatable({}, {
   end,
 })
 Object.__index = Object
+TEST.Object = Object
+%    \end{MacroCode}
+%
+% Coroutines management.
+%
+%    \begin{MacroCode}
+function Object:coroutine_create(f)
+  self.resume, self.synchronize = CDR:coroutine_create(f)
+end
 %    \end{MacroCode}
 %
 % \subsection{Code}
@@ -889,6 +1020,7 @@ Object.__index = Object
 local Code = setmetatable({}, {
   __index = Object
 })
+TEST.Code = Code
 function Code:__index (k)
 -- debug_msg('Code:__index', k)
   if k == 'inline' then
@@ -914,9 +1046,6 @@ function Code:__index (k)
         synctex_tag  = 0,
         synctex_line = 0,
       },
-      fv_opts = {
-        __cls__ = 'FVOpts',
-      }
     }
     rawset(self, k, ans)
     return ans
@@ -990,7 +1119,7 @@ function Code:sprint_inline ()
   self:escape_inside_maker{
     active_f   = sprint_active_f,
     escape_f   = sprint_escape_f,
-    alter_f    = noop,
+    alter_f    = f_noop,
   } ( self.inline or '' )
 end
 function Code:inline_to_ltx (mode)
@@ -1029,21 +1158,21 @@ function Code:sprint_inline_escaped ()
 end
 %    \end{MacroCode}
 %
-% \begin{function}{Code.peek_begin, Code.peek_end, Code.status}
+% \begin{function}{Code.peek_active_begin, Code.peek_active_end, Code.status}
 % \begin{syntax}
-% CDR.Code:peek_begin(\meta{identifier})
-% CDR.Code:peek_end()
+% CDR.Code:peek_active_begin(\meta{identifier})
+% CDR.Code:peek_active_end()
 % CDR.Code:status()
 % \end{syntax}
 % Set the peeker and its associate closure for further peeking.
 % These functions are balancing each other.
-% Implementation detail: the |peek_end| is defined dynamically.
+% Implementation detail: the |peek_active_end| is defined dynamically.
 % \end{function}
 % The only purpose is to catch a new line very early. This is achieved by using callbacks.
 % The |status| will print something to the \TeX\ stream in case of error.
 %    \begin{MacroCode}
-function Code:peek_begin ( delimiter )
-  ltb_add_to_callback (
+function Code:peek_active_begin ( delimiter )
+  local pop = callback_push (
     'process_input_buffer',
     function (input)
       if input then
@@ -1053,19 +1182,17 @@ function Code:peek_begin ( delimiter )
         return delimiter..input
       end
     end,
-    'CDRCode'
+    'CDRCode',
+    1
   )
-  self.peek_end = function (this)
-    ltb_remove_from_callback(
-      'process_input_buffer',
-      'CDRCode'
-    )    
+  self.peek_active_end = function (this)
+    pop()    
   end
 end
-function Code:peek_end ()
-  error('Build time error: unexpected Code.peek_end')
+function Code:peek_active_end ()
+  error('Build time error: unexpected Code.peek_active_end')
 end
-Code.status = noop
+Code.status = f_noop
 %    \end{MacroCode}
 % 
 % \begin{function}{Code_new, Code_free}
@@ -1106,6 +1233,7 @@ end
 local Block = setmetatable({}, {
   __index = Object,
 })
+TEST.Block = Block
 function Block:__index(k)
   local ans
   if k == 'lines' then
@@ -1143,11 +1271,6 @@ function Block:__index(k)
         synctex_tag= 0,
         synctex_line = 0,
       },
-      fv_opts = {
-        __cls__ = 'FVOpts',
-        firstnumber = 1,
-        stepnumber= 1,
-      }
     }
     rawset(self, k, ans)
     return ans
@@ -1280,7 +1403,7 @@ debug_msg('Block:save_begin', env)
   self.lines = lines
   assert(lines == self.lines)
   local f_current
-  ltb_add_to_callback (
+  local pop = callback_push (
     'process_input_buffer',
     function (input)
       if input then
@@ -1289,7 +1412,8 @@ debug_msg('Block:save_begin', env)
         return ([[\PackageError{coder}{Missing `\end{%s}'}{See %s documentation }]]):format(env, env)
       end
     end,
-    'CDRBlock'
+    'CDRBlock',
+    1
   )
   if debug_msg ~= f_debug_msg then
     ltb_add_to_callback (
@@ -1298,27 +1422,25 @@ debug_msg('Block:save_begin', env)
         debug_msg('BUFFER:', '<'..input..'>')
         return input
       end,
-      'CDRBlockDebug'
+      'CDRBlockDebug',
+      1
     )
   end
   local function remove_from_callback ()
-    ltb_remove_from_callback(
-      'process_input_buffer',
-      'CDRBlock'
-    )
-    if ltb_in_callback('process_input_buffer', 'CDRBlockDebug') then
+    if ltb.in_callback('process_input_buffer', 'CDRBlockDebug') then
       ltb_remove_from_callback(
         'process_input_buffer',
         'CDRBlockDebug'
       )
     end
+    pop()
   end
 %    \end{MacroCode}
 % |f_current| is the state of the |process_input_buffer| callback.
 % It is defined by one of next functions.
 % State changes are below.
 %    \begin{MacroCode}
-  local f_start, f_options, f_body
+  local f_start, f_options, f_body, f_line
 %    \end{MacroCode}
 % The start state of the callback called iff there is
 % no option after de |\begin{...}| instruction.
@@ -1329,25 +1451,26 @@ debug_msg('Block:save_begin', env)
 % This is only called through |f_current|: it is called
 % first and only once.
 %    \begin{MacroCode}
+  f_line = function (input)
+    lines[#lines+1] = input
+    return [[\relax]]    
+  end
   f_start = function (input)
 debug_msg('CALLBACK:IN_START', '<'..input..'>')
-    f_current = nil
-    function self.is_after_eol(this)
-      tex.sprint('T')
-      this.is_after_eol = nil
-    end
+    f_current = f_line
+    token.set_char('l_CDR_before_eol_bool', 0)
     if input:match([[^%s*\end%s*]]
       ..'{'..env..'}') then
 %    \end{MacroCode}
 % No option, no body: terminante environment.
 %    \begin{MacroCode}
+debug_msg('WILL remove_from_callback')
       remove_from_callback()
 debug_msg('SCAN:end', '<'..input..'>')
       return input
     else
 debug_msg('CALLBACK:START', '<'..input..'>')
-      lines[#lines+1] = input
-      return [[\relax]]
+      return f_line(input)
     end
   end
   f_current = f_start
@@ -1386,11 +1509,10 @@ debug_msg('CALLBACK:END', '<'..input..'>')
 %    \begin{MacroCode}
   f_body = function (input)
 debug_msg('CALLBACK:IN_BODY', '<'..input..'>')
-    function self.is_after_eol (this)
-      tex.sprint('T')
-    end
+    token.set_char('l_CDR_before_eol_bool', 0)
     if input:match([[^%s*\end%s*]]
       ..'{'..env..'}') then
+debug_msg('WILL remove_from_callback 2', [[\relax]]..input)
       remove_from_callback()
       return [[\relax]]..input
     else
@@ -1419,9 +1541,10 @@ debug_msg('Block:enter_options')
   self.exit_options = function (this)
 debug_msg('Block:exit_options')
     f_current = f_body
-    this.is_after_eol = nil
   end
-  self.save_end = noop
+  self.save_end = function (this)
+    debug_msg('Block:save_end... DONE')
+  end
 debug_msg('Block:save_begin... DONE')
 end
 function Block:save_end ()
@@ -1430,8 +1553,6 @@ end
 %    \end{MacroCode}
 % The default state:
 %    \begin{MacroCode}
-function Block:is_after_eol ()
-end
 function Block:enter_body ()
   error('Buid time error: unexpected enter_body')
 end
@@ -1478,7 +1599,7 @@ function Block:pre_setup ()
   local escape_inside = self:escape_inside_maker{
     active_f   = sprint_active_f,
     escape_f   = sprint_escape_f,
-    alter_f    = noop,
+    alter_f    = f_noop,
   }
   self.sprint_line_ltx2 = function(this, n)
     CDR.sprint_escape([[\color{magenta!50!black}\bfseries ABCD]])
@@ -1563,6 +1684,58 @@ function Block:exeExplSyntaxOff ()
 end
 %    \end{MacroCode}
 %
+% \begin{function}{input_virtual_file}
+% \begin{syntax}
+% input_virtual_file(\metatt{reader_f}, \metatt{close_f})
+% \end{syntax}
+% Input a virtual file.
+% The \metatt{reader_f} and \metatt{close_f} functions
+% are the standard functions for |'open_read_file'|.
+% Their |env| argument is set up appropriately.
+% Should the |close| function be overriden, it must end
+% with a call to |env:did_close()| to properly restore the state.
+%
+% In general, this is the last instruction of a |\directlua| argument.
+% \end{function}
+%    \begin{MacroCode}[OK]
+local function input_virtual_file (reader_f, close_f)
+  local pop_frf = callback_push(
+    'find_read_file',
+    function (id_number, asked_name)
+      return asked_name
+    end,
+    'CDRInputVirtualFile'
+  )
+  local pop_orf
+  pop_orf = callback_push(
+    'open_read_file',
+    function (file_name)
+debug_msg('CDRInputVirtualFile open_read_file', file_name)
+      return {
+        reader = function(env)
+          if env.close == nil then
+            env.close = function (this)
+debug_msg('CDRInputVirtualFile close', file_name)
+              if close_f then
+                close_f(this)
+              end
+              this:did_close()
+            end
+          end
+          return reader_f(env)
+        end,
+        did_close = function (env)
+          pop_orf()
+          pop_frf()
+        end,
+      }
+    end,
+    'CDRInputVirtualFile'
+  )
+  tex.print([[\input{...}]])
+end
+%    \end{MacroCode}
+%
 % \begin{function}{exe_begin, exe_end}
 % \begin{syntax}
 % CDR.Block:exe_begin(\metatt{makeatletter}, \metatt{ExplSyntaxOn})
@@ -1580,39 +1753,14 @@ function Block:exe_begin ()
     if #this.lines == 0 then
       return
     end
-    local FAKE = '.CDR_fake'
-    local pop_frf
-    pop_frf = exclusive_callback_push(
-      'find_read_file',
-      function (id_number, asked_name)
-debug_msg('find_read_file:', asked_name)
-        return FAKE
-      end,
-      'CDRBlockExe'
+    local i = 0
+    local lines = { table.unpack(this.lines) }
+    input_virtual_file(
+      function(env)
+        i = i+1
+        return lines[i]
+      end
     )
-    local pop_orf
-    pop_orf = exclusive_callback_push(
-      'open_read_file',
-      function (file_name)
-debug_msg('open_read_file:', file_name)
-        assert( file_name == FAKE, 'Unexpected input '..file_name)
-        local i = 0
-        local lines = { table.unpack(self.lines) }
-        return {
-          reader = function(this)
-            if i < #lines then
-              i = i+1
-              return lines[i]
-            end
-            pop_orf()
-            pop_frf()
-            return nil
-          end,
-        }
-      end,
-      'CDRBlockExe'
-    )
-    tex.print([[\input{.CDR_fake}]])
   end
 end
 function Block:exe_end ()
@@ -1645,10 +1793,7 @@ function Object:pyg_set(kvargs)
       t = args.pygopts
       if t[key] == nil then
         t = args.texopts
-        if t[key] == nil then
-          t = args.fv_opts
-          assert(t[key])
-        end
+        assert(t[key])
       end
     end
 debug_msg('pyg_set', key, value)
@@ -1679,6 +1824,7 @@ end
 % \end{function}
 %    \begin{MacroCode}
 function Object:pyg_source(sty, src)
+debug_msg('pyg_source', sty, src)
   if not PYTHON_PATH then
     return
   end
@@ -1696,7 +1842,8 @@ function Object:pyg_source(sty, src)
   local pyg_sty_p
   if sty then
     pyg_sty_p = CDR.dir_p..pygopts.style..'.pyg.sty'
-    token.set_macro('l_CDR_pyg_sty_tl', pyg_sty_p)
+    token.set_macro(-2, 'l_CDR_pyg_sty_tl', pyg_sty_p)
+debug_msg('pyg_source: sty', token.get_macro('l_CDR_pyg_sty_tl'))
     texopts.pyg_sty_p = pyg_sty_p
     local mode,_,__ = lfs.attributes(pyg_sty_p, 'mode')
     if not mode or not use_cache then
@@ -1752,6 +1899,7 @@ debug_msg('pyg_source', '<'..self.id..'>', lines, #lines)
     local base = CDR.dir_p..hash
     pyg_tex_p = base..'.pyg.tex'
     token.set_macro(-2, 'l_CDR_pyg_tex_tl', pyg_tex_p)
+debug_msg('pyg_source: sty', token.get_macro('l_CDR_pyg_tex_tl'))
     local mode,_,__ = lfs.attributes(pyg_tex_p,'mode')
     if not mode or not use_cache then
       use_py = true
@@ -1921,21 +2069,21 @@ debug_msg('do_escape =', s)
     if #s>0 then
       return { escape_f, s }
     end
-  end or noop
+  end or f_noop
   local alter_f   = kvargs.alter_f
   local do_alter = alter_f and function (s)
 debug_msg('do_alter =', s)
     if #s>0 then
       return { alter_f, s }
     end
-  end or noop
+  end or f_noop
   local active_f  = kvargs.active_f
   local do_active = active_f and function (s)
 debug_msg('do_active =', s)
     if #s>0 then
       return { active_f, s }
     end
-  end or noop
+  end or f_noop
   local ds = self.delimiters
   local n = utf8.len(ds)
   if n>0 then
@@ -1991,7 +2139,7 @@ function Block:pyg_teardown()
     end
     local escape_inside = self:escape_inside_maker {
       active_f   = append_f,
-      escape_f   = noop,
+      escape_f   = f_noop,
       alter_f    = append_f,
     }
     local code
@@ -2336,13 +2484,14 @@ end
 %
 % \begin{function}{import_driver_get}
 % \begin{syntax}
-% import_driver_get(\metatt{name})
+% CDR:import_driver_get(\metatt{name})
 % \end{syntax}
 % Get the driver with the given name.
 % \end{function}
 %    \begin{MacroCode}[OK]
-local function import_driver_get(args)
+function CDR:import_driver_get(args)
   local name = args.driver
+debug_msg('import_driver_get', name)
   local path
   if name:match('%.lua$') then
     path = kpse.find_file(name)
@@ -2361,6 +2510,7 @@ local function import_driver_get(args)
     if driver.setup then
       driver:setup(args)
     end
+    driver.debug_msg = debug_msg
     return driver
   end
   tex.print([[\PackageError{coder}]]..'{Syntax error in '
@@ -2371,204 +2521,36 @@ end
 %
 % \begin{function}{synctex_tag_catch}
 % \begin{syntax}
-% CDR.Block:synctex_tag_catch()
+% CDR.Block:synctex_tag_catch(\metatt{path})
 % \end{syntax}
-% This must be called at the Lua\TeX\ level, followed by an \cs{input}.
-% Then, the |synctex_tag_catched| of the receiver
+% This must be called at the Lua\TeX\ level.
+% at the end, the |synctex_tag_catched| of the receiver
 % will contain the Sync\TeX\ tag for that file.
-% The file is simulated to only have a single line,
-% containing \cs{relax}.
 % \end{function}
 %    \begin{MacroCode}[OK]
-function exclusive_callback_push(callback_name, callback, description)
-  local saved = {}
-  for _,d in pairs(
-    ltb_callback_descriptions(callback_name)
-  ) do
-    local v = ltb_remove_from_callback(callback_name, d )
-    saved[d] = v
-    break
-  end
-  ltb_add_to_callback(callback_name, callback, description)
-  return function ()
-    local f, d = ltb_remove_from_callback(callback_name, description )
-    for k, v in pairs(saved) do
-      ltb_add_to_callback(callback_name, v, k)
-    end
-    return f, d
-  end
-end
-function Block:synctex_tag_catch()
-  local pop
-  pop = exclusive_callback_push(
+function Block:synctex_tag_catch(path)
+debug_msg('synctex_tag_catch...', path)
+  local pop = callback_push(
     'open_read_file',
     function (file_name)
+debug_msg('synctex_tag_catch open_read_file', file_name)
       return {
-        reader = function(this)
+        reader = function ()
           self.synctex_tag_catched = tex.get_synctex_tag()
-          this.reader = function(me)
-            pop()
-            return nil
-          end
-          return [[\relax]]
         end,
       }
     end,
     'CDRBlockImport'
   )
-end
-%    \end{MacroCode}
-%
-% \begin{function}{source_lines_get}
-% \begin{syntax}
-% source_lines_get(\metatt{args})
-% \end{syntax}
-% Private helper for the main processor.
-% \end{function}
-%    \begin{MacroCode}[OK]
-local function source_lines_get(args)
-  local source = kpse.find_file(args.source)
-  if not source then
-    tex.print([[\PackageError{coder}{No source ]]
-    ..args.source..
-    [[}{See \string\CDRBlockImport.}]])
-    return
-  end
-  local lines = {}
-  f = assert(io.open(source))
-  for l in f:lines() do
-    lines[#lines+1] = l
-  end
-  f:close()
-  return lines
-end
-%    \end{MacroCode}
-%
-% \begin{function}{import_process}
-% \begin{syntax}
-% CDR.Block:import_process(\metatt{args})
-% \end{syntax}
-% This is the main processor.
-% \end{function}
-%    \begin{MacroCode}[OK]
-local function import_process(self, args)
-  self.import_set_boolean = nil
-  self:synctex_save()
-  self.synctex_save = noop
-  self.synctex_restore = noop
-%    \end{MacroCode}
-% We read the file all at once in memory
-% because we must know in advance the number
-% of lines.
-%    \begin{MacroCode}[OK]  
-  local lines = source_lines_get(args)
-  local last_line = table.remove(lines)
-  local d = import_driver_get(args)
-  local n = 0
-  local ans = {}
-  local function one_more_line(l)
-    ans[#ans+1] = l
-  end
-  local line_code = args.show_code and one_more_line or noop
-  local pending_code, conclude, next_code
-  local function prepare_code(l)
-    line_code([[\begin{CDRBlock}]]
-       ..'[firstnumber='..n..',obey lines]')
-    line_code(l)
-    pending_code = function ()
-      line_code([[\end{CDRBlock}]])
-    end
-    conclude = function ()
-      if #last_line>0 then
-        line_code(last_line)
-      end
-      line_code([[\end{CDRBlock}]])
-      line_code('')
-      conclude = nil
-    end
-    next_code = line_code
-  end
-  self:synctex_tag_set(self.synctex_tag_catched)
-  self:synctex_line_set(0)
-  local s1 = [[\directlua]]
-  ..'{CDR.Block:synctex_target_set('
-  local s2 = ')}'
-  local line_doc  = args.show_doc and function (l)
-    local space, unspace = l:match('^(%s*)(.*)$')
-    if #unspace>0 then
-      one_more_line(space..s1..n..s2..unspace)
-    else
-      one_more_line(l)
-    end
-  end or noop
-  pending_code = noop
-  next_code = prepare_code
-  local body, in_doc, in_code, after_short
-  in_doc = function (l)
-    if d:close(l) then
-      body = in_code
-      next_code = prepare_code
-      conclude = function ()
-        if #last_line then
-          line_code([[\begin{CDRBlock}]]
-            ..'[firstnumber='..(n+1)..',obey lines]')
-          line_code(last_line)
-          line_code([[\end{CDRBlock}]])
-          line_code('')
-        end
-      end
-    else
-      line_doc(l)
-    end
-  end
-  in_code = d.open and function (l)
-    if d:open(l) then
-      pending_code()
-      pending_code = noop
-      body = in_doc
-    else
-      next_code(l)
-    end
-  end or function (l)
-    next_code(l)
-  end
-  local short = d.short and function (l)
-  end or function (l)
-    next_code(l)
-  end
-  local loop
-  if args.first_line <= 0 then
-    args.first_line = args.first_line + #lines
-  end
-  if args.last_line <= 0 then
-    args.last_line  = args.last_line  + #lines
-  end
-  body = in_code
-  loop = function (l)
-    if n >= args.first_line then
-      loop = function (l)
-        if n > args.last_line then
-          loop = noop
-        end
-        body(l)
-      end
-      body(l)
-    end
-  end
-  for _,l in ipairs(lines) do
-    n = _
-    loop(l)
-  end
-  if conclude then
-    conclude()
-  end
-  for _,l in ipairs(ans) do
-    debug_msg(_, '====>', l)
-    tex.print(l)
-  end  
-  if d.teardown then
-    d:teardown()
-  end
+  tex.runtoks(function ()
+    debug_msg('BEFORE INPUT')
+  end)
+  CDR:run_toks('\\input{'..path..'}');
+  tex.runtoks(function ()
+    debug_msg('AFTER INPUT')
+  end)
+  pop()
+debug_msg('synctex_tag_catched', self.synctex_tag_catched)
 end
 %    \end{MacroCode}
 %
@@ -2576,14 +2558,12 @@ end
 %   import_set_boolean,
 %   import_set_integer,
 %   import,
-%   import_end,
 % }
 % \begin{syntax}
 % CDR.Block:import_begin(\metatt{tl source variable}, \metatt{tl driver variable})
 % CDR.Block:import_set_boolean(\metatt{key}, \metatt{tl variable})
 % CDR.Block:import_set_integer(\metatt{key}, \metatt{tl variable})
 % CDR.Block:import()
-% CDR.Block:import_end()
 % \end{syntax}
 % These are the helpers to import a source file.
 % The driver, source and various options are stored,
@@ -2591,39 +2571,245 @@ end
 % instruction |CDR.Block:import()| which
 % forwards to |import_process|.
 % Implementation detail: all functions but the first are
-% implemented dynamically.
-% The |import_begin| and |import_end| methods must be called
-% in separate |\directlua| calls.
+% implemented dynamically. Local function helpers are named |fi_...|.
 % \end{function}
 %    \begin{MacroCode}[OK]
-function Block:import_begin(source_var, driver_var)
+function Block:import_begin()
+debug_msg('import_begin.......................................')
+  token.set_macro('l_CDR_status_tl','')
   local args = {
-    source = assert(token.get_macro(source_var or 'l_CDR_import_tl')),
-    driver = assert(token.get_macro(driver_var or 'l_CDR_a_tl')),
+    source = assert(token.get_macro('l_CDR_input_tl')),
+    driver = assert(token.get_macro('l_CDR_driver_tl')),
     first_line = 1,
     last_line  = 0,
     show_code  = true,
     show_doc   = true,
   }
-  function self.import(this)
-    import_process(this, args)
+%    \end{MacroCode}
+% Error checking:
+%    \begin{MacroCode}[OK]
+debug_msg('import_begin... DRIVER?')
+  local d = CDR:import_driver_get(args)
+  if not d then
+    token.set_macro('l_CDR_status_tl', 'FAILED')
+    return
   end
-  function self.import_end(this)
-    this.synctex_restore = nil
-    this:synctex_restore()
+%    \end{MacroCode}
+% We read the file all at once in memory
+% because we must know in advance the number
+% of lines.
+%    \begin{MacroCode}[OK]  
+  local lines = {}
+  local source = args.source
+  local f = io.open(source)
+  if not f then
+    source = kpse.find_file(source)
+    if source then
+      f = io.open(source)
+    end
+    if not f then
+      token.set_macro('l_CDR_status_tl', 'FAILED')
+      tex.print([[\PackageError{coder}]]..'{No source '
+      ..args.source..
+      '}'..[[{See \string\CDRBlockImport.}]])
+      return
+    end
   end
+  for l in f:lines() do
+    lines[#lines+1] = l
+  end
+  f:close()
+  
+  self.import_set_boolean = nil
+  self:synctex_save()
+  self.synctex_save = f_noop
+  self.synctex_restore = f_noop
+  local last_line = table.remove(lines)
+  local n = 0
+  local MT = {
+    append = function (this, line)
+      this.lines[#this.lines+1] = line
+    end
+  }
+  local current
+  local all = {}
+  local function fi_code_new ()
+    current = setmetatable({
+      is_code = true,
+      n = n,
+      lines = {},
+    }, { __index = MT
+    })
+    all[#all+1] = current
+  end
+  local function fi_doc_new ()
+    current = setmetatable({
+      is_doc = true,
+      lines = {},
+    }, { __index = MT
+    })
+    all[#all+1] = current
+  end
+%    \end{MacroCode}
+%    \begin{MacroCode}
+  self:synctex_tag_set(self.synctex_tag_catched)
+  self:synctex_line_set(0)
+%    \end{MacroCode}
+% This is \LaTeX\ inside code, so we start in code mode.
+%    \begin{MacroCode}[OK]
+  local resume, synchronize
+  local make_reader
+  make_reader = function ()
+    if #all == 0 then
+      if args.first_line <= 0 then
+        args.first_line = #lines + args.first_line
+      end
+      if args.last_line <= 0 then
+        args.last_line = #lines + args.last_line
+      end
+      fi_code_new(args.first_line)
+      local depth = 0
+      for i = args.first_line, args.last_line do
+debug_msg('\\CDRBlockImport reader original', i, lines[i], d.open, d.close)
+        n = i
+        local l = lines[i]
+        if d.open and d:open(l) then
+debug_msg('OPEN')
+          depth = depth + 1
+          if current.is_code then
+            fi_doc_new()
+          end
+        elseif d.close and d:close(l) then
+debug_msg('CLOSE')
+          if depth > 0 then
+            depth = depth - 1
+          else
+            tex.print([[\PackageError{coder}]]..'{No source '
+              ..args.source..
+              '}'..[[{See \string\CDRBlockImport.}]])
+            synchronize()
+          end
+          if depth == 0 then
+            fi_code_new(n)
+          end
+        else
+debug_msg('CONTINUE')
+          current:append(l)
+        end
+      end
+      if depth>0 then
+        tex.sprint([[\PackageError{coder}]]
+          ..'{Unbalanced comments in '
+          ..args.source..
+          '}'..[[{See \string\CDRBlockImport.}]])
+        synchronize()
+      end
+%    \end{MacroCode}
+% Remove the tables with only void lines.
+%    \begin{MacroCode}[OK]
+      local t = {}
+      for _,tt in ipairs(all) do
+        for _,line in ipairs(tt.lines) do
+          if #line > 0 then
+            t[#t+1] = tt
+            break
+          end
+        end
+      end
+      all = t
+%    \end{MacroCode}
+% Merge consecutive docs.
+%    \begin{MacroCode}[OK]
+      current = table.remove(all, 1)
+      if current then
+        t = { current }
+        while #all > 0 do
+          local tt = table.remove(all, 1)
+          if not current.is_doc == not tt.is_doc then
+            for _,line in ipairs(tt.lines) do
+              current.lines[#current.lines+1] = line
+            end
+          else
+            current = tt
+            t[#t+1] = tt
+          end
+        end
+        all = t
+      end
+      t = {}
+      for _,tt in ipairs(all) do
+        if tt.is_code then
+          t[#t+1] = [[\begin{CDRBlock}]]
+            ..'[first number='..(tt.n+1)..',obey lines]'
+        end
+        for _,line in ipairs(tt.lines) do
+          t[#t+1] = line
+        end
+        if tt.is_code then
+          t[#t+1] = [[\end{CDRBlock}]]       
+        end
+      end      
+      all = t
+    end
+debug_msg('RESUME, YIELD..................11111')
+    resume, synchronize = CDR:coroutine_create(make_reader)
+    resume()
+    for i,l in ipairs(all) do
+      debug_msg('\\CDRBlockImport READER', i, l)
+    end
+debug_msg('RESUME, YIELD..................22222')
+    local i = 0
+    local close_expected
+    return function (env)
+      i = i+1
+      if i>#all then
+debug_msg('\\CDRBlockImport time to close')
+        assert(not close_expected, 'close MISSED')
+        close_expected = true
+      end
+      debug_msg('\\CDRBlockImport reader', i, #all)
+      return all[i]
+    end
+  end
+  local pop
+  pop = callback_push (
+    'open_read_file',
+    function (file_name)
+debug_msg('\\CDRBlockImport open_read_file', file_name)
+      local close = function (env)
+debug_msg('\\CDRBlockImport close', file_name)
+        if d.teardown then
+          d:teardown()
+        end
+        pop()
+        self.synctex_restore = nil
+        self:synctex_restore()
+      end
+      local reader = make_reader()
+debug_msg('\\CDRBlockImport READER ****************')
+      return {
+        reader = function (env)
+debug_msg('\\CDRBlockImport READER 1st')
+          env.close = close
+          env.reader = reader
+          return reader(env)
+        end,
+      }
+    end,
+    'CDRBlockImport'
+  )
   function self.import_set_boolean(this, key, var)
     args[key] = assert(token.get_macro(var or 'l_CDR_a_tl')) == 'true'
+debug_msg('import_set_boolean', key, args[key])
   end
   function self.import_set_integer(this, key, var)
     args[key] = tonumber(token.get_macro(var or 'l_CDR_a_tl'))
+debug_msg('import_set_integer', key, args[key])
   end
+debug_msg('import_begin...DONE')
 end
 function Block:import ()
   error('Build time error: unexpected import call.')
-end
-function Block:import_end ()
-  error('Build time error: unexpected import_end call.')
 end
 function Block:import_set_boolean ()
   error('Build time error: unexpected import_set_boolean call.')
@@ -2814,34 +3000,6 @@ class PygOpts(BaseOpts):
     self.gobble  = abs(int(self.gobble))
 %    \end{MacroCode}
 %
-% \subsection{\texttt{FV}class}
-% 
-%    \begin{MacroCode}
-class FVOpts(BaseOpts):
-  linenosep = '0pt'
-  commentchar = ''
-  label = ''
-  numbers = 'left'
-  numbersep = '1ex'
-  firstnumber = 'auto'
-  stepnumber = 1
-  numberblanklines = True
-  firstline = ''
-  lastline = ''
-  baselinestretch = 'auto'
-  resetmargins = True
-  xleftmargin = '0pt'
-  xrightmargin = '0pt'
-  hfuzz = '2pt'
-  vspace = r'\topsep'
-  samepage = False
-  def __init__(self, *args, **kvargs):
-    super().__init__(*args, **kvargs)
-    if self.firstnumber != 'auto':
-      self.firstnumber = abs(int(self.firstnumber))
-    self.stepnumber = abs(int(self.stepnumber))
-%    \end{MacroCode}
-%
 % \subsection{\texttt{Arguments}class}
 %
 %    \begin{MacroCode}
@@ -2854,7 +3012,6 @@ class Arguments(BaseOpts):
   directory = "."
   texopts = TeXOpts()
   pygopts = PygOpts()
-  fv_opts = FVOpts()
 %    \end{MacroCode}
 % \section{\texttt{Controller} main class}
 %    \begin{MacroCode}[OK]
@@ -2872,8 +3029,6 @@ class Controller:
     __cls__ = d.get('__cls__', 'Arguments')
     if __cls__ == 'PygOpts':
       return PygOpts(d)
-    elif __cls__ == 'FVOpts':
-      return FVOpts(d)
     elif __cls__ == 'TeXOpts':
       return TeXOpts(d)
     elif __cls__ == 'BooleanTrue':
@@ -3011,7 +3166,6 @@ file name with extension, contains processing information.
     args.json = ns.json
     texopts = self.texopts = args.texopts
     pygopts = self.pygopts = args.pygopts
-    fv_opts = self.fv_opts = args.fv_opts
     self.formatter = LatexFormatter(
       style = pygopts.style,
       nobackground = pygopts.nobackground,
@@ -3361,6 +3515,10 @@ CDR.debug('atletter_cctab', CDR.atletter_cctab);
 CDR.debug('escape_cctab', CDR.escape_cctab);
 }
 %    \end{MacroCode}
+% The shared token register.
+%    \begin{MacroCode}
+\newtoks\CDR@toks
+%    \end{MacroCode}
 % Catch the current catcode table after all packages are loaded.
 %    \begin{MacroCode}
 \exp_args:Nx \CDR_pygments_setup:n {
@@ -3479,7 +3637,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \bool_new:N \l_CDR_bool
 %    \end{MacroCode}
 % \end{variable}
-% \begin{variable}{\l_CDR_[a$\vert$b]_tl}
+% \begin{variable}{\l_CDR_[a|b]_tl}
 % Local scratch variables.
 %    \begin{MacroCode}[OK]
 \tl_new:N \l_CDR_a_tl
@@ -3784,34 +3942,12 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   CDR.active_cctab = \int_eval:n { 
     \c_CDR_active_cctab
   };
+  CDR.code_cctab = \int_eval:n { 
+    \c_code_cctab
+  };
 }
-
 %    \end{MacroCode}
 % \end{variable}
-%
-% \begin{function}{\CDR_rescan_active:n, \CDR_rescan_escape:n}
-% \begin{syntax}
-% \cs{CDR_rescan_escaped:n} \Arg{token list}
-% \cs{CDR_rescan_active:n} \Arg{token list}
-% \end{syntax}
-% Rescan the \metatt{token list}.
-% The escaped variant uses the current catcode table.
-% For the unescaped variant, everything is a letter,
-% except white spaces which are active characters.
-% \end{function}
-%    \begin{MacroCode}[OK]
-\cs_set:Npn \CDR_rescan_raw:n #1 {
-  #1
-}
-\cs_set:Npn \CDR_rescan_active:n #1 {
-  \tl_rescan:nn {
-    \cctab_select:N \c_CDR_active_cctab
-  } { #1 }
-}
-\cs_set:Npn \CDR_rescan_escape:n #1 {
-  \tl_rescan:nn { } { #1 }
-}
-%    \end{MacroCode}
 %
 % \begin{function}{\CDR_whitespace_define:}
 % \begin{syntax}
@@ -5142,7 +5278,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     cache = true,
     debug = false,
     post~processor = ,
-    show~spaces,
+    show~spaces = false,
     obey~tabs = false,
     ref~label = ,
     escape~inside = ,
@@ -5628,7 +5764,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %
 % Block specific options, except numbering.
 %    \begin{MacroCode}[OK]
-\regex_const:Nn \c_CDR_int_regex { ^(+|-)?\d+$ } \use_none:n { $ }
+\regex_const:Nn \c_CDR_alg_regex { ^\s*[^[:alpha:]^] }
 \CDRTag_keys_define:nn { __fancyvrb.block } {
 %    \end{MacroCode}
 % \begin{description}
@@ -5708,34 +5844,21 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   number~sep .code:n = \CDRTag_set:,
   number~sep .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed firstnumber=auto$\vert$last$\vert$\meta{integer}]^^A
+% \itemtt[\CDRCheckRed first number=auto$\vert$last$\vert$\meta{integer}]^^A
 % number of the first line.
 % |last| means that the numbering is continued from the previous verbatim environment.
 % If an integer is given, its value will be used to start the numbering.
 % Initially \texttt{auto}: numbering starts from 1.
 %    \begin{MacroCode}[OK]
-  firstnumber .code:n = {
-    \regex_match:NnTF \c_CDR_int_regex { #1 } {
-      \CDRTag_set:
-    } {
-      \str_case:nnF { #1 } {
-        { auto } { \CDRTag_set: }
-        { last } { \CDRTag_set: }
-      } {
-        \PackageWarning
-          { CDR }
-          { Value~`#1'~not~in~auto,~last. }
-      }
-    }
-  },
-  firstnumber .value_required:n = true,
+  first~number .code:n = \CDRTag_set:n { \unexpanded { #1 } },
+  first~number .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed stepnumber=\meta{integer}]^^A
+% \itemtt[\CDRCheckRed step number=\meta{integer}]^^A
 % interval at which line numbers are printed.
 % Initially 1: all lines are numbered.
 %    \begin{MacroCode}[OK]
-  stepnumber .code:n = \CDRTag_set:,
-  stepnumber .value_required:n = true,
+  step~number .code:n = \CDRTag_set:n { \unexpanded { #1 } },
+  step~number .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed numberblanklines{[=true$\vert$false]}]^^A
 % to number or not the white lines (really empty or containing blank characters only).
@@ -5744,34 +5867,21 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   numberblanklines .code:n = \CDRTag_boolean_set:x { #1 },
   numberblanklines .default:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed firstline=\meta{integer}$\vert$\meta{regex}]^^A
+% \itemtt[\CDRCheckRed firstline=\meta{integer expression}$\vert$\meta{regex}]^^A
 % first line to print.
 % Initially empty: all lines from the first are printed.
+% When not void, it is considered as a regular expression when
+% starting with a letter or the |^| character. Otherwise,
+% it should expand to an integer.
 %    \begin{MacroCode}[OK]
-  firstline .code:n = {
-    \regex_match:NnTF \c_CDR_int_regex { #1 } {
-      \CDRTag_set:
-    } {
-      \tl_if_empty:nTF { #1 } {
-        \CDRTag_set:
-      } {
-        \CDRTag_set:n { \unexpanded { #1 } }
-      }
-    }
-  },
+  firstline .code:n = \CDRTag_set:n { \unexpanded { #1 } },
   firstline .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed lastline=\meta{integer}$\vert$\meta{regex}]^^A
 % last line to print.
 % Initially empty: all lines until the last one are printed.
 %    \begin{MacroCode}[OK]
-  lastline .code:n = {
-    \regex_match:NnTF \c_CDR_int_regex { #1 } {
-      \CDRTag_set:n { #1 }
-    } {
-      \CDRTag_set:n { \unexpanded { #1 } }
-    }
-  },
+  lastline .code:n = \CDRTag_set:n { \unexpanded { #1 } },
   lastline .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckGreen __initialize]^^A
@@ -5780,8 +5890,8 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   __initialize .meta:n = {
     numbers = left,
     number~sep = 1ex,
-    firstnumber = auto,
-    stepnumber = 1,
+    first~number = auto,
+    step~number = 1,
     numberblanklines = true,
     firstline = ,
     lastline = ,
@@ -6455,6 +6565,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   \tl_use:c { \CDR_style:c { #1 } }
 }
 \cs_set:Npn \CDR@StyleUseTag {
+\CDR@Debug{\string\CDR@StyleUseTag}
   \CDR@StyleUse { \CDRTag_get:c { style } }
 }
 %    \end{MacroCode}
@@ -6940,6 +7051,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \tl_new:N \l_CDR_id_short_tl
 \tl_new:N \l_CDR_delimiters_tl
 \tl_new:N \l_CDR_gobble_tl
+\tl_new:N \l_CDR_status_tl
 %    \end{MacroCode}
 %
 %    \begin{MacroCode}[OK]
@@ -7142,7 +7254,11 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \cs_set:Npn \CDRCode_peek:NN #1 {
   \group_begin:
   \tl_clear:N \l_CDR_peek_tl
-  \cs_set:Npn \CDRCode_peek_end:n ##1 {
+  \cs_set:Npn \CDRCode_peek_active_continue:n ##1 {
+    \tl_put_right:Nn \l_CDR_peek_tl { ##1 }
+    \CDRCode_peek_active:
+  }
+  \cs_set:Npn \CDRCode_peek_active_end:n ##1 {
     \directlua {
       CDR.Code:inline_save();
     }
@@ -7151,26 +7267,19 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     \tl_set:Nn \l_CDR_peek_tl \l_CDR_peek_tl
     #1
   }
-  \cs_set:Npn \CDRCode_peek_continue:n ##1 {
-    \typeout{ADDING/##1/}
-    \tl_put_right:Nn \l_CDR_peek_tl { ##1 }
-    \CDRCode_peek:
-  }
-  \cctab_select:N \c_str_cctab
-  \CDRCode_peek_begin:N
+  \cctab_select:N \c_CDR_active_cctab
+  \CDRCode_peek_active_begin:N
 }
-\cs_set:Npn \CDRCode_peek_begin:N #1 {
+\cs_set:Npn \CDRCode_peek_active_begin:N #1 {
   \directlua{
-    CDR.Code:peek_begin('\luaescapestring{ #1 }')
+    CDR.Code:peek_active_begin('\luaescapestring{ #1 }')
   }
   \char_set_active_eq:nN { `\    } \ %
   \char_set_active_eq:nN { `\^^I } \^^I %
   \char_set_active_eq:nN { `\^^M } \ %
   \char_set_catcode_active:n { `\^^M } %
-  \char_set_catcode_active:n { `\^^I }  
-  \char_set_catcode_active:n { `\    }
-  \typeout{START/#1/}
-  \cs_set:Npn \CDRCode_peek: {
+\CDR@Debug{\string\CDRCode_peek_active_begin:N/#1/}
+  \cs_set:Npn \CDRCode_peek_active: {
     \peek_meaning:NTF #1 {
       \exp_args:Nx \tl_if_empty:nF {
         \directlua{ CDR.Code:status() }
@@ -7180,15 +7289,14 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
           {Missing\space#1\space before\space next\space line}
           {Unterminated\space short\space verbatim\space input}
       }
-      \directlua{ CDR.Code:peek_end() }
-      \CDRCode_peek_end:n
+      \directlua{ CDR.Code:peek_active_end() }
+\typeout{\string\CDRCode_peek_active_end:n/#1/}
+	      \CDRCode_peek_active_end:n
     } {
-      \CDRCode_peek_continue:n
+      \CDRCode_peek_active_continue:n
     }
   }
-  \CDRCode_peek:
-}
-\cs_set:Npn \CDRCode_peek_process:nn #1 #2 {
+  \CDRCode_peek_active:
 }
 
 \NewDocumentCommand \CDRCode { O{} } {
@@ -7581,59 +7689,74 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % It happens to allways be called with optional arguments.
 % \end{function}
 %    \begin{MacroCode}
+\bool_new:N \l_CDR_before_eol_bool
 \NewDocumentCommand \CDRBlock@Read@Options { O{} } {
 \CDR@Debug{\string\CDRBlock@Read@Options}
   \clist_set:Nn \l_CDR_kv_clist { #1 }
   \directlua { CDR.Block:exit_options() }
+  \bool_set_true:N \l_CDR_before_eol_bool
 \CDR@Debug{\string\CDRBlock@Read@Options/SKIP}
-  \peek_analysis_map_inline:n {
-\CDR@Debug{\string\CDRBlock@Read@Options/##1/##2/##3/}
-    \exp_args:Nx
-    \tl_if_empty:nTF {
-      \directlua { CDR.Block:is_after_eol() }
-    } {
-\CDR@Debug{BEFORE_EOL}
-    \exp_args:Nx
-      \str_if_eq:nnF { ##3 } { A } {
+  \cs_set:Npn \CDR: {
+    \bool_if:NTF \l_CDR_before_eol_bool {
+\CDR@Debug{BEFORE_EOL2}
+      \token_if_space:NTF \l_peek_token {
+        \CDR@doafterspace {
+          \peek_after:Nw \CDR:
+        }
+      } {
 %    \end{MacroCode}
 % This is a forbidden black character.
 %    \begin{MacroCode}
         \PackageError
           { coder }
-          { Only\space`\c_percent_str'\space%[
-            after\space] }
+          { Only\space`\c_percent_str'\space
+            after\space\string\begin{\@currenvir} [...]}
           { See\space\@currenvir\space documentation }
-        \CDR_skip_to_next_line:
+        \CDR_skip_and_enter_body:
+      } {
+\CDR@Debug{AFTER_EOL/ENTER_BODY}
+        \CDR_gobble_and_enter_body:n
       }
-    } {
-\CDR@Debug{TOP_AFTER_EOL/##1/##2/##3/}
-      \peek_analysis_map_break:
     }
   }
+  \peek_after:Nw \CDR:
 }
-\cs_set:Npn \CDR_enter_body_and_gobble:n #1 {
+\cs_set:Npn \CDR_enter_body: {
 \CDR@Debug{WILL_ENTER_BODY}
   \directlua { CDR.Block:enter_body() }
   \ignorespaces
 }
-\cs_set:Npn \CDR_skip_to_next_line: {
-  \peek_analysis_map_break:n {
+\cs_set:Npn \CDR_gobble_and_enter_body:n #1 {
+  \CDR_enter_body:
+}
+\cs_set:Npn \CDR_skip_and_enter_body: {
 \CDR@Debug{SKIP_LINE_TAIL}
-    \peek_analysis_map_inline:n {
-      \exp_args:Nx
-      \tl_if_empty:nTF {
-        \directlua { CDR.Block:is_after_eol() }
-      } {
-\CDR@Debug{BEFORE_EOL/##1/##2/##3/}
-      } {
-\CDR@Debug{AFTER_EOL/##1/##2/##3/}
-        \peek_analysis_map_break:n {
-\CDR@Debug{ENTER_BODY}
-          \CDR_enter_body_and_gobble:n
+  \bool_set_true:N \l_CDR_before_eol_bool
+  \cs_set:Npn \CDR: {
+    \bool_if:NTF \l_CDR_before_eol_tl {
+\CDR@Debug{BEFORE_EOL}
+      \token_if_space:NTF \l_peek_token {
+        \CDR@doafterspace {
+          \peek_after:Nw \CDR:
         }
+      } {
+%    \end{MacroCode}
+% This is a forbidden black character.
+%    \begin{MacroCode}
+        \PackageError
+          { coder }
+          { Only\space`['\space or\space`\c_percent_str'\space%]
+            after\space\string\begin{\@currenvir} }
+          { See\space\@currenvir\space documentation }
+      } {
+\CDR@Debug{ENTER_BODY_AFTER_EOL}
       }
+      \CDR_gobble_and_enter_body:n
+    } {
+      \CDR_enter_body:
     }
   }
+  \peek_after:Nw \CDR:
 }
 %    \end{MacroCode}
 %
@@ -7701,6 +7824,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % \metatt{mode} is one of |raw|, |active| and |escape|.
 % The corresponding |\CDRBlock_line_|\metatt{mode}|:n|
 % will be called.
+% NB: you do not use 
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRBlock_map_indexed_inline:nn #1 #2 {
@@ -7740,16 +7864,19 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \CDR@Debug{CDRBlock...\the\inputlineno }
   \CDRBlock_new:c { }
   \CDRBlock_save_begin:
-}{
+} {
 \CDR@Debug{\the\inputlineno...CDRBlock}
   \CDRBlock_save_end:
+\CDR@Debug{CDRBlock...SETUP}
   \CDRBlock_setup:n { }
   \CDR_if_pygments:TF {
     \CDR@Debug{THIS\space IS\space PYGMENTS}
   } {
     \CDR@Debug{THIS\space IS\space NOT\space PYGMENTS}
   }
+\CDR@Debug{CDRBlock...USE}
   \CDRBlock_use:
+\CDR@Debug{CDRBlock...FREE}
   \CDRBlock_free:
 }
 %    \end{MacroCode}
@@ -7759,12 +7886,15 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % \cs{CDRBlock_save_begin:}
 % \cs{CDRBlock_save_end:}
 % \end{syntax}
-% Helper to begin/end the |CDRBlock| and |CDRBlockSave|environments.
+% Helper to begin/end the |CDRBlock| and |CDRBlockSave| environments.
 % These functions must be balanced.
 % The purpose is to record the verbatim text in a sequence of lines,
-% this is done inside a group to keep the catcodes intact from the outer world.
+% from the \pkg{lua} side.
 % \end{function}
 %    \begin{MacroCode}
+\ExplSyntaxOff
+\def\CDR@doafterspace#1 {#1}%
+\ExplSyntaxOn
 \cs_new:Npn \CDRBlock_save_begin: {
 \CDR@Debug{ \string\CDRBlock_save_begin: }
   \directlua{ CDR.Block:save_begin() }
@@ -7772,25 +7902,20 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % Function to break the analysis, skip the end of the line,
 % and execute |\CDR_read_options:n { }| on new line:
 %    \begin{MacroCode}
-  \peek_analysis_map_inline:n {
-    \exp_args:Nx
-    \tl_if_empty:nTF {
-      \directlua { CDR.Block:is_after_eol() }
-    } {
-\CDR@Debug{TOP_BEFORE_EOL:analysis/##1/##2/##3/\l_peek_token/}
-      \exp_args:Nx
-      \tl_if_eq:nnTF { ##1 } [%]
-      {
-%    \end{MacroCode}
-% This is the start of the options section.
-%    \begin{MacroCode}
-\CDR@Debug{BEGIN_OPTION}
-        \peek_analysis_map_break:n {
-          \directlua { CDR.Block:enter_options() }
-          \CDRBlock@Read@Options[%]
+  \bool_set_true:N \l_CDR_before_eol_bool
+  \cs_set:Npn \CDR: {
+    \bool_if:nTF \l_CDR_before_eol_bool {
+\CDR@Debug{BEFORE_EOL}
+      \token_if_space:NTF \l_peek_token {
+        \CDR@doafterspace {
+          \peek_after:Nw \CDR:
         }
       } {
-        \str_if_eq:nnF { ##3 } { A } {
+        \token_if_eq_charcode:NNTF \l_peek_token [%]
+        {
+          \directlua { CDR.Block:enter_options() }
+          \CDRBlock@Read@Options
+        } {
 %    \end{MacroCode}
 % This is a forbidden black character.
 %    \begin{MacroCode}
@@ -7799,16 +7924,16 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
             { Only\space`['\space or\space`\c_percent_str'\space%]
               after\space\string\begin{\@currenvir} }
             { See\space\@currenvir\space documentation }
-          \CDR_skip_to_next_line:
+          \CDR_skip_and_enter_body:
         }
       }
     } {
-\CDR@Debug{TOP_AFTER_EOL/##1/##2/##3/}
-      \peek_analysis_map_break:n {
-        \directlua { CDR.Block:enter_body() }
-      }
+\CDR@Debug{AFTER_EOL}
+\CDR@Debug{ENTER_BODY}
+      \CDR_enter_body:
     }
-  }   
+  }
+  \peek_after:Nw \CDR:
 }
 \cs_new:Npn \CDRBlock_id:c #1 {
   CDRBlock / #1 :
@@ -7956,10 +8081,10 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % \end{function}
 %    \begin{MacroCode}
 \cs_new:Npn \CDRBlock_use: {
-    \CDR@Debug{
-      \string\CDRBlock_use:, COUNT: \CDRBlock_count:
-    }
+\CDR@Debug{\string\CDRBlock_use:, COUNT: \CDRBlock_count:}
+%    \group_align_safe_begin:
     \CDRBlock_engine_begin:
+\CDR@Debug{\string\CDRBlock_use:, STEP: 1}
 %    \end{MacroCode}
 % We export all the lines if requested except what was escaped to \LaTeX.
 % As we use regular expressions, we must take care of characters with a special
@@ -7978,23 +8103,36 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % explicitly by a number or implicitly by a regular expression.
 % Let us start by the minimum index.
 %    \begin{MacroCode}  
+\CDR@Debug{\string\CDRBlock_use:, STEP: 2}
     \CDR_int_set:cn { __mini } { 1 }
+\CDR@Debug{\string\CDRBlock_use:, STEP: 2a}
     \CDRTag_get:cNT { firstline } \l_CDR_a_tl {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 2b, \l_CDR_a_tl}
       \tl_if_empty:NF \l_CDR_a_tl {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 2c}
         \exp_args:NNV
-        \regex_match:NnTF \c_CDR_int_regex \l_CDR_a_tl {
+        \regex_match:NnTF \c_CDR_alg_regex \l_CDR_a_tl {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 2d}
           \int_compare:nNnTF { \l_CDR_a_tl } > 0 {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 2e, \int_eval:n {\l_CDR_a_tl} }
             \CDR_int_set:cn { __mini } { \l_CDR_a_tl }
           } {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 2f}
             \CDR_int_set:cn { __mini } { \CDRBlock_count: + \l_CDR_a_tl }
           }
         } {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 2g}
           \regex_set:NV \l_CDR_regex \l_CDR_a_tl
-          \CDRBlock_map_indexed_inline:nn { raw } {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 2h}
+          \cs_set:Npn \CDR:nn ##1 ##2 {
             \regex_match:NnT \l_CDR_regex { ##2 } {
               \CDR_int_set:cn { __mini } { ##1 }
-              \seq_map_break:
+\CDR@Debug{\string\CDRBlock_use:, __mini: ##1}
+              \cs_set:Npn \CDR:nn { \use_none:nn }
             }
+          }
+          \CDRBlock_map_indexed_inline:nn { raw } {
+            \CDR:nn { ##1 } { ##2 }
           }
         }
       }
@@ -8002,25 +8140,35 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %    \end{MacroCode}
 % Let us go now for the maximum index.
 %    \begin{MacroCode}
+\CDR@Debug{\string\CDRBlock_use:, STEP: 3}
     \CDR_int_set:cn { __maxi } { \CDRBlock_count: }
+\CDR@Debug{\string\CDRBlock_use:, STEP: 3a}
     \CDRTag_get:cNT { lastline } \l_CDR_a_tl {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 3b}
       \tl_if_empty:NF \l_CDR_a_tl {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 3c}
         \exp_args:NNV
-        \regex_match:NnTF \c_CDR_int_regex \l_CDR_a_tl {
+        \regex_match:NnTF \c_CDR_alg_regex \l_CDR_a_tl {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 3d}
           \int_compare:nNnTF { \l_CDR_a_tl } > 0 {
             \CDR_int_set:cn { __maxi } { \l_CDR_a_tl }
+\CDR@Debug{\string\CDRBlock_use:, STEP: 3d1,  \CDR_int_use:c {__maxi} }
           } {
             \CDR_int_set:cn { __maxi } { \CDRBlock_count: + \l_CDR_a_tl }
+\CDR@Debug{\string\CDRBlock_use:, STEP: 3d2,  \CDR_int_use:c {__maxi} }
           }
         } {
+\CDR@Debug{\string\CDRBlock_use:, STEP: 3e}
           \regex_set:NV \l_CDR_regex \l_CDR_a_tl
-          \CDRBlock_map_indexed_inline:nn { raw } {
-            \CDR_int_compare:cNnF { __mini } > { ##1 } {
-              \regex_match:NnT \l_CDR_regex { ##2 } {
-                \CDR_int_set:cn { __maxi } { ##1 }
-                \seq_map_break:
-              }
+          \cs_set:Npn \CDR:nn ##1 ##2 {
+            \regex_match:NnT \l_CDR_regex { ##2 } {
+\CDR@Debug{\string\CDRBlock_use:, __maxi: ##1}
+              \CDR_int_set:cn { __maxi } { ##1 }
+              \cs_set:Npn \CDR:nn { \use_none:nn }
             }
+          }
+          \CDRBlock_map_indexed_inline:nn { raw } {
+            \CDR:nn { ##1 } { ##2 }
           }
         }
       }
@@ -8050,6 +8198,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     \endtrivlist
     \CDRBlock_teardown:
     \CDRBlock_engine_end:
+%    \group_align_safe_end:
 }
 %    \end{MacroCode}
 %
@@ -8150,7 +8299,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \CDR@Debug{ \string \CDRBlock_teardown:c }
   \bool_if:nT { \CDR_if_number_on_p: && !\CDR_if_numbers_dry_p: } {
 \CDR@Debug{ \string \CDRBlock_teardown:c ~UPDATE}
-    \CDRTag_if_eq:cnTF { firstnumber } { last } {
+    \CDRTag_if_eq:cnTF { first~number } { last } {
 \CDR@Debug{ \string \CDRBlock_teardown:c~CONTINUOUS }
       \CDRLine_logical_set:n {
         \CDRBlock_count:
@@ -8161,13 +8310,13 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
       }
     } {
 \CDR@Debug{ \string \CDRBlock_teardown:c~NORMAL }
-      \CDRTag_if_eq:cnTF { firstnumber } { auto } {
+      \CDRTag_if_eq:cnTF { first~number } { auto } {
         \CDRLine_logical_set:n {
           1 + \CDRBlock_count:
         }
       } {
         \CDRLine_logical_set:n {
-          \CDRTag_get:c { firstnumber } + \CDRBlock_count:
+          \CDRTag_get:c { first~number } + \CDRBlock_count:
         }
       }
       \clist_map_inline:Nn \g_CDR_tags_clist {
@@ -8266,7 +8415,6 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
       { coder }
       { Unknown~block~identifier:~#2 }
       { See~\string\CDRBlockSave~documentation. }
-    \CDRBlock_free:
   } {
     \directlua {
       CDR.Block:synctex_save();
@@ -8299,10 +8447,10 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     \directlua {
       CDR.Block:synctex_restore();
     }    
-    \CDRBlock_free:
-\CDR@Debug{\string\CDRBlockExe/#2/DONE}
-    \ignorespaces
   }
+  \CDRBlock_free:
+\CDR@Debug{\string\CDRBlockExe/#2/DONE}
+  \ignorespaces
 }
 %    \end{MacroCode}
 %
@@ -8356,9 +8504,11 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   \directlua { CDR.Block:pyg_set_var('mathescape') }
   \CDRTag_get:cN {style} \l_CDR_a_tl
   \directlua { CDR.Block:pyg_set_var('style') }
-\CDR@Debug { \string\CDRBlock_pyg_use: / Style:\l_CDR_a_tl }
-  \CDR@StyleIfExist { \l_CDR_a_tl } { } {
+  \CDR@StyleIfExist { \l_CDR_a_tl } { 
+\CDR@Debug { \string\CDRBlock_pyg_use: / Style:\l_CDR_a_tl=OK }  
+  } {
     \directlua { CDR.Block:pyg_source(true) }
+\CDR@Debug { \string\CDRBlock_pyg_use:\string\input{\l_CDR_pyg_sty_tl} }
     \input { \l_CDR_pyg_sty_tl }
   }
   \CDR@StyleUseTag
@@ -8786,6 +8936,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
       }
     }
     {
+\CDR@Debug{BEFORE\space\string\use_ii:nn\space\tl_to_str:n{#3}}
       \let\CDRIfLR\use_ii:nn
       #3
     }
@@ -8856,7 +9007,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 % Set the first line number.
 %    \begin{MacroCode}
     \CDR_int_set:cn { __start } { 1 }
-    \CDRTag_if_eq:cnTF { firstnumber } { last } {
+    \CDRTag_if_eq:cnTF { first~number } { last } {
       \clist_map_inline:Nn \g_CDR_tags_clist {
         \clist_map_break:n {
           \CDR_int_set:cc { __start } { ##1 }
@@ -8864,8 +9015,8 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
         }
       }
     } {
-      \CDRTag_if_eq:cnF { firstnumber } { auto } {
-        \CDR_int_set:cn { __start } { \CDRTag_get:c { firstnumber } }
+      \CDRTag_if_eq:cnF { first~number } { auto } {
+        \CDR_int_set:cn { __start } { \CDRTag_get:c { first~number } }
       }
     }
 %    \end{MacroCode}
@@ -8876,7 +9027,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     }
 \CDR@Debug{****** TEST: \CDR_if_number_single:TF { SINGLE } { MULTI } }
     \CDR_int_add:cn { __last } { \CDR_int:c { __start } - 1 }
-    \CDR_int_set:cn { __step } { \CDRTag_get:c { stepnumber } }
+    \CDR_int_set:cn { __step } { \CDRTag_get:c { step~number } }
 \CDR@Debug {\string\CDR@Line/START/STEP/LAST=\CDR_int_use:c { __start }/\CDR_int_use:c { __step } /\CDR_int_use:c { __last }, #1}
 %    \end{MacroCode}
 % \begin{function}[EXP,pTF]{\CDRLine_if_visible_at_index:n}
@@ -8923,10 +9074,10 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
     \cs_set:Npn \CDR@Line ##1 {
 \CDR@Debug {\string\CDR@Line(A), ##1, \CDR_int_use:c{__mini}, \CDR_int_use:c{__maxi}}
       \CDR_int_compare:cNnTF { __mini } > { ##1 } {
-        \use_none:nn
+        \use_none:n
       } {
         \CDR_int_compare:cNnTF { __maxi } < { ##1 } {
-          \use_none:nn
+          \use_none:n
         } {
           \CDRLine_physical_set:n { ##1 }
           \CDRLine_logical_set:n { ##1 + \CDR_int:c { __start } - (#1) }
@@ -8957,11 +9108,14 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
       \CDRLine_logical_set:n { ##1 }
 \CDR@Debug {\string\CDR@Line(B), ##1, \CDR_int_use:c{__mini}, \CDR_int_use:c{__maxi}}
       \CDR_int_compare:cNnTF { __mini } > { ##1 } {
-        \use_none:nn
+\CDR@Debug{<MINI}
+        \use_none:n
       } {
         \CDR_int_compare:cNnTF { __maxi } < { ##1 } {
-          \use_none:nn
+\CDR@Debug{>MAXI}
+          \use_none:n
         } {
+\CDR@Debug{MINI<=...<=MAXI}
           \CDR@@Line
         }
       }
@@ -9256,7 +9410,7 @@ See the \CDRCode|\CDRBlockImport| documentation for more information.
 ]=]
 -- put here whatever statement you need
 -- return a table
-return {
+local ans = {
   open = function (self, line)
     return line:match(
       [[^/%*+!latex:]]
@@ -9269,10 +9423,14 @@ return {
   end,
   short = function (self, line)
     return line:match(
-      [[^/+!latex:%s*(.*)]]
-    ) ~= nil
+      [[^//+!latex:%s*(.*)]]
+    )
   end,
 }
+texio.write_nl('============================ DRIVER_C')
+texio.write_nl(tostring(ans.open))
+texio.write_nl(tostring(ans.close))
+return ans
 %</driver-c>
 %<*driver-py>
 --[=[!latex:
@@ -9324,29 +9482,38 @@ The \pkg{coder} package  will pretty print embedded documentation formatted in \
 comment markers. The beginning of a documentation block is delimited by a full line starting with
 \CDRCode[lang=lua]|^--[(=*)[!latex:|.
 The end of a documentation block is delimited by the next full line starting with
-\CDRCode[lang=lua,escape~inside=<>]|](<\CDRMeta{equals}>)]|
+\CDRCode[lang=lua,escape~inside=<>]|--](<\CDRMeta{equals}>)]|
 where \CDRMeta*{equals} represents the previously capture group.
 
 The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
 See the \CDRCode|\CDRBlockImport| documentation for more information.
 \end{coder}
-]=]
+--]=]
 -- put here whatever statement you need
 -- return a table
 return {
   open = function (self, line)
+print('driver-lua open?', line)
     local equals = line:match(
-      '^%-%-%[(=*)%[!latex:'--]--]
+      '^%-%-%[(=*)%[!latex:'--]]
     )
-    if equals then--[--[
-      local pattern = '^%]'..equals..'%]'
+    if equals then--[[
+self.debug_msg('driver-lua open!', equals)
+      local pattern = '^%-%-%]'..equals..'%]'
+      local close = self.close
       self.close = function (this, l)
-        return l:match(pattern) ~= nil
+self.debug_msg('driver-lua close?', l)
+        if l:match(pattern) then
+self.debug_msg('driver-lua close!')
+          self.close = close
+          return true
+        end
       end
       return true
     end
   end,
+  debug_msg = f_noop,
 }
 %</driver-lua>
 %<*sty>
@@ -9413,7 +9580,6 @@ return {
     driver     = raw,
     show~code  = true,
     show~doc   = true,
-    
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -9430,38 +9596,46 @@ return {
 % \subsection{Implementation}
 %
 %    \begin{MacroCode}
-\tl_new:N \l_CDR_import_tl
+\tl_new:N \l_CDR_input_tl
+\tl_new:N \l_CDR_driver_tl
 \NewDocumentCommand\CDRBlockImport { O{} m } {
-\CDR@Debug{\string\CDRBlockImport}
+\CDR@Debug{\string\CDRBlockImport/#1/#2}
   \group_begin:
-  \CDRBlock_new:c {}
-  \directlua {
-    CDR.Block:synctex_tag_catch();
+  \cs_set:Npn \SyncTeXLC:##1:##2: {
+    \directlua{CDR.Block:synctex_target_set(##1, ##2) }
   }
-  \input { #2 }
-  \tl_set:Nn \l_CDR_import_tl { #2 }
+  \CDRBlock_new:c {}
+  \tl_set:Nn \l_CDR_input_tl { #2 }
   \CDR_local_inherit:n { CDRBlockImport }
   \CDR_local_set_known:nN { #1 } \l_CDR_kv_clist
+\CDR@Debug{\string\CDRBlockImport: STEP1}
+  \directlua {
+    CDR.Block:synctex_tag_catch('\luaescapestring{#2}')
+  }
+\CDR@Debug{\string\CDRBlockImport: STEP2}
   \CDRTag_get_inherit:n { CDRBlockImport }
-  \CDRTag_get:cN { driver } \l_CDR_a_tl
+  \CDRTag_get:cN { driver } \l_CDR_driver_tl
+\CDR@Debug{\string\CDRBlockImport: STEP3}
   \directlua { CDR.Block:import_begin() }
-  \CDRTag_get:cN { show~code } \l_CDR_a_tl
-  \directlua {
-    CDR.Block:import_set_boolean('show_code')
-  }
-  \CDRTag_get:cN { show~doc } \l_CDR_a_tl
-  \directlua {
-    CDR.Block:import_set_boolean('show_doc')
-  }
-  \CDRTag_get:cN { first~line } \l_CDR_a_tl
-  \directlua {
-    CDR.Block:import_set_integer('first_line')
-  }
-  \CDRTag_get:cN { last~line } \l_CDR_a_tl
-  \directlua {
-    CDR.Block:import_set_integer('last_line');
-    CDR.Block:import();
-    CDR.Block:import_end();
+  \tl_if_empty:NT \l_CDR_status_tl {
+    \CDRTag_get:cN { show~code } \l_CDR_a_tl
+    \directlua {
+      CDR.Block:import_set_boolean('show_code')
+    }
+    \CDRTag_get:cN { show~doc } \l_CDR_a_tl
+    \directlua {
+      CDR.Block:import_set_boolean('show_doc')
+    }
+    \CDRTag_get:cN { first~line } \l_CDR_a_tl
+    \directlua {
+      CDR.Block:import_set_integer('first_line')
+    }
+    \CDRTag_get:cN { last~line } \l_CDR_a_tl
+    \directlua {
+      CDR.Block:import_set_integer('last_line')
+    }
+\CDR@Debug{\string\CDRBlockImport\string\input{#2}}
+    \input { #2 }
   }
   \CDRBlock_free:
   \group_end:

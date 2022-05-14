@@ -1,0 +1,435 @@
+\documentclass{article}
+\directlua{
+  CDR = {}
+debug_msg = function(...)
+  print('**** CDR ****', ...)
+end
+}
+\newtoks\X
+\newtoks\Y
+\begin{document}
+\section{preparation}
+\directlua{
+  local f = function(s1, s2)
+    tex.print(s1);
+    tex.print(s2);
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);    
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);    
+  end
+  f('ABCDE', 'EDCBA');
+}
+We get a EDCBA too many times.
+\section{coroutine skeletton}
+\directlua{
+  co = coroutine.create(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    coroutine.yield()
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  coroutine.resume(co, 'ABCDE', 'EDCBA');
+}
+We got ABCDE once.
+\directlua{
+  coroutine.resume(co);
+}
+We got EDCBA once.
+\section{coroutine skeletton 2}
+\directlua{
+  co = coroutine.create(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    coroutine.yield()
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  coroutine.resume(co, 'ABCDE', 'EDCBA');
+  coroutine.resume(co);
+  coroutine.resume(co);
+  coroutine.resume(co);
+}
+We got EDCBA twice; no matter how many times the coroutine is resumed, as long as it is more than 2.
+
+\section{coroutine skeletton 3}
+\directlua{
+  co = coroutine.create(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    coroutine.yield()
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  coroutine.resume(co, 'ABCDE', 'EDCBA');
+  tex.print([[\string\directlua{coroutine.resume(co)}]]);
+}
+We got ABCDE and EDCBA.
+\section{coroutine skeletton 4}
+One coroutine, one \string\directlua\\
+\directlua{
+  co = coroutine.create(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    tex.print([[\string\directlua{coroutine.resume(co)}]]);
+    coroutine.yield()
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  coroutine.resume(co, 'ABCDE', 'EDCBA');
+}
+We got ABCDE and EDCBA.
+\section{coroutine skeletton 4bis}
+Two coroutines, one \string\directlua\\
+\directlua{
+  cox = coroutine.create(function(s1, s2)
+    tex.toks.X = s1;
+    texio.write_nl('body 1: start ', tex.toks.X);
+    tex.print([[\string\the\string\X]]);
+    tex.print([[\string\directlua{
+      texio.write_nl('body 1: before resume ', tex.toks.X);
+      coroutine.resume(cox);
+      texio.write_nl('body 1: after resume ', tex.toks.X);
+    }]]);
+    texio.write_nl('body 1: before yield ', tex.toks.X);
+    coroutine.yield();
+    texio.write_nl('body 1: after yield ', tex.toks.X);
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+    texio.write_nl('body 1: done');
+    texio.write_nl('');
+  end);
+  coroutine.resume(cox, 'ABCDE', 'EDCBA');
+  coy = coroutine.create(function(s1, s2)
+    tex.toks.Y = s1;
+    texio.write_nl('body 2: start '..tex.toks.Y)
+    tex.print([[\string\the\string\Y]]);
+    tex.print([[\string\directlua{
+      texio.write_nl('body 2: before resume ', tex.toks.Y);
+      coroutine.resume(coy);
+      texio.write_nl('body 2: after resume ', tex.toks.Y);
+      texio.write_nl('');
+    }]]);
+    texio.write_nl('body 2: before yield '..tex.toks.Y);
+    coroutine.yield();
+    texio.write_nl('body 2: after yield '..tex.toks.Y);
+    tex.toks.Y = s2;
+    tex.print([[\string\the\string\Y]]);
+    texio.write_nl('body 2: done '..tex.toks.Y);
+  end);
+  coroutine.resume(coy, '12345', '54321');
+  texio.write_nl('');
+}
+We got ABCDE and EDCBA.
+\section{coroutine skeletton 5}
+\directlua{
+  coroutines = {}
+  n1 = \string#coroutines+1
+  coroutines[n1] = coroutine.create(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    tex.print([[\string\directlua{coroutine.resume(coroutines[n1])}]]);
+    coroutine.yield()
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  coroutine.resume(coroutines[n1], 'ABCDE', 'EDCBA');
+  n2 = \string#coroutines+1;
+  coroutines[n2] = coroutine.create(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    tex.print([[\string\directlua{coroutine.resume(coroutines[n2])}]]);
+    coroutine.yield()
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  coroutine.resume(coroutines[n2], '12345', '54321');
+}
+We got ABCDE and EDCBA.
+\section{coroutine skeletton 6}
+\directlua{
+  helper = {};
+  do
+    coroutines = {};
+    helper = function (f)
+      local n = 1+\string#coroutines;
+      coroutines[n] = coroutine.create(f);
+      return function(...)
+        tex.print('START', n, ...)
+        coroutine.resume(coroutines[n], ...);
+      end, function ()
+        tex.print('RESUME', n)
+        tex.print([[\string\directlua]]..'{coroutine.resume(coroutines['..n..'])}');
+        coroutine.yield()
+      end
+    end
+  end
+  local resume, synchronize;
+  resume, synchronize = helper(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    synchronize();
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  resume('ABCDE', 'EDCBA');
+  tex.print('\string\\\string\\ SECOND TEST\string\\\string\\')
+  local resume6, synchronize6;
+  resume6, synchronize6 = helper(function(s1, s2)
+    tex.toks.Y = s1;
+    tex.print([[\string\the\string\Y]]);
+    synchronize6();
+    tex.toks.Y = s2;
+    tex.print([[\string\the\string\Y]]);
+  end);
+  resume6('12345', '54321');
+}
+
+We were expected ABCDE and EDCBA.
+We were expected 12345 and 54321.
+%
+\section{coroutine skeletton 7}
+\directlua{
+  local resume, synchronize;
+  resume, synchronize = helper(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    synchronize();
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  resume('ABCDE', 'EDCBA');
+}
+We got ABCDE, EDCBA.
+\section{coroutine skeletton 8}
+\directlua{
+  CDR = {}
+  do
+    coroutines = {};
+    function CDR:coroutine_create (f)
+      local n = 1+\string#coroutines;
+      coroutines[n] = coroutine.create(f);
+      return function(...)
+        coroutine.resume(coroutines[n], ...);
+      end, function ()
+        tex.print([[\string\directlua]]..'{coroutine.resume(coroutines['..n..'])}');
+        coroutine.yield()
+      end
+    end
+  end
+  local resume, synchronize;
+  resume, synchronize = CDR:coroutine_create(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    synchronize();
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  resume('ABCDE', 'EDCBA');
+  tex.print('\string\\\string\\ SECOND TEST\string\\\string\\')
+  local resume6, synchronize6;
+  resume6, synchronize6 = CDR:coroutine_create(function(s1, s2)
+    tex.toks.Y = s1;
+    tex.print([[\string\the\string\Y]]);
+    synchronize6();
+    tex.toks.Y = s2;
+    tex.print([[\string\the\string\Y]]);
+  end);
+  resume6('12345', '54321');
+}
+
+We were expected ABCDE and EDCBA.
+We were expected 12345 and 54321.
+%
+\section{coroutine skeletton 8 bis}
+\directlua{
+  CDR = {}
+  do
+    Cs = {};
+    function CDR:coroutine_resume(n)
+      coroutine.resume(Cs[n].co)
+    end;
+    function CDR:coroutine_create (f)
+      local n = 1+\string#Cs;
+      Cs[n] = {
+        co = coroutine.create(f)
+      };
+      return {
+        resume = function(this, ...)
+          coroutine.resume(Cs[n].co, ...);
+        end,
+        synchronize = function (this)
+          tex.print([[\string\directlua]]..'{CDR:coroutine_resume('..n..')}');
+          coroutine.yield()
+        end,
+      }
+    end
+  end
+  local  C8;
+  C8 = CDR:coroutine_create(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    C8:synchronize();
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  C8:resume('ABCDE', 'EDCBA');
+}
+
+We were expected ABCDE and EDCBA.
+%
+\section{coroutine skeletton 8 ter}
+\directlua{
+  CDR = {}
+  do
+    Cs = {};
+    function CDR:coroutine_resume(n)
+      coroutine.resume(Cs[n].co)
+    end;
+    function CDR:coroutine_create (f)
+      local n = 1+\string#Cs;
+      local ans = {
+        co = coroutine.create(f),
+        resume = function(this, ...)
+          coroutine.resume(Cs[n].co, ...);
+        end,
+        synchronize = function (this)
+          tex.print([[\string\directlua]]..'{CDR:coroutine_resume('..n..')}');
+          coroutine.yield()
+        end,
+      };
+      Cs[n] = ans;
+      return ans
+    end
+  end
+  local  C8;
+  C8 = CDR:coroutine_create(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    C8:synchronize();
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  C8:resume('ABCDE', 'EDCBA');
+}
+
+We were expected ABCDE and EDCBA.
+%
+\section{coroutine skeletton 8 quattro}
+\directlua{
+  CDR = {}
+  do
+    Cs = {};
+    function CDR:thread_resume(n)
+      coroutine.resume(Cs[n].co)
+    end;
+    function CDR:coroutine_create (f)
+      local n = 1+\string#Cs;
+      Cs[n] = {
+        co = coroutine.create(function (...)
+          local ans = { f(...) }
+          Cs[n] = nil;
+          return table.unpack(ans)
+        end),
+        fire = function(this, ...)
+          if not already then
+            already = true;
+            coroutine.resume(Cs[n].co, ...);
+          else
+            texio.write_nl('CDR: Already fired')
+          end;
+        end,
+        synchronize = function (this)
+          tex.print([[\string\directlua]]..'{CDR:thread_resume('..n..')}');
+          coroutine.yield()
+        end,
+      };
+      return Cs[n]
+    end
+  end
+  local  C8;
+  C8 = CDR:coroutine_create(function(s1, s2)
+    tex.toks.X = s1;
+    tex.print([[\string\the\string\X]]);
+    C8:synchronize();
+    tex.toks.X = s2;
+    tex.print([[\string\the\string\X]]);
+  end);
+  C8:fire('ABCDE', 'EDCBA');
+  C8:fire('ABCDE', 'EDCBA');
+}
+
+We were expected ABCDE and EDCBA.
+%
+%
+\section{OLD coroutine}
+\directlua{
+  CDR = {}
+debug_msg = function(...)
+  texio.write_nl('');
+  print('**** CDR ****', ...);
+end
+do
+  local coroutines = {}
+  function CDR:coroutine_create(f)
+    local n = \string#coroutines + 1;
+debug_msg('CDR:coroutine_... CREATE', n);
+    coroutines[n] = coroutine.create(function (...)
+debug_msg('CDR:coroutine_... START', n);
+      local ans = { f(...) };
+debug_msg('CDR:coroutine_... REMOVE', n);
+      coroutines[n] = nil;
+debug_msg('CDR:coroutine_... RETURN', n)
+      return table.unpack(ans);
+    end);
+    return function (...)
+debug_msg('CDR:coroutine_... RESUME', n);
+      return coroutine.resume(coroutines[n], ...);
+    end, function (...)
+      tex.sprint([[\string\directlua]]..'{coroutine.resume(coroutines['..n..'])}')
+debug_msg('CDR:coroutine_... YIELD', n)
+      return coroutine.yield(...)
+    end
+  end;
+end
+}
+POC
+
+\directlua{
+  texio.write_nl('**** coroutine');
+  local resume10, synchronize10;
+  resume10, synchronize10 = CDR:coroutine_create(function()
+    tex.print('ABCDE');
+    synchronize10();
+    tex.print('EDCBA');
+    tex.print('DONE');
+  end);
+  resume10();
+}
+
+POC
+
+\section{Lua example}
+\directlua{
+  function foo (a)
+       print("foo", a);
+       return coroutine.yield(2*a)
+     end
+     
+     co = coroutine.create(function (a,b)
+           print("co-body", a, b)
+           local r = foo(a+1)
+           print("co-body", r)
+           local r, s = coroutine.yield(a+b, a-b)
+           print("co-body", r, s)
+           return b, "end"
+     end)
+     
+     print("main", coroutine.resume(co, 1, 10));
+     print("main", coroutine.resume(co, "r"));
+     print("main", coroutine.resume(co, "x", "y"));
+     print("main", coroutine.resume(co, "x", "y"));
+}
+
+\end{document}
