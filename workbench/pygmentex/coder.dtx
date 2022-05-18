@@ -843,7 +843,7 @@ function CDR.make_directory(path)
 end
 %    \end{MacroCode}
 % \begin{variable}{dir_p}
-% The directory where the auxiliary \pkg{pygments} related files are saved,
+% The directory where the auxiliary \pkg{pygments} related files are saved for later use,
 % in general \metatt{jobname}|.pygd/|.
 % \end{variable}
 % \begin{variable}{json_p}
@@ -3191,7 +3191,7 @@ file name with extension, contains processing information.
 %    \end{MacroCode}
 %
 % \subsection{Methods}
-% \subsubsection{\texttt{__init__}}
+% \subsubsection{\texorpdfstring{\texttt{__init__}}{init}}
 % \begin{function}{__init__}
 % Constructor. Reads the command line arguments.
 % \end{function}
@@ -3353,7 +3353,7 @@ file name with extension, contains processing information.
     return hilighted
 %    \end{MacroCode}
 %
-% \subsubsection{\texttt{create_pygmented}}
+% \subsubsection{\texorpdfstring{\texttt{create_pygmented}}{create-pygmented}}
 % \begin{function}{self.create_pygmented}
 % \begin{syntax}
 % self.create_pygmented()
@@ -4386,9 +4386,9 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % \cs{CDRTag_if_eq:cnTF} \Arg{relative key path} \Arg{value} \Arg{true code} \Arg{false code}
 % \end{syntax}
 % Execute \metatt{true code} when the property for \metatt{tag name}
-% and \metatt{relative key path} is equal to \Arg{value},
+% and \metatt{relative key path} is equal to \metatt{value},
 % \metatt{false code} otherwise.
-% The comparison is based on |\str_compare:...|.
+% The comparison to \metatt{value} is based on |\str_compare:...|.
 % In the second version, the \metatt{tag name} is not provided and set to |__local|.
 % \end{function}
 %    \begin{MacroCode}[OK]
@@ -4769,7 +4769,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % \section{\pkg{l3keys} modules for code chunks}
 %
 % All these modules are initialized at the beginning
-% of the document using the |__initialize| meta key.
+% of the document body using the |__initialize| meta key.
 %
 % \subsection{Utilities}
 %
@@ -4808,7 +4808,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % \end{syntax}
 % Execute \metatt{true code} if there is a \metatt{key} for the given \metatt{module base},
 % \metatt{false code} otherwise.
-% If \metatt{module base} is empty, \Arg{key} is the module base used.
+% If \metatt{module base} is empty, \metatt{key} is the module base used.
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDRTag_keys_if_exist:nn { p, T, F, TF } {
   \exp_args:Nf
@@ -4903,8 +4903,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % \cs{CDRTag_keys_set_known:nnN} \Arg{tag name} \Arg{key[=value] items} \meta{clist var}
 % \cs{CDRTag_keys_set_known:nN} \Arg{tag name} \meta{clist var}
 % \end{syntax}
-% Wrappers over |\keys_set_known:nnnN|
-% where the module is given by |\CDRTag_module:n{|\metatt{tag name}|}|.
+% These are wrappers over the |\keys_set_known:nnnN| function
+% where the module argument is given by |\CDRTag_module:n{|\metatt{tag name}|}|.
 % \emph{Implementation detail} the remaining arguments are absorbed by the last macro.
 % When \metatt{key[=value] items} is omitted, it is the content of \metatt{clist var}.
 % \end{function}
@@ -4927,8 +4927,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % \cs{CDR_local_set_known:nN} \Arg{key[=value] items} \meta{clist var}
 % \cs{CDR_local_set_known:N} \meta{clist var}
 % \end{syntax}
-% Wrappers over |\CDRTag_keys_set_known:...|
-% where the module is given by |\CDRTag_module:n{|__local|}|.
+% These are wrappers over the |\CDRTag_keys_set_known:...|
+% functions where the module is given by |\CDRTag_module:n{|__local|}|.
 % When \metatt{key[=value] items} is omitted, it is the content of \metatt{clist var}.
 % \end{function}
 %    \begin{MacroCode}[OK]
@@ -5099,7 +5099,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % They are made available at the end user level,
 % but may not be relevant when \pkg{pygments} is nor used.
 %
-% \subsubsection{\texttt{__pygments }
+% \subsubsection{\texorpdfstring{\texttt{__pygments }}{--pygments}
 % \pkg{l3keys} module}
 %
 %    \begin{MacroCode}[OK]
