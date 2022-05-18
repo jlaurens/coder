@@ -247,10 +247,10 @@ function CDR.make_directory(path)
   if os["type"] == "windows" then
     path = path:gsub("/", "\\")
     _,_,__ = os.execute(
-      "if not exist "  .. path .. "\\nul " .. "mkdir " .. path
+      "if not exist "  .. path .. "\\nul " .. "mkdir " .. ("%q"):format(path)
     )
   else
-    _,_,__ = os.execute("mkdir -p " .. path)
+    _,_,__ = os.execute("mkdir -p "..("%q"):format(path))
   end
   mode = lfs.attributes(path,"mode")
   if mode == "directory" then
@@ -262,9 +262,12 @@ local dir_p, json_p
 local jobname = tex.jobname
 dir_p = './'..jobname..'.pygd/'
 if CDR.make_directory(dir_p) == nil then
+debug_msg('No directory', dir_p)
+  CDR.can_clean = false
   dir_p = './'
   json_p = dir_p..jobname..'.pyg.json'
 else
+  CDR.can_clean = true
   json_p = dir_p..'input.pyg.json'
 end
 CDR.dir_p = dir_p
@@ -1217,6 +1220,9 @@ function Object:synctex_sprint_line()
   tex.sprint(self:synctex_get('line'))
 end
 function CDR:cache_clean_all()
+  if not self.can_clean then
+    return
+  end
   local to_remove = {}
   for f in lfs.dir(dir_p) do
     to_remove[f] = true
@@ -1236,6 +1242,9 @@ function CDR:cache_record(pyg_sty_p, pyg_tex_p)
   end
 end
 function CDR:cache_clean_unused()
+  if not self.can_clean then
+    return
+  end
 debug_msg('CACHE CLEAN UNUSED', dir_p)
   local to_remove = {}
   for f in lfs.dir(dir_p) do
