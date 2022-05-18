@@ -7774,7 +7774,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \CDR@Debug{SKIP_LINE_TAIL}
   \bool_set_true:N \l_CDR_before_eol_bool
   \cs_set:Npn \CDR: {
-    \bool_if:NTF \l_CDR_before_eol_tl {
+    \bool_if:NTF \l_CDR_before_eol_bool {
 \CDR@Debug{BEFORE_EOL}
       \token_if_space:NTF \l_peek_token {
         \CDR@doafterspace {
@@ -7946,7 +7946,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}
   \bool_set_true:N \l_CDR_before_eol_bool
   \cs_set:Npn \CDR: {
-    \bool_if:nTF \l_CDR_before_eol_bool {
+    \bool_if:NTF \l_CDR_before_eol_bool {
 \CDR@Debug{BEFORE_EOL}
       \token_if_space:NTF \l_peek_token {
         \CDR@doafterspace {
