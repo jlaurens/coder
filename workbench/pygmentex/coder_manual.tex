@@ -1199,9 +1199,7 @@ Here is the raw content of file \pkg{coder-driver-c.lua} typeset with \pkg{pygme
   show tags=left,
   step number=5,
 }}
-\CDRDebugOn
 \CDRBlockImport[tags=lua|xcode,first line=18]{coder-driver-c.lua}
-\end{document}
 This was input with command
 \begin{CDRBlock}[tags=src]
 \CDRBlockImport[tags=lua,first line=18]{coder-driver-c.lua}
@@ -1269,7 +1267,7 @@ Tags are used not only for styling but also for continuous line numbering (secti
 Tag names must start and end with a unicode letter, moreover they must not contain commas nor pipe characters.
 Some names are defined by the \pkg{coder} package and they are available to the user. They need not appear in a \CDRCode[tags=src]?tags=...? setting. In particular, options set for the tag name \CDRCode[tags=src]?default? automatically apply to any forthcoming code snippet. Any option set for the tag name \CDRCode[tags=src]?default.code? applies to any forthcoming code snippet displayed inline, eventually overriding the \CDRCode[tags=src]?default? setting. Finally, options set for tag name \CDRCode[tags=src]?default.block? apply to any forthcoming code snippet displayed in block, taking precedence over the \CDRCode[tags=src]?default? setting.
 
-\subsection
+\subsection{Engines}
 Like tag names, engine names must start and end with a unicode letter, moreover they must not contain commas nor pipe characters.
 
 Engine options are provided to the \CDRCode[tags=src]?CDRBlock? environment and the \CDRCode[tags=src]?\CDRCode? , \CDRCode[tags=src]?\CDRCodeUse? and \CDRCode[tags=src]?\CDRBlockUse? commands with key \CDRCode[tags=src]?engine options?. This does not refer to the engine name and is not suitable for the 
