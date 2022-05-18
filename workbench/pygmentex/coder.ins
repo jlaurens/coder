@@ -70,6 +70,10 @@ This work consists of the file  \jobname.dtx
 and the derived files           \jobname.ins,
                                 \jobname.pdf,
                                 \jobname-util.lua,
+                                \jobname-driver-raw.lua,
+                                \jobname-driver-c.lua,
+                                \jobname-driver-py.lua,
+                                \jobname-driver-lua.lua,
                                 \jobname-tool.py and
                                 \jobname.sty.
 
@@ -85,10 +89,19 @@ and the derived files           \jobname.ins,
 \def\MetaPrefix{--}
 \usedir{scripts/coder}
 \generate{
-  \file{\jobname-util.x.lua}{\from{\jobname.dtx}{lua}}
+  \file{\jobname-util.lua}{\from{\jobname.dtx}{lua}}
 }
 \generate{
-  \file{\jobname-util.lua}{\from{\jobname.dtx}{lua}}
+  \file{\jobname-driver-raw.lua}{\from{\jobname.dtx}{driver-raw}}
+}
+\generate{
+  \file{\jobname-driver-c.lua}{\from{\jobname.dtx}{driver-c}}
+}
+\generate{
+  \file{\jobname-driver-py.lua}{\from{\jobname.dtx}{driver-py}}
+}
+\generate{
+  \file{\jobname-driver-lua.lua}{\from{\jobname.dtx}{driver-lua}}
 }
 \usepreamble\PreamblePy
 {
@@ -96,9 +109,6 @@ and the derived files           \jobname.ins,
 \global\def\MetaPrefix{#}
 }
 \usedir{scripts/coder}
-\generate{
-  \file{\jobname-tool.x.py}{\from{\jobname.dtx}{py}}
-}
 \generate{
   \file{\jobname-tool.py}{\from{\jobname.dtx}{py}}
 }

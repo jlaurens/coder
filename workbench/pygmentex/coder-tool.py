@@ -41,14 +41,21 @@ class TeXOpts(BaseOpts):
   tags      = ''
   is_inline  = True
   pyg_sty_p = None
+  synctex_tag  = 0
+  synctex_line = 0
+  tabsize = 4
   sty_template=r'''% !TeX root=...
 \makeatletter
-\CDR@StyleDefine{<placeholder:style_name>} {%
-  <placeholder:style_defs>}%
+\CDR@StyleDefine{<placeholder:style_name>}{%
+  \CDR@Debug{Loading style <placeholder:style_name>...}%
+  <placeholder:style_defs>%
+  \CDR@Debug{... DONE}%
+}%
 \makeatother'''
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
     self.pyg_sty_p = Path(self.pyg_sty_p or '')
+    self.tabsize = abs(int(self.tabsize))
 class PygOpts(BaseOpts):
   style = 'default'
   nobackground = False
@@ -61,43 +68,12 @@ class PygOpts(BaseOpts):
   escapeinside = ""
   envname = 'Verbatim'
   lang = 'tex'
+  gobble = 0
   def __init__(self, *args, **kvargs):
     super().__init__(*args, **kvargs)
     self.linenostart = abs(int(self.linenostart))
     self.linenostep  = abs(int(self.linenostep))
-class FVOpts(BaseOpts):
-  gobble = 0
-  tabsize = 4
-  linenosep = '0pt'
-  commentchar = ''
-  frame = 'none'
-  framerule = '0.4pt',
-  framesep = r'\fboxsep',
-  rulecolor = 'black',
-  fillcolor = '',
-  label = ''
-  labelposition = 'none'
-  numbers = 'left'
-  numbersep = '1ex'
-  firstnumber = 'auto'
-  stepnumber = 1
-  numberblanklines = True
-  firstline = ''
-  lastline = ''
-  baselinestretch = 'auto'
-  resetmargins = True
-  xleftmargin = '0pt'
-  xrightmargin = '0pt'
-  hfuzz = '2pt'
-  vspace = r'\topsep'
-  samepage = False
-  def __init__(self, *args, **kvargs):
-    super().__init__(*args, **kvargs)
     self.gobble  = abs(int(self.gobble))
-    self.tabsize = abs(int(self.tabsize))
-    if self.firstnumber != 'auto':
-      self.firstnumber = abs(int(self.firstnumber))
-    self.stepnumber = abs(int(self.stepnumber))
 class Arguments(BaseOpts):
   cache  = False
   debug  = False
@@ -107,15 +83,12 @@ class Arguments(BaseOpts):
   directory = "."
   texopts = TeXOpts()
   pygopts = PygOpts()
-  fv_opts = FVOpts()
 class Controller:
   @staticmethod
   def object_hook(d):
     __cls__ = d.get('__cls__', 'Arguments')
     if __cls__ == 'PygOpts':
       return PygOpts(d)
-    elif __cls__ == 'FVOpts':
-      return FVOpts(d)
     elif __cls__ == 'TeXOpts':
       return TeXOpts(d)
     elif __cls__ == 'BooleanTrue':
@@ -207,15 +180,14 @@ file name with extension, contains processing information.
       )
     args = self.arguments
     args.json = ns.json
-    self.texopts = args.texopts
+    texopts = self.texopts = args.texopts
     pygopts = self.pygopts = args.pygopts
-    fv_opts = self.fv_opts = args.fv_opts
     self.formatter = LatexFormatter(
       style = pygopts.style,
       nobackground = pygopts.nobackground,
       commandprefix = pygopts.commandprefix,
-      texcomments = pygopts.texcomments,
-      mathescape = pygopts.mathescape,
+      texcomments  = pygopts.texcomments,
+      mathescape   = pygopts.mathescape,
       escapeinside = pygopts.escapeinside,
       envname = 'CDR@Pyg@Verbatim',
     )
@@ -234,11 +206,16 @@ file name with extension, contains processing information.
       left  = escapeinside[0]
       right = escapeinside[1]
       lexer = self.lexer = LatexEmbeddedLexer(left, right, lexer)
+    elif len(escapeinside) == 3:
+      left   = escapeinside[0]
+      middle = escapeinside[1]
+      right  = escapeinside[2]
+      lexer  = self.lexer = LatexEmbeddedLexer(left, right, lexer)
 
-    gobble = fv_opts.gobble
+    gobble = pygopts.gobble
     if gobble:
       lexer.add_filter('gobble', n=gobble)
-    tabsize = fv_opts.tabsize
+    tabsize = texopts.tabsize
     if tabsize:
       lexer.tabsize = tabsize
     lexer.encoding = ''
@@ -264,7 +241,6 @@ file name with extension, contains processing information.
     pyg_sty_p = texopts.pyg_sty_p
     if args.cache and pyg_sty_p.exists():
       return
-    texopts = self.texopts
     style = self.pygopts.style
     formatter = self.formatter
     style_defs = formatter.get_style_defs() \
@@ -302,15 +278,28 @@ file name with extension, contains processing information.
     hilighted = m.group(1)
     texopts = self.texopts
     if texopts.is_inline:
-      return hilighted.replace(' ', r'\CDR@Sp ')+r'\ignorespaces'
+      s = r'\CDR@Setup{'
+      if texopts.synctex_tag:
+        s += f'synctex_tag={texopts.synctex_tag},'
+      if texopts.synctex_line:
+        s += f'synctex_line={texopts.synctex_line},'
+      s+='}'
+      return s + hilighted +r'\ignorespaces'
     lines = hilighted.split('\n')
     ans_code = []
-    last = 1
-    for line in lines[1:]:
+    last = 0
+    for line in lines:
       last += 1
       ans_code.append(rf'''\CDR@Line{{{last}}}{{{line}}}''')
-    if len(lines):
-      ans_code.insert(0, rf'''\CDR@Line[last={last}]{{{1}}}{{{lines[0]}}}''')
+    if last:
+      s = r'\CDR@Setup{'
+      s += f'last={last},'
+      if texopts.synctex_tag:
+        s += f'synctex_tag={texopts.synctex_tag},'
+      if texopts.synctex_line:
+        s += f'synctex_line={texopts.synctex_line},'
+      s+='}'
+      ans_code.insert(0, s)
     hilighted = '\n'.join(ans_code)
     return hilighted
   def create_pygmented(self):
@@ -323,12 +312,14 @@ file name with extension, contains processing information.
       tex_p = Path(base).with_suffix('.tex')
       with open(tex_p, 'r') as f:
         source = f.read()
+    if args.debug:
+      print('SOURCE', source)
     pyg_tex_p = Path(base).with_suffix('.pyg.tex')
     hilighted = self.pygmentize(source)
     with pyg_tex_p.open(mode='w',encoding='utf-8') as f:
       f.write(hilighted)
     if args.debug:
-      print('HILIGHTED', os.path.relpath(pyg_tex_p))
+      print('HILIGHTED', os.path.relpath(pyg_tex_p), hilighted)
 if __name__ == '__main__':
   try:
     ctrl = Controller()
