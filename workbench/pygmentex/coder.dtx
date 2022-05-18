@@ -8250,12 +8250,6 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}
 \regex_new:N \l_CDR_regex
 %    \end{MacroCode}
-% Utility to use \string\fvset\ properly.
-%    \begin{MacroCode}
-\cs_new:Npn \CDR_fvset:nn #1 #2 {
-  \fvset{#1={#2}}
-}
-%    \end{MacroCode}
 %
 %    \begin{MacroCode}
 \cs_generate_variant:Nn \regex_set:Nn { Nx, NV }
