@@ -1,0 +1,37 @@
+% !TeX program=lualatex
+
+\documentclass{article}
+
+\usepackage{coder}
+
+\typeout{************** REMOVE!!}
+\CDRSet{python path=/Users/jlaurens/opt/anaconda3/bin/python}
+
+\CDRSet{
+  only top,
+  tags/lua={
+    lang=lua,
+    style=xcode,
+    numbers=right,
+    show tags=mirror,
+  },
+}
+\begin{document}
+\NewDocumentEnvironment{coder}{m}{
+\trivlist
+\item
+\textbf{#1}
+\item
+} {
+\endtrivlist
+}
+POC
+\CDRSet{tags/lua={
+  numbers=left,
+  show tags=left,
+  step number=5,
+}}
+\CDRDebugOn
+%\CDRBlockImport{coder-driver-c.lua}
+%\CDRBlockImport{coder-driver-c.lua}
+\end{document}
