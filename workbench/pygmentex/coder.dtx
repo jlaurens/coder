@@ -600,36 +600,90 @@ function CDR.run_toks(cctab, ...)
 end
 %    \end{MacroCode}
 %
-% \begin{function}{coroutine_create, coroutine_resume}
+% \begin{function}{flow_create}
 % \begin{syntax}
-% local resume, synchronize
-% resume, synchronize = CDR:coroutine_create(\meta{f})
+% local flow
+% flow = CDR:flow_create(function(...)
+%   \metatt{...}
+%   tex.sprint(\metatt{...})
+%   flow:go()
+%   \metatt{...}
+%   tex.sprint(\metatt{...})
+%   flow:go()
+%   \metatt{...}
+% end)
+% flow:go()
 % \end{syntax}
 % This is handy for synchronized TeX vs lua code.
+% There are some limitations though.
 % \end{function}
 %    \begin{MacroCode}[OK]
 do
-  local coroutines = {}
-  function CDR:coroutine_create(f)
-    local n = #coroutines + 1
-    coroutines[n] = coroutine.create(function (...)
-debug_msg('CDR:coroutine_... START', n)
+  local flows = {}
+  local last = 1.0
+  function CDR:flow_go__(key)
+debug_msg('FLOW GO ', key)
+    local flow = flows[key]
+    flow.already__ = 1
+    coroutine.resume(flow.co__, table.unpack(flow.args__ or {}))
+  end
+  function CDR:flow_resume__(key)
+    local flow = flows[key]
+debug_msg('FLOW RESUME '..key..'/'..flow.already__..'/'..table.concat(flow.args__ or {}, ","))
+    coroutine.resume(flow.co__)
+  end
+  function CDR:flow_terminate__(key)
+    local flow = flows[key] 
+    flow.key__ = nil
+    flow.already__ = -1
+    flows[key] = nil
+debug_msg('FLOW TERMINATE '..key)
+  end
+  function CDR:flow_create (f)
+    local key = last
+    last = last+1.0
+debug_msg('2 -> 9: FLOW CREATE '..key)
+    local flow = {
+      already__ = 0,     
+      key__ = key, 
+    }
+    flows[key] = flow
+    flow.co__ = coroutine.create(function (...)
+debug_msg('4 -> 9: ENTER '..key..'/'..table.concat({...}, ","))
       local ans = { f(...) }
-      coroutines[n] = nil
-debug_msg('CDR:coroutine_... RETURN', n)
+debug_msg('EXIT '..key..'/')
+      tex.sprint([[\directlua]]..'{CDR:flow_terminate__('..key..')}')
       return table.unpack(ans)
     end)
-    return function (...)
-debug_msg('CDR:coroutine_... RESUME', n)
-      return coroutine.resume(coroutines[n], ...)
-    end, function (...)
-      tex.sprint([[\directlua]]..'{CDR:coroutine_resume__('..n..')}')
-debug_msg('CDR:coroutine_... YIELD', n)
-      return coroutine.yield(...)
+    function flow.go (this, ...)
+      if this.key__ == nil then
+        tex.sprint([[\PackageError]]
+          ..'{coder}'
+          ..'{Going a flow twice is not supported}'
+          ..'{Internal error, please report}'
+        )
+        return
+      end
+      if this.already__>0 then
+debug_msg('6 -> 9: GO '..this.key__..'/'..this.already__..'/'..table.concat(this.args__ or {}, ","))
+        tex.print([[\directlua]]..'{CDR:flow_resume__('..this.key__..')}')
+        coroutine.yield()
+      elseif this.already__ < 0 then
+debug_msg('? -> 9: GO '..this.key__..'/'..this.already__..'/'..table.concat(this.args__ or {}, ","))
+debug_msg('CDR: Already gone '..this.key__..'/')
+      elseif this.args__ then
+        tex.sprint([[\PackageError]]
+          ..'{coder}'
+          ..'{Going a flow twice is not supported}'
+          ..'{Internal error, please report}'
+        )
+      else
+        this.args__ = { ... }
+debug_msg('3 -> WILL GO '..this.key__..'/'..this.already__..'/'..table.concat(this.args__, ","))
+        tex.sprint(-1,[[\directlua]]..'{CDR:flow_go__('..this.key__..')}')
+      end
     end
-  end
-  function CDR:coroutine_resume__(n)
-    coroutine.resume(coroutines[n])
+    return flow
   end
 end
 %    \end{MacroCode}
@@ -997,14 +1051,6 @@ local Object = setmetatable({}, {
 })
 Object.__index = Object
 TEST.Object = Object
-%    \end{MacroCode}
-%
-% Coroutines management.
-%
-%    \begin{MacroCode}
-function Object:coroutine_create(f)
-  self.resume, self.synchronize = CDR:coroutine_create(f)
-end
 %    \end{MacroCode}
 %
 % \subsection{Code}
@@ -1398,7 +1444,7 @@ end
 %    \begin{MacroCode}
 function Block:save_begin ()
   local env = assert(self.env)
-debug_msg('Block:save_begin', env)
+debug_msg('Block:save_begin, environment name:', env)
   local lines = {}
   self.lines = lines
   assert(lines == self.lines)
@@ -2536,16 +2582,19 @@ debug_msg('synctex_tag_catch...', path)
 debug_msg('synctex_tag_catch open_read_file', file_name)
       return {
         reader = function ()
+debug_msg('synctex_tag_catch reader', tex.get_synctex_tag())
           self.synctex_tag_catched = tex.get_synctex_tag()
         end,
       }
     end,
-    'CDRBlockImport'
+    'CDRTagCatch'
   )
+debug_msg('synctex_tag_catch... runtoks BEFORE INPUT')
   tex.runtoks(function ()
     debug_msg('BEFORE INPUT')
   end)
-  CDR:run_toks('\\input{'..path..'}');
+  CDR.run_toks('\\input{'..path..'}');
+debug_msg('synctex_tag_catch... runtoks AFTER INPUT')
   tex.runtoks(function ()
     debug_msg('AFTER INPUT')
   end)
@@ -2657,9 +2706,8 @@ debug_msg('import_begin... DRIVER?')
 %    \end{MacroCode}
 % This is \LaTeX\ inside code, so we start in code mode.
 %    \begin{MacroCode}[OK]
-  local resume, synchronize
-  local make_reader
-  make_reader = function ()
+  local flow
+  local make_reader = function ()
     if #all == 0 then
       if args.first_line <= 0 then
         args.first_line = #lines + args.first_line
@@ -2667,7 +2715,7 @@ debug_msg('import_begin... DRIVER?')
       if args.last_line <= 0 then
         args.last_line = #lines + args.last_line
       end
-      fi_code_new(args.first_line)
+      fi_code_new()
       local depth = 0
       for i = args.first_line, args.last_line do
 debug_msg('\\CDRBlockImport reader original', i, lines[i], d.open, d.close)
@@ -2687,10 +2735,10 @@ debug_msg('CLOSE')
             tex.print([[\PackageError{coder}]]..'{No source '
               ..args.source..
               '}'..[[{See \string\CDRBlockImport.}]])
-            synchronize()
+            flow:go()
           end
           if depth == 0 then
-            fi_code_new(n)
+            fi_code_new()
           end
         else
 debug_msg('CONTINUE')
@@ -2702,7 +2750,7 @@ debug_msg('CONTINUE')
           ..'{Unbalanced comments in '
           ..args.source..
           '}'..[[{See \string\CDRBlockImport.}]])
-        synchronize()
+        flow:go()()
       end
 %    \end{MacroCode}
 % Remove the tables with only void lines.
@@ -2751,13 +2799,9 @@ debug_msg('CONTINUE')
       end      
       all = t
     end
-debug_msg('RESUME, YIELD..................11111')
-    resume, synchronize = CDR:coroutine_create(make_reader)
-    resume()
     for i,l in ipairs(all) do
       debug_msg('\\CDRBlockImport READER', i, l)
     end
-debug_msg('RESUME, YIELD..................22222')
     local i = 0
     local close_expected
     return function (env)
@@ -3501,18 +3545,14 @@ if __name__ == '__main__':
 \cctab_const:Nn \c_CDR_escape_cctab { }
 \directlua {
   CDR = require("coder-util");
-  CDR.string_cctab = \int_eval:n { 
-    \catcodetable@string
-  };
-  CDR.atletter_cctab = \int_eval:n { 
-    \catcodetable@atletter
-  };
-  CDR.escape_cctab = \int_eval:n { 
-    \c_CDR_escape_cctab
-  };
+  CDR.string_cctab = \the\catcodetable@string;
+  CDR.atletter_cctab = \the\catcodetable@atletter;
+  CDR.escape_cctab = \the\c_CDR_escape_cctab;
+  CDR.code_cctab = \the\c_code_cctab;
 CDR.debug('string_cctab', CDR.string_cctab);
 CDR.debug('atletter_cctab', CDR.atletter_cctab);
 CDR.debug('escape_cctab', CDR.escape_cctab);
+CDR.debug('code_cctab', CDR.escape_cctab);
 }
 %    \end{MacroCode}
 % The shared token register.
@@ -7698,7 +7738,8 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\CDRBlock@Read@Options/SKIP}
   \cs_set:Npn \CDR: {
     \bool_if:NTF \l_CDR_before_eol_bool {
-\CDR@Debug{BEFORE_EOL2}
+\CDR@Debug{After.%[
+].BEFORE_EOL}
       \token_if_space:NTF \l_peek_token {
         \CDR@doafterspace {
           \peek_after:Nw \CDR:
@@ -7713,10 +7754,10 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
             after\space\string\begin{\@currenvir} [...]}
           { See\space\@currenvir\space documentation }
         \CDR_skip_and_enter_body:
-      } {
-\CDR@Debug{AFTER_EOL/ENTER_BODY}
-        \CDR_gobble_and_enter_body:n
       }
+    } {
+\CDR@Debug{AFTER_EOL/ENTER_BODY}
+      \CDR_gobble_and_enter_body:n
     }
   }
   \peek_after:Nw \CDR:
@@ -7861,11 +7902,11 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
 %
 %    \begin{MacroCode}
 \NewDocumentEnvironment { CDRBlock } { } {
-\CDR@Debug{CDRBlock...\the\inputlineno }
+\CDR@Debug{\string\begin{CDRBlock}...\the\inputlineno }
   \CDRBlock_new:c { }
   \CDRBlock_save_begin:
 } {
-\CDR@Debug{\the\inputlineno...CDRBlock}
+\CDR@Debug{\string\end{CDRBlock}...\the\inputlineno }
   \CDRBlock_save_end:
 \CDR@Debug{CDRBlock...SETUP}
   \CDRBlock_setup:n { }
@@ -7878,6 +7919,7 @@ CDR.debug('escape_cctab', CDR.escape_cctab);
   \CDRBlock_use:
 \CDR@Debug{CDRBlock...FREE}
   \CDRBlock_free:
+\CDR@Debug{\string\end{CDRBlock}...DONE}
 }
 %    \end{MacroCode}
 %%
@@ -9634,8 +9676,9 @@ self.debug_msg('driver-lua close!')
     \directlua {
       CDR.Block:import_set_integer('last_line')
     }
-\CDR@Debug{\string\CDRBlockImport\string\input{#2}}
+\CDR@Debug{\string\CDRBlockImport\string\input{#2}...}
     \input { #2 }
+\CDR@Debug{\string\CDRBlockImport\string\input{#2}..........................DONE}
   }
   \CDRBlock_free:
   \group_end:
