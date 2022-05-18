@@ -98,6 +98,13 @@ function CDR.run_toks(cctab, ...)
   tex.runtoks('CDR@toks');
 end
 do
+  local function map(t,f)
+    local tt = {}
+    for k,v in pairs(t) do
+      tt[k] = f(v)
+    end
+    return tt
+  end
   local flows = {}
   local last = 1.0
   function CDR:flow_go__(key)
@@ -108,7 +115,7 @@ debug_msg('FLOW GO ', key)
   end
   function CDR:flow_resume__(key)
     local flow = flows[key]
-debug_msg('FLOW RESUME '..key..'/'..flow.already__..'/'..table.concat(flow.args__ or {}, ","))
+debug_msg('FLOW RESUME '..key..'/'..flow.already__..'/'..table.concat(map(flow.args__,tostring) or {}, ","))
     coroutine.resume(flow.co__)
   end
   function CDR:flow_terminate__(key)
@@ -128,7 +135,7 @@ debug_msg('2 -> 9: FLOW CREATE '..key)
     }
     flows[key] = flow
     flow.co__ = coroutine.create(function (...)
-debug_msg('4 -> 9: ENTER '..key..'/'..table.concat({...}, ","))
+debug_msg('4 -> 9: ENTER '..key..'/'..table.concat(map({...},tostring), ","))
       local ans = { f(...) }
 debug_msg('EXIT '..key..'/')
       tex.sprint([[\directlua]]..'{CDR:flow_terminate__('..key..')}')
@@ -136,29 +143,27 @@ debug_msg('EXIT '..key..'/')
     end)
     function flow.go (this, ...)
       if this.key__ == nil then
-        tex.sprint([[\PackageError]]
-          ..'{coder}'
+        tex.sprint([[\CDRPackageError]]
           ..'{Going a flow twice is not supported}'
           ..'{Internal error, please report}'
         )
         return
       end
       if this.already__>0 then
-debug_msg('6 -> 9: GO '..this.key__..'/'..this.already__..'/'..table.concat(this.args__ or {}, ","))
+debug_msg('6 -> 9: GO '..this.key__..'/'..this.already__..'/'..table.concat(map(this.args__, tostring) or {}, ","))
         tex.print([[\directlua]]..'{CDR:flow_resume__('..this.key__..')}')
         coroutine.yield()
       elseif this.already__ < 0 then
-debug_msg('? -> 9: GO '..this.key__..'/'..this.already__..'/'..table.concat(this.args__ or {}, ","))
+debug_msg('? -> 9: GO '..this.key__..'/'..this.already__..'/'..table.concat(map(this.args__,tostring) or {}, ","))
 debug_msg('CDR: Already gone '..this.key__..'/')
       elseif this.args__ then
-        tex.sprint([[\PackageError]]
-          ..'{coder}'
+        tex.sprint([[\CDRPackageError]]
           ..'{Going a flow twice is not supported}'
           ..'{Internal error, please report}'
         )
       else
         this.args__ = { ... }
-debug_msg('3 -> WILL GO '..this.key__..'/'..this.already__..'/'..table.concat(this.args__, ","))
+debug_msg('3 -> WILL GO '..this.key__..'/'..this.already__..'/'..table.concat(map(this.args__,tostring), ","))
         tex.sprint(-1,[[\directlua]]..'{CDR:flow_go__('..this.key__..')}')
       end
     end
@@ -570,7 +575,7 @@ debug_msg('Block:save_begin, environment name:', env)
       if input then
         return f_current(input)
       else
-        return ([[\PackageError{coder}{Missing `\end{%s}'}{See %s documentation }]]):format(env, env)
+        return ([[\CDRPackageError{Missing `\end{%s}'}{See %s documentation }]]):format(env, env)
       end
     end,
     'CDRBlock',
@@ -626,7 +631,7 @@ debug_msg('CALLBACK:IN_OPTIONS', '<'..input..'>')
 debug_msg('CALLBACK:END', '<'..input..'>')
       return ']'
         ..d..v
-        ..[[\PackageError{coder}]]
+        ..[[\CDRPackageError]]
         ..[[{Unterminated\space options}]]
         ..'{'..[[a\space]]--}[
         ..']'
@@ -1267,9 +1272,10 @@ debug_msg('import_driver_get', name)
   else
     path = kpse.find_file('coder-driver-'..name..'.lua')
   end
+debug_msg('import_driver_get', path)
   local f, err = loadfile(path)
   if not f then
-    tex.print([[\PackageError{coder}]]..'{Bad driver '
+    tex.print([[\CDRPackageError]]..'{Bad driver '
       ..name..'}{'..err..'}'
     )
     return
@@ -1282,7 +1288,7 @@ debug_msg('import_driver_get', name)
     driver.debug_msg = debug_msg
     return driver
   end
-  tex.print([[\PackageError{coder}]]..'{Syntax error in '
+  tex.print([[\CDRPackageError]]..'{Syntax error in '
     ..path..'}{'..driver..'}'
   )
 end
@@ -1340,7 +1346,7 @@ debug_msg('import_begin... DRIVER?')
     end
     if not f then
       token.set_macro('l_CDR_status_tl', 'FAILED')
-      tex.print([[\PackageError{coder}]]..'{No source '
+      tex.print([[\CDRPackageError]]..'{No source '
       ..args.source..
       '}'..[[{See \string\CDRBlockImport.}]])
       return
@@ -1409,10 +1415,10 @@ debug_msg('CLOSE')
           if depth > 0 then
             depth = depth - 1
           else
-            tex.print([[\PackageError{coder}]]..'{No source '
+            tex.print([[\CDRPackageError]]..'{No source '
               ..args.source..
               '}'..[[{See \string\CDRBlockImport.}]])
-            flow:go()
+            self.flow:go()
           end
           if depth == 0 then
             fi_code_new()
@@ -1423,11 +1429,11 @@ debug_msg('CONTINUE')
         end
       end
       if depth>0 then
-        tex.sprint([[\PackageError{coder}]]
+        tex.sprint([[\CDRPackageError]]
           ..'{Unbalanced comments in '
           ..args.source..
           '}'..[[{See \string\CDRBlockImport.}]])
-        flow:go()
+        self.flow:go()
       end
       local t = {}
       for _,tt in ipairs(all) do

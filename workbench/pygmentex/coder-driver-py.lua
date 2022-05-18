@@ -28,7 +28,7 @@ The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
 See the \CDRCode|\CDRBlockImport| documentation for more information.
 \end{coder}
-]=]
+--]=]
 -- put here whatever statement you need
 -- return a table
 return {

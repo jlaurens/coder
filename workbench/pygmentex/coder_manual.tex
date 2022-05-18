@@ -1185,6 +1185,7 @@
 %\label{sect:CDRBlockImport}
 %This is perhaps one of the key features of this package.
 %It allows to input a source file and typeset the embedded documentation in \LaTeX. Only the core technology is provided as we can see in next example.
+\bgroup
 \NewDocumentEnvironment{coder}{m}{
 \trivlist
 \item
@@ -1200,6 +1201,9 @@ Here is the raw content of file \pkg{coder-driver-c.lua} typeset with \pkg{pygme
   step number=5,
 }}
 \CDRBlockImport[tags=lua|xcode,first line=18]{coder-driver-c.lua}
+\egroup
+\end{document}
+
 This was input with command
 \begin{CDRBlock}[tags=src]
 \CDRBlockImport[tags=lua,first line=18]{coder-driver-c.lua}
@@ -1218,6 +1222,7 @@ If we add the option \CDRCode|driver=c|, then the embedded documentation is type
 }
 \end{CDRBlockSave}
 \CDRBlockExe{coder environment}
+\CDRDebugOn
 \CDRBlockImport[tags=lua|xcode,first line=18,driver=lua]{coder-driver-c.lua}
 We first defined the \CDRCode|coder| environment to display a box:
 \CDRBlockUse[tags=src]{coder environment}
@@ -1228,6 +1233,7 @@ Builtin drivers are provided to support various languages. The driver above can 
 Writing new drivers is not difficult as soon as the programming languages supports block comments,
 considering that already existing drivers may serve as starting points.
 
+\end{document}
 \CDRBlockImport[tags=xcode|py,first line=2,driver=py]{coder_test.py}
 \CDRBlockImport[tags=xcode,lang=c,driver=raw]{coder_test.c}
 

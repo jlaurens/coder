@@ -60,6 +60,9 @@
 }
 
 \makeatletter
+\DeclareDocumentCommand \CDRPackageError { } {
+  \PackageError{coder}
+}
 \DeclareDocumentCommand \CDRMeta { s m }
   { \CDR_meta:nn {#1} { #2 } }
 \cs_new_protected:Npn \CDR_meta:nn #1 #2 {
@@ -123,7 +126,7 @@
   }
 }
 \prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
-  \PackageError { coder } { Internal~error(pygments~path) } { Please~report~error }
+  \CDRPackageError { Internal~error(pygments~path) } { Please~report~error }
 }
 \cs_new:Npn \CDR_pygments_setup:n #1 {
   \cs_undefine:N \CDR_has_pygments:T
@@ -731,8 +734,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   }
 }
 \prg_new_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
-  \PackageError
-    { coder }
+  \CDRPackageError
     { Conditional~not~available }
     { Internal~error:~report~bug }
 }
@@ -1038,8 +1040,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 }
 \CDRTag_keys_define:nn { __no_tags } {
   tags .code:n = {
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Key~`tags'~is~forbidden~for~engines }
       { See~the~coder~manual }
   }
@@ -1063,8 +1064,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 }
 \CDRTag_keys_define:nn { __no_engine } {
   engine .code:n = {
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Key~`engine'~is~forbidden~for~engines }
       { See~the~coder~manual }
   }
@@ -1674,8 +1674,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 }
 \cs_new_protected:Npn \CDR@CodeEngineApply {
   \CDRCode_if_engine:cF { \CDRTag_get:c { engine } } {
-    \PackageError
-      { coder }
+    \CDRPackageError
       { \CDRTag_get:c { engine }~code~engine~unknown,~replaced~by~`default' }
       { See~\CDRCodeEngineNew~in~the~coder~manual }
     \CDRTag_set:cn { engine } { default }
@@ -1697,8 +1696,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 }
 \NewDocumentCommand \CDRBlockEngineRenew { mO{}m } {
   \tl_if_empty:nTF { #1 } {
-    \PackageError
-      { coder }
+    \CDRPackageError
       { The~engine~cannot~be~void. }
       { See~\string\CDRBlockEngineNew~in~the~coder~manual }
       \use_none:n
@@ -1711,8 +1709,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
         #3
       }
     } {
-      \PackageError
-        { coder }
+      \CDRPackageError
         { No~block~engine~#1.}
         { See~\string\CDRBlockEngineNew~in~the~coder~manual }
     }
@@ -1721,8 +1718,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \cs_new:Npn \CDRBlock_engine_begin: {
 \CDR@Debug{\string\CDRBlock_engine_begin:}
   \CDRBlock_if_engine:cF { \CDRTag_get:c { engine } } {
-    \PackageError
-      { coder }
+    \CDRPackageError
       { \CDRTag_get:c { engine }~block~engine~unknown,~replaced~by~`default' }
       {See~\CDRBlockEngineNew~in~the~coder~manual}
     \CDRTag_set:cn { engine } { default }
@@ -1894,8 +1890,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRCode_new:c { #2 }
   \CDRCode_if_unknown:TF {
 \CDR@Debug{ \directlua { CDR:Code_list_all() } }
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Unknown~identifier:\space#2 }
       { See\space\string\CDRCodeSave }
     \CDRCode_free:
@@ -1922,8 +1917,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRCode_new:c { #1 }
   \CDRCode_if_unknown:TF {
 \CDR@Debug{ \directlua { CDR:Code_list_all() } }
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Unknown~identifier:\space#1 }
       { See\space\string\CDRCodeSave }
     \CDRCode_free:
@@ -2003,8 +1997,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \exp_args:Nx \tl_if_empty:nF {
         \directlua{ CDR.Code:status() }
       } {
-        \PackageError
-          {coder}
+        \CDRPackageError
           {Missing\space#1\space before\space next\space line}
           {Unterminated\space short\space verbatim\space input}
       }
@@ -2251,8 +2244,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
           \peek_after:Nw \CDR:
         }
       } {
-        \PackageError
-          { coder }
+        \CDRPackageError
           { Only\space`\c_percent_str'\space
             after\space\string\begin{\@currenvir} [...]}
           { See\space\@currenvir\space documentation }
@@ -2284,8 +2276,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
           \peek_after:Nw \CDR:
         }
       } {
-        \PackageError
-          { coder }
+        \CDRPackageError
           { Only\space`['\space or\space`\c_percent_str'\space%]
             after\space\string\begin{\@currenvir} }
           { See\space\@currenvir\space documentation }
@@ -2377,8 +2368,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
           \directlua { CDR.Block:enter_options() }
           \CDRBlock@Read@Options
         } {
-          \PackageError
-            { coder }
+          \CDRPackageError
             { Only\space`['\space or\space`\c_percent_str'\space%]
               after\space\string\begin{\@currenvir} }
             { See\space\@currenvir\space documentation }
@@ -2683,8 +2673,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRBlock_new:c { #2 }
   \CDRBlock_if_unknown:TF {
 \CDR@Debug{ \directlua { CDR:Block_list_all() } }
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Unknown~block~identifier:~#2 }
       { See~CDRBlockUse~documentation. }
     \CDRBlock_free:
@@ -2714,8 +2703,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRBlock_new:c { #2 }
   \CDRBlock_if_unknown:TF {
 \CDR@Debug{ \directlua { CDR:Block_list_all() } }
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Unknown~block~identifier:~#2 }
       { See~\string\CDRBlockSave~documentation. }
   } {
@@ -3282,8 +3270,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       { dry   } { \tl_put_right:Nn \l_CDR_a_tl { _N } }
       { same  } { \tl_put_right:Nn \l_CDR_a_tl { _S } }
       { mirror  } { \tl_put_right:Nn \l_CDR_a_tl { _M } }
-    } { \PackageError
-          { coder }
+    } { \CDRPackageError
           { Unknown~show~tags~options~:~ \CDRTag_get:c { show~tags } }
           { See~the~coder~manual }
     }
@@ -3302,8 +3289,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \tl_put_right:Nn \l_CDR_a_tl { _N }
       \cs_set:Npn \CDR@@Line { \CDR_line_box_N:n }
     }
-  } { \PackageError
-        { coder }
+  } { \CDRPackageError
         { Unknown~numbers~options~:~ \CDRTag_get:c { numbers } }
         { See~the~coder~manual }
   }
@@ -3461,7 +3447,13 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRTag_get_inherit:n { CDRBlockImport }
   \CDRTag_get:cN { driver } \l_CDR_driver_tl
 \CDR@Debug{\string\CDRBlockImport: STEP3}
-  \directlua { CDR.Block:import_begin() }
+  \directlua {
+
+    CDR.Block.flow = CDR:flow_create(
+      CDR.Block.import_begin
+    )
+    CDR.Block.flow:go(CDR.Block)
+  }
   \tl_if_empty:NT \l_CDR_status_tl {
     \CDRTag_get:cN { show~code } \l_CDR_a_tl
     \directlua {

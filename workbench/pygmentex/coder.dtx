@@ -619,6 +619,13 @@ end
 % \end{function}
 %    \begin{MacroCode}[OK]
 do
+  local function map(t,f)
+    local tt = {}
+    for k,v in pairs(t) do
+      tt[k] = f(v)
+    end
+    return tt
+  end
   local flows = {}
   local last = 1.0
   function CDR:flow_go__(key)
@@ -629,7 +636,7 @@ debug_msg('FLOW GO ', key)
   end
   function CDR:flow_resume__(key)
     local flow = flows[key]
-debug_msg('FLOW RESUME '..key..'/'..flow.already__..'/'..table.concat(flow.args__ or {}, ","))
+debug_msg('FLOW RESUME '..key..'/'..flow.already__..'/'..table.concat(map(flow.args__,tostring) or {}, ","))
     coroutine.resume(flow.co__)
   end
   function CDR:flow_terminate__(key)
@@ -649,7 +656,7 @@ debug_msg('2 -> 9: FLOW CREATE '..key)
     }
     flows[key] = flow
     flow.co__ = coroutine.create(function (...)
-debug_msg('4 -> 9: ENTER '..key..'/'..table.concat({...}, ","))
+debug_msg('4 -> 9: ENTER '..key..'/'..table.concat(map({...},tostring), ","))
       local ans = { f(...) }
 debug_msg('EXIT '..key..'/')
       tex.sprint([[\directlua]]..'{CDR:flow_terminate__('..key..')}')
@@ -657,29 +664,27 @@ debug_msg('EXIT '..key..'/')
     end)
     function flow.go (this, ...)
       if this.key__ == nil then
-        tex.sprint([[\PackageError]]
-          ..'{coder}'
+        tex.sprint([[\CDRPackageError]]
           ..'{Going a flow twice is not supported}'
           ..'{Internal error, please report}'
         )
         return
       end
       if this.already__>0 then
-debug_msg('6 -> 9: GO '..this.key__..'/'..this.already__..'/'..table.concat(this.args__ or {}, ","))
+debug_msg('6 -> 9: GO '..this.key__..'/'..this.already__..'/'..table.concat(map(this.args__, tostring) or {}, ","))
         tex.print([[\directlua]]..'{CDR:flow_resume__('..this.key__..')}')
         coroutine.yield()
       elseif this.already__ < 0 then
-debug_msg('? -> 9: GO '..this.key__..'/'..this.already__..'/'..table.concat(this.args__ or {}, ","))
+debug_msg('? -> 9: GO '..this.key__..'/'..this.already__..'/'..table.concat(map(this.args__,tostring) or {}, ","))
 debug_msg('CDR: Already gone '..this.key__..'/')
       elseif this.args__ then
-        tex.sprint([[\PackageError]]
-          ..'{coder}'
+        tex.sprint([[\CDRPackageError]]
           ..'{Going a flow twice is not supported}'
           ..'{Internal error, please report}'
         )
       else
         this.args__ = { ... }
-debug_msg('3 -> WILL GO '..this.key__..'/'..this.already__..'/'..table.concat(this.args__, ","))
+debug_msg('3 -> WILL GO '..this.key__..'/'..this.already__..'/'..table.concat(map(this.args__,tostring), ","))
         tex.sprint(-1,[[\directlua]]..'{CDR:flow_go__('..this.key__..')}')
       end
     end
@@ -1458,7 +1463,7 @@ debug_msg('Block:save_begin, environment name:', env)
       if input then
         return f_current(input)
       else
-        return ([[\PackageError{coder}{Missing `\end{%s}'}{See %s documentation }]]):format(env, env)
+        return ([[\CDRPackageError{Missing `\end{%s}'}{See %s documentation }]]):format(env, env)
       end
     end,
     'CDRBlock',
@@ -1538,7 +1543,7 @@ debug_msg('CALLBACK:IN_OPTIONS', '<'..input..'>')
 debug_msg('CALLBACK:END', '<'..input..'>')
       return ']'
         ..d..v
-        ..[[\PackageError{coder}]]
+        ..[[\CDRPackageError]]
         ..[[{Unterminated\space options}]]
         ..'{'..[[a\space]]--}[
         ..']'
@@ -2555,9 +2560,10 @@ debug_msg('import_driver_get', name)
   else
     path = kpse.find_file('coder-driver-'..name..'.lua')
   end
+debug_msg('import_driver_get', path)
   local f, err = loadfile(path)
   if not f then
-    tex.print([[\PackageError{coder}]]..'{Bad driver '
+    tex.print([[\CDRPackageError]]..'{Bad driver '
       ..name..'}{'..err..'}'
     )
     return
@@ -2570,7 +2576,7 @@ debug_msg('import_driver_get', name)
     driver.debug_msg = debug_msg
     return driver
   end
-  tex.print([[\PackageError{coder}]]..'{Syntax error in '
+  tex.print([[\CDRPackageError]]..'{Syntax error in '
     ..path..'}{'..driver..'}'
   )
 end
@@ -2669,7 +2675,7 @@ debug_msg('import_begin... DRIVER?')
     end
     if not f then
       token.set_macro('l_CDR_status_tl', 'FAILED')
-      tex.print([[\PackageError{coder}]]..'{No source '
+      tex.print([[\CDRPackageError]]..'{No source '
       ..args.source..
       '}'..[[{See \string\CDRBlockImport.}]])
       return
@@ -2743,10 +2749,10 @@ debug_msg('CLOSE')
           if depth > 0 then
             depth = depth - 1
           else
-            tex.print([[\PackageError{coder}]]..'{No source '
+            tex.print([[\CDRPackageError]]..'{No source '
               ..args.source..
               '}'..[[{See \string\CDRBlockImport.}]])
-            flow:go()
+            self.flow:go()
           end
           if depth == 0 then
             fi_code_new()
@@ -2757,11 +2763,11 @@ debug_msg('CONTINUE')
         end
       end
       if depth>0 then
-        tex.sprint([[\PackageError{coder}]]
+        tex.sprint([[\CDRPackageError]]
           ..'{Unbalanced comments in '
           ..args.source..
           '}'..[[{See \string\CDRBlockImport.}]])
-        flow:go()
+        self.flow:go()
       end
 %    \end{MacroCode}
 % Remove the tables with only void lines.
@@ -3418,6 +3424,20 @@ if __name__ == '__main__':
 %
 % \section{Setup}
 %
+% \subsection{Error}
+%
+% \begin{function}{\CDRPackageError}
+% \begin{syntax}
+% \cs{CDRPackageError} \Arg{description} \Arg{help}
+% \end{syntax}
+% This is |\PackageError{coder}|.
+% \end{function}
+%    \begin{MacroCode}
+\DeclareDocumentCommand \CDRPackageError { } {
+  \PackageError{coder}
+}
+%    \end{MacroCode}
+%
 % \subsection{\string\CDRMeta}
 % 
 % \begin{function}{\CDRMeta,\CDRMeta*,\CDRMetaFormat}
@@ -3530,7 +3550,7 @@ if __name__ == '__main__':
 % \end{function}
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDR_has_pygments: { p, T, F, TF } {
-  \PackageError { coder } { Internal~error(pygments~path) } { Please~report~error }
+  \CDRPackageError { Internal~error(pygments~path) } { Please~report~error }
 }
 %    \end{MacroCode}
 %
@@ -4763,8 +4783,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % Raises an error otherwise.
 %    \begin{MacroCode}[OK]
 \prg_new_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
-  \PackageError
-    { coder }
+  \CDRPackageError
     { Conditional~not~available }
     { Internal~error:~report~bug }
 }
@@ -5437,8 +5456,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}[OK]
 \CDRTag_keys_define:nn { __no_tags } {
   tags .code:n = {
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Key~`tags'~is~forbidden~for~engines }
       { See~the~coder~manual }
   }
@@ -5503,8 +5521,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}[OK]
 \CDRTag_keys_define:nn { __no_engine } {
   engine .code:n = {
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Key~`engine'~is~forbidden~for~engines }
       { See~the~coder~manual }
   }
@@ -6831,8 +6848,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}[OK]
 \cs_new_protected:Npn \CDR@CodeEngineApply {
   \CDRCode_if_engine:cF { \CDRTag_get:c { engine } } {
-    \PackageError
-      { coder }
+    \CDRPackageError
       { \CDRTag_get:c { engine }~code~engine~unknown,~replaced~by~`default' }
       { See~\CDRCodeEngineNew~in~the~coder~manual }
     \CDRTag_set:cn { engine } { default }
@@ -6873,8 +6889,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}[OK]
 \NewDocumentCommand \CDRBlockEngineRenew { mO{}m } {
   \tl_if_empty:nTF { #1 } {
-    \PackageError
-      { coder }
+    \CDRPackageError
       { The~engine~cannot~be~void. }
       { See~\string\CDRBlockEngineNew~in~the~coder~manual }
       \use_none:n
@@ -6887,8 +6902,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
         #3
       }
     } {
-      \PackageError
-        { coder }
+      \CDRPackageError
         { No~block~engine~#1.}
         { See~\string\CDRBlockEngineNew~in~the~coder~manual }
     }
@@ -6909,8 +6923,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \cs_new:Npn \CDRBlock_engine_begin: {
 \CDR@Debug{\string\CDRBlock_engine_begin:}
   \CDRBlock_if_engine:cF { \CDRTag_get:c { engine } } {
-    \PackageError
-      { coder }
+    \CDRPackageError
       { \CDRTag_get:c { engine }~block~engine~unknown,~replaced~by~`default' }
       {See~\CDRBlockEngineNew~in~the~coder~manual}
     \CDRTag_set:cn { engine } { default }
@@ -7210,8 +7223,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRCode_new:c { #2 }
   \CDRCode_if_unknown:TF {
 \CDR@Debug{ \directlua { CDR:Code_list_all() } }
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Unknown~identifier:\space#2 }
       { See\space\string\CDRCodeSave }
     \CDRCode_free:
@@ -7238,8 +7250,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRCode_new:c { #1 }
   \CDRCode_if_unknown:TF {
 \CDR@Debug{ \directlua { CDR:Code_list_all() } }
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Unknown~identifier:\space#1 }
       { See\space\string\CDRCodeSave }
     \CDRCode_free:
@@ -7338,8 +7349,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \exp_args:Nx \tl_if_empty:nF {
         \directlua{ CDR.Code:status() }
       } {
-        \PackageError
-          {coder}
+        \CDRPackageError
           {Missing\space#1\space before\space next\space line}
           {Unterminated\space short\space verbatim\space input}
       }
@@ -7762,8 +7772,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \end{MacroCode}
 % This is a forbidden black character.
 %    \begin{MacroCode}
-        \PackageError
-          { coder }
+        \CDRPackageError
           { Only\space`\c_percent_str'\space
             after\space\string\begin{\@currenvir} [...]}
           { See\space\@currenvir\space documentation }
@@ -7798,8 +7807,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \end{MacroCode}
 % This is a forbidden black character.
 %    \begin{MacroCode}
-        \PackageError
-          { coder }
+        \CDRPackageError
           { Only\space`['\space or\space`\c_percent_str'\space%]
             after\space\string\begin{\@currenvir} }
           { See\space\@currenvir\space documentation }
@@ -7975,8 +7983,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \end{MacroCode}
 % This is a forbidden black character.
 %    \begin{MacroCode}
-          \PackageError
-            { coder }
+          \CDRPackageError
             { Only\space`['\space or\space`\c_percent_str'\space%]
               after\space\string\begin{\@currenvir} }
             { See\space\@currenvir\space documentation }
@@ -8420,8 +8427,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRBlock_new:c { #2 }
   \CDRBlock_if_unknown:TF {
 \CDR@Debug{ \directlua { CDR:Block_list_all() } }
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Unknown~block~identifier:~#2 }
       { See~CDRBlockUse~documentation. }
     \CDRBlock_free:
@@ -8461,8 +8467,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRBlock_new:c { #2 }
   \CDRBlock_if_unknown:TF {
 \CDR@Debug{ \directlua { CDR:Block_list_all() } }
-    \PackageError
-      { coder }
+    \CDRPackageError
       { Unknown~block~identifier:~#2 }
       { See~\string\CDRBlockSave~documentation. }
   } {
@@ -9191,8 +9196,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       { dry   } { \tl_put_right:Nn \l_CDR_a_tl { _N } }
       { same  } { \tl_put_right:Nn \l_CDR_a_tl { _S } }
       { mirror  } { \tl_put_right:Nn \l_CDR_a_tl { _M } }
-    } { \PackageError
-          { coder }
+    } { \CDRPackageError
           { Unknown~show~tags~options~:~ \CDRTag_get:c { show~tags } }
           { See~the~coder~manual }
     }
@@ -9215,8 +9219,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \tl_put_right:Nn \l_CDR_a_tl { _N }
       \cs_set:Npn \CDR@@Line { \CDR_line_box_N:n }    
     }
-  } { \PackageError
-        { coder }
+  } { \CDRPackageError
         { Unknown~numbers~options~:~ \CDRTag_get:c { numbers } }
         { See~the~coder~manual }
   }
@@ -9457,7 +9460,7 @@ The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
 See the \CDRCode|\CDRBlockImport| documentation for more information.
 \end{coder}
-]=]
+--]=]
 -- put here whatever statement you need
 -- return a table
 local ans = {
@@ -9496,7 +9499,7 @@ The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
 See the \CDRCode|\CDRBlockImport| documentation for more information.
 \end{coder}
-]=]
+--]=]
 -- put here whatever statement you need
 -- return a table
 return {
@@ -9548,7 +9551,7 @@ print('driver-lua open?', line)
     local equals = line:match(
       '^%-%-%[(=*)%[!latex:'--]]
     )
-    if equals then--[[
+    if equals then--[--[
 self.debug_msg('driver-lua open!', equals)
       local pattern = '^%-%-%]'..equals..'%]'
       local close = self.close
@@ -9563,7 +9566,7 @@ self.debug_msg('driver-lua close!')
       return true
     end
   end,
-  debug_msg = f_noop,
+  debug_msg = function (...) end,
 }
 %</driver-lua>
 %<*sty>
@@ -9666,7 +9669,13 @@ self.debug_msg('driver-lua close!')
   \CDRTag_get_inherit:n { CDRBlockImport }
   \CDRTag_get:cN { driver } \l_CDR_driver_tl
 \CDR@Debug{\string\CDRBlockImport: STEP3}
-  \directlua { CDR.Block:import_begin() }
+  \directlua {
+  
+    CDR.Block.flow = CDR:flow_create(
+      CDR.Block.import_begin
+    )
+    CDR.Block.flow:go(CDR.Block)
+  }
   \tl_if_empty:NT \l_CDR_status_tl {
     \CDRTag_get:cN { show~code } \l_CDR_a_tl
     \directlua {
