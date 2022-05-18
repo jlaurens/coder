@@ -1236,6 +1236,7 @@ function CDR:cache_record(pyg_sty_p, pyg_tex_p)
   end
 end
 function CDR:cache_clean_unused()
+debug_msg('CACHE CLEAN UNUSED', dir_p)
   local to_remove = {}
   for f in lfs.dir(dir_p) do
     f = dir_p .. f
@@ -1244,6 +1245,7 @@ function CDR:cache_clean_unused()
     end
   end
   for f,_ in pairs(to_remove) do
+debug_msg('OS.REMOVE', f)
     os.remove(f)
   end
 end
