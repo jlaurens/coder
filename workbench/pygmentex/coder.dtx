@@ -2679,12 +2679,11 @@ debug_msg('import_begin... DRIVER?')
     lines[#lines+1] = l
   end
   f:close()
-  
+debug_msg('\\CDRBlockImport raw file:', source, #lines)
   self.import_set_boolean = nil
   self:synctex_save()
   self.synctex_save = f_noop
   self.synctex_restore = f_noop
-  local last_line = table.remove(lines)
   local n = 0
   local MT = {
     append = function (this, line)
@@ -2726,6 +2725,7 @@ debug_msg('import_begin... DRIVER?')
       if args.last_line <= 0 then
         args.last_line = #lines + args.last_line
       end
+debug_msg('\\CDRBlockImport make_reader', #lines,  args.first_line, args.last_line)
       fi_code_new()
       local depth = 0
       for i = args.first_line, args.last_line do
@@ -2761,7 +2761,7 @@ debug_msg('CONTINUE')
           ..'{Unbalanced comments in '
           ..args.source..
           '}'..[[{See \string\CDRBlockImport.}]])
-        flow:go()()
+        flow:go()
       end
 %    \end{MacroCode}
 % Remove the tables with only void lines.
@@ -2809,16 +2809,16 @@ debug_msg('CONTINUE')
         end
       end      
       all = t
-    end
-    for i,l in ipairs(all) do
-      debug_msg('\\CDRBlockImport READER', i, l)
+      for i,l in ipairs(all) do
+        debug_msg('\\CDRBlockImport READER', i, l)
+      end
     end
     local i = 0
     local close_expected
     return function (env)
       i = i+1
       if i>#all then
-debug_msg('\\CDRBlockImport time to close')
+debug_msg('\\CDRBlockImport time to close', i, #all)
         assert(not close_expected, 'close MISSED')
         close_expected = true
       end
@@ -2826,27 +2826,30 @@ debug_msg('\\CDRBlockImport time to close')
       return all[i]
     end
   end
-  local pop
+  local pop = f_noop
   pop = callback_push (
     'open_read_file',
     function (file_name)
 debug_msg('\\CDRBlockImport open_read_file', file_name)
-      local close = function (env)
+      local close_f = function (env)
 debug_msg('\\CDRBlockImport close', file_name)
         if d.teardown then
           d:teardown()
         end
         pop()
+        pop = f_noop
         self.synctex_restore = nil
         self:synctex_restore()
       end
       local reader = make_reader()
-debug_msg('\\CDRBlockImport READER ****************')
+debug_msg('\\CDRBlockImport READER ****************', #all)
       return {
         reader = function (env)
-debug_msg('\\CDRBlockImport READER 1st')
-          env.close = close
+debug_msg('\\CDRBlockImport READER 1st, set close function and pop')
+          env.close = close_f
           env.reader = reader
+          pop()
+          pop = f_noop
           return reader(env)
         end,
       }
