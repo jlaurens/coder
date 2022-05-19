@@ -1,0 +1,14 @@
+LINE 1
+--[=[!latex:
+LINE 3
+LINE 4
+--]=]
+LINE 6
+LINE 7
+--[=[!latex:
+\trivlist
+\item
+LINE 11
+LINE 12
+\endtrivlist
+--]=]

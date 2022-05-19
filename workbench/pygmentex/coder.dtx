@@ -516,9 +516,9 @@ local CDR_PY_PATH = kpse.find_file('coder-tool.py')
 %    \end{MacroCode}
 % \end{variable}
 %
-% \begin{function}{debug_msg, activate_debug}
+% \begin{function}{debug_msg, debug_activate}
 % \begin{syntax}
-% CDR:activate_debug(\meta{boolean})
+% CDR:debug_activate(\meta{boolean})
 % debug_msg(...)
 % \end{syntax}
 % Activate debuging messaging, or not.
@@ -537,14 +537,15 @@ end
 TEST.debug_msg = function(...)
   debug_msg(...)
 end
-function CDR:activate_debug(yorn)
+function CDR:debug_activate(yorn)
   if yorn then
     debug_msg = f_debug_msg
   else
     debug_msg = f_noop
   end
+  self.debug_active = yorn
 end
-function CDR:activate_test(yorn)
+function CDR:test_activate(yorn)
   if yorn then
     self.TEST = TEST
   else
@@ -2428,8 +2429,9 @@ end
 % CDR.\metatt{Object}:synctex_sprint_tag()
 % CDR.\metatt{Object}:synctex_sprint_line()
 % \end{syntax}
-% Instance methods.
-% In both cases, the unique argument is a table.
+% Instance methods used by |\CDRCodeSave| and 
+% presumably |CDRBlockSave|.
+% In both first cases, the unique argument is a table.
 % The \meta{id} is a unique string identifier:
 % dot syntax may help to ensure its uniqueness.
 % When no \meta{id} is provided, the void string
@@ -2441,12 +2443,12 @@ end
 % indexed 1.
 % |synctex_sprint_tag| and
 % |synctex_sprint_line| are straightforward,
-% the \metatt{id} is the current id.
+% they printed instead of the sored value.
 % \end{function}
 %    \begin{MacroCode}[OK]
 local synctex_storage = {}
 function Object:synctex_store(offset)
-  self:synctex_save( offset or 0 )
+  self:synctex_save( offset )
   local storage = synctex_storage[self.id] or {}
   synctex_storage[self.id] = storage
   storage.tag = self.synctex_tag
@@ -2457,6 +2459,7 @@ function Object:synctex_get(key)
   local storage = synctex_storage[self.id] or {}
   local ans = storage[key]
   if ans then
+texio.write_nl('********************1'..key..ans)
     return ans
   end
   local f = ({
@@ -2464,15 +2467,22 @@ function Object:synctex_get(key)
     line = tex.get_synctex_line,
   })[key]
   if f then
+texio.write_nl('********************2'..key..f())
     return f()
   end
   return 0
 end
-function Object:synctex_sprint_tag()
+function Object:synctex_sprint_tag( )
   tex.sprint(self:synctex_get('tag'))
 end
-function Object:synctex_sprint_line()
+function Object:synctex_sprint_line( )
   tex.sprint(self:synctex_get('line'))
+end
+function Object:synctex_obey_lines()
+  local storage = synctex_storage[self.id] or {}
+  synctex_storage[self.id] = storage
+  storage.line = 0
+texio.write_nl('*********************** Object:synctex_obey_lines')
 end
 %    \end{MacroCode}
 %
@@ -2593,6 +2603,7 @@ end
 %    \begin{MacroCode}[OK]
 function Block:synctex_tag_catch(path)
 debug_msg('synctex_tag_catch...', path)
+  self:synctex_save()
   local pop = callback_push(
     'open_read_file',
     function (file_name)
@@ -2616,7 +2627,8 @@ debug_msg('synctex_tag_catch... runtoks AFTER INPUT')
     debug_msg('AFTER INPUT')
   end)
   pop()
-debug_msg('synctex_tag_catched', self.synctex_tag_catched)
+  self:synctex_restore()
+debug_msg('synctex_tag_catched... DONE', path,  self.synctex_tag_catched)
 end
 %    \end{MacroCode}
 %
@@ -2690,7 +2702,6 @@ debug_msg('\\CDRBlockImport raw file:', source, #lines)
   self:synctex_save()
   self.synctex_save = f_noop
   self.synctex_restore = f_noop
-  local n = 0
   local MT = {
     append = function (this, line)
       this.lines[#this.lines+1] = line
@@ -2698,7 +2709,7 @@ debug_msg('\\CDRBlockImport raw file:', source, #lines)
   }
   local current
   local all = {}
-  local function fi_code_new ()
+  local function fi_code_new (n)
     current = setmetatable({
       is_code = true,
       n = n,
@@ -2707,22 +2718,27 @@ debug_msg('\\CDRBlockImport raw file:', source, #lines)
     })
     all[#all+1] = current
   end
-  local function fi_doc_new ()
+  local function fi_doc_new (n)
     current = setmetatable({
       is_doc = true,
+      n = n,
       lines = {},
     }, { __index = MT
     })
     all[#all+1] = current
   end
 %    \end{MacroCode}
+% There is a problem with the actual implementation of
+% the Sync\TeX\ parser who assumes that there is a one
+% to one mapping between tags and file names, which is
+% obviously wrong. In that case, the file will be input
+% once more and the tag will be the next one, I hope.
 %    \begin{MacroCode}
-  self:synctex_tag_set(self.synctex_tag_catched)
+  self:synctex_tag_set(self.synctex_tag_catched+1)
   self:synctex_line_set(0)
 %    \end{MacroCode}
 % This is \LaTeX\ inside code, so we start in code mode.
 %    \begin{MacroCode}[OK]
-  local flow
   local make_reader = function ()
     if #all == 0 then
       if args.first_line <= 0 then
@@ -2732,17 +2748,16 @@ debug_msg('\\CDRBlockImport raw file:', source, #lines)
         args.last_line = #lines + args.last_line
       end
 debug_msg('\\CDRBlockImport make_reader', #lines,  args.first_line, args.last_line)
-      fi_code_new()
+      fi_code_new(1)
       local depth = 0
       for i = args.first_line, args.last_line do
 debug_msg('\\CDRBlockImport reader original', i, lines[i], d.open, d.close)
-        n = i
         local l = lines[i]
         if d.open and d:open(l) then
 debug_msg('OPEN')
           depth = depth + 1
           if current.is_code then
-            fi_doc_new()
+            fi_doc_new(i)
           end
         elseif d.close and d:close(l) then
 debug_msg('CLOSE')
@@ -2755,7 +2770,7 @@ debug_msg('CLOSE')
             self.flow:go()
           end
           if depth == 0 then
-            fi_code_new()
+            fi_code_new(i)
           end
         else
 debug_msg('CONTINUE')
@@ -2783,40 +2798,30 @@ debug_msg('CONTINUE')
       end
       all = t
 %    \end{MacroCode}
-% Merge consecutive docs.
+% Wrap the code snippets in a |CDRBlock| environment.
 %    \begin{MacroCode}[OK]
-      current = table.remove(all, 1)
-      if current then
-        t = { current }
-        while #all > 0 do
-          local tt = table.remove(all, 1)
-          if not current.is_doc == not tt.is_doc then
-            for _,line in ipairs(tt.lines) do
-              current.lines[#current.lines+1] = line
-            end
-          else
-            current = tt
-            t[#t+1] = tt
-          end
-        end
-        all = t
-      end
       t = {}
       for _,tt in ipairs(all) do
         if tt.is_code then
           t[#t+1] = [[\begin{CDRBlock}]]
-            ..'[first number='..(tt.n+1)..',obey lines]'
-        end
-        for _,line in ipairs(tt.lines) do
-          t[#t+1] = line
-        end
-        if tt.is_code then
+            ..'[first number='..(tt.n)..', obey lines]'
+          for _,line in ipairs(tt.lines) do
+            t[#t+1] = line
+          end
           t[#t+1] = [[\end{CDRBlock}]]       
+        else
+          for i,l in ipairs(tt.lines) do
+            local w, b = l:match("^(%s*)(.*)$")
+            t[#t+1] = w..'\\SyncTeXLC{'..(i+tt.n-1)..'}{}'..b
+          end
         end
       end      
       all = t
-      for i,l in ipairs(all) do
-        debug_msg('\\CDRBlockImport READER', i, l)
+      if CDR.debug_active then
+        debug_msg('\\CDRBlockImport READER', #all)
+        for i,l in ipairs(all) do
+          texio.write_nl(i..':'..l)
+        end
       end
     end
     local i = 0
@@ -3650,11 +3655,11 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \typeout { ****~CDR:\CurrentFile :\the\inputlineno :\space##1}
     }
   }
-  \directlua { CDR:activate_debug(true) }
+  \directlua { CDR:debug_activate(true) }
 }
 \cs_new:Npn \CDRDebugOff {
   \cs_set_eq:NN \CDR@Debug \use_none:n
-  \directlua { CDR:activate_debug(false) }
+  \directlua { CDR:debug_activate(false) }
 }
 %    \end{MacroCode}
 % \section{Messages}
@@ -3824,13 +3829,6 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDR@Debug{logical:~\l_CDR_p_tl}
 }
 %    \end{MacroCode}
-%
-% \begin{variable}{__line}
-% Generic and named line number counter.
-%    \begin{MacroCode}[OK]
-\CDR_int_new:cn { __line } { 1 }
-%    \end{MacroCode}
-% \end{variable}
 %
 % \begin{function}[EXP]{\CDR_int:c}
 % \begin{syntax}
@@ -7674,6 +7672,13 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   test .code:n = \CDRTag_boolean_set:x { #1 },
   test .default:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed no space above{[=true$\vert$false]}]^^A
+% When set to true, avoid the extra vertical space
+% in tabular environments. This is a hack.
+%    \begin{MacroCode}[OK]
+  no~space~above .code:n = \CDRTag_boolean_set:x { #1 },
+  no~space~above .default:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed obey lines{[=true$\vert$false]}]^^A
 % The displayed line numbers are exactly the physical ones.
 %    \begin{MacroCode}[OK]
@@ -7689,6 +7694,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     dry~numbers  = false,
     test   = false,
     obey~lines = false,
+    no~space~above = false,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -8254,12 +8260,16 @@ CDR.debug('code_cctab', CDR.escape_cctab);
         }
       }
     }
-%    \end{MacroCode}
-% This is a patch to remove an extra space at the top.
-%    \begin{MacroCode}
 \CDR@Debug{\string\CDRBlock_use:\space 2}
     \CDRTag_if_truthy:cT { obey~lines } {
       \tl_set:Nn \l_CDR_obey_tl { __l }
+      \directlua{ CDR.Block:synctex_obey_lines() }
+    }
+%    \end{MacroCode}
+% This is a patch to remove an extra space at the top.
+%    \begin{MacroCode}
+    \CDRTag_if_truthy:cT { no~space~above } {
+      \@minipagetrue
     }
     \trivlist\item
     \group_begin:
@@ -9608,16 +9618,16 @@ self.debug_msg('driver-lua close!')
   driver .code:n = \CDRTag_set:,
   driver .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckGreen first line=\metatt{integer}]^^A
+% \itemtt[\CDRCheckGreen first imported line=\metatt{integer}]^^A
 % The lines up to \metatt{integer}-1 are hidden.
 % If the value is not positive, then the total amount
 % of lines is added.
 % The initial value is 1: no header line is hidden.
 %    \begin{MacroCode}[OK]
-  first~line .code:n = \CDRTag_set:,
-  first~line .value_required:n = true,
+  first~imported~line .code:n = \CDRTag_set:,
+  first~imported~line .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckGreen last line=\metatt{integer}]^^A
+% \itemtt[\CDRCheckGreen last imported line=\metatt{integer}]^^A
 % The lines from \metatt{integer}+1 are hidden.
 % The initial value is the total amount of lines:
 % no trailer line is hidden.
@@ -9625,8 +9635,8 @@ self.debug_msg('driver-lua close!')
 % of lines is added.
 % The initial value is 0: no trailer line is hidden.
 %    \begin{MacroCode}[OK]
-  last~line .code:n = \CDRTag_set:,
-  last~line .value_required:n = true,
+  last~imported~line .code:n = \CDRTag_set:,
+  last~imported~line .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed show code{[=true$\vert$false]}]^^A
 % whether code should be displayed.
@@ -9646,11 +9656,11 @@ self.debug_msg('driver-lua close!')
 % Initialization.
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
-    first~line = 1,
-    last~line  = 0,
-    driver     = raw,
-    show~code  = true,
-    show~doc   = true,
+    first~imported~line = 1,
+    last~imported~line  = 0,
+    driver    = raw,
+    show~code = true,
+    show~doc  = true,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -9672,8 +9682,15 @@ self.debug_msg('driver-lua close!')
 \NewDocumentCommand\CDRBlockImport { O{} m } {
 \CDR@Debug{\string\CDRBlockImport/#1/#2}
   \group_begin:
-  \cs_set:Npn \SyncTeXLC:##1:##2: {
-    \directlua{CDR.Block:synctex_target_set(##1, ##2) }
+  \cs_set:Npn \SyncTeXT ##1 {
+\CDR@Debug{\string\SyncTeXT/##1/*********************************************}
+    \directlua{
+      CDR.Block.synctex_tag = ##1
+    }
+  }
+  \cs_set:Npn \SyncTeXLC ##1 ##2 {
+\CDR@Debug{\string\SyncTeXLC/##1/##2/*********************************************}
+    \directlua{ CDR.Block:synctex_target_set(##1) }
   }
   \CDRBlock_new:c {}
   \tl_set:Nn \l_CDR_input_tl { #2 }
@@ -9688,7 +9705,6 @@ self.debug_msg('driver-lua close!')
   \CDRTag_get:cN { driver } \l_CDR_driver_tl
 \CDR@Debug{\string\CDRBlockImport: STEP3}
   \directlua {
-  
     CDR.Block.flow = CDR:flow_create(
       CDR.Block.import_begin
     )
@@ -9703,11 +9719,11 @@ self.debug_msg('driver-lua close!')
     \directlua {
       CDR.Block:import_set_boolean('show_doc')
     }
-    \CDRTag_get:cN { first~line } \l_CDR_a_tl
+    \CDRTag_get:cN { first~imported~line } \l_CDR_a_tl
     \directlua {
       CDR.Block:import_set_integer('first_line')
     }
-    \CDRTag_get:cN { last~line } \l_CDR_a_tl
+    \CDRTag_get:cN { last~imported~line } \l_CDR_a_tl
     \directlua {
       CDR.Block:import_set_integer('last_line')
     }

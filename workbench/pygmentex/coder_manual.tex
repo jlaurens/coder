@@ -154,7 +154,10 @@ Figure \ref{fig:First example} compares \pkg{lua} or \pkg{python} syntax while c
 %%%%%
 %%%%%
 \begin{figure}[h!]
-\begin{CDRBlockSave}{1}
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
+\begin{CDRBlock}[tags=lua, no space above]
 function factorial(n)
   --[[Compute n!]]
   if n > 1 then
@@ -162,25 +165,15 @@ function factorial(n)
   end
   return 1
 end
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{2}
+\end{CDRBlock}
+&&&
+\begin{CDRBlock}[tags=py, no space above]
 def factorial(n):
   '''Compute n!'''
   if n > 1:
     return n * factorial(n-1)
   return 1
-\end{CDRBlockSave}
-\begin{center}
-\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
-\begin{minipage}[t]{0.9\linewidth}
-\CDRBlockUse[tags=lua]{1}
-\end{minipage}%
-\hspace{0.09\linewidth}
-&
-\hspace{0.09\linewidth}%
-\begin{minipage}[t]{0.8\linewidth}
-\CDRBlockUse[tags=py]{2}
-\end{minipage}%
+\end{CDRBlock}
 \end{tabular}
 \end{center}
 \caption{First example}
@@ -978,14 +971,14 @@ Line 2
 \end{spacing}
 \end{tabular}
 \end{center}
-When used in itemize and enumerate lists or similar environments, the \CDRCode|CDRBlock| environment ignores the indentation. With option \CDRCode[tags=options]|list indent=false| it adapts its width to the indentation as occurs on the right:
+When used in itemize and enumerate lists or similar environments, the \CDRCode|CDRBlock| environment ignores the indentation. With option \CDRCode[tags=options]|list indent=true| it adapts its width to the indentation as occurs on the right:
 \begin{center}
 \begin{CDRBlockSave}{}
 Line of code⟨\mboxfill{.}⟩
 \end{CDRBlockSave}
 \setlength{\tabcolsep}{0mm}
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-\begin{minipage}[t]{0.85\linewidth}
+\begin{tabular}{p{0.475\linewidth}p{0.05\linewidth}p{0.475\linewidth}}
+\begin{minipage}[t]{1\linewidth}
 \CDRSet{show tags=none}
 \CDRBlockUse[tags=latex]{}
 \begin{itemize}
@@ -998,9 +991,9 @@ Line of code⟨\mboxfill{.}⟩
 \end{enumerate}
 \end{itemize}
 \end{minipage}
-&
-\CDRSet{list indent=false,show tags=none}
-\begin{minipage}[t]{0.85\linewidth}
+&&
+\CDRSet{list indent=true,show tags=none}
+\begin{minipage}[t]{1\linewidth}
 \CDRBlockUse[tags=latex]{}
 \begin{itemize}
 \item One
@@ -1177,8 +1170,7 @@ one can modify the aspect:
 
 \ExplSyntaxOff
 gives for example
-{\CDRBlockExe{CDRMetaFormat}
-\CDRMeta{concepts}} instead of \CDRMeta{concepts}
+{\CDRBlockExe{CDRMetaFormat}\CDRMeta{concepts}} instead of \CDRMeta{concepts}
 %
 \section{Import documented code with \CDRCodeUse[tags=src]{CDRBlockImport}}
 \label{sect:CDRBlockImport}
@@ -1197,7 +1189,7 @@ It allows to input a source file and typeset the embedded documentation in \LaTe
 \item
 } {
 \endtrivlist
-}
+}%
 Here is the raw content of file \pkg{coder-driver-c.lua} typeset with \pkg{pygments} xcode style:
 \CDRBlockImport[tags=lua|xcode,first line=18]{coder-driver-c.lua}
 \egroup
@@ -1381,7 +1373,6 @@ size of the font to use. If you use the \pkg{relsize} package as well,
 you can require a change of the size proportional to the current one
 (for instance below, the option used is \CDRCode[mbox=false]|font size=\relsize{-2}| on the right, compared to \CDRCode[mbox=false]|font size=\small| on the left).
 Initially \texttt{auto}: the same as the current font.
-Example: \CDRCode|\small|.
 \begin{center}
 \setlength{\tabcolsep}{0mm}
 \begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
@@ -1600,7 +1591,7 @@ Initially \CDRCode|false|.
 \setlength{\tabcolsep}{0mm}
 \CDRSet{show tags=none}
 \begin{tabular}{p{0.333\linewidth}p{0.333\linewidth}p{0.333\linewidth}}
-\begin{CDRBlock}[tags=src]
+\begin{CDRBlock}[tags=src, no space above]
 \begin{⟨CDRBlock⟩}[
   first number=421,
   
@@ -1620,7 +1611,7 @@ LINE 422
 LINE 423
 \end{CDRBlock}
 &
-\begin{CDRBlock}[tags=src]
+\begin{CDRBlock}[tags=src, no space above]
 \begin{⟨CDRBlock⟩}[
   first number=last,
   dry numbers,
@@ -1641,7 +1632,7 @@ LINE 425
 LINE 426
 \end{CDRBlock}
 &
-\begin{CDRBlock}[tags=src]
+\begin{CDRBlock}[tags=src, no space above]
 \begin{⟨CDRBlock⟩}[
   first number=last,
   

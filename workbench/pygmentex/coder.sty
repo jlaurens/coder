@@ -205,11 +205,11 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \typeout { ****~CDR:\CurrentFile :\the\inputlineno :\space##1}
     }
   }
-  \directlua { CDR:activate_debug(true) }
+  \directlua { CDR:debug_activate(true) }
 }
 \cs_new:Npn \CDRDebugOff {
   \cs_set_eq:NN \CDR@Debug \use_none:n
-  \directlua { CDR:activate_debug(false) }
+  \directlua { CDR:debug_activate(false) }
 }
 \msg_new:nnn { coder } { unknown-choice } {
   #1~given~value~`#3'~not~in~#2
@@ -246,7 +246,6 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \tl_set:Nx \l_CDR_l_tl { \CDR_int_use:c { __l } }
   \CDR@Debug{logical:~\l_CDR_p_tl}
 }
-\CDR_int_new:cn { __line } { 1 }
 \cs_new:Npn \CDR_int:c #1 {
   \use:c { CDR@int.#1 }
 }
@@ -2202,6 +2201,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   dry~numbers .default:n = true,
   test .code:n = \CDRTag_boolean_set:x { #1 },
   test .default:n = true,
+  no~space~above .code:n = \CDRTag_boolean_set:x { #1 },
+  no~space~above .default:n = true,
   obey~lines .code:n = \CDRTag_set:,
   obey~lines .default:n = true,
   __initialize .meta:n = {
@@ -2210,6 +2211,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     dry~numbers  = false,
     test   = false,
     obey~lines = false,
+    no~space~above = false,
   },
   __initialize .value_forbidden:n = true,
 }
@@ -2551,6 +2553,10 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\CDRBlock_use:\space 2}
     \CDRTag_if_truthy:cT { obey~lines } {
       \tl_set:Nn \l_CDR_obey_tl { __l }
+      \directlua{ CDR.Block:synctex_obey_lines() }
+    }
+    \CDRTag_if_truthy:cT { no~space~above } {
+      \@minipagetrue
     }
     \trivlist\item
     \group_begin:
@@ -3416,20 +3422,20 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \CDRTag_keys_define:nn { CDRBlockImport } {
   driver .code:n = \CDRTag_set:,
   driver .value_required:n = true,
-  first~line .code:n = \CDRTag_set:,
-  first~line .value_required:n = true,
-  last~line .code:n = \CDRTag_set:,
-  last~line .value_required:n = true,
+  first~imported~line .code:n = \CDRTag_set:,
+  first~imported~line .value_required:n = true,
+  last~imported~line .code:n = \CDRTag_set:,
+  last~imported~line .value_required:n = true,
   show~code .code:n = \CDRTag_boolean_set:x { #1 },
   show~code .default:n = true,
   show~doc .code:n = \CDRTag_boolean_set:x { #1 },
   show~doc .default:n = true,
   __initialize .meta:n = {
-    first~line = 1,
-    last~line  = 0,
-    driver     = raw,
-    show~code  = true,
-    show~doc   = true,
+    first~imported~line = 1,
+    last~imported~line  = 0,
+    driver    = raw,
+    show~code = true,
+    show~doc  = true,
   },
   __initialize .value_forbidden:n = true,
 }
@@ -3441,8 +3447,15 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \NewDocumentCommand\CDRBlockImport { O{} m } {
 \CDR@Debug{\string\CDRBlockImport/#1/#2}
   \group_begin:
-  \cs_set:Npn \SyncTeXLC:##1:##2: {
-    \directlua{CDR.Block:synctex_target_set(##1, ##2) }
+  \cs_set:Npn \SyncTeXT ##1 {
+\CDR@Debug{\string\SyncTeXT/##1/*********************************************}
+    \directlua{
+      CDR.Block.synctex_tag = ##1
+    }
+  }
+  \cs_set:Npn \SyncTeXLC ##1 ##2 {
+\CDR@Debug{\string\SyncTeXLC/##1/##2/*********************************************}
+    \directlua{ CDR.Block:synctex_target_set(##1) }
   }
   \CDRBlock_new:c {}
   \tl_set:Nn \l_CDR_input_tl { #2 }
@@ -3457,7 +3470,6 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRTag_get:cN { driver } \l_CDR_driver_tl
 \CDR@Debug{\string\CDRBlockImport: STEP3}
   \directlua {
-
     CDR.Block.flow = CDR:flow_create(
       CDR.Block.import_begin
     )
@@ -3472,11 +3484,11 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \directlua {
       CDR.Block:import_set_boolean('show_doc')
     }
-    \CDRTag_get:cN { first~line } \l_CDR_a_tl
+    \CDRTag_get:cN { first~imported~line } \l_CDR_a_tl
     \directlua {
       CDR.Block:import_set_integer('first_line')
     }
-    \CDRTag_get:cN { last~line } \l_CDR_a_tl
+    \CDRTag_get:cN { last~imported~line } \l_CDR_a_tl
     \directlua {
       CDR.Block:import_set_integer('last_line')
     }

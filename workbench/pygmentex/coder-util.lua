@@ -56,14 +56,15 @@ end
 TEST.debug_msg = function(...)
   debug_msg(...)
 end
-function CDR:activate_debug(yorn)
+function CDR:debug_activate(yorn)
   if yorn then
     debug_msg = f_debug_msg
   else
     debug_msg = f_noop
   end
+  self.debug_active = yorn
 end
-function CDR:activate_test(yorn)
+function CDR:test_activate(yorn)
   if yorn then
     self.TEST = TEST
   else
@@ -1196,7 +1197,7 @@ debug_msg('Object.synctex_target_set', self.synctex_tag, self.synctex_line, line
 end
 local synctex_storage = {}
 function Object:synctex_store(offset)
-  self:synctex_save( offset or 0 )
+  self:synctex_save( offset )
   local storage = synctex_storage[self.id] or {}
   synctex_storage[self.id] = storage
   storage.tag = self.synctex_tag
@@ -1207,6 +1208,7 @@ function Object:synctex_get(key)
   local storage = synctex_storage[self.id] or {}
   local ans = storage[key]
   if ans then
+texio.write_nl('********************1'..key..ans)
     return ans
   end
   local f = ({
@@ -1214,15 +1216,22 @@ function Object:synctex_get(key)
     line = tex.get_synctex_line,
   })[key]
   if f then
+texio.write_nl('********************2'..key..f())
     return f()
   end
   return 0
 end
-function Object:synctex_sprint_tag()
+function Object:synctex_sprint_tag( )
   tex.sprint(self:synctex_get('tag'))
 end
-function Object:synctex_sprint_line()
+function Object:synctex_sprint_line( )
   tex.sprint(self:synctex_get('line'))
+end
+function Object:synctex_obey_lines()
+  local storage = synctex_storage[self.id] or {}
+  synctex_storage[self.id] = storage
+  storage.line = 0
+texio.write_nl('*********************** Object:synctex_obey_lines')
 end
 function CDR:cache_clean_all()
   if not self.can_clean then
@@ -1294,6 +1303,7 @@ debug_msg('import_driver_get', path)
 end
 function Block:synctex_tag_catch(path)
 debug_msg('synctex_tag_catch...', path)
+  self:synctex_save()
   local pop = callback_push(
     'open_read_file',
     function (file_name)
@@ -1317,7 +1327,8 @@ debug_msg('synctex_tag_catch... runtoks AFTER INPUT')
     debug_msg('AFTER INPUT')
   end)
   pop()
-debug_msg('synctex_tag_catched', self.synctex_tag_catched)
+  self:synctex_restore()
+debug_msg('synctex_tag_catched... DONE', path,  self.synctex_tag_catched)
 end
 function Block:import_begin()
 debug_msg('import_begin.......................................')
@@ -1361,7 +1372,6 @@ debug_msg('\\CDRBlockImport raw file:', source, #lines)
   self:synctex_save()
   self.synctex_save = f_noop
   self.synctex_restore = f_noop
-  local n = 0
   local MT = {
     append = function (this, line)
       this.lines[#this.lines+1] = line
@@ -1369,7 +1379,7 @@ debug_msg('\\CDRBlockImport raw file:', source, #lines)
   }
   local current
   local all = {}
-  local function fi_code_new ()
+  local function fi_code_new (n)
     current = setmetatable({
       is_code = true,
       n = n,
@@ -1378,17 +1388,17 @@ debug_msg('\\CDRBlockImport raw file:', source, #lines)
     })
     all[#all+1] = current
   end
-  local function fi_doc_new ()
+  local function fi_doc_new (n)
     current = setmetatable({
       is_doc = true,
+      n = n,
       lines = {},
     }, { __index = MT
     })
     all[#all+1] = current
   end
-  self:synctex_tag_set(self.synctex_tag_catched)
+  self:synctex_tag_set(self.synctex_tag_catched+1)
   self:synctex_line_set(0)
-  local flow
   local make_reader = function ()
     if #all == 0 then
       if args.first_line <= 0 then
@@ -1398,17 +1408,16 @@ debug_msg('\\CDRBlockImport raw file:', source, #lines)
         args.last_line = #lines + args.last_line
       end
 debug_msg('\\CDRBlockImport make_reader', #lines,  args.first_line, args.last_line)
-      fi_code_new()
+      fi_code_new(1)
       local depth = 0
       for i = args.first_line, args.last_line do
 debug_msg('\\CDRBlockImport reader original', i, lines[i], d.open, d.close)
-        n = i
         local l = lines[i]
         if d.open and d:open(l) then
 debug_msg('OPEN')
           depth = depth + 1
           if current.is_code then
-            fi_doc_new()
+            fi_doc_new(i)
           end
         elseif d.close and d:close(l) then
 debug_msg('CLOSE')
@@ -1421,7 +1430,7 @@ debug_msg('CLOSE')
             self.flow:go()
           end
           if depth == 0 then
-            fi_code_new()
+            fi_code_new(i)
           end
         else
 debug_msg('CONTINUE')
@@ -1445,38 +1454,28 @@ debug_msg('CONTINUE')
         end
       end
       all = t
-      current = table.remove(all, 1)
-      if current then
-        t = { current }
-        while #all > 0 do
-          local tt = table.remove(all, 1)
-          if not current.is_doc == not tt.is_doc then
-            for _,line in ipairs(tt.lines) do
-              current.lines[#current.lines+1] = line
-            end
-          else
-            current = tt
-            t[#t+1] = tt
-          end
-        end
-        all = t
-      end
       t = {}
       for _,tt in ipairs(all) do
         if tt.is_code then
           t[#t+1] = [[\begin{CDRBlock}]]
-            ..'[first number='..(tt.n+1)..',obey lines]'
-        end
-        for _,line in ipairs(tt.lines) do
-          t[#t+1] = line
-        end
-        if tt.is_code then
+            ..'[first number='..(tt.n)..', obey lines]'
+          for _,line in ipairs(tt.lines) do
+            t[#t+1] = line
+          end
           t[#t+1] = [[\end{CDRBlock}]]
+        else
+          for i,l in ipairs(tt.lines) do
+            local w, b = l:match("^(%s*)(.*)$")
+            t[#t+1] = w..'\\SyncTeXLC{'..(i+tt.n-1)..'}{}'..b
+          end
         end
       end
       all = t
-      for i,l in ipairs(all) do
-        debug_msg('\\CDRBlockImport READER', i, l)
+      if CDR.debug_active then
+        debug_msg('\\CDRBlockImport READER', #all)
+        for i,l in ipairs(all) do
+          texio.write_nl(i..':'..l)
+        end
       end
     end
     local i = 0
