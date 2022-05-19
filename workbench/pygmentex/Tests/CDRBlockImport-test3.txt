@@ -1,0 +1,13 @@
+LINE 1
+LINE 2
+LINE 3
+--[=[!latex:
+DOC5
+DOC6
+DOC7
+--]=]
+LINE 9
+LINE 10
+LINE 11
+--[=[!latex:
+--]=]

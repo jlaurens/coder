@@ -1430,7 +1430,7 @@ debug_msg('CLOSE')
             self.flow:go()
           end
           if depth == 0 then
-            fi_code_new(i)
+            fi_code_new(i+1)
           end
         else
 debug_msg('CONTINUE')
@@ -1466,7 +1466,7 @@ debug_msg('CONTINUE')
         else
           for i,l in ipairs(tt.lines) do
             local w, b = l:match("^(%s*)(.*)$")
-            t[#t+1] = w..'\\SyncTeXLC{'..(i+tt.n-1)..'}{}'..b
+            t[#t+1] = w..'\\SyncTeXLC{'..(i+tt.n)..'}{}'..b
           end
         end
       end
