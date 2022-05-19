@@ -2459,7 +2459,6 @@ function Object:synctex_get(key)
   local storage = synctex_storage[self.id] or {}
   local ans = storage[key]
   if ans then
-texio.write_nl('********************1'..key..ans)
     return ans
   end
   local f = ({
@@ -2467,7 +2466,6 @@ texio.write_nl('********************1'..key..ans)
     line = tex.get_synctex_line,
   })[key]
   if f then
-texio.write_nl('********************2'..key..f())
     return f()
   end
   return 0
@@ -2482,7 +2480,6 @@ function Object:synctex_obey_lines()
   local storage = synctex_storage[self.id] or {}
   synctex_storage[self.id] = storage
   storage.line = 0
-texio.write_nl('*********************** Object:synctex_obey_lines')
 end
 %    \end{MacroCode}
 %
@@ -2748,7 +2745,7 @@ debug_msg('\\CDRBlockImport raw file:', source, #lines)
         args.last_line = #lines + args.last_line
       end
 debug_msg('\\CDRBlockImport make_reader', #lines,  args.first_line, args.last_line)
-      fi_code_new(1)
+      fi_code_new(args.first_line)
       local depth = 0
       for i = args.first_line, args.last_line do
 debug_msg('\\CDRBlockImport reader original', i, lines[i], d.open, d.close)
@@ -7501,7 +7498,9 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \CDRTag_get:c { style }
   } { } {
     \directlua { CDR.Code:pyg_source(true) }
+    \directlua { tex.set_synctex_no_files(1) }
     \input { \l_CDR_pyg_sty_tl }
+    \directlua { tex.set_synctex_no_files(0) }
   }
   \CDR@StyleUseTag
   \directlua { CDR.Code:pyg_source(false, true) }        
@@ -7512,9 +7511,13 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \CDRCode_hook_before:
       \CDR_whitespace_setup:
       \CDR_whitespace_define:
-      \char_set_catcode_active:n { `\^^I }
-      \char_set_catcode_active:n { `\    }
-      \input { \l_CDR_pyg_tex_tl }\ignorespaces
+      \directlua { tex.set_synctex_no_files(1) }
+      \file_get:nnN { \l_CDR_pyg_tex_tl } {
+        \char_set_catcode_active:n { `\^^I }
+        \char_set_catcode_active:n { `\    }
+      } \l_CDR_tl
+      \directlua { tex.set_synctex_no_files(0) }
+      \l_CDR_tl\ignorespaces
       \CDRCode_hook_after:
       \makeatother
     }  
@@ -7775,7 +7778,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \bool_new:N \l_CDR_before_eol_bool
 \NewDocumentCommand \CDRBlock@Read@Options { O{} } {
 \CDR@Debug{\string\CDRBlock@Read@Options}
-  \clist_set:Nn \l_CDR_kv_clist { #1 }
+  \clist_set_eq:NN \l_CDR_kv_clist \l_CDR_import_clist
+  \clist_put_right:Nn \l_CDR_kv_clist { #1 }
   \directlua { CDR.Block:exit_options() }
   \bool_set_true:N \l_CDR_before_eol_bool
 \CDR@Debug{\string\CDRBlock@Read@Options/SKIP}
@@ -9508,9 +9512,6 @@ local ans = {
     )
   end,
 }
-texio.write_nl('============================ DRIVER_C')
-texio.write_nl(tostring(ans.open))
-texio.write_nl(tostring(ans.close))
 return ans
 %</driver-c>
 %<*driver-py>
@@ -9679,23 +9680,24 @@ self.debug_msg('driver-lua close!')
 %    \begin{MacroCode}
 \tl_new:N \l_CDR_input_tl
 \tl_new:N \l_CDR_driver_tl
+\clist_new:N \l_CDR_import_clist
 \NewDocumentCommand\CDRBlockImport { O{} m } {
 \CDR@Debug{\string\CDRBlockImport/#1/#2}
   \group_begin:
   \cs_set:Npn \SyncTeXT ##1 {
-\CDR@Debug{\string\SyncTeXT/##1/*********************************************}
+\CDR@Debug{\string\SyncTeXT/##1/}
     \directlua{
       CDR.Block.synctex_tag = ##1
     }
   }
   \cs_set:Npn \SyncTeXLC ##1 ##2 {
-\CDR@Debug{\string\SyncTeXLC/##1/##2/*********************************************}
+\CDR@Debug{\string\SyncTeXLC/##1/##2/}
     \directlua{ CDR.Block:synctex_target_set(##1) }
   }
   \CDRBlock_new:c {}
   \tl_set:Nn \l_CDR_input_tl { #2 }
   \CDR_local_inherit:n { CDRBlockImport }
-  \CDR_local_set_known:nN { #1 } \l_CDR_kv_clist
+  \CDR_local_set_known:nN { #1 } \l_CDR_import_clist
 \CDR@Debug{\string\CDRBlockImport: STEP1}
   \directlua {
     CDR.Block:synctex_tag_catch('\luaescapestring{#2}')

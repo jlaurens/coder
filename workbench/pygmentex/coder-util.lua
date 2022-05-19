@@ -1208,7 +1208,6 @@ function Object:synctex_get(key)
   local storage = synctex_storage[self.id] or {}
   local ans = storage[key]
   if ans then
-texio.write_nl('********************1'..key..ans)
     return ans
   end
   local f = ({
@@ -1216,7 +1215,6 @@ texio.write_nl('********************1'..key..ans)
     line = tex.get_synctex_line,
   })[key]
   if f then
-texio.write_nl('********************2'..key..f())
     return f()
   end
   return 0
@@ -1231,7 +1229,6 @@ function Object:synctex_obey_lines()
   local storage = synctex_storage[self.id] or {}
   synctex_storage[self.id] = storage
   storage.line = 0
-texio.write_nl('*********************** Object:synctex_obey_lines')
 end
 function CDR:cache_clean_all()
   if not self.can_clean then
@@ -1408,7 +1405,7 @@ debug_msg('\\CDRBlockImport raw file:', source, #lines)
         args.last_line = #lines + args.last_line
       end
 debug_msg('\\CDRBlockImport make_reader', #lines,  args.first_line, args.last_line)
-      fi_code_new(1)
+      fi_code_new(args.first_line)
       local depth = 0
       for i = args.first_line, args.last_line do
 debug_msg('\\CDRBlockImport reader original', i, lines[i], d.open, d.close)

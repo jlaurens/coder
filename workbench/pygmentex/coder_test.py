@@ -1,6 +1,6 @@
 #! \usr\bin\env python
 '''!latex:
-\begin{coder}{Embedded comment}
+\begin{coder}{Embedded documentation}
 This is a python function
 \end{coder}
 '''

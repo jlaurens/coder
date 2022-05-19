@@ -27,7 +27,7 @@ In both cases there must be at least one star.
 
 The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
-See the \CDRCode|\CDRBlockImport| documentation for more information.
+See the \CDRCode[lang=tex]|\CDRBlockImport| documentation for more information.
 \end{coder}
 --]=]
 -- put here whatever statement you need

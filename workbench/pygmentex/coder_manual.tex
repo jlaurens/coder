@@ -1191,15 +1191,15 @@ It allows to input a source file and typeset the embedded documentation in \LaTe
 \endtrivlist
 }%
 Here is the raw content of file \pkg{coder-driver-c.lua} typeset with \pkg{pygments} xcode style:
-\CDRBlockImport[tags=lua|xcode,first line=18]{coder-driver-c.lua}
+\CDRBlockImport[tags=lua|xcode,first imported line=18]{coder-driver-c.lua}
 \egroup
 This was input with command
 \begin{CDRBlock}[tags=src]
-\CDRBlockImport[tags=lua,first line=18]{coder-driver-c.lua}
+\CDRBlockImport[tags=lua,first imported line=18]{coder-driver-c.lua}
 \end{CDRBlock}
 The lines from 1 to 17 are hidden due to the
-\CDRCode|first line=18| option.
-With supplemental option \CDRCode|last line=-5|, the 5 last lines would have been hidden as well.
+\CDRCode|first imported line=18| option.
+With supplemental option \CDRCode|last imported line=-5|, the 5 last lines would have been hidden as well.
 
 If we add the option \CDRCode|driver=c|, then the embedded documentation is typeset on its own.
 \begin{CDRBlockSave}{coder environment}
@@ -1211,7 +1211,7 @@ If we add the option \CDRCode|driver=c|, then the embedded documentation is type
 }
 \end{CDRBlockSave}
 \CDRBlockExe{coder environment}
-\CDRBlockImport[tags=lua|xcode,first line=18,driver=lua]{coder-driver-c.lua}
+\CDRBlockImport[tags=lua|xcode,first imported line=18,driver=lua]{coder-driver-c.lua}
 We first defined the \CDRCode|coder| environment to display a box:
 \CDRBlockUse[tags=src]{coder environment}
 The line numbering of the code follows exactly the physical numbering of the source file.
@@ -1221,7 +1221,7 @@ Builtin drivers are provided to support various languages. The driver above can 
 Writing new drivers is not difficult as soon as the programming languages supports block comments,
 considering that already existing drivers may serve as starting points.
 
-\CDRBlockImport[tags=xcode|py,first line=2,driver=py]{coder_test.py}
+\CDRBlockImport[tags=xcode|py,first imported line=2,driver=py]{coder_test.py}
 \CDRBlockImport[tags=xcode,lang=c,driver=raw]{coder_test.c}
 
 \section{The \CDRCodeUse[tags=src]{CDRSet} command}
