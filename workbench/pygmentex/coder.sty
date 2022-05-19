@@ -573,6 +573,22 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \prg_return_false:
   }
 }
+\prg_new_conditional:Nnn \CDRTag_if_auto:cc { p, T,  F, TF } {
+  \exp_args:Nf
+  \str_compare:nNnTF { \CDRTag_get:cc { #1 } { #2 } } = { auto } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
+\prg_new_conditional:Nnn \CDRTag_if_auto:c { p, T,  F, TF } {
+  \exp_args:Nf
+  \str_compare:nNnTF { \CDRTag_get:cc { __local } { #1 } } = { auto } {
+    \prg_return_true:
+  } {
+    \prg_return_false:
+  }
+}
 \prg_new_conditional:Nnn \CDR_if_truthy:n { p, T,  F, TF } {
   \exp_args:Ne
   \str_compare:nNnTF { \exp_args:Ne \str_lowercase:n { #1 } } = { true } {
@@ -657,6 +673,14 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 }
 \cs_new:Npn \CDRTag_get:c {
   \CDRTag_get:cc { __local }
+}
+\cs_new:Npn \CDRTag_get_no_auto:cc #1 #2 {
+  \CDRTag_if_auto:ccF { #1 } { #2 } {
+    \CDRTag_get:cc { #1 } { #2 }
+  }
+}
+\cs_new:Npn \CDRTag_get_no_auto:c {
+  \CDRTag_get_no_auto:cc { __local }
 }
 \cs_new_protected:Npn \CDRTag_get:ccN #1 #2 #3 {
   \tl_set:Nf #3 { \CDRTag_get:cc { #1 } { #2 } }
@@ -942,8 +966,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRTag_keys_set:nn { __pygments } { __initialize }
 }
 \CDRTag_keys_define:nn { default } {
-  font~family .code:n = \CDRTag_set:,
-  font~family .value_required:n = true,
+  font .code:n = \CDRTag_set:,
+  font .value_required:n = true,
   font~size .code:n = \CDRTag_set:,
   font~size .value_required:n = true,
   font~shape .code:n = \CDRTag_set:,
@@ -966,8 +990,6 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   cache .default:n = true,
   debug .code:n = \CDRTag_boolean_set:x { #1 },
   debug .default:n = true,
-  post~processor .code:n = \CDRTag_set:,
-  post~processor .value_required:n = true,
   ref~label .code:n = \CDRTag_set:,
   ref~label .value_required:n = true,
   show~spaces .code:n = \CDRTag_boolean_set:x { #1 },
@@ -977,19 +999,18 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   escape~inside .code:n = \CDRTag_set:,
   escape~inside .value_required:n = true,
   __initialize .meta:n = {
-    font~family = auto,
+    font = \ttfamily,
     font~size = auto,
     font~series = auto,
     font~shape = auto,
-    format  = \ttfamily,
-    format* = ,
-    hook~before  = ,
-    hook~before* = ,
-    hook~after  = ,
-    hook~after* = ,
+    format  = auto,
+    format* = auto,
+    hook~before  = auto,
+    hook~before* = auto,
+    hook~after  = auto,
+    hook~after* = auto,
     cache = true,
     debug = false,
-    post~processor = ,
     show~spaces = false,
     obey~tabs = false,
     ref~label = ,
@@ -1204,18 +1225,18 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   step~number .value_required:n = true,
   numberblanklines .code:n = \CDRTag_boolean_set:x { #1 },
   numberblanklines .default:n = true,
-  firstline .code:n = \CDRTag_set:n { \unexpanded { #1 } },
-  firstline .value_required:n = true,
-  lastline .code:n = \CDRTag_set:n { \unexpanded { #1 } },
-  lastline .value_required:n = true,
+  first~line .code:n = \CDRTag_set:n { \unexpanded { #1 } },
+  first~line .value_required:n = true,
+  last~line .code:n = \CDRTag_set:n { \unexpanded { #1 } },
+  last~line .value_required:n = true,
   __initialize .meta:n = {
     numbers = left,
     number~sep = 1ex,
     first~number = auto,
     step~number = 1,
     numberblanklines = true,
-    firstline = ,
-    lastline = ,
+    first~line = auto,
+    last~line = auto,
   },
   __initialize .value_forbidden:n = true,
 }
@@ -1679,7 +1700,6 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       { See~\CDRCodeEngineNew~in~the~coder~manual }
     \CDRTag_set:cn { engine } { default }
   }
-  \CDRTag_get:c { format }
   \exp_args:Nnx
   \use:c { \CDRCode_engine:c { \CDRTag_get:c { engine } } } {
     \CDRTag_get:c { \CDRTag_get:c { engine }~engine~options },
@@ -2113,61 +2133,45 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \directlua { CDR.Code:pyg_teardown() }
   }
 }
-\cs_new:Npn \CDR_format: {
+\cs_new:Npn \CDR_font: {
   \frenchspacing
-  \CDRTag_if_eq:cnF { font~size } { auto } {
-    \CDRTag_get:c { font~size }
-  }
-  \CDRTag_if_eq:cnF { font~series } { auto } {
-    \exp_args:Nx \fontseries {
-      \CDRTag_get:c { font~series }
-    }
-  }
-  \CDRTag_if_eq:cnF { font~family } { auto } {
-    \exp_args:Nx \fontfamily {
-      \CDRTag_get:c { font~family }
-    }
-  }
-  \CDRTag_if_eq:cnF { font~shape } { auto } {
-    \exp_args:Nx \fontshape {
-      \CDRTag_get:c { font~shame }
-    }
-  }
-  \selectfont
-  \CDRTag_if_eq:cnF { format } { auto } {
-    \CDRTag_get:c { format }
-  }
-  \CDRTag_if_eq:cnF { format* } { auto } {
-    \CDRTag_get:c { format* }
-  }
+  \CDRTag_get_no_auto:c { font~size }
+  \CDRTag_get_no_auto:c { font~series }
+  \CDRTag_get_no_auto:c { font~shape }
+  \CDRTag_get_no_auto:c { font }
 }
 \cs_new:Npn \CDRCode_format: {
-  \CDR_format:
-  \CDRTag_get:cc { default.code } { format* }
-  \CDR_if_pygments:F {
-    \CDRTag_get:cc { __verbatim.code } { format* }
+  \CDR_font:
+  \CDRTag_get_no_auto:c { format }
+  \CDRTag_get_no_auto:cc { default.code } { format* }
+  \CDR_if_pygments:TF {
+    \CDRTag_get_no_auto:cc { pygments.code } { format* }
+  } {
+    \CDRTag_get_no_auto:cc { verbatim.code } { format* }
   }
-  \CDRTag_get:c  { format* }
+  \CDRTag_get_no_auto:c { format* }
 }
 \cs_set:Npn \CDRCode_hook_before: {
-  \CDRTag_get:c  { hook~before }
-  \CDRTag_get:cc { default } { hook~before* }
-  \CDRTag_get:cc { default.code } { hook~before* }
-  \CDR_if_pygments:F {
-    \CDRTag_get:cc { __verbatim.code } { hook~before* }
+  \CDRTag_get_no_auto:c  { hook~before }
+  \CDRTag_get_no_auto:cc { default } { hook~before* }
+  \CDRTag_get_no_auto:cc { default.code } { hook~before* }
+  \CDR_if_pygments:TF {
+    \CDRTag_get_no_auto:cc { pygments.code } { hook~before* }
+  } {
+    \CDRTag_get_no_auto:cc { verbatim.code } { hook~before* }
   }
-  \CDRTag_get:c  { hook~before* }
+  \CDRTag_get_no_auto:c { hook~before* }
 }
 \cs_set:Npn \CDRCode_hook_after: {
-  \CDRTag_get:cc { default } { hook~after* }
-  \CDRTag_get:cc { default.code } { hook~after* }
+  \CDRTag_get_no_auto:cc { default } { hook~after* }
+  \CDRTag_get_no_auto:cc { default.code } { hook~after* }
   \CDR_if_pygments:TF {
-    \CDRTag_get:cc { pygments.code } { hook~after* }
+    \CDRTag_get_no_auto:cc { pygments.code } { hook~after* }
   } {
-    \CDRTag_get:cc { verbatim.code } { hook~after* }
+    \CDRTag_get_no_auto:cc { verbatim.code } { hook~after* }
   }
-  \CDRTag_get:c  { hook~after* }
-  \CDRTag_get:c  { hook~after }
+  \CDRTag_get_no_auto:c { hook~after* }
+  \CDRTag_get_no_auto:c { hook~after }
 }
 \cs_new_protected_nopar:Npn \CDRCode_vrb_use: {
 \CDR@Debug{\string\CDRCode_vrb_use:}
@@ -2409,36 +2413,41 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   }
 }
 \cs_new:Npn \CDRBlock_format: {
-  \CDRTag_get:c  { format }
-  \CDRTag_get:cc { default } { format* }
-  \CDRTag_get:cc { default.block } { format* }
-  \CDR_if_pygments:F {
-    \CDRTag_get:cc { __verbatim.block } { format* }
+  \CDR_font:
+  \CDRTag_get_no_auto:c  { format }
+  \CDRTag_get_no_auto:cc { default } { format* }
+  \CDRTag_get_no_auto:cc { default.block } { format* }
+  \CDR_if_pygments:TF {
+    \CDRTag_get_no_auto:cc { pygments.block } { format* }
+  } {
+    \CDRTag_get_no_auto:cc { verbatim.block } { format* }
   }
-  \CDRTag_get:c  { format* }
+  \CDRTag_get_no_auto:c { format* }
   \CDR_if_no_export:T {
-    \CDRTag_get:c { no~export~format }
+    \CDRTag_get_no_auto:c { no~export~format }
   }
 }
 \cs_set:Npn \CDRBlock_hook_before: {
-  \CDRTag_get:c  { hook~before }
-  \CDRTag_get:cc { default } { hook~before* }
-  \CDRTag_get:cc { default.block } { hook~before* }
-  \CDR_if_pygments:F {
-    \CDRTag_get:cc { __verbatim.block } { hook~before* }
+  \CDRTag_get_no_auto:c  { hook~before }
+  \CDRTag_get_no_auto:cc { default } { hook~before* }
+  \CDRTag_get_no_auto:cc { default.block } { hook~before* }
+  \CDR_if_pygments:TF {
+    \CDRTag_get_no_auto:cc { pygments.block } { hook~before* }
+  } {
+    \CDRTag_get_no_auto:cc { verbatim.block } { hook~before* }
   }
-  \CDRTag_get:c  { hook~before* }
+  \CDRTag_get_no_auto:c  { hook~before* }
 }
 \cs_set:Npn \CDRBlock_hook_after: {
-  \CDRTag_get:cc { default } { hook~after* }
-  \CDRTag_get:cc { default.block } { hook~after* }
+  \CDRTag_get_no_auto:cc { default } { hook~after* }
+  \CDRTag_get_no_auto:cc { default.block } { hook~after* }
   \CDR_if_pygments:TF {
-    \CDRTag_get:cc { pygments.block } { hook~after* }
+    \CDRTag_get_no_auto:cc { pygments.block } { hook~after* }
   } {
-    \CDRTag_get:cc { verbatim.block } { hook~after* }
+    \CDRTag_get_no_auto:cc { verbatim.block } { hook~after* }
   }
-  \CDRTag_get:c  { hook~after* }
-  \CDRTag_get:c  { hook~after }
+  \CDRTag_get_no_auto:c { hook~after* }
+  \CDRTag_get_no_auto:c { hook~after }
 }
 
 \cs_new:Npn \CDRBlock_v_space: {
@@ -2475,9 +2484,9 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\CDRBlock_use:, STEP: 2}
     \CDR_int_set:cn { __mini } { 1 }
 \CDR@Debug{\string\CDRBlock_use:, STEP: 2a}
-    \CDRTag_get:cNT { firstline } \l_CDR_a_tl {
+    \CDRTag_if_auto:cF { first~line } {
 \CDR@Debug{\string\CDRBlock_use:, STEP: 2b, \l_CDR_a_tl}
-      \tl_if_empty:NF \l_CDR_a_tl {
+      \CDRTag_get:cNT { first~line } \l_CDR_a_tl {
 \CDR@Debug{\string\CDRBlock_use:, STEP: 2c}
         \exp_args:NNV
         \regex_match:NnTF \c_CDR_alg_regex \l_CDR_a_tl {
@@ -2509,9 +2518,9 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\CDRBlock_use:, STEP: 3}
     \CDR_int_set:cn { __maxi } { \CDRBlock_count: }
 \CDR@Debug{\string\CDRBlock_use:, STEP: 3a}
-    \CDRTag_get:cNT { lastline } \l_CDR_a_tl {
+    \CDRTag_if_auto:cF { last~line } {
 \CDR@Debug{\string\CDRBlock_use:, STEP: 3b}
-      \tl_if_empty:NF \l_CDR_a_tl {
+      \CDRTag_get:cNT { last~line } \l_CDR_a_tl {
 \CDR@Debug{\string\CDRBlock_use:, STEP: 3c}
         \exp_args:NNV
         \regex_match:NnTF \c_CDR_alg_regex \l_CDR_a_tl {
@@ -2631,7 +2640,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       }
     } {
 \CDR@Debug{ \string \CDRBlock_teardown:c~NORMAL }
-      \CDRTag_if_eq:cnTF { first~number } { auto } {
+      \CDRTag_if_auto:cTF { first~number } {
         \CDRLine_logical_set:n {
           1 + \CDRBlock_count:
         }
@@ -3036,7 +3045,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \tl_set:Nn \l_CDR_strut_tl {%[
     \baselineskip]{0pt}{\baselineskip}
   }
-  \CDRTag_if_eq:cnTF { line~depth } { auto } {
+  \CDRTag_if_auto:cTF { line~depth } {
     \hbox_set:Nn \l_CDR_a_box { lp }
     \tl_put_left:Nx \l_CDR_strut_tl {
       -\fp_eval:n {
@@ -3170,7 +3179,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
         }
       }
     } {
-      \CDRTag_if_eq:cnF { first~number } { auto } {
+      \CDRTag_if_auto:cF { first~number } {
         \CDR_int_set:cn { __start } { \CDRTag_get:c { first~number } }
       }
     }
