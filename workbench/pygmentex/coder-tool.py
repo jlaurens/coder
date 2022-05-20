@@ -215,9 +215,9 @@ file name with extension, contains processing information.
     gobble = pygopts.gobble
     if gobble:
       lexer.add_filter('gobble', n=gobble)
-    tabsize = texopts.tabsize
-    if tabsize:
-      lexer.tabsize = tabsize
+    # tabsize = texopts.tabsize
+    # if tabsize:
+    #   lexer.tabsize = tabsize
     lexer.encoding = ''
     args.base = ns.base
     args.create_style = ns.create_style

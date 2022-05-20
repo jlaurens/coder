@@ -2021,7 +2021,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
           {Unterminated\space short\space verbatim\space input}
       }
       \directlua{ CDR.Code:peek_active_end() }
-\typeout{\string\CDRCode_peek_active_end:n/#1/}
+\CDR@Debug{\string\CDRCode_peek_active_end:n/#1/}
       \CDRCode_peek_active_end:n
     } {
       \CDRCode_peek_active_continue:n
@@ -2131,7 +2131,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDR@StyleUseTag
   \directlua { CDR.Code:pyg_source(false, true) }
   \CDR@CodeEngineApply {
-    \CDRTag_if_truthy:cT { mbox } { \mbox } {
+    \CDRTag_if_truthy:cTF { mbox } { \mbox } { \use:n } {
       \makeatletter
       \CDRCode_format:
       \CDRCode_hook_before:
@@ -2192,7 +2192,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 }
 \cs_new_protected_nopar:Npn \CDRCode_vrb_use: {
 \CDR@Debug{\string\CDRCode_vrb_use:}
-  \CDR@CodeEngineApply { \CDRTag_if_truthy:cT { mbox } { \mbox } {
+  \CDR@CodeEngineApply { \CDRTag_if_truthy:cTF { mbox } { \mbox } { \use:n } {
     \exp_args:Nx
     \CDR@Setup {
       synctex_tag  = \directlua {
@@ -2239,6 +2239,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \CDR_int_new:cn { __mini  } { 0 }
 \CDR_int_new:cn { __maxi  } { 0 }
 \cs_new:Npn \CDRBlock_preflight:n #1 { }
+\tl_new:N \CDR@Tab
 \cs_new:Npn \CDR_whitespace_setup: {
 \CDR@Debug{\string\CDR_whitespace_setup:}
   \CDRTag_if_truthy:cTF { show~spaces } {
@@ -2360,7 +2361,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\end{#2}...\the\inputlineno }
     \CDRBlock_save_end:
 \CDR@Debug{CDRBlock...SETUP}
-    \CDRBlock_setup:n { }
+    \CDRBlock_setup:
     \CDR_if_pygments:TF {
       \CDR@Debug{THIS\space IS\space PYGMENTS}
     } {
@@ -2613,8 +2614,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \regex_new:N \l_CDR_regex
 \cs_generate_variant:Nn \regex_set:Nn { Nx, NV }
 \cs_generate_variant:Nn \tl_to_str:n { V }
-\cs_new_protected_nopar:Npn \CDRBlock_setup:n #1 {
-\CDR@Debug { \string \CDRBlock_setup:n ,\tl_to_str:V \l_CDR_kv_clist }
+\cs_new_protected_nopar:Npn \CDRBlock_setup: {
+\CDR@Debug { \string \CDRBlock_setup: ,\tl_to_str:V \l_CDR_kv_clist }
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_true:
   }
@@ -2629,7 +2630,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDR_local_set_known:N \l_CDR_kv_clist
   \CDRTag_provide_from_kv:V \l_CDR_kv_clist
   \CDR_local_set_known:N \l_CDR_kv_clist
-\CDR@Debug{\string \CDRBlock_setup:n.KV1:}
+\CDR@Debug{\string \CDRBlock_setup:.KV1:}
   \CDR_local_set_known:N \l_CDR_kv_clist
   \directlua {
     CDR.Block:pyg_setup('g_CDR_tags_clist')
@@ -2662,7 +2663,6 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   }
   \CDRTag_get:cN { escape~inside } \l_CDR_delimiters_tl
   \CDRTag_get:cN { gobble } \l_CDR_gobble_tl
-  #1
 }
 \cs_new_protected_nopar:Npn \CDRBlock_teardown: {
 \CDR@Debug{ \string \CDRBlock_teardown:c }
@@ -2727,7 +2727,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \CDRBlock_free:
   } {
     \clist_set:Nn \l_CDR_kv_clist { #1 }
-    \CDRBlock_setup:n {}
+    \CDRBlock_setup:
     \CDRBlock_use:
     \CDRBlock_free:
   }
@@ -2839,6 +2839,11 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \cs_set:Npn \CDR@Space { { \textvisiblespace } }
   } {
     \cs_set:Npn \CDR@Space { \  }
+  }
+  \tl_set:No \CDR@Tab {
+    \prg_replicate:nn
+      { \CDRTag_get:c { tab~size } }
+      { \CDR@Space }
   }
   \CDR_whitespace_define:
   \char_set_catcode_active:n { `\^^I }

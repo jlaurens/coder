@@ -1342,39 +1342,35 @@ Initially empty.
 font family to use.
 Initially \CDRCode|\ttfamily|.
 \begin{center}
-\begin{CDRBlockSave}{1}
-\begin{⟨CDRBlock⟩}[
-  ⟨\color{CDROptions}font=courier⟩,
-]
-This is courier
-\end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{2}
-This is default font.
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{3}
-\begin{⟨CDRBlock⟩}[
-  ⟨\color{CDROptions}font=\TGCFont⟩,
-]
-This is TeX Gyre Cursor
-\end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{4}
-This is TeX Gyre Cursor
-\end{CDRBlockSave}
 \setlength{\tabcolsep}{0mm}
 \begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-\CDRBlockUse[tags=src]{1}
-The output reads
-\CDRBlockUse[
-  font=auto,
-]{2}
+\begin{CDRBlock}[tags=src, no space above]
+\begin{⟨CDRBlock⟩}
+This is default teletype font.
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
 &
-\CDRBlockUse[tags=src]{3}
+\begin{CDRBlock}[tags=src, no space above]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}font=\string\TGCFont⟩,
+]
+This is TeX Gyre Cursor
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+\\
 The output reads
-\CDRBlockUse[
+\begin{CDRBlock}[
+  font=\ttfamily,
+]
+This is default teletype font.
+\end{CDRBlock}
+&
+The output reads
+\begin{CDRBlock}[
   font=\TGCFont,
-]{4}
+]
+This is TeX Gyre Cursor
+\end{CDRBlock}
 \end{tabular}
 \end{center}
 The \CDRCode|\TGCFont| family command was created with package \pkg{fontspec}
@@ -1405,32 +1401,41 @@ Initially \texttt{auto}: the same as the current font.
 \end{minipage}
 \end{tabular}
 \end{center}
-
 \itemtt[\CDRCheckRed font shape=auto|\CDRMeta{font shape command}]
 font shape to use. Initially \texttt{auto}: the same as the current font.
 Here is the difference between slanted with \CDRCode|font shape=\slshape| and italic with  \CDRCode|font shape=\itshape|.
 \begin{center}
 \setlength{\tabcolsep}{0mm}
 \begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-\begin{minipage}[t]{0.85\linewidth}
 \CDRSet{show tags=none,font shape=\slshape}
-\begin{CDRBlock}[tags=latex,escape inside=⟨⟩]
+\begin{CDRBlock}[tags=latex, no space above]
 ⟨\lipsum[3][1]⟩
 \end{CDRBlock}
-\end{minipage}
 &
 \CDRSet{show tags=none,font shape=\itshape}
-\begin{minipage}[t]{0.85\linewidth}
-\begin{CDRBlock}[tags=latex,escape inside=⟨⟩]
+\begin{CDRBlock}[tags=latex, no space above]
 ⟨\lipsum[3][1]⟩
 \end{CDRBlock}
-\end{minipage}
 \end{tabular}
 \end{center}
 \itemtt[\CDRCheckRed font series=auto|\CDRMeta{font series command}]
 \LaTeX{} font ‘series’ to use.
 Initially \texttt{auto}: the same as the current font.
-Example: \CDRCode|\bfseries|.
+Example: \CDRCode|\bfseries| on the left versus \CDRCode|\mdseries| on the right.
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\CDRSet{show tags=none,font series=\bfseries}
+\begin{CDRBlock}[tags=latex, no space above]
+⟨\lipsum[5][2]⟩
+\end{CDRBlock}
+&
+\CDRSet{show tags=none,font series=\mdseries}
+\begin{CDRBlock}[tags=latex, no space above]
+⟨\lipsum[5][2]⟩
+\end{CDRBlock}
+\end{tabular}
+\end{center}
 \itemtt[\CDRCheckRed shows spaces{[=true|false]}]
 print a special character representing each space.
 Initially \CDRCode|false|: spaces not shown.
@@ -1439,19 +1444,15 @@ unless they contain instructions to show spaces of course.
 \begin{center}
 \setlength{\tabcolsep}{0mm}
 \begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-\begin{minipage}[t]{0.85\linewidth}
-\CDRSet{show tags=none,show spaces,pygments=true}
-\begin{CDRBlock}[tags=latex]
+\CDRSet{show tags=none,show spaces}
+\begin{CDRBlock}[tags=latex, no space above,pygments=true]
 \textbf{In eu orci massa}
 \end{CDRBlock}
-\end{minipage}
 &
-\CDRSet{show tags=none,show spaces,pygments=false}
-\begin{minipage}[t]{0.85\linewidth}
-\begin{CDRBlock}[tags=latex]
+\CDRSet{show tags=none, show spaces}
+\begin{CDRBlock}[tags=latex, no space above, pygments=false]
 \textbf{In eu orci massa}
 \end{CDRBlock}
-\end{minipage}
 \end{tabular}
 \end{center}
 %
@@ -1459,33 +1460,46 @@ unless they contain instructions to show spaces of course.
 explicitly show tab characters.
 Initially \CDRCode|false|: tab characters not shown.
 Tabs are not shown in escaped instructions.
-
 \begin{center}
 \setlength{\tabcolsep}{0mm}
 \begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
 \begin{minipage}[t]{0.85\linewidth}
-\CDRSet{show tags=none,show spaces,pygments=true}
-\begin{CDRBlock}[tags=latex]
+\CDRSet{show tags=none,show spaces}
+\begin{CDRBlock}[tags=latex,pygments=true]
 \textbf{In	eu	orci	massa}
 \end{CDRBlock}
 \end{minipage}
 &
-\CDRSet{show tags=none,show spaces,pygments=false}
+\CDRSet{show tags=none,show spaces}
 \begin{minipage}[t]{0.85\linewidth}
-\begin{CDRBlock}[tags=latex]
+\begin{CDRBlock}[tags=latex,pygments=false]
 \textbf{In	eu	orci	massa}
 \end{CDRBlock}
 \end{minipage}
 \end{tabular}
 \end{center}
-
-
-\itemtt[\CDRCheckRed obeytabs=true|false]
-position characters according to the tabs.
-Initially false: tab characters are added to the current position.
-\itemtt[\CDRCheckRed tabsize=\CDRMeta{integer}]
+%
+%\itemtt[\CDRCheckRed obeytabs=true|false]
+%position characters according to the tabs.
+%Initially false: tab characters are added to the current position.
+\itemtt[\CDRCheckRed tab size=\CDRMeta{integer}]
 number of spaces given by a tab character,
-Initially 2 (8 for \pkg{fancyvrb}).
+Initially 2.
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\CDRSet{show tags=none,show spaces,tab size=2}
+\begin{CDRBlock}[tags=latex,pygments=true,no spaces above]
+In	eu	orci	massa
+\end{CDRBlock}
+&
+\CDRSet{show tags=none,show spaces,tab size=3}
+\begin{CDRBlock}[tags=latex,pygments=false,no spaces above]
+In	eu	orci	massa
+\end{CDRBlock}
+\end{tabular}
+\end{center}
+%
 \itemtt[\CDRCheckRed defineactive=\CDRMeta{macro}]
 to define the effect of active characters.
 This allows to do some devious tricks, see the \pkg{fancyvrb} package.
