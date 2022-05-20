@@ -2030,26 +2030,38 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRCode_peek_active:
 }
 
-\NewDocumentCommand \CDRCode { O{} } {
-  \group_begin:
-  \CDRCode_new:c {}
-  \directlua { CDR.Code:synctex_store() }
-  \CDRCode_setup:n { #1 }
-  \CDR_if_pygments:TF {
-    \cs_set:Npn \CDR: {
-      \CDRCode_pyg_use:
-      \CDRCode_free:
-      \group_end:
+\cs_new:Npn \CDRCode_command:NNn #1 #2 #3 {
+  #1 #2 { O{} } {
+    \group_begin:
+    \CDRCode_new:c {}
+    \directlua { CDR.Code:synctex_store() }
+    \CDRCode_setup:n { #3, ##1 }
+    \CDR_if_pygments:TF {
+      \cs_set:Npn \CDR: {
+        \CDRCode_pyg_use:
+        \CDRCode_free:
+        \group_end:
+      }
+    } {
+      \cs_set:Npn \CDR: {
+        \CDRCode_vrb_use:
+        \CDRCode_free:
+        \group_end:
+      }
     }
-  } {
-    \cs_set:Npn \CDR: {
-      \CDRCode_vrb_use:
-      \CDRCode_free:
-      \group_end:
-    }
+    \CDRCode_peek:NN \CDR:
   }
-  \CDRCode_peek:NN \CDR:
 }
+
+\NewDocumentCommand \CDRCodeNewCommand { } {
+  \CDRCode_command:NNn \NewDocumentCommand
+}
+\NewDocumentCommand \CDRCodeRenewCommand { } {
+  \CDRCode_command:NNn \RenewDocumentCommand
+}
+
+\CDRCodeNewCommand \CDRCode { }
+
 \cs_new_protected_nopar:Npn \CDRCode_tags_setup:N #1 {
 \CDR@Debug{\string \CDRCode_tags_setup:N, \string #1 }
   \CDR_local_inherit:n { __tags }
@@ -2243,7 +2255,6 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \bool_new:N \l_CDR_before_eol_bool
 \NewDocumentCommand \CDRBlock@Read@Options { O{} } {
 \CDR@Debug{\string\CDRBlock@Read@Options}
-  \clist_set_eq:NN \l_CDR_kv_clist \l_CDR_import_clist
   \clist_put_right:Nn \l_CDR_kv_clist { #1 }
   \directlua { CDR.Block:exit_options() }
   \bool_set_true:N \l_CDR_before_eol_bool
@@ -2340,32 +2351,47 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \tl_new:N \l_CDR_vrb_tl
 \seq_new:N \l_CDR_vrb_seq
 \prop_new:N \l_CDR_vrb_prop
-\NewDocumentEnvironment { CDRBlock } { } {
-\CDR@Debug{\string\begin{CDRBlock}...\the\inputlineno }
-  \CDRBlock_new:c { }
-  \CDRBlock_save_begin:
-} {
-\CDR@Debug{\string\end{CDRBlock}...\the\inputlineno }
-  \CDRBlock_save_end:
-\CDR@Debug{CDRBlock...SETUP}
-  \CDRBlock_setup:n { }
-  \CDR_if_pygments:TF {
-    \CDR@Debug{THIS\space IS\space PYGMENTS}
+\cs_new:Npn \CDRBlock_environment:Nnn #1 #2 #3 {
+  #1 { #2 } { } {
+\CDR@Debug{\string\begin{#2}...\the\inputlineno }
+    \CDRBlock_new:c { }
+    \CDRBlock_save_begin:n { #3 }
   } {
-    \CDR@Debug{THIS\space IS\space NOT\space PYGMENTS}
-  }
+\CDR@Debug{\string\end{#2}...\the\inputlineno }
+    \CDRBlock_save_end:
+\CDR@Debug{CDRBlock...SETUP}
+    \CDRBlock_setup:n { }
+    \CDR_if_pygments:TF {
+      \CDR@Debug{THIS\space IS\space PYGMENTS}
+    } {
+      \CDR@Debug{THIS\space IS\space NOT\space PYGMENTS}
+    }
 \CDR@Debug{CDRBlock...USE}
-  \CDRBlock_use:
+    \CDRBlock_use:
 \CDR@Debug{CDRBlock...FREE}
-  \CDRBlock_free:
-\CDR@Debug{\string\end{CDRBlock}...DONE}
+    \CDRBlock_free:
+\CDR@Debug{\string\end{#2}...DONE}
+  }
 }
+
+\NewDocumentCommand \CDRBlockNewEnvironment { } {
+  \CDRBlock_environment:Nnn \NewDocumentEnvironment
+}
+
+\NewDocumentCommand \CDRBlockRenewEnvironment { } {
+  \CDRBlock_environment:Nnn \RenewDocumentEnvironment
+}
+
+\CDRBlockNewEnvironment { CDRBlock } { }
+
 %%
 \ExplSyntaxOff
 \def\CDR@doafterspace#1 {#1}%
 \ExplSyntaxOn
-\cs_new:Npn \CDRBlock_save_begin: {
-\CDR@Debug{ \string\CDRBlock_save_begin: }
+\cs_new:Npn \CDRBlock_save_begin:n #1 {
+\CDR@Debug{ \string\CDRBlock_save_begin:n }
+  \clist_set_eq:NN \l_CDR_kv_clist \l_CDR_import_clist
+  \clist_put_right:Nn \l_CDR_kv_clist { #1 }
   \directlua{ CDR.Block:save_begin() }
   \bool_set_true:N \l_CDR_before_eol_bool
   \cs_set:Npn \CDR: {
@@ -2685,7 +2711,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \NewDocumentEnvironment { CDRBlockSave } { m } {
 \CDR@Debug{\@currenvir...\the\inputlineno }
   \CDRBlock_new:c { #1 }
-  \CDRBlock_save_begin:
+  \CDRBlock_save_begin:n { }
 }{
   \CDRBlock_save_end:
 \CDR@Debug{\the\inputlineno...\@currenvir}

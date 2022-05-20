@@ -20,9 +20,10 @@
 This is the driver for the C programming language
 and other languages with the same syntax regarding long comments.
 The \pkg{coder} package  will pretty print embedded documentation formatted in \LaTeX\ that is delimited by special
-comment markers. The beginning of a documentation block is delimited by a full line starting with
-\CDRCode[lang=lua]|^/%*+!latex:|.
-The end of a documentation block is delimited by a full line starting with \CDRCode[lang=lua]|^%*+/|.
+comment markers. The beginning of a documentation block is delimited by
+a full line matching the lua pattern \CDRCode[lang=lua]|^/%*+!latex:|.
+The end of a documentation block is delimited by a full line matching
+the lua pattern \CDRCode[lang=lua]|^%*+/|.
 In both cases there must be at least one star.
 
 The delimiting lines are removed and what is inside is typeset with \LaTeX{}.

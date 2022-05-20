@@ -1453,7 +1453,8 @@ end
 %    \begin{MacroCode}
 function Block:save_begin ()
   local env = assert(self.env)
-debug_msg('Block:save_begin, environment name:', env)
+  local safe_env = env:gsub('[%%%^%$%(%)%.%[%]%*%+%-%?]', '%%%0')
+debug_msg('Block:save_begin, environment name:', env, safe_env)
   local lines = {}
   self.lines = lines
   assert(lines == self.lines)
@@ -1515,7 +1516,7 @@ debug_msg('CALLBACK:IN_START', '<'..input..'>')
     f_current = f_line
     token.set_char('l_CDR_before_eol_bool', 0)
     if input:match([[^%s*\end%s*]]
-      ..'{'..env..'}') then
+      ..'{'..safe_env..'}') then
 %    \end{MacroCode}
 % No option, no body: terminante environment.
 %    \begin{MacroCode}
@@ -1538,7 +1539,7 @@ debug_msg('CALLBACK:START', '<'..input..'>')
   f_options = function (input)
 debug_msg('CALLBACK:IN_OPTIONS', '<'..input..'>')
     local d, v, b = input:match([[^%s*(\\end)%s*]]
-      ..'({'..env..'})'..[[([^%]*)]])
+      ..'({'..safe_env..'})'..[[([^%]*)]])
     if d then
       remove_from_callback()--[
 debug_msg('CALLBACK:END', '<'..input..'>')
@@ -1566,7 +1567,7 @@ debug_msg('CALLBACK:END', '<'..input..'>')
 debug_msg('CALLBACK:IN_BODY', '<'..input..'>')
     token.set_char('l_CDR_before_eol_bool', 0)
     if input:match([[^%s*\end%s*]]
-      ..'{'..env..'}') then
+      ..'{'..safe_env..'}') then
 debug_msg('WILL remove_from_callback 2', [[\relax]]..input)
       remove_from_callback()
       return [[\relax]]..input
@@ -2801,7 +2802,7 @@ debug_msg('CONTINUE')
       for _,tt in ipairs(all) do
         if tt.is_code then
           t[#t+1] = [[\begin{CDRBlock}]]
-            ..'[first number='..(tt.n)..', obey lines]'
+            ..'[first number='..(tt.n)..', obey lines, no export]'
           for _,line in ipairs(tt.lines) do
             t[#t+1] = line
           end
@@ -5027,7 +5028,10 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % \cs{CDRTag_expand_kv:N} \Arg{key-value list variable}
 % \end{syntax}
 % Expands the keys matching |tags/|\meta{tag names list}.
-% The list a comma separated list, except that the pipe character replaces the comma.
+% The list is like a comma separated list, except that the pipe character replaces the comma.
+% For example |tags/A|B/show spaces=false| is replaced by the
+% combination of |tags/A/show spaces=false|
+% and |tags/B/show spaces=false|.
 % Implementation detail: uses |\l_CDR_clist|.
 % \end{function}
 %    \begin{MacroCode}[OK]
@@ -7387,26 +7391,38 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDRCode_peek_active:
 }
 
-\NewDocumentCommand \CDRCode { O{} } {
-  \group_begin:
-  \CDRCode_new:c {}
-  \directlua { CDR.Code:synctex_store() }
-  \CDRCode_setup:n { #1 }
-  \CDR_if_pygments:TF {
-    \cs_set:Npn \CDR: {
-      \CDRCode_pyg_use:
-      \CDRCode_free:
-      \group_end:
+\cs_new:Npn \CDRCode_command:NNn #1 #2 #3 {
+  #1 #2 { O{} } {
+    \group_begin:
+    \CDRCode_new:c {}
+    \directlua { CDR.Code:synctex_store() }
+    \CDRCode_setup:n { #3, ##1 }
+    \CDR_if_pygments:TF {
+      \cs_set:Npn \CDR: {
+        \CDRCode_pyg_use:
+        \CDRCode_free:
+        \group_end:
+      }
+    } {
+      \cs_set:Npn \CDR: {
+        \CDRCode_vrb_use:
+        \CDRCode_free:
+        \group_end:
+      }
     }
-  } {
-    \cs_set:Npn \CDR: {
-      \CDRCode_vrb_use:
-      \CDRCode_free:
-      \group_end:
-    }
+    \CDRCode_peek:NN \CDR:
   }
-  \CDRCode_peek:NN \CDR:
 }
+
+\NewDocumentCommand \CDRCodeNewCommand { } {
+  \CDRCode_command:NNn \NewDocumentCommand
+}
+\NewDocumentCommand \CDRCodeRenewCommand { } {
+  \CDRCode_command:NNn \RenewDocumentCommand
+}
+
+\CDRCodeNewCommand \CDRCode { }
+
 %    \end{MacroCode}
 %
 % \begin{function}{\CDRCode_tags_setup:N, \CDRCode_engine_setup:N}
@@ -7778,7 +7794,6 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \bool_new:N \l_CDR_before_eol_bool
 \NewDocumentCommand \CDRBlock@Read@Options { O{} } {
 \CDR@Debug{\string\CDRBlock@Read@Options}
-  \clist_set_eq:NN \l_CDR_kv_clist \l_CDR_import_clist
   \clist_put_right:Nn \l_CDR_kv_clist { #1 }
   \directlua { CDR.Block:exit_options() }
   \bool_set_true:N \l_CDR_before_eol_bool
@@ -7946,31 +7961,45 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \end{MacroCode}
 %
 %    \begin{MacroCode}
-\NewDocumentEnvironment { CDRBlock } { } {
-\CDR@Debug{\string\begin{CDRBlock}...\the\inputlineno }
-  \CDRBlock_new:c { }
-  \CDRBlock_save_begin:
-} {
-\CDR@Debug{\string\end{CDRBlock}...\the\inputlineno }
-  \CDRBlock_save_end:
-\CDR@Debug{CDRBlock...SETUP}
-  \CDRBlock_setup:n { }
-  \CDR_if_pygments:TF {
-    \CDR@Debug{THIS\space IS\space PYGMENTS}
+\cs_new:Npn \CDRBlock_environment:Nnn #1 #2 #3 {
+  #1 { #2 } { } {
+\CDR@Debug{\string\begin{#2}...\the\inputlineno }
+    \CDRBlock_new:c { }
+    \CDRBlock_save_begin:n { #3 }
   } {
-    \CDR@Debug{THIS\space IS\space NOT\space PYGMENTS}
-  }
+\CDR@Debug{\string\end{#2}...\the\inputlineno }
+    \CDRBlock_save_end:
+\CDR@Debug{CDRBlock...SETUP}
+    \CDRBlock_setup:n { }
+    \CDR_if_pygments:TF {
+      \CDR@Debug{THIS\space IS\space PYGMENTS}
+    } {
+      \CDR@Debug{THIS\space IS\space NOT\space PYGMENTS}
+    }
 \CDR@Debug{CDRBlock...USE}
-  \CDRBlock_use:
+    \CDRBlock_use:
 \CDR@Debug{CDRBlock...FREE}
-  \CDRBlock_free:
-\CDR@Debug{\string\end{CDRBlock}...DONE}
+    \CDRBlock_free:
+\CDR@Debug{\string\end{#2}...DONE}
+  }
 }
+
+
+\NewDocumentCommand \CDRBlockNewEnvironment { } {
+  \CDRBlock_environment:Nnn \NewDocumentEnvironment
+}
+
+\NewDocumentCommand \CDRBlockRenewEnvironment { } {
+  \CDRBlock_environment:Nnn \RenewDocumentEnvironment
+}
+
+\CDRBlockNewEnvironment { CDRBlock } { }
+
 %    \end{MacroCode}
 %%
-% \begin{function}{\CDRBlock_save_begin:, \CDRBlock_save_end:}
+% \begin{function}{\CDRBlock_save_begin:n, \CDRBlock_save_end:}
 % \begin{syntax}
-% \cs{CDRBlock_save_begin:}
+% \cs{CDRBlock_save_begin:n} \Arg{kv options}
 % \cs{CDRBlock_save_end:}
 % \end{syntax}
 % Helper to begin/end the |CDRBlock| and |CDRBlockSave| environments.
@@ -7982,8 +8011,10 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \ExplSyntaxOff
 \def\CDR@doafterspace#1 {#1}%
 \ExplSyntaxOn
-\cs_new:Npn \CDRBlock_save_begin: {
-\CDR@Debug{ \string\CDRBlock_save_begin: }
+\cs_new:Npn \CDRBlock_save_begin:n #1 {
+\CDR@Debug{ \string\CDRBlock_save_begin:n }
+  \clist_set_eq:NN \l_CDR_kv_clist \l_CDR_import_clist
+  \clist_put_right:Nn \l_CDR_kv_clist { #1 }
   \directlua{ CDR.Block:save_begin() }
 %    \end{MacroCode}
 % Function to break the analysis, skip the end of the line,
@@ -8441,7 +8472,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \NewDocumentEnvironment { CDRBlockSave } { m } {
 \CDR@Debug{\@currenvir...\the\inputlineno }
   \CDRBlock_new:c { #1 }
-  \CDRBlock_save_begin:
+  \CDRBlock_save_begin:n { }
 }{
   \CDRBlock_save_end:
 \CDR@Debug{\the\inputlineno...\@currenvir}
@@ -9483,9 +9514,10 @@ return {}
 This is the driver for the C programming language
 and other languages with the same syntax regarding long comments.
 The \pkg{coder} package  will pretty print embedded documentation formatted in \LaTeX\ that is delimited by special
-comment markers. The beginning of a documentation block is delimited by a full line starting with
-\CDRCode[lang=lua]|^/%*+!latex:|.
-The end of a documentation block is delimited by a full line starting with \CDRCode[lang=lua]|^%*+/|.
+comment markers. The beginning of a documentation block is delimited by
+a full line matching the lua pattern \CDRCode[lang=lua]|^/%*+!latex:|.
+The end of a documentation block is delimited by a full line matching
+the lua pattern \CDRCode[lang=lua]|^%*+/|.
 In both cases there must be at least one star.
 
 The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
@@ -9519,10 +9551,11 @@ return ans
 \begin{coder}{Embedded documentation}
 This is the driver for the python programming language.
 The \pkg{coder} package  will pretty print embedded documentation formatted in \LaTeX\ that is delimited by special
-comment markers. The beginning of a documentation block is delimited by a full line starting with
+comment markers. The beginning of a documentation block is delimited by
+a full line matching the lua pattern
 \CDRCode[lang=lua]|^('''|""")!latex:|.
 The end of a documentation block is delimited by a full line
-starting with the very same combination of quotes and spaces.
+with the very same combination of quotes and spaces.
 
 The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
@@ -9561,9 +9594,10 @@ return {
 \begin{coder}{Embedded documentation}
 This is the driver for the lua programming language.
 The \pkg{coder} package  will pretty print embedded documentation formatted in \LaTeX\ that is delimited by special
-comment markers. The beginning of a documentation block is delimited by a full line starting with
+comment markers. The beginning of a documentation block is delimited by a full line matching the lua pattern
 \CDRCode[lang=lua]|^--[(=*)[!latex:|.
-The end of a documentation block is delimited by the next full line starting with
+The end of a documentation block is delimited by the next full line
+matching the lua pattern
 \CDRCode[lang=lua,escape~inside=<>]|--](<\CDRMeta{equals}>)]|
 where \CDRMeta*{equals} represents the previously capture group.
 

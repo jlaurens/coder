@@ -108,6 +108,7 @@
 \CDRCodeSave{CDRCode}|\CDRCode|
 \CDRCodeSave{CDRCodeSave}|\CDRCodeSave|
 \CDRCodeSave{CDRCodeUse}|\CDRCodeUse|
+\CDRCodeSave{CDRCodeExe}|\CDRCodeExe|
 \CDRCodeSave{CDRBlock}|CDRBlock|
 \CDRCodeSave{CDRBlockSave}|CDRBlockSave|
 \CDRCodeSave{CDRBlockUse}|\CDRBlockUse|
@@ -127,6 +128,10 @@
 \CDRCodeSave{CDRLinePrefix}|\CDRLinePrefix|
 \CDRCodeSave{CDRLineContent}|\CDRLineContent|
 \CDRCodeSave{CDRLineSuffix}|\CDRLineSuffix|
+\CDRCodeSave{CDRCodeNewCommand}|\CDRCodeNewCommand|
+\CDRCodeSave{CDRCodeRenewCommand}|\CDRCodeRenewCommand|
+\CDRCodeSave{CDRBlockNewEnvironment}|\CDRBlockNewEnvironment|
+\CDRCodeSave{CDRBlockRenewEnvironment}|\CDRBlockREnewEnvironment|
 \directlua{ CDR:Code_list_all() }
 \begin{document}
 \begin{CDRBlockSave}{textbf}
@@ -145,8 +150,8 @@ code inside \LaTeX
 \section{Features}
 Here is a survey of the commands and environments defined by this package with a short description.
 \begin{description}
-\item[{\CDRCodeUse[tags=src]{CDRCode}}, \CDRCodeUse{CDRCodeSave}, \CDRCodeUse{CDRCodeUse}]
-commands to display, save and reuse inline code snippets
+\item[{\CDRCodeUse[tags=src]{CDRCode}}, \CDRCodeUse{CDRCodeSave}, \CDRCodeUse{CDRCodeUse}, \CDRCodeUse{CDRCodeExe}]
+commands to display, save, reuse and execute inline code snippets
 like \CDRCodeUse[tags=src]{UNIK key}, see \ref{sect:CDRCode},
 \item[\CDRCodeUse{CDRBlock}, \CDRCodeUse{CDRBlockSave}, \CDRCodeUse{CDRBlockUse}, \CDRCodeUse{CDRBlockExe}] environments
 and commands to display, save, reuse and execute\footnote{when these are \LaTeX\ instructions} block code snippets, see \ref{sect:CDRBlock}.
@@ -213,6 +218,12 @@ see section \ref{sect:CDRSet},
 \item[\CDRCodeUse{CDRMeta}, \CDRCodeUse{CDRMetaFormat}] 
 to properly display \CDRMeta{concepts} and \CDRMeta{metadata},
 see section \ref{sect:CDRMeta}.
+\itemtt[
+\CDRCodeUse{CDRCodeNewCommand},
+\CDRCodeUse{CDRCodeRenewCommand},
+\CDRCodeUse{CDRBlockNewEnvironment},
+\CDRCodeUse{CDRBlockRenewEnvironment}
+] allow to define commands and environment similar to \CDRCodeUse{CDRCode} and \CDRCodeUse{CDRBlock} with a different name, see section \ref{sect:custom}.
 \end{description}
 
 \section{Installation}
@@ -1198,10 +1209,10 @@ This was input with command
 \CDRBlockImport[tags=lua,first imported line=18]{coder-driver-c.lua}
 \end{CDRBlock}
 The lines from 1 to 17 are hidden due to the
-\CDRCode|first imported line=18| option.
-With supplemental option \CDRCode|last imported line=-5|, the 5 last lines would have been hidden as well.
+\CDRCode|first imported line=18| option, they contain metadata from the \pkg{docstrip} utility.
+With supplemental option \CDRCode|last imported line=-5|, the last 5 lines would have been hidden as well.
 
-If we add the option \CDRCode|driver=c|, then the embedded documentation is typeset on its own.
+If we add the option \CDRCode|driver=lua| to \CDRCodeUse{CDRBlockImport}, then the embedded documentation is typeset on its own:
 \begin{CDRBlockSave}{coder environment}
 \newtcolorbox{coder}[1]{
   box align=top,
@@ -1212,17 +1223,20 @@ If we add the option \CDRCode|driver=c|, then the embedded documentation is type
 \end{CDRBlockSave}
 \CDRBlockExe{coder environment}
 \CDRBlockImport[tags=lua|xcode,first imported line=18,driver=lua]{coder-driver-c.lua}
-We first defined the \CDRCode|coder| environment to display a box:
+Beforehands, next instructions defined the \CDRCode|coder| environment to display a box, more elaborate solutions need to be invented.
 \CDRBlockUse[tags=src]{coder environment}
+
 The line numbering of the code follows exactly the physical numbering of the source file.
 Moreover, Sync\TeX\ is largely supported, at least as far as allowed by Lua\TeX.
 
-Builtin drivers are provided to support various languages. The driver above can be used for a wide variety of languages whereas builtin drivers for python and lua are provided, respectively named \CDRCode|py| and \CDRCode|lua|.
+Builtin drivers are provided to support various languages, respectively named \CDRCode|py|, \CDRCode|lua| and \CDRCode|c|. The latter can be used for a wide variety of languages.
 Writing new drivers is not difficult as soon as the programming languages supports block comments,
 considering that already existing drivers may serve as starting points.
+%
+%\CDRBlockImport[tags=xcode|py,first imported line=2,driver=py]{coder_test.py}
+%\CDRBlockImport[tags=xcode,lang=c,driver=raw]{coder_test.c}
 
-\CDRBlockImport[tags=xcode|py,first imported line=2,driver=py]{coder_test.py}
-\CDRBlockImport[tags=xcode,lang=c,driver=raw]{coder_test.c}
+It should be noticed that exporting an imported code is not yet allowed, because the embedded documetation would be definitely lost if by error the exportation would erase the imported source.
 
 \section{The \CDRCodeUse[tags=src]{CDRSet} command}
 \label{sect:CDRSet}
@@ -1520,12 +1534,6 @@ Sole option of the \CDRCode|CDRBlockSave| environment.
 \itemtt[\CDRCheckRed baselinestretch=auto|\CDRMeta{dimension}]
 value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
 Initially \texttt{auto}: its current value just before the verbatim command.
-\itemtt[\CDRCheckProhibited commandchars=\CDRMeta{three characters}]
-characters which define the character which starts a macro and marks the
-beginning and end of a group; thus lets us introduce escape sequences in
-verbatim code. Of course, it is better to choose special characters which
-are not used in the verbatim text.
-Private to \pkg{coder}, unavailable to users.
 \itemtt[\CDRCheckRed xleftmargin=\CDRMeta{dimension}]
 indentation to add at the start of each line.
 Initially \CDRCode|0pt|: no left margin.
@@ -1654,12 +1662,54 @@ LINE 426
 \end{CDRBlock}
 \end{tabular}
 \end{center}
-The line numbering of the third column follows the first one and ignore the block with the \CDRCode[tags=options]|dry numbers|.
+The three blocks are typeset successively from left to right.
+The line numbering of the third column follows the first one and ignore
+the intermediate block with the \CDRCode[tags=options]|dry numbers|.
+\itemtt[\CDRCheckRed first imported line=\CDRMeta{integer}]
+first line to import.
+Initially 1: all lines from the first are imported.
+Non positive values count from the end.
+\itemtt[\CDRCheckRed last imported line=\CDRMeta{integer}]
+last line to import.
+Initially 0: all lines until the last one are imported.
+Non positive values count from the end.
 \end{description}
-Next options have no effect when \pkg{pygments} is used.
-Moreover, the \pkg{tcolorbox} package should be preferred instead.
 %    __block, default.block, __pygments.block,
 %    __fancyvrb.block __fancyvrb.frame, __fancyvrb.number, __fancyvrb,
+\section{Custom commands}
+\label{sect:custom}
+The \CDRCode|\CDRCodeNewCommand| and \CDRCode|\CDRBlockNewEnvironment| allow to create commands with arbitrary names, that behave like \CDRCode|\CDRCode|
+or the \CDRCode|CDRBlock| environment. In fact, these are defined in \pkg{coder.sty} with instructions
+\begin{CDRBlock}[tags=latex]
+\CDRCodeNewCommand \CDRCode {}
+\CDRBlockNewEnvironment {CDRBlock} {}
+\end{CDRBlock}
+Both void arguments may contain any option suitable for inline code or blocks.
+In order to redefine commands or environments,
+the \CDRCode|\CDRCodeRenewCommand| and \CDRCode|\CDRBlockRenewEnvironment| are available.
 
+As an example, one can define the \CDRCode|CDRBlock*| environment where spaces
+are shown:
+\begin{CDRBlockSave}{CDRBlock*}
+\CDRBlockNewEnvironment {CDRBlock*} {show spaces}
+\end{CDRBlockSave}
+\CDRBlockUse[tags=src]{CDRBlock*}
+\CDRBlockExe{CDRBlock*}
+\begin{center}
+\setlength{\tabcolsep}{0mm}
+\begin{tabular}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
+\begin{CDRBlock}[tags=src, no space above]
+\begin{CDRBlock*}
+There are three spaces
+\end{CDRBlock*}
+\end{CDRBlock}
+&&&
+The instructions on the left give when executed:
+\begin{CDRBlock*}[tags=src]
+There are three spaces
+\end{CDRBlock*}
+\end{tabular}
+\end{center}
 
+This is handy if some source already contains markup commands to display verbatim text that cannot be changed easily.
 \end{document}

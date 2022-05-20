@@ -565,7 +565,8 @@ function CDR:Block_free()
 end
 function Block:save_begin ()
   local env = assert(self.env)
-debug_msg('Block:save_begin, environment name:', env)
+  local safe_env = env:gsub('[%%%^%$%(%)%.%[%]%*%+%-%?]', '%%%0')
+debug_msg('Block:save_begin, environment name:', env, safe_env)
   local lines = {}
   self.lines = lines
   assert(lines == self.lines)
@@ -612,7 +613,7 @@ debug_msg('CALLBACK:IN_START', '<'..input..'>')
     f_current = f_line
     token.set_char('l_CDR_before_eol_bool', 0)
     if input:match([[^%s*\end%s*]]
-      ..'{'..env..'}') then
+      ..'{'..safe_env..'}') then
 debug_msg('WILL remove_from_callback')
       remove_from_callback()
 debug_msg('SCAN:end', '<'..input..'>')
@@ -626,7 +627,7 @@ debug_msg('CALLBACK:START', '<'..input..'>')
   f_options = function (input)
 debug_msg('CALLBACK:IN_OPTIONS', '<'..input..'>')
     local d, v, b = input:match([[^%s*(\\end)%s*]]
-      ..'({'..env..'})'..[[([^%]*)]])
+      ..'({'..safe_env..'})'..[[([^%]*)]])
     if d then
       remove_from_callback()--[
 debug_msg('CALLBACK:END', '<'..input..'>')
@@ -648,7 +649,7 @@ debug_msg('CALLBACK:END', '<'..input..'>')
 debug_msg('CALLBACK:IN_BODY', '<'..input..'>')
     token.set_char('l_CDR_before_eol_bool', 0)
     if input:match([[^%s*\end%s*]]
-      ..'{'..env..'}') then
+      ..'{'..safe_env..'}') then
 debug_msg('WILL remove_from_callback 2', [[\relax]]..input)
       remove_from_callback()
       return [[\relax]]..input
@@ -1455,7 +1456,7 @@ debug_msg('CONTINUE')
       for _,tt in ipairs(all) do
         if tt.is_code then
           t[#t+1] = [[\begin{CDRBlock}]]
-            ..'[first number='..(tt.n)..', obey lines]'
+            ..'[first number='..(tt.n)..', obey lines, no export]'
           for _,line in ipairs(tt.lines) do
             t[#t+1] = line
           end

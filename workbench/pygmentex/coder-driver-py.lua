@@ -19,10 +19,11 @@
 \begin{coder}{Embedded documentation}
 This is the driver for the python programming language.
 The \pkg{coder} package  will pretty print embedded documentation formatted in \LaTeX\ that is delimited by special
-comment markers. The beginning of a documentation block is delimited by a full line starting with
+comment markers. The beginning of a documentation block is delimited by
+a full line matching the lua pattern
 \CDRCode[lang=lua]|^('''|""")!latex:|.
 The end of a documentation block is delimited by a full line
-starting with the very same combination of quotes and spaces.
+with the very same combination of quotes and spaces.
 
 The delimiting lines are removed and what is inside is typeset with \LaTeX{}.
 
