@@ -19,7 +19,8 @@
 \begin{coder}{Embedded documentation}
 This is the driver for the C programming language
 and other languages with the same syntax regarding long comments.
-The \pkg{coder} package  will pretty print embedded documentation formatted in \LaTeX\ that is delimited by special
+The \pkg{coder} package  will pretty print embedded documentation
+formatted in \LaTeX\ that is delimited by special
 comment markers. The beginning of a documentation block is delimited by
 a full line matching the lua pattern \CDRCode[lang=lua]|^/%*+!latex:|.
 The end of a documentation block is delimited by a full line matching

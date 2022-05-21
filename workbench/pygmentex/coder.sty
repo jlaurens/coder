@@ -297,10 +297,12 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \int_gsub:cn { CDR@int.#1 } { #2 }
 }
 \clist_new:N \g_CDR_tags_clist
-\clist_new:N \g_CDR_all_tags_clist
-\clist_new:N \g_CDR_last_tags_clist
+\clist_new:N \g_CDR_tags_style_clist
+\clist_new:N \g_CDR_tags_main_clist
+\clist_new:N \g_CDR_tags_all_clist
+\clist_new:N \g_CDR_tags_last_clist
 \AddToHook { shipout/before } {
-  \clist_gclear:N \g_CDR_last_tags_clist
+  \clist_gclear:N \g_CDR_tags_last_clist
 }
 \prg_new_conditional:Nnn \CDR_clist_if_eq:NN { p, T, F, TF } {
   \tl_if_eq:NNTF #1 #2 {
@@ -1410,11 +1412,16 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \CDR_export_gset:Vcn \l_CDR_file_tl { ##1 } { ##2 }
     }
     \prop_get:NnNTF \l_CDR_export_prop { tags } \l_CDR_clist {
-      \clist_set_eq:NN \g_CDR_tags_clist \l_CDR_clist
+      \clist_clear:N \l_CDR_clist
+      \clist_map_inline:Nn \g_CDR_tags_clist {
+        \regex_match:nnF { ^\* } { ##1 } {
+          \clist_put_right:Nn \g_CDR_tags_clist { ##1 }
+        }
+      }
       \clist_if_empty:NF \l_CDR_clist {
         \clist_remove_duplicates:N \g_CDR_tags_clist
-        \clist_put_left:NV \g_CDR_all_tags_clist \l_CDR_clist
-        \clist_remove_duplicates:N \g_CDR_all_tags_clist
+        \clist_put_left:NV \g_CDR_tags_all_clist \l_CDR_clist
+        \clist_remove_duplicates:N \g_CDR_tags_all_clist
         \CDR_export_get:ccNT { \l_CDR_file_tl } { lang } \l_CDR_a_tl {
           \clist_map_inline:Nn \g_CDR_tags_clist {
             \CDRTag_set:ccV { ##1 } { lang } \l_CDR_a_tl
@@ -1887,7 +1894,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \prg_return_false:
   }
   \clist_set:Nn \l_CDR_kv_clist { #1 }
-  \CDRCode_tags_setup:N \l_CDR_kv_clist
+  \CDRCodeTags_setup:N \l_CDR_kv_clist
   \CDRCode_engine_setup:N \l_CDR_kv_clist
   \CDR_local_inherit:n {
     __code, default.code, __pygments, default,
@@ -2065,8 +2072,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 
 \CDRCodeNewCommand \CDRCode { }
 
-\cs_new_protected_nopar:Npn \CDRCode_tags_setup:N #1 {
-\CDR@Debug{\string \CDRCode_tags_setup:N, \string #1 }
+\cs_new_protected_nopar:Npn \CDRCodeTags_setup:N #1 {
+\CDR@Debug{\string \CDRCodeTags_setup:N, \string #1 }
   \CDR_local_inherit:n { __tags }
   \CDR_local_set_known:N #1
   \CDRTag_if_exist_here:ccT { __local } { tags } {
@@ -2083,7 +2090,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
         { No~default~tags~provided. }
     }
   }
-\CDR@Debug {\string \CDRCode_tags_setup:N\space\g_CDR_tags_clist}
+\CDR@Debug {\string \CDRCodeTags_setup:N\space\g_CDR_tags_clist}
   \CDRTag_get_inherit:f {
     \g_CDR_tags_clist,
     __tags, __engine,
@@ -2226,6 +2233,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   test .default:n = true,
   no~space~above .code:n = \CDRTag_boolean_set:x { #1 },
   no~space~above .default:n = true,
+  no~other~space~above .code:n = \CDRTag_boolean_set:x { #1 },
+  no~other~space~above .default:n = true,
   no~space~below .code:n = \CDRTag_boolean_set:x { #1 },
   no~space~below .default:n = true,
   no~space .meta:n = {
@@ -2238,9 +2247,10 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     no~export = false,
     no~export~format = ,
     dry~numbers  = false,
-    test   = false,
+    test = false,
     obey~lines = false,
     no~space~above = false,
+    no~other~space~above = false,
     no~space~below = false,
   },
   __initialize .value_forbidden:n = true,
@@ -2606,21 +2616,24 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     }
     \trivlist\item
     \group_begin:
+    \CDRBlock_format:
     \CDRBlock_v_space:
+    \CDRTag_if_truthy:cT { no~other~space~above } {
+      \vskip-\baselineskip
+    }
     \CDRBlock_linewidth:
     \CDRBlock_interlinepenalty:
-    \CDRBlock_format:
     \CDRBlock_strut:
     \CDR_if_pygments:TF {
       \CDRBlock_pyg_use:
     } {
       \CDRBlock_vrb_use:
     }
-    \group_end:
     \vskip-1\baselineskip
     \CDRTag_if_truthy:cT { no~space~below } {
       \vskip-\baselineskip
     }
+    \group_end:
     \endtrivlist
     \CDRBlock_teardown:
     \CDRBlock_engine_end:
@@ -2661,10 +2674,10 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     { ! \CDRTag_if_eq_p:cn { numbers } { none } }
   \CDR_set_conditional:Nn \CDRBlockTags_if_already: {
     \CDRTag_if_truthy_p:c { only~top } &&
-    \CDR_clist_if_eq_p:NN \g_CDR_tags_clist \g_CDR_last_tags_clist
+    \CDR_clist_if_eq_p:NN \g_CDR_tags_main_clist \g_CDR_tags_last_clist
   }
   \CDR_if_number_on:T {
-    \clist_map_inline:Nn \g_CDR_tags_clist {
+    \clist_map_inline:Nn \g_CDR_tags_main_clist {
       \CDR_int_if_exist:cF { ##1 } {
         \CDR_int_new:cn { ##1 } { 1 }
       }
@@ -2687,7 +2700,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \CDRLine_logical_set:n {
         \CDRBlock_count:
       }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
+      \clist_map_inline:Nn \g_CDR_tags_main_clist {
         \CDR_int_gadd:cc { ##1 } { __l }
         \CDR@Debug{NEXT~LINE~##1:~\CDR_int_use:c { ##1 } }
       }
@@ -2702,7 +2715,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
           \CDRTag_get:c { first~number } + \CDRBlock_count:
         }
       }
-      \clist_map_inline:Nn \g_CDR_tags_clist {
+      \clist_map_inline:Nn \g_CDR_tags_main_clist {
         \CDR_int_gset:cc { ##1 } { __l }
         \CDR@Debug{NEXT~LINE~##1:~\CDR_int_use:c { ##1 } }
       }
@@ -2712,7 +2725,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     CDR.Block:pyg_teardown()
   }
   \CDR_if_dry_tags:F {
-    \clist_gset_eq:NN \g_CDR_last_tags_clist \g_CDR_tags_clist
+    \clist_gset_eq:NN \g_CDR_tags_last_clist \g_CDR_tags_main_clist
   }
 }
 \CDRTag_keys_define:nn { CDRBlockSave } {
@@ -2889,7 +2902,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \smash{
     \parbox[b]{\marginparwidth}{
       \raggedleft
-        { \CDR@TagsFormat \g_CDR_tags_clist :}
+        { \CDR@TagsFormat \g_CDR_tags_main_clist :}
       }
       #1
     }
@@ -2913,7 +2926,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \parbox[b]{\marginparwidth}{
         \raggedright
         #1:
-        {\CDR@TagsFormat \space \g_CDR_tags_clist}
+        {\CDR@TagsFormat \space \g_CDR_tags_main_clist}
       }
     }
   }
@@ -3233,7 +3246,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDR_if_number_on:TF {
     \CDR_int_set:cn { __start } { 1 }
     \CDRTag_if_eq:cnTF { first~number } { last } {
-      \clist_map_inline:Nn \g_CDR_tags_clist {
+      \clist_map_inline:Nn \g_CDR_tags_main_clist {
         \clist_map_break:n {
           \CDR_int_set:cc { __start } { ##1 }
 \CDR@Debug {START: ##1=\CDR_int_use:c { ##1 } }
@@ -3459,6 +3472,15 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     __block, __tags, __engine, default.block,
     __fancyvrb.block, __numbering,
     __pygments, default,
+  }
+  \clist_clear:N \g_CDR_tags_style_clist
+  \clist_clear:N \g_CDR_tags_main_clist
+  \clist_map_inline:Nn \g_CDR_tags_clist {
+    \regex_match:nnTF {^\*} { ##1 } {
+      \clist_put_right:Nn \g_CDR_tags_style_clist { ##1 }
+    } {
+      \clist_put_right:Nn \g_CDR_tags_main_clist { ##1 }
+    }
   }
   \clist_map_inline:Nn \g_CDR_tags_clist {
     \CDR_int_if_exist:cF { ##1 } {

@@ -131,7 +131,7 @@
 \CDRCodeSave{CDRBlockNewEnvironment}|\CDRBlockNewEnvironment|
 \CDRCodeSave{CDRBlockRenewEnvironment}|\CDRBlockREnewEnvironment|
 \directlua{ CDR:Code_list_all() }
-\newenvironment{centabu}
+\newenvironment{my.centabu}
 {\begin{center}\setlength{\tabcolsep}{0mm}\begin{tabular}}
 {\end{tabular}\end{center}}
 \begin{document}
@@ -146,8 +146,7 @@ code inside \LaTeX
 \author{Jérôme LAURENS\thanks{E-mail: jerome.laurens@u-bourgogne.fr}}
 \maketitle
 \tableofcontents
-
-
+%
 \section{Features}
 Here is a survey of the commands and environments defined by this package with a short description.
 \begin{description}
@@ -160,7 +159,7 @@ Figure \ref{fig:First example} compares \pkg{lua} or \pkg{python} syntax while c
 %%%%%
 %%%%%
 \begin{figure}[h!]
-\begin{centabu}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
+\begin{my.centabu}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
 \begin{CDRBlock}[tags=lua, no space]
 function factorial(n)
   --[[Compute n!]]
@@ -178,7 +177,7 @@ def factorial(n):
     return n * factorial(n-1)
   return 1
 \end{CDRBlock}
-\end{centabu}
+\end{my.centabu}
 \caption{First example}
 \label{fig:First example}
 \end{figure}
@@ -218,7 +217,7 @@ see section \ref{sect:CDRMeta}.
 \itemtt[
 \CDRCodeUse{CDRBlockNewEnvironment},
 \CDRCodeUse{CDRBlockRenewEnvironment}
-] allow to define environments similar to  \CDRCodeUse{CDRBlock} with a different name, see section \ref{sect:custom}.
+] allow to define customized environments similar to  \CDRCodeUse{CDRBlock} with a different name, see section \ref{sect:custom}.
 \end{description}
 
 \section{Installation}
@@ -238,7 +237,7 @@ The colorized code is then found in \MyMeta{file name}\verb|-colorized.pdf|%
 
 To test the installation for an editor, the next document should output a small diagnostic page with informations about paths.
 \CDRSet{numbers=none}
-\begin{centabu}{p{0.345\linewidth}|p{0.645\linewidth}}
+\begin{my.centabu}{p{0.345\linewidth}|p{0.645\linewidth}}
 \begin{CDRBlock}[
   lang=tex,
   tags=latex,
@@ -267,7 +266,7 @@ Path to \textsf{pygmentize}: \texttt{/opt/anaconda3/bin/pygmentize}\\
 Pygments is available
 \end{itemize}
 \end{minipage}%
-\end{centabu}
+\end{my.centabu}
 To use \pkg{pygments}, some editors need to be launched from a terminal, like \TeX{}works on OSX for example. An alternate solution is to add to the preamble of each document
 \begin{CDRBlock}[tags=src]
 \CDRSet{python path=⟨\MyMeta{path to python with pygmentize}⟩}
@@ -284,7 +283,7 @@ To install the \pkg{coder} package from source, download and typeset \verb|coder
 \end{itemize}
 %
 \section{Display code}
-\subsection{The \CDRCodeUse{CDRCode} command}
+\subsection{The \texorpdfstring{\CDRCodeUse{CDRCode}}{CDRCode} command}
 \label{sect:CDRCode}
 Inserting code as inline text is possible with the command \CDRCode[tags=src]|\CDRCode| which syntax is
 \begin{CDRBlock}[tags=src]
@@ -302,12 +301,12 @@ Code snippets must be saved before they are used, in particular, possibly before
 For that purpose, \CDRCode|\CDRCodeSave| is allowed in the document preamble, once \pkg{coder} package has been loaded.
 
 The available options are collected in section \ref{sect:options} because they are shared.
-\subsection{The \CDRCodeUse{CDRBlock} environment}
+\subsection{The \texorpdfstring{\CDRCodeUse{CDRBlock}}{CDRBlock} environment}
 \label{sect:CDRBlock}
 Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line literally consisting  of \CDRCode[lang=tex]|\end{CDRBlock}|, with no extra space.
 Optional key--value options are enclosed with square brackets. The opening bracket must follow the \CDRCode[lang=tex]|\begin{CDRBlock}| instruction, on the very same line. For the first examples of figure \ref{fig:First example}, the input was
 \begin{figure}[H]
-\begin{centabu}{p{0.45\linewidth}p{0.1\linewidth}p{0.45\linewidth}}
+\begin{my.centabu}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
 \begin{CDRBlock}[tags=lua, no space]
 \begin{⟨CDRBlock⟩}[tags=lua]
 function factorial(n)
@@ -319,8 +318,8 @@ function factorial(n)
 end
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
-&&
-\begin{CDRBlock}[tags=py, no space, number main=]
+&&&
+\begin{CDRBlock}[tags=py, no space, ]
 \begin{⟨CDRBlock⟩}[tags=py]
 def factorial(n):
   '''Compute n!'''
@@ -329,7 +328,7 @@ def factorial(n):
   return 1
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
-\end{centabu}
+\end{my.centabu}
 \caption{Source of figure \ref{fig:First example}}
 \end{figure}
 Similarly to \CDRCode|\CDRCodeSave| there is a \CDRCode|CDRBlockSave| environment which unique mandatory argument is an identifier
@@ -350,7 +349,7 @@ This command is widely used in this manual.
 
 Notice that the \CDRCodeUse{CDRBlockSave} environment must only be used in the document body.
 %
-\section{Export code with \CDRCodeUse{CDRBlockExport}}
+\section{Export code with \texorpdfstring{\CDRCodeUse{CDRBlockExport}}{CDRBlockExport}}
 \label{sect:CDRBlockExport}
 \subsection{Usage}
 The syntax for the \CDRCode|\CDRBlockExport| command is the following, where the \CDRCode|file| key must be provided with a non empty value,
@@ -380,7 +379,7 @@ The \MyMeta{preamble text} is saved before the collected code chunks unless the 
 is given, then the \MyMeta{preamble text} is taken from the file instead.
 Initially empty.
 \itemtt[postamble=\MyMeta{postamble text}, postamble file=\MyMeta{postamble file path}]
-the \MyMeta{postamble text} is saved after the code collected chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \MyMeta{preamble file path}
+\MyMeta{postamble text} is saved after the code collected chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \MyMeta{preamble file path}
 is given, then the \MyMeta{preamble text} is taken from the file instead. Initially empty.
 \itemtt[escape inside=\MyMeta{delimiters}]
 the preamble and the postamble can contain \LaTeX\ instructions enclosed between the delimiters,
@@ -530,7 +529,7 @@ tags in mirror
 \label{sect:CDRNumber}
 Line numbering only makes sense for blocks of code.
 Options are illustrated below, to the right of each source.
-\begin{centabu}{p{0.5\columnwidth}p{0.5\columnwidth}}
+\begin{my.centabu}{p{0.6\columnwidth}p{0.4\columnwidth}}
 %
 \begin{CDRBlock}[tags=src, no space]
 \begin{⟨CDRBlock⟩}[
@@ -562,9 +561,9 @@ physical line 7
 physical line 8
 physical line 9 numbered 18
 \end{CDRBlock}
-\end{centabu}
-Blocks with the same leftmost tag can be numbered continuously with option \CDRCode[tags=src]|first number=last|, the next one starting just after the previous has stopped.
-\begin{centabu}{p{0.6\columnwidth}p{0.4\columnwidth}}
+\end{my.centabu}
+With option \CDRCode[tags=options]|first number=last|, it is possible to number continuously blocks with the same leftmost tag, the next block starting just after the previous has stopped.
+\begin{my.centabu}{p{0.6\columnwidth}p{0.4\columnwidth}}
 %
 \begin{CDRBlock}[
   tags=src,
@@ -610,7 +609,7 @@ physical line 9
 physical line 10 numbered 28
 physical line 11
 \end{CDRBlock}
-\end{centabu}
+\end{my.centabu}
 %
 Above, the intermediate line numbers were displayed by the \CDRCode[tags=options]|number other| instructions that display the argument in light gray.
 Similarly, the \CDRCode[tags=options]|number main| instructions display the main line numbers with the help of the \pkg{mboxfill} package:
@@ -744,6 +743,9 @@ with \CDRCode|efbox| as \MyMeta{engine name},
 and \CDRCode[tags=src]|\efbox[#1]{#2}| as \MyMeta{engine instructions}. It can be used to define a custom display engine as well.
 
 There is an engine named \CDRCode[tags=src]|default| which is always available and used by default. The command \CDRCode[tags=src]|\CDRCodeEngineRenew| will be used to redefine engines, with a similar syntax.
+
+New commands with these settings may be defined as shortcut,
+see \ref{sect:custom}.
 %
 \subsubsection{Block code}
 \label{sect:CDRBlockEngine}
@@ -796,10 +798,12 @@ There is an engine named \CDRCode[tags=src]|default| which is always available a
 The command \CDRCode[tags=src]|\CDRBlockEngineRenew| will be used to redefine engines, with a similar syntax.
 Notice the \CDRCode[tags=src]|\CDRGetOption| command used to retrieve the value for the key \CDRCode[tags=options]|label|.
 
+New environments with these settings may be defined as shortcut,
+see \ref{sect:custom}.
 \section{Miscellanées}
 \subsection{Filtering}
 One can display only a selected range of lines.
-\begin{centabu}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
+\begin{my.centabu}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
 \begin{CDRBlock}[tags=src, no space above]
 \begin{⟨CDRBlock⟩}[
   ⟨\color{CDROptions}first line=2⟩,
@@ -874,7 +878,7 @@ Line 3 *
 Line 4 *
 Line 5
 \end{CDRBlock}
-\end{centabu}
+\end{my.centabu}
 In the middle column, non positive integers count lines from the end.
 Notice that line numbering is 1 based such that the last line corresponds to index 0.
 
@@ -923,6 +927,8 @@ Notice the usage of \CDRCode|\CDRGetOption| to retrieve the value for the
 
 The vertical space before and after the blocks is governed by \CDRCode[tags=src]|\topsep|, \CDRCode[tags=src]|\partopsep| and \CDRCode[tags=src]|\parskip| like standard list are.
 Like for standard lists, an extra space is generated above the \CDRCode|CDRlock| environment when in a tabular cell. A workaround is to use a wrapping minipage environment or us the \CDRCode[tags=options]|no space above| option.
+The \CDRCode[tags=options]|no space below| option removes
+the space below.
 %In addition, the \CDRCode[tags=options]|vspace|
 %options, which initial value is exactly \CDRCode[tags=src]|\topsep|, allows a supplemental adjustment:
 %\begin{center}
@@ -958,6 +964,7 @@ Like for standard lists, an extra space is generated above the \CDRCode|CDRlock|
 %\lipsum[4][1]
 %\end{tabular}
 %\end{center}
+
 The line height is inherited from the surrounding environment unless the baselinestrech factor has been provided. Columns 2 is enclosed in a \pkg{setspace} environment with one and a half line spacing.
 \begin{center}
 \begin{CDRBlockSave}{1}
@@ -966,7 +973,7 @@ Line 2
 \end{CDRBlockSave}
 \setlength{\tabcolsep}{0pt}
 \begin{tabular}{p{0.45\columnwidth}p{0.1\columnwidth}p{0.45\columnwidth}}
-\begin{minipage}{\linewidth}
+\begin{minipage}[t]{\linewidth}
 \lipsum[1][1]
 \CDRBlockUse[
   tags=src,
@@ -974,7 +981,7 @@ Line 2
 \lipsum[2][1]
 \end{minipage}
 &&
-\begin{minipage}{\linewidth}
+\begin{minipage}[t]{\linewidth}
 \begin{spacing}{1.5}
 \lipsum[1][1]
 \CDRBlockUse[
@@ -1037,7 +1044,7 @@ The delimiters must not be part of the code, the unicode characters $\langle$ an
 \subsection{Cross references}
 \label{sect:xrefs}
 We can always refer to the page of a specific code extract with the \CDRCode|ref label=⟨\MyMeta{label name}⟩| option. This is how we know that \CDRCodeUse[tags=src,style=default]{UNIK key} was also used on page \pageref{UNIK key}. For block code, this is similar:
-\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \begin{CDRBlock}[
   tags=src,
   ref label=My,
@@ -1048,12 +1055,12 @@ We can always refer to the page of a specific code extract with the \CDRCode|ref
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
 &
-On the second typeset run, we have
+On the second typeset run, the reference is resolved
 \CDRCode[tags=src]|\pageref{My}| = \pageref{My}.
-\end{centabu}
+\end{my.centabu}
 Line references are also available: \CDRCode|escape inside| is used to define 2 characters that will delimit some \LaTeX{} instructions to be executed, here \CDRCode[tags=latex]|\label{line.421}|.
-\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
-\begin{CDRBlock}[tags=src, no space]
+\begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{CDRBlock}[tags=src, no space,]
 \begin{⟨CDRBlock⟩}[
   numbers=left,
   first number=421,
@@ -1073,12 +1080,11 @@ line 421|\label{line.421}|
 \end{CDRBlock}
 \CDRCode|\ref*{line.421}| = \ref*{line.421}.
 However this does not play well with \pkg{hyperref} hence the starred command.
-\end{centabu}
+\end{my.centabu}
 It can be used as well when \pkg{pygments} is not available.
-\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \CDRSet{pygments=false}
 \begin{CDRBlock}[
-  numbers=left,
   escape inside=⟨⟩,
   no space,
   pygments=false,
@@ -1103,7 +1109,7 @@ line 123|\label{line.123}|
 \end{CDRBlock}
 \CDRCode[pygments=false]|\ref*{line.123}| = \ref*{line.123}.
 This does not play well with \pkg{hyperref} hence the starred command.
-\end{centabu}
+\end{my.centabu}
 Cross references can be used with saved block, with some extra precaution.
 Here for example, the label is dynamically based on the macro \CDRCode|\My|.
 \begin{center}
@@ -1159,7 +1165,7 @@ which reads
 We get for the first use, \CDRCode|\ref*{line.A}| = \ref*{line.A}
 and for the second use \CDRCode|\ref*{line.B}| = \ref*{line.B}.
 %
-\subsection{The \CDRCodeUse[tags=src]{CDRMeta} command}
+\subsection{The \texorpdfstring{\CDRCodeUse[tags=src]{CDRMeta}}{CDRMeta} command}
 \label{sect:CDRMeta}
 It is common practice to emphasize \CDRMeta{concepts}
 or \CDRMeta*{metadata} by enclosing them between angle brackets.
@@ -1178,7 +1184,7 @@ one can modify the aspect:
 gives for example
 {\CDRBlockExe{CDRMetaFormat}\CDRMeta{concepts}} instead of \CDRMeta{concepts}
 %
-\section{Import documented code with \CDRCodeUse[tags=src]{CDRBlockImport}}
+\section{Import documented code with \texorpdfstring{\CDRCodeUse[tags=src]{CDRBlockImport}}{CDRBlockImport}}
 \label{sect:CDRBlockImport}
 This is perhaps one of the key features of this package.
 It allows to input a source file and typeset the embedded documentation in \LaTeX. Only the core technology is provided as we can see in next example.
@@ -1233,7 +1239,7 @@ considering that already existing drivers may serve as starting points.
 
 It should be noticed that exporting an imported code is not yet allowed, because the embedded documetation would be definitely lost if by error the exportation would erase the imported source.
 
-\section{The \CDRCodeUse[tags=src]{CDRSet} command}
+\section{The \texorpdfstring{\CDRCodeUse[tags=src]{CDRSet}}{CDRSet} command}
 \label{sect:CDRSet}
 So far we have provided the various \pkg{coder} commands and environments
 with key--value options. The \CDRCodeUse[tags=src]{CDRSet} command allows to
@@ -1270,9 +1276,10 @@ Finally, changing many options at once for the same tag is also possible:
 \label{sect:tags}
 Tags are used not only for styling but also for continuous line numbering (section \ref{sect:line numbering}) and exportation (section \ref{sect:CDRBlockExport}). If only one tag is used and there is no exportation, it can be omitted.
 
-Tag names must start and end with a unicode letter, moreover they must not contain commas nor pipe characters.
+Tag names must start with a unicode letter or a star character and end with a unicode letter, moreover they must not contain commas nor pipe characters.
 Some names are defined by the \pkg{coder} package and they are available to the user. They need not appear in a \CDRCode[tags=src]?tags=...? setting. In particular, options set for the tag name \CDRCode[tags=src]?default? automatically apply to any forthcoming code snippet. Any option set for the tag name \CDRCode[tags=src]?default.code? applies to any forthcoming code snippet displayed inline, eventually overriding the \CDRCode[tags=src]?default? setting. Finally, options set for tag name \CDRCode[tags=src]?default.block? apply to any forthcoming code snippet displayed in block, taking precedence over the \CDRCode[tags=src]?default? setting.
 
+The tag names starting with a star character define style tags. These are not displayed and are not used for exportation or numbering.
 \subsection{Engines}
 Like tag names, engine names must start and end with a unicode letter, moreover they must not contain commas nor pipe characters.
 
@@ -1289,6 +1296,9 @@ Instead, one will use the key
 used for exportation (section \ref{sect:CDRBlockExport}), for line numbering (section \ref{sect:line numbering}) and also for styling, see section \ref{sect:styling}.
 Initially a void list.
 \CDRMeta{tag} is subject to minor restrictions (section \ref{sect:tags}).
+%%%% __engine
+\itemtt[\CDRCheckGreen default~tags={\meta[1]{tag}|\meta[2]{tag}|...}]
+when no tags are given in the above list, this default list is used instead.
 %%%% __engine
 \itemtt[\CDRCheckGreen engine=\CDRMeta{engine name}]
 to specify the engine used to display inline code or blocks, see section \ref{sect:frames}.
@@ -1309,20 +1319,28 @@ Suitable for \CDRCode|\CDRCode| and \CDRCode|CDRBlock| but not for \CDRCode|\CDR
 \itemtt[\CDRCheckRed format=\CDRMeta{format commands}]
 the format used to display the code (mainly font, size and color),
 after the font has been selected.
-Initially empty. For example on the right with option \CDRCode[tags=options]|format=\color{green!30!black}\bfseries| on the right:
-\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
-\begin{CDRBlock}[no space above, no space below]
+Initially empty. For example on the right with option \CDRCode[tags=options]|format=\color{green!30!black}\bfseries| in the middle:
+\begin{my.centabu}{p{0.3\linewidth}p{0.4\linewidth}p{0.3\linewidth}}
+\begin{CDRBlock}[no space]
 This is default.
 \end{CDRBlock}
 &
 \begin{CDRBlock}[
-  format=\color{green!20!black}\bfseries,
+  format=\color{green!33!black}\bfseries,
   no space,
 ]
 This is dark green and bold.
 \end{CDRBlock}
-\end{centabu}
-The \CDRCode|\color| command adds a vertical space: it is a ``feature'' of \LaTeX.
+&
+\begin{CDRBlock}[
+  format=\color{green!33!black},
+  no space,
+  no other space above,
+]
+This is dark green.
+\end{CDRBlock}
+\end{my.centabu}
+The \CDRCode|\color| command adds a vertical space: it is a ``feature'' of \LaTeX\ that we can correct with option \CDRCode[tags=options]|no other space above|.
 %
 \itemtt[\CDRCheckRed debug{[=true|false]}]
 Set to \CDRCode|true| if various debugging messages should be printed to the console.
@@ -1350,7 +1368,7 @@ Initially empty.
 \itemtt[\CDRCheckRed font=auto|\CDRMeta{font command}]
 font family to use.
 Initially \CDRCode|\ttfamily|.
-\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \begin{CDRBlock}[tags=src, no space above]
 \begin{⟨CDRBlock⟩}
 This is default teletype font.
@@ -1380,7 +1398,7 @@ The output reads
 ]
 This is TeX Gyre Cursor
 \end{CDRBlock}
-\end{centabu}
+\end{my.centabu}
 The \CDRCode|\TGCFont| family command was created with package \pkg{fontspec}
 and instruction
 \begin{CDRBlock}[tags=src]
@@ -1391,7 +1409,7 @@ size of the font to use. If you use the \pkg{relsize} package as well,
 you can require a change of the size proportional to the current one
 (for instance below, the option used is \CDRCode[mbox=false]|font size=\relsize{-2}| on the right, compared to \CDRCode[mbox=false]|font size=\small| on the left).
 Initially \texttt{auto}: the same as the current font.
-\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \begin{minipage}[t]{0.85\linewidth}
 \CDRSet{show tags=none,font size=\small}
 \begin{CDRBlock}[tags=latex,escape inside=⟨⟩]
@@ -1405,11 +1423,11 @@ Initially \texttt{auto}: the same as the current font.
 ⟨\lipsum[3][1]⟩
 \end{CDRBlock}
 \end{minipage}
-\end{centabu}
+\end{my.centabu}
 \itemtt[\CDRCheckRed font shape=auto|\CDRMeta{font shape command}]
 font shape to use. Initially \texttt{auto}: the same as the current font.
 Here is the difference between slanted with \CDRCode|font shape=\slshape| on the left and italic with  \CDRCode|font shape=\itshape| on the right.
-\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \CDRSet{show tags=none,font shape=\slshape}
 \begin{CDRBlock}[tags=latex, no space above]
 ⟨\lipsum[3][1]⟩
@@ -1419,12 +1437,12 @@ Here is the difference between slanted with \CDRCode|font shape=\slshape| on the
 \begin{CDRBlock}[tags=latex, no space above]
 ⟨\lipsum[3][1]⟩
 \end{CDRBlock}
-\end{centabu}
+\end{my.centabu}
 \itemtt[\CDRCheckRed font series=auto|\CDRMeta{font series command}]
 \LaTeX{} font ‘series’ to use.
 Initially \texttt{auto}: the same as the current font.
 Example: \CDRCode|\bfseries| on the left versus \CDRCode|\mdseries| on the right.
-\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \CDRSet{show tags=none,font series=\bfseries}
 \begin{CDRBlock}[tags=latex, no space above]
 ⟨\lipsum[5][2]⟩
@@ -1434,13 +1452,13 @@ Example: \CDRCode|\bfseries| on the left versus \CDRCode|\mdseries| on the right
 \begin{CDRBlock}[tags=latex, no space above]
 ⟨\lipsum[5][2]⟩
 \end{CDRBlock}
-\end{centabu}
+\end{my.centabu}
 \itemtt[\CDRCheckRed shows spaces{[=true|false]}]
 print a special character representing each space and tab characters.
 Initially \CDRCode|false|: spaces not shown.
 Spaces are not shown in escaped instructions,
 unless they contain instructions to show spaces of course.
-\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \CDRSet{show tags=none,show spaces}
 \begin{CDRBlock}[tags=latex, no space above,pygments=true]
 \textbf{In eu	orci massa}
@@ -1450,7 +1468,7 @@ unless they contain instructions to show spaces of course.
 \begin{CDRBlock}[tags=latex, no space above, pygments=false]
 \textbf{In eu	orci massa}
 \end{CDRBlock}
-\end{centabu}
+\end{my.centabu}
 %
 %\itemtt[\CDRCheckRed obeytabs=true|false]
 %position characters according to the tabs.
@@ -1540,7 +1558,7 @@ Label(s) are printed only if the \texttt{frame} parameter is one of
 \CDRCode|topline|, \CDRCode|bottomline|, \CDRCode|lines| or \CDRCode|single|.
 Initially empty: no label.
 \end{description}
-Next options are illustrated in section \ref{sect:numbering}.
+Next options are illustrated in section \ref{sect:line numbering}.
 \begin{description}
 \itemtt[\CDRCheckRed numbers=none|left|right]
 numbering of the verbatim lines.
@@ -1566,14 +1584,14 @@ to typeset the main line numbers.
 They will receive 
 the logical line number as unique argument.
 Initially returns its argument as is.
-See \label{sect:line numbering}.
+See \ref{sect:line numbering}.
 \itemtt[\CDRCheckRed number other=\meta{instructions}]
 the given \meta{instructions} are executed
 to typeset the line numbers which are not main.
 They will receive 
 the logical line number as unique argument.
 Initially gobbles its argument.
-See \label{sect:line numbering}.
+See \ref{sect:line numbering}.
 \itemtt[\CDRCheckRed first line=\CDRMeta{integer}|\CDRMeta{regex}]
 first line to print.
 Initially empty: all lines from the first are printed.
@@ -1667,7 +1685,7 @@ Non positive values count from the end.
 \end{description}
 %    __block, default.block, __pygments.block,
 %    __fancyvrb.block __fancyvrb.frame, __fancyvrb.number, __fancyvrb,
-\section{Custom commands}
+\section{Custom commands and environments}
 \label{sect:custom}
 The \CDRCode|\CDRCodeNewCommand| and \CDRCode|\CDRBlockNewEnvironment| allow to create commands with arbitrary names, that behave like \CDRCode|\CDRCode|
 or the \CDRCode|CDRBlock| environment. In fact, these are defined in \pkg{coder.sty} with instructions
@@ -1686,7 +1704,7 @@ are shown:
 \end{CDRBlockSave}
 \CDRBlockUse[tags=src]{CDRBlock*}
 \CDRBlockExe{CDRBlock*}
-\begin{centabu}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
+\begin{my.centabu}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
 \begin{CDRBlock}[tags=src, no space]
 \begin{CDRBlock*}
 There are three spaces
@@ -1697,7 +1715,7 @@ The instructions on the left give when executed:
 \begin{CDRBlock*}[tags=src, no space below]
 There are three spaces
 \end{CDRBlock*}
-\end{centabu}
+\end{my.centabu}
 
 This is handy if some source already contains markup commands to display verbatim text that cannot be changed easily.
 \section{Limitations}
