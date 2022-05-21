@@ -122,8 +122,6 @@
 \CDRCodeSave{CDRMeta}|\CDRMeta|
 \CDRCodeSave{CDRMetaFormat}|\CDRMetaFormat|
 \CDRCodeSave{CDRSet}|\CDRSet|
-\CDRCodeSave{CDRNumberMain}|\CDRNumberMain|
-\CDRCodeSave{CDRNumberOther}|\CDRNumberOther|
 \CDRCodeSave{CDRLineBox}|\CDRLineBox|
 \CDRCodeSave{CDRLinePrefix}|\CDRLinePrefix|
 \CDRCodeSave{CDRLineContent}|\CDRLineContent|
@@ -186,11 +184,6 @@ def factorial(n):
 \end{figure}
 The coloring is made by \pkg{pygments} using its built in style \texttt{autumn} on the left and style \texttt{trac} on the right. Line numbering may appear on each side of the code, or may be hidden.
 \item[{%
-\CDRCodeUse[tags=src]{CDRNumberMain},
-\CDRCodeUse{CDRNumberOther},
-}]
-for more control on number display, see \ref{sect:CDRNumber},
-\item[{%
 \CDRCodeUse[tags=src]{CDRLineBox},
 \CDRCodeUse{CDRLinePrefix},
 \CDRCodeUse{CDRLineContent},
@@ -221,7 +214,7 @@ see section \ref{sect:CDRMeta}.
 \itemtt[
 \CDRCodeUse{CDRCodeNewCommand},
 \CDRCodeUse{CDRCodeRenewCommand},
-] allow to define commands similar to \CDRCodeUse{CDRCode} with a different name, see section \ref{sect:custom}.
+] allow to define customized commands similar to \CDRCodeUse{CDRCode} with a different name, see section \ref{sect:custom}.
 \itemtt[
 \CDRCodeUse{CDRBlockNewEnvironment},
 \CDRCodeUse{CDRBlockRenewEnvironment}
@@ -327,7 +320,7 @@ end
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
 &&
-\begin{CDRBlock}[tags=src, no space]
+\begin{CDRBlock}[tags=py, no space, number main=]
 \begin{⟨CDRBlock⟩}[tags=py]
 def factorial(n):
   '''Compute n!'''
@@ -551,7 +544,7 @@ Options are illustrated below, to the right of each source.
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
 &
-\begin{CDRBlockSave}[
+\begin{CDRBlock}[
   tags=X,
   show tags=none,
   numbers=left,
@@ -568,7 +561,7 @@ physical line 6 numbered 15
 physical line 7
 physical line 8
 physical line 9 numbered 18
-\end{CDRBlockSave}
+\end{CDRBlock}
 \end{centabu}
 Blocks with the same leftmost tag can be numbered continuously with option \CDRCode[tags=src]|first number=last|, the next one starting just after the previous has stopped.
 \begin{centabu}{p{0.6\columnwidth}p{0.4\columnwidth}}
@@ -603,7 +596,7 @@ Blocks with the same leftmost tag can be numbered continuously with option \CDRC
     \makebox[4mm]{\mboxfill[0.75mm]{.}}%
   },
   number other={\color{lightgray}#1},
-  no space above,
+  no space,
 ]
 physical line 1
 physical line 2 numbered 20
@@ -619,8 +612,8 @@ physical line 11
 \end{CDRBlock}
 \end{centabu}
 %
-Above, the intermediate line numbers were displayed by the \CDRCode[tags=src]|number other| instructions that display the argument in light gray.
-Similarly, the \CDRCode[tags=src]|number main| instructions display the main line numbers with the help of the \pkg{mboxfill} package:
+Above, the intermediate line numbers were displayed by the \CDRCode[tags=options]|number other| instructions that display the argument in light gray.
+Similarly, the \CDRCode[tags=options]|number main| instructions display the main line numbers with the help of the \pkg{mboxfill} package:
 \begin{CDRBlock}[tags=src]
 number main={%
   \color{⟨\MyMeta{color}⟩}
@@ -823,6 +816,7 @@ The output reads
 \begin{CDRBlock}[
   first line=2,
   last line=4,
+  no space below,
 ]
 Line 1
 Line 2 *
@@ -847,6 +841,7 @@ The output also reads
 \begin{CDRBlock}[
   first line=-3,
   last line=-1,
+  no space below,
 ]
 Line 1
 Line 2 *
@@ -871,6 +866,7 @@ The output reads as well
 \begin{CDRBlock}[
   first line=L.*2,
   last line=L.*4,
+  no space below,
 ]
 Line 1
 Line 2 *
@@ -970,12 +966,15 @@ Line 2
 \end{CDRBlockSave}
 \setlength{\tabcolsep}{0pt}
 \begin{tabular}{p{0.45\columnwidth}p{0.1\columnwidth}p{0.45\columnwidth}}
+\begin{minipage}{\linewidth}
 \lipsum[1][1]
 \CDRBlockUse[
   tags=src,
 ]{1}
 \lipsum[2][1]
+\end{minipage}
 &&
+\begin{minipage}{\linewidth}
 \begin{spacing}{1.5}
 \lipsum[1][1]
 \CDRBlockUse[
@@ -983,6 +982,7 @@ Line 2
 ]{1}
 \lipsum[2][1]
 \end{spacing}
+\end{minipage}
 \end{tabular}
 \end{center}
 When used in itemize and enumerate lists or similar environments, the \CDRCode|CDRBlock| environment ignores the indentation. With option \CDRCode[tags=options]|list indent=true| it adapts its width to the indentation as occurs on the right:
@@ -1079,7 +1079,6 @@ It can be used as well when \pkg{pygments} is not available.
 \CDRSet{pygments=false}
 \begin{CDRBlock}[
   numbers=left,
-  first number=123,
   escape inside=⟨⟩,
   no space,
   pygments=false,

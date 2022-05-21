@@ -7563,7 +7563,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \tl_new:N \l_CDR_color_tl
 \cs_new:Npn \CDR_font: {
   \frenchspacing
-  \tl_set:Nn \l_CDR_color_tl { \CDRTag_get_no_auto:c { font~color } }
+  \tl_set:Nf \l_CDR_color_tl { \CDRTag_get_no_auto:c { font~color } }
   \CDRTag_get_no_auto:c { font~size }
   \CDRTag_get_no_auto:c { font~series }
   \CDRTag_get_no_auto:c { font~shape }
