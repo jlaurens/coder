@@ -973,6 +973,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   font~shape .value_required:n = true,
   font~series .code:n = \CDRTag_set:,
   font~series .value_required:n = true,
+  font~color .code:n = \CDRTag_set:,
+  font~color .value_required:n = true,
   format .code:n = \CDRTag_set:,
   format .value_required:n = true,
   format* .code:n = \CDRTag_set:,
@@ -999,15 +1001,16 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   escape~inside .value_required:n = true,
   __initialize .meta:n = {
     font = \ttfamily,
-    font~size = auto,
+    font~size   = auto,
     font~series = auto,
-    font~shape = auto,
+    font~shape  = auto,
+    font~color  = auto,
     format  = auto,
     format* = auto,
     hook~before  = auto,
     hook~before* = auto,
-    hook~after  = auto,
-    hook~after* = auto,
+    hook~after   = auto,
+    hook~after*  = auto,
     cache = true,
     debug = false,
     show~spaces = false,
@@ -1098,10 +1101,10 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   show~tabs .default:n = true,
   list~indent .code:n = \CDRTag_boolean_set:x { #1 },
   list~indent .value_required:n = true,
-  left~margin* .code:n = \CDRTag_set:,
-  left~margin* .value_required:n = true,
-  right~margin* .code:n = \CDRTag_set:,
-  right~margin* .value_required:n = true,
+  +left~margin .code:n = \CDRTag_set:,
+  +left~margin .value_required:n = true,
+  +right~margin .code:n = \CDRTag_set:,
+  +right~margin .value_required:n = true,
   hfuzz .code:n = \CDRTag_set:,
   hfuzz .value_required:n = true,
   vspace .code:n = \CDRTag_set:,
@@ -1145,8 +1148,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   },
   __initialize .meta:n = {
     list~indent = false,
-    left~margin*  = 0pt,
-    right~margin* = 0pt,
+    +left~margin  = 0pt,
+    +right~margin = 0pt,
     hfuzz = 2pt,
     vspace = \topsep,
     same~page = false,
@@ -2150,8 +2153,10 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \directlua { CDR.Code:pyg_teardown() }
   }
 }
+\tl_new:N \l_CDR_color_tl
 \cs_new:Npn \CDR_font: {
   \frenchspacing
+  \tl_set:Nn \l_CDR_color_tl { \CDRTag_get_no_auto:c { font~color } }
   \CDRTag_get_no_auto:c { font~size }
   \CDRTag_get_no_auto:c { font~series }
   \CDRTag_get_no_auto:c { font~shape }
@@ -2221,6 +2226,12 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   test .default:n = true,
   no~space~above .code:n = \CDRTag_boolean_set:x { #1 },
   no~space~above .default:n = true,
+  no~space~below .code:n = \CDRTag_boolean_set:x { #1 },
+  no~space~below .default:n = true,
+  no~space .meta:n = {
+    no~space~above,
+    no~space~below,
+  },
   obey~lines .code:n = \CDRTag_set:,
   obey~lines .default:n = true,
   __initialize .meta:n = {
@@ -2230,6 +2241,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     test   = false,
     obey~lines = false,
     no~space~above = false,
+    no~space~below = false,
   },
   __initialize .value_forbidden:n = true,
 }
@@ -2499,11 +2511,11 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   }
   \exp_last_unbraced:NNf
   \advance\leftmargin {
-    \CDRTag_get:c { left~margin* }
+    \CDRTag_get:c { +left~margin }
   } \relax
   \exp_last_unbraced:NNf
-  \advance\leftmargin {
-    \CDRTag_get:c { right~margin* }
+  \advance\rightmargin {
+    \CDRTag_get:c { +right~margin }
   } \relax
   \linewidth\hsize
   \advance\linewidth-\leftmargin
@@ -2592,21 +2604,23 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \CDRTag_if_truthy:cT { no~space~above } {
       \@minipagetrue
     }
+    \CDRBlock_format:
     \trivlist\item
     \group_begin:
     \CDRBlock_v_space:
     \CDRBlock_linewidth:
     \CDRBlock_interlinepenalty:
-    \frenchspacing
-    \CDRBlock_format:
     \CDRBlock_strut:
     \CDR_if_pygments:TF {
       \CDRBlock_pyg_use:
     } {
       \CDRBlock_vrb_use:
     }
-    \vskip-\baselineskip
     \group_end:
+    \vskip-1\baselineskip
+    \CDRTag_if_truthy:cT { no~space~below } {
+      \vskip-\baselineskip
+    }
     \endtrivlist
     \CDRBlock_teardown:
     \CDRBlock_engine_end:
@@ -3114,12 +3128,15 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \exp_args_generate:n { nVV }
 \cs_new:Npn \CDR_line_box:nnn #1 #2 #3 {
 \CDR@Debug {\string\CDR_line_box:nnn/\tl_to_str:n{#1}/.../\tl_to_str:n{#3}/}
+  \tl_if_empty:NF \l_CDR_color_tl {
+    \color { \l_CDR_color_tl }
+  }
   \lua_now:e {
     CDR.Block:synctex_target_set( \CDR_int_use:c { \l_CDR_obey_tl } )
   }
 \CDR@Debug {\string\CDR_line_box:nnn/ \tl_to_str:V \l_CDR_p_tl, \tl_to_str:V \l_CDR_l_tl/\tl_to_str:V\hsize }
   \hbox to \hsize {
-    \tl_set:Nx \l_CDR_tl {
+    \tl_set:Nf \l_CDR_tl {
       \exp_args:NnVV
       \CDRTag_get:c
         { text~color } \l_CDR_p_tl \l_CDR_l_tl

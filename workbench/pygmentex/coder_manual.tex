@@ -28,7 +28,7 @@
 \usetikzlibrary{tikzmark,arrows.meta}
 
 \typeout{************** REMOVE!!}
-\CDRSet{python path=/Users/jlaurens/opt/anaconda3/bin/python}
+%\CDRSet{python path=/Users/jlaurens/opt/anaconda3/bin/python}
 
 \ExplSyntaxOn
 
@@ -133,6 +133,9 @@
 \CDRCodeSave{CDRBlockNewEnvironment}|\CDRBlockNewEnvironment|
 \CDRCodeSave{CDRBlockRenewEnvironment}|\CDRBlockREnewEnvironment|
 \directlua{ CDR:Code_list_all() }
+\newenvironment{centabu}
+{\begin{center}\setlength{\tabcolsep}{0mm}\begin{tabular}}
+{\end{tabular}\end{center}}
 \begin{document}
 \begin{CDRBlockSave}{textbf}
 \CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
@@ -159,10 +162,8 @@ Figure \ref{fig:First example} compares \pkg{lua} or \pkg{python} syntax while c
 %%%%%
 %%%%%
 \begin{figure}[h!]
-\begin{center}
-\setlength{\tabcolsep}{0mm}
-\begin{tabular}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
-\begin{CDRBlock}[tags=lua, no space above]
+\begin{centabu}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
+\begin{CDRBlock}[tags=lua, no space]
 function factorial(n)
   --[[Compute n!]]
   if n > 1 then
@@ -172,15 +173,14 @@ function factorial(n)
 end
 \end{CDRBlock}
 &&&
-\begin{CDRBlock}[tags=py, no space above]
+\begin{CDRBlock}[tags=py, no space]
 def factorial(n):
   '''Compute n!'''
   if n > 1:
     return n * factorial(n-1)
   return 1
 \end{CDRBlock}
-\end{tabular}
-\end{center}
+\end{centabu}
 \caption{First example}
 \label{fig:First example}
 \end{figure}
@@ -202,7 +202,7 @@ for more control on line display, see \ref{sect:CDRLine},
 \CDRCodeUse{CDRCodeEngineRenew},
 \CDRCodeUse{CDRBlockEngineNew},
 \CDRCodeUse{CDRBlockEngineRenew}%
-}]
+}]\strut\\
 commands to define or redefine display engines
 for inline or block snippets,
 see sections \ref{sect:CDRCodeEngine} and \ref{sect:CDRBlockEngine},
@@ -221,9 +221,11 @@ see section \ref{sect:CDRMeta}.
 \itemtt[
 \CDRCodeUse{CDRCodeNewCommand},
 \CDRCodeUse{CDRCodeRenewCommand},
+] allow to define commands similar to \CDRCodeUse{CDRCode} with a different name, see section \ref{sect:custom}.
+\itemtt[
 \CDRCodeUse{CDRBlockNewEnvironment},
 \CDRCodeUse{CDRBlockRenewEnvironment}
-] allow to define commands and environment similar to \CDRCodeUse{CDRCode} and \CDRCodeUse{CDRBlock} with a different name, see section \ref{sect:custom}.
+] allow to define environments similar to  \CDRCodeUse{CDRBlock} with a different name, see section \ref{sect:custom}.
 \end{description}
 
 \section{Installation}
@@ -243,22 +245,20 @@ The colorized code is then found in \MyMeta{file name}\verb|-colorized.pdf|%
 
 To test the installation for an editor, the next document should output a small diagnostic page with informations about paths.
 \CDRSet{numbers=none}
-\begin{center}
-\setlength{\tabcolsep}{0mm}
-\begin{CDRBlockSave}{}
+\begin{centabu}{p{0.345\linewidth}|p{0.645\linewidth}}
+\begin{CDRBlock}[
+  lang=tex,
+  tags=latex,
+  no space,
+]
 \documentclass{article}
 \RequirePackage{coder}
 \begin{document}
 \CDRTest
 \end{document}
-\end{CDRBlockSave}
-\begin{tabular}{p{0.345\linewidth}|p{0.645\linewidth}}
-\begin{minipage}[t]{0.9\linewidth}
-\CDRBlockUse[lang=tex,tags=latex]{}
-\end{minipage}%
-\hspace{0.09\linewidth}
+\end{CDRBlock}
 &
-\begin{minipage}[t]{0.95\linewidth}
+\begin{minipage}[t]{\linewidth}
 \begin{itemize}
 \item
 An example of a bad installation:
@@ -274,8 +274,7 @@ Path to \textsf{pygmentize}: \texttt{/opt/anaconda3/bin/pygmentize}\\
 Pygments is available
 \end{itemize}
 \end{minipage}%
-\end{tabular}
-\end{center}
+\end{centabu}
 To use \pkg{pygments}, some editors need to be launched from a terminal, like \TeX{}works on OSX for example. An alternate solution is to add to the preamble of each document
 \begin{CDRBlock}[tags=src]
 \CDRSet{python path=⟨\MyMeta{path to python with pygmentize}⟩}
@@ -315,8 +314,8 @@ The available options are collected in section \ref{sect:options} because they a
 Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line literally consisting  of \CDRCode[lang=tex]|\end{CDRBlock}|, with no extra space.
 Optional key--value options are enclosed with square brackets. The opening bracket must follow the \CDRCode[lang=tex]|\begin{CDRBlock}| instruction, on the very same line. For the first examples of figure \ref{fig:First example}, the input was
 \begin{figure}[H]
-\begin{center}
-\begin{CDRBlockSave}{1}
+\begin{centabu}{p{0.45\linewidth}p{0.1\linewidth}p{0.45\linewidth}}
+\begin{CDRBlock}[tags=lua, no space]
 \begin{⟨CDRBlock⟩}[tags=lua]
 function factorial(n)
   --[[Compute n!]]
@@ -326,8 +325,9 @@ function factorial(n)
   return 1
 end
 \end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{2}
+\end{CDRBlock}
+&&
+\begin{CDRBlock}[tags=src, no space]
 \begin{⟨CDRBlock⟩}[tags=py]
 def factorial(n):
   '''Compute n!'''
@@ -335,19 +335,8 @@ def factorial(n):
     return n * factorial(n-1)
   return 1
 \end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\begin{tabular}{p{0.495\linewidth}|p{0.495\linewidth}}
-\begin{minipage}[t]{0.9\linewidth}
-\CDRBlockUse[tags=lua]{1}
-\end{minipage}%
-\hspace{0.09\linewidth}
-&
-\hspace{0.09\linewidth}%
-\begin{minipage}[t]{0.8\linewidth}
-\CDRBlockUse[tags=src]{2}
-\end{minipage}%
-\end{tabular}
-\end{center}
+\end{CDRBlock}
+\end{centabu}
 \caption{Source of figure \ref{fig:First example}}
 \end{figure}
 Similarly to \CDRCode|\CDRCodeSave| there is a \CDRCode|CDRBlockSave| environment which unique mandatory argument is an identifier
@@ -548,8 +537,9 @@ tags in mirror
 \label{sect:CDRNumber}
 Line numbering only makes sense for blocks of code.
 Options are illustrated below, to the right of each source.
-\begin{center}
-\begin{CDRBlockSave}{1}
+\begin{centabu}{p{0.5\columnwidth}p{0.5\columnwidth}}
+%
+\begin{CDRBlock}[tags=src, no space]
 \begin{⟨CDRBlock⟩}[
   tags=X,
   show tags=none,
@@ -560,7 +550,15 @@ Options are illustrated below, to the right of each source.
 ...
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
-\begin{CDRBlockSave}{2}
+&
+\begin{CDRBlockSave}[
+  tags=X,
+  show tags=none,
+  numbers=left,
+  first number=10,
+  step number=3,
+  no space
+]
 physical line 1 numbered 10
 physical line 2
 physical line 3 numbered 12
@@ -571,23 +569,14 @@ physical line 7
 physical line 8
 physical line 9 numbered 18
 \end{CDRBlockSave}
-\setlength{\tabcolsep}{0pt}
-\begin{tabular}{p{0.5\columnwidth}p{0.5\columnwidth}}
-%
-\CDRBlockUse[tags=src]{1}
-&
-\CDRBlockUse[
-  tags=X,
-  show tags=none,
-  numbers=left,
-  first number=10,
-  step number=3,
-]{2}
-\end{tabular}
-\end{center}
+\end{centabu}
 Blocks with the same leftmost tag can be numbered continuously with option \CDRCode[tags=src]|first number=last|, the next one starting just after the previous has stopped.
-\begin{center}
-\begin{CDRBlockSave}{1}
+\begin{centabu}{p{0.6\columnwidth}p{0.4\columnwidth}}
+%
+\begin{CDRBlock}[
+  tags=src,
+  no space,
+]
 \begin{⟨CDRBlock⟩}[
   tags=X,
   show tags=none,
@@ -599,28 +588,9 @@ Blocks with the same leftmost tag can be numbered continuously with option \CDRC
 ]
 ...
 \end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{2}
-physical line 1
-physical line 2 numbered 20
-physical line 3
-physical line 4
-physical line 5
-physical line 6 numbered 24
-physical line 7
-physical line 8
-physical line 9
-physical line 10 numbered 28
-physical line 11
-\end{CDRBlockSave}
-\setlength{\tabcolsep}{0pt}
-\begin{tabular}{p{0.5\columnwidth}p{0.5\columnwidth}}
-%
-\CDRBlockUse[
-  tags=src,
-]{1}
+\end{CDRBlock}
 &
-\CDRBlockUse[
+\begin{CDRBlock}[
   tags=X,
   show tags=none,
   numbers=left,
@@ -633,9 +603,21 @@ physical line 11
     \makebox[4mm]{\mboxfill[0.75mm]{.}}%
   },
   number other={\color{lightgray}#1},
-]{2}
-\end{tabular}
-\end{center}
+  no space above,
+]
+physical line 1
+physical line 2 numbered 20
+physical line 3
+physical line 4
+physical line 5
+physical line 6 numbered 24
+physical line 7
+physical line 8
+physical line 9
+physical line 10 numbered 28
+physical line 11
+\end{CDRBlock}
+\end{centabu}
 %
 Above, the intermediate line numbers were displayed by the \CDRCode[tags=src]|number other| instructions that display the argument in light gray.
 Similarly, the \CDRCode[tags=src]|number main| instructions display the main line numbers with the help of the \pkg{mboxfill} package:
@@ -653,7 +635,6 @@ number main={%
 It is rather easy to play with line content, as illustrated below with a \pkg{tikz} picture:
 \begin{CDRBlockSave}{5 lines}
 \begin{CDRBlock}[
-  first number=10,
   line color=green!\ifnumodd{#1}{2}{1}0!white,
   line prefix=\ifnumequal{#1}{2}{%
     \tikzmark{to prefix 2}%
@@ -672,10 +653,28 @@ line 4
 line 5
 \end{CDRBlock}
 \end{CDRBlockSave}
-\CDRBlockExe{5 lines}
+%\CDRBlockExe{5 lines}
+\begin{CDRBlock}[
+  line color=green!\ifnumodd{#1}{2}{1}0!white,
+  line prefix=\ifnumequal{#1}{2}{%
+    \tikzmark{to prefix 2}%
+  }{},
+  line postfix=\ifnumequal{#1}{3}{%
+    \tikzmark{to postfix 3}%
+  }{},
+  line suffix=\ifnumequal{#1}{4}{%
+    \tikzmark{to suffix 4}%
+  }{},
+]
+line 1
+line 2
+line 3
+line 4
+line 5
+\end{CDRBlock}
 The prefix of line 2 goes here\tikzmark{from prefix 2},
 the postfix of line 3 goes here\tikzmark{from postfix 3}
-and the suffix of line 4 goes here\tikzmark{from suffix 4}.
+and the suffix of line 4 goes here\tikzmark{from suffix 4}, after at least two typesetting runs.
 \begin{CDRBlockSave}{tikzpicture}
 \begin{tikzpicture}[
   remember picture,
@@ -807,11 +806,11 @@ Notice the \CDRCode[tags=src]|\CDRGetOption| command used to retrieve the value 
 \section{Miscellanées}
 \subsection{Filtering}
 One can display only a selected range of lines.
-\begin{center}
-\begin{CDRBlockSave}{1}
+\begin{centabu}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
+\begin{CDRBlock}[tags=src, no space above]
 \begin{⟨CDRBlock⟩}[
-  ⟨\color{CDROptions}firstline=2⟩,
-  ⟨\color{CDROptions}lastline=4⟩,
+  ⟨\color{CDROptions}first line=2⟩,
+  ⟨\color{CDROptions}last line=4⟩,
 ]
 Line 1
 Line 2 *
@@ -819,55 +818,67 @@ Line 3 *
 Line 4 *
 Line 5
 \end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{2}
-\begin{⟨CDRBlock⟩}[
-  ⟨\color{CDROptions}firstline=-3⟩,
-  ⟨\color{CDROptions}lastline=-1⟩,
-]
-Line 1
-Line 2 *
-Line 3 *
-Line 4 *
-Line 5
-\end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{3}
-\begin{⟨CDRBlock⟩}[
-  ⟨\color{CDROptions}firstline=L.*2⟩,
-  ⟨\color{CDROptions}lastline=L.*4⟩,
-]
-Line 1
-Line 2 *
-Line 3 *
-Line 4 *
-Line 5
-\end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\setlength{\tabcolsep}{0pt}
-\begin{tabular}{p{0.333\columnwidth}p{0.333\columnwidth}p{0.333\columnwidth}}
-\CDRBlockUse[tags=src]{1}
+\end{CDRBlock}
 The output reads
-\CDRBlockUse[
-  firstline=2+4,
-  lastline=4+4,
-]{1}
+\begin{CDRBlock}[
+  first line=2,
+  last line=4,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{CDRBlock}
 &
-\CDRBlockUse[tags=src]{2}
-The output reads
-\CDRBlockUse[
-  firstline=-3-1,
-  lastline=-1-1,
-]{2}
+\begin{CDRBlock}[tags=src, no space above]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}first line=-3⟩,
+  ⟨\color{CDROptions}last line=-1⟩,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output also reads
+\begin{CDRBlock}[
+  first line=-3,
+  last line=-1,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{CDRBlock}
 &
-\CDRBlockUse[tags=src]{3}
-The output reads
-\CDRBlockUse[
-  firstline=L.*2,
-  lastline=L.*4,
-]{3}
-\end{tabular}
-\end{center}
+\begin{CDRBlock}[tags=src, no space above]
+\begin{⟨CDRBlock⟩}[
+  ⟨\color{CDROptions}first line=L.*2⟩,
+  ⟨\color{CDROptions}last line=L.*4⟩,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+The output reads as well
+\begin{CDRBlock}[
+  first line=L.*2,
+  last line=L.*4,
+]
+Line 1
+Line 2 *
+Line 3 *
+Line 4 *
+Line 5
+\end{CDRBlock}
+\end{centabu}
 In the middle column, non positive integers count lines from the end.
 Notice that line numbering is 1 based such that the last line corresponds to index 0.
 
@@ -879,8 +890,8 @@ Similarly, the option \CDRCode[tags=options]|lastline=L.*4| means: up to the fir
 \label{sect:spacing}
 For blocks, the size of the left and right margins can be adjusted.
 On the second line below were used the options
-\CDRCode[tags=options]|xleftmargin=3cm|
-and \CDRCode[tags=options]|xrightmargin=2cm|
+\CDRCode[tags=options]|+left margin=3cm|
+and \CDRCode[tags=options]|+right margin=2cm|
 \begin{CDRBlock}[
   tags=normal margins,
   show tags=left,
@@ -891,8 +902,8 @@ One line⟨\mboxfill{.}⟩
 \begin{CDRBlock}[
   tags=adjusted margins,
   show tags=left,
-  xleftmargin=3cm,
-  xrightmargin=2cm,
+  +left margin=3cm,
+  +right margin=2cm,
   escape inside=⟨⟩,
 ]
 One line⟨\mboxfill{.}⟩
@@ -900,64 +911,65 @@ One line⟨\mboxfill{.}⟩
 \begin{CDRBlock}[
   tags=adjusted margins,
   show tags=left,
-  xleftmargin=3cm,
-  xrightmargin=2cm,
+  +left margin=3cm,
+  +right margin=2cm,
   only top=false,
-  numbersep=\dimexpr1ex+\CDRGetOption{xleftmargin}\relax,
+  number sep=\dimexpr1ex+\CDRGetOption{+left margin}\relax,
   escape inside=⟨⟩,
 ]
 One line⟨\mboxfill{.}⟩
 \end{CDRBlock}
 The vertical alignment of the first and last tags on their right side
-is obtained with option \CDRCode[tags=options]|numbersep=\dimexpr1ex+\CDRGetOption{xleftmargin}\relax|
+is obtained with option \CDRCode[tags=options]|number sep=\dimexpr1ex+\CDRGetOption{+left margin}\relax|
 for the third block.
 Notice the usage of \CDRCode|\CDRGetOption| to retrieve the value for the 
-\CDRCode[tags=src]|xleftmargin| key.
+\CDRCode[tags=src]|+left margin| key.
 
 The vertical space before and after the blocks is governed by \CDRCode[tags=src]|\topsep|, \CDRCode[tags=src]|\partopsep| and \CDRCode[tags=src]|\parskip| like standard list are.
-In addition, the \CDRCode[tags=options]|vspace|
-options, which initial value is exactly \CDRCode[tags=src]|\topsep|, allows a supplemental adjustment:
-\begin{center}
-\begin{CDRBlockSave}{1}
-Default vspace
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{2}
-vspace=5mm
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{3}
-vspace=\dimexpr0.5\topsep-\partopsep\relax
-\end{CDRBlockSave}
-\setlength{\tabcolsep}{0pt}
-\begin{tabular}{p{0.193\columnwidth}p{0.02\columnwidth}p{0.193\columnwidth}p{0.02\columnwidth}p{0.519\columnwidth}}
-\lipsum[3][1]
-\CDRBlockUse[
-  tags=src,
-]{1}
-\lipsum[4][1]
-&&
-\lipsum[3][1]
-\CDRBlockUse[
-  tags=src,
-  vspace=5mm,
-]{2}
-\lipsum[4][1]
-&&
-\lipsum[3][1]
-\CDRBlockUse[
-  tags=src,
-  vspace=\dimexpr0.5\topsep-\partopsep\relax,
-]{3}
-\lipsum[4][1]
-\end{tabular}
-\end{center}
-The line height is inherited from the surrounding environment unless the baselinestrech factor has been provided. Columns 2 and 3 are enclosed in a \pkg{setspace} environment with one and a half line spacing. The last column also adds the \CDRCode[tags=options]|baselinstretch=2| option.
+Like for standard lists, an extra space is generated above the \CDRCode|CDRlock| environment when in a tabular cell. A workaround is to use a wrapping minipage environment or us the \CDRCode[tags=options]|no space above| option.
+%In addition, the \CDRCode[tags=options]|vspace|
+%options, which initial value is exactly \CDRCode[tags=src]|\topsep|, allows a supplemental adjustment:
+%\begin{center}
+%\begin{CDRBlockSave}{1}
+%Default vspace
+%\end{CDRBlockSave}
+%\begin{CDRBlockSave}{2}
+%vspace=5mm
+%\end{CDRBlockSave}
+%\begin{CDRBlockSave}{3}
+%vspace=\dimexpr0.5\topsep-\partopsep\relax
+%\end{CDRBlockSave}
+%\setlength{\tabcolsep}{0pt}
+%\begin{tabular}{p{0.2\columnwidth}p{0.04\columnwidth}p{0.2\columnwidth}p{0.04\columnwidth}p{0.52\columnwidth}}
+%\lipsum[3][1]
+%\CDRBlockUse[
+%  tags=src,
+%]{1}
+%\lipsum[4][1]
+%&&
+%\lipsum[3][1]
+%\CDRBlockUse[
+%  tags=src,
+%  vspace=5mm,
+%]{2}
+%\lipsum[4][1]
+%&&
+%\lipsum[3][1]
+%\CDRBlockUse[
+%  tags=src,
+%  vspace=\dimexpr0.5\topsep-\partopsep\relax,
+%]{3}
+%\lipsum[4][1]
+%\end{tabular}
+%\end{center}
+The line height is inherited from the surrounding environment unless the baselinestrech factor has been provided. Columns 2 is enclosed in a \pkg{setspace} environment with one and a half line spacing.
 \begin{center}
 \begin{CDRBlockSave}{1}
 Line 1
 Line 2
 \end{CDRBlockSave}
 \setlength{\tabcolsep}{0pt}
-\begin{tabular}{p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}p{0.05\columnwidth}p{0.3\columnwidth}}
+\begin{tabular}{p{0.45\columnwidth}p{0.1\columnwidth}p{0.45\columnwidth}}
 \lipsum[1][1]
 \CDRBlockUse[
   tags=src,
@@ -968,15 +980,6 @@ Line 2
 \lipsum[1][1]
 \CDRBlockUse[
   tags=src,
-]{1}
-\lipsum[2][1]
-\end{spacing}
-&&
-\begin{spacing}{1.5}
-\lipsum[1][1]
-\CDRBlockUse[
-  tags=src,
-  baselinestretch=2,
 ]{1}
 \lipsum[2][1]
 \end{spacing}
@@ -1034,26 +1037,23 @@ The delimiters must not be part of the code, the unicode characters $\langle$ an
 \subsection{Cross references}
 \label{sect:xrefs}
 We can always refer to the page of a specific code extract with the \CDRCode|ref label=⟨\MyMeta{label name}⟩| option. This is how we know that \CDRCodeUse[tags=src,style=default]{UNIK key} was also used on page \pageref{UNIK key}. For block code, this is similar:
-\begin{center}
-\begin{CDRBlockSave}{}
+\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{CDRBlock}[
+  tags=src,
+  ref label=My,
+  no space,
+]
 \begin{⟨CDRBlock⟩}[ref label=My]
 ⟨\lipsum[1][3]⟩
 \end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\setlength{\tabcolsep}{0mm}%
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-\CDRBlockUse[
-  tags=src,
-  ref label=My,
-]{}
+\end{CDRBlock}
 &
 On the second typeset run, we have
 \CDRCode[tags=src]|\pageref{My}| = \pageref{My}.
-\end{tabular}
-\end{center}
+\end{centabu}
 Line references are also available: \CDRCode|escape inside| is used to define 2 characters that will delimit some \LaTeX{} instructions to be executed, here \CDRCode[tags=latex]|\label{line.421}|.
-\begin{center}
-\begin{CDRBlockSave}{1}
+\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{CDRBlock}[tags=src, no space]
 \begin{⟨CDRBlock⟩}[
   numbers=left,
   first number=421,
@@ -1061,28 +1061,29 @@ Line references are also available: \CDRCode|escape inside| is used to define 2 
 ]
 line 421|\label{line.421}|
 \end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{2}
-line 421|\label{line.421}|
-\end{CDRBlockSave}
-\setlength{\tabcolsep}{0pt}
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-\CDRBlockUse[tags=src]{1}
+\end{CDRBlock}
 &
 which output simply reads
-\CDRBlockUse[
+\begin{CDRBlock}[
   numbers=left,
   first number=421,
-  escape inside=||,
-]{2}
+  escape inside=||
+]
+line 421|\label{line.421}|
+\end{CDRBlock}
 \CDRCode|\ref*{line.421}| = \ref*{line.421}.
 However this does not play well with \pkg{hyperref} hence the starred command.
-\end{tabular}
-\end{center}
+\end{centabu}
 It can be used as well when \pkg{pygments} is not available.
-\begin{center}
+\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \CDRSet{pygments=false}
-\begin{CDRBlockSave}{1}
+\begin{CDRBlock}[
+  numbers=left,
+  first number=123,
+  escape inside=⟨⟩,
+  no space,
+  pygments=false,
+]
 \begin{⟨CDRBlock⟩}[
   numbers=left,
   first number=123,
@@ -1090,71 +1091,69 @@ It can be used as well when \pkg{pygments} is not available.
 ]
 line 123|\label{line.123}|
 \end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
-\setlength{\tabcolsep}{0pt}
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-\CDRBlockUse[tags=src, escape inside=⟨⟩]{1}
+\end{CDRBlock}
 &
+\CDRSet{pygments=false}
 which output simply reads
-\CDRBlockUse[
+\begin{CDRBlock}[
   numbers=left,
   first number=123,
-  escape inside=⟨⟩,
-]{1}
-\CDRCode|\ref*{line.123}| = \ref*{line.123}.
+  escape inside=||,
+]
+line 123|\label{line.123}|
+\end{CDRBlock}
+\CDRCode[pygments=false]|\ref*{line.123}| = \ref*{line.123}.
 This does not play well with \pkg{hyperref} hence the starred command.
-\end{tabular}
-\end{center}
+\end{centabu}
 Cross references can be used with saved block, with some extra precaution.
 Here for example, the label is dynamically based on the macro \CDRCode|\My|.
 \begin{center}
 \CDRSet{pygments=true, numbers=left}
-\begin{CDRBlockSave}{1}
-\begin{⟨CDRBlockSave⟩}{MyBlock}
-line 421 or 123|\label{line.\My}|
-\end{⟨CDRBlock⟩}
-\end{CDRBlockSave}
 \begin{CDRBlockSave}{MyBlock}
 line 421 or 123|\label{line.\My}|
 \end{CDRBlockSave}
-\begin{CDRBlockSave}{2}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.433\linewidth}p{0.283\linewidth}p{0.283\linewidth}}
+\begin{CDRBlock}[tags=src, no space]
+\begin{⟨CDRBlockSave⟩}{MyBlock}
+line 421 or 123|\label{line.\My}|
+\end{⟨CDRBlock⟩}
+\end{CDRBlock}
+&
+First use:
+\begin{CDRBlock}
 \newcommand\My{A}
 \CDRBlockUse[
   escape inside=||,
   numbers=left,
   first number=421,
 ]{MyBlock}
-\end{CDRBlockSave}
-\begin{CDRBlockSave}{3}
-\newcommand\My{B}
-\CDRBlockUse[
-  escape inside=||,
-  numbers=left,
-  first number=123,
-]{MyBlock}
-\end{CDRBlockSave}
-\setlength{\tabcolsep}{0pt}
-\begin{tabular}{p{0.433\linewidth}p{0.283\linewidth}p{0.283\linewidth}}
-\CDRBlockUse[tags=src]{1}
-&
-First use:
-\CDRBlockUse{2}
+\end{CDRBlock}
 which reads
 \newcommand\My{A}
 \CDRBlockUse[
   escape inside=||,
   numbers=left,
   first number=421,
+  no space below,
 ]{MyBlock}
 &
 Second use:
-\CDRBlockUse{3}
+\begin{CDRBlock}
+\newcommand\My{B}
+\CDRBlockUse[
+  escape inside=||,
+  numbers=left,
+  first number=123,
+]{MyBlock}
+\end{CDRBlock}
 which reads
 \newcommand\My{B}
 \CDRBlockUse[
   escape inside=||,
   numbers=left,
   first number=123,
+  no space below,
 ]{MyBlock}
 \end{tabular}
 \end{center}
@@ -1177,9 +1176,6 @@ one can modify the aspect:
 \renewcommand\CDRMetaFormat{\itshape\color{magenta}}
 \end{CDRBlock}
 %\CDRBlockUse{CDRMetaFormat}%
-\ExplSyntaxOn
-
-\ExplSyntaxOff
 gives for example
 {\CDRBlockExe{CDRMetaFormat}\CDRMeta{concepts}} instead of \CDRMeta{concepts}
 %
@@ -1314,7 +1310,21 @@ Suitable for \CDRCode|\CDRCode| and \CDRCode|CDRBlock| but not for \CDRCode|\CDR
 \itemtt[\CDRCheckRed format=\CDRMeta{format commands}]
 the format used to display the code (mainly font, size and color),
 after the font has been selected.
-Initially empty.
+Initially empty. For example on the right with option \CDRCode[tags=options]|format=\color{green!30!black}\bfseries| on the right:
+\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{CDRBlock}[no space above, no space below]
+This is default.
+\end{CDRBlock}
+&
+\begin{CDRBlock}[
+  format=\color{green!20!black}\bfseries,
+  no space,
+]
+This is dark green and bold.
+\end{CDRBlock}
+\end{centabu}
+The \CDRCode|\color| command adds a vertical space: it is a ``feature'' of \LaTeX.
+%
 \itemtt[\CDRCheckRed debug{[=true|false]}]
 Set to \CDRCode|true| if various debugging messages should be printed to the console.
 Initially \CDRCode|false|.
@@ -1341,9 +1351,7 @@ Initially empty.
 \itemtt[\CDRCheckRed font=auto|\CDRMeta{font command}]
 font family to use.
 Initially \CDRCode|\ttfamily|.
-\begin{center}
-\setlength{\tabcolsep}{0mm}
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \begin{CDRBlock}[tags=src, no space above]
 \begin{⟨CDRBlock⟩}
 This is default teletype font.
@@ -1361,6 +1369,7 @@ This is TeX Gyre Cursor
 The output reads
 \begin{CDRBlock}[
   font=\ttfamily,
+  no space below,
 ]
 This is default teletype font.
 \end{CDRBlock}
@@ -1368,11 +1377,11 @@ This is default teletype font.
 The output reads
 \begin{CDRBlock}[
   font=\TGCFont,
+  no space below,
 ]
 This is TeX Gyre Cursor
 \end{CDRBlock}
-\end{tabular}
-\end{center}
+\end{centabu}
 The \CDRCode|\TGCFont| family command was created with package \pkg{fontspec}
 and instruction
 \begin{CDRBlock}[tags=src]
@@ -1383,9 +1392,7 @@ size of the font to use. If you use the \pkg{relsize} package as well,
 you can require a change of the size proportional to the current one
 (for instance below, the option used is \CDRCode[mbox=false]|font size=\relsize{-2}| on the right, compared to \CDRCode[mbox=false]|font size=\small| on the left).
 Initially \texttt{auto}: the same as the current font.
-\begin{center}
-\setlength{\tabcolsep}{0mm}
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \begin{minipage}[t]{0.85\linewidth}
 \CDRSet{show tags=none,font size=\small}
 \begin{CDRBlock}[tags=latex,escape inside=⟨⟩]
@@ -1399,14 +1406,11 @@ Initially \texttt{auto}: the same as the current font.
 ⟨\lipsum[3][1]⟩
 \end{CDRBlock}
 \end{minipage}
-\end{tabular}
-\end{center}
+\end{centabu}
 \itemtt[\CDRCheckRed font shape=auto|\CDRMeta{font shape command}]
 font shape to use. Initially \texttt{auto}: the same as the current font.
-Here is the difference between slanted with \CDRCode|font shape=\slshape| and italic with  \CDRCode|font shape=\itshape|.
-\begin{center}
-\setlength{\tabcolsep}{0mm}
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+Here is the difference between slanted with \CDRCode|font shape=\slshape| on the left and italic with  \CDRCode|font shape=\itshape| on the right.
+\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \CDRSet{show tags=none,font shape=\slshape}
 \begin{CDRBlock}[tags=latex, no space above]
 ⟨\lipsum[3][1]⟩
@@ -1416,15 +1420,12 @@ Here is the difference between slanted with \CDRCode|font shape=\slshape| and it
 \begin{CDRBlock}[tags=latex, no space above]
 ⟨\lipsum[3][1]⟩
 \end{CDRBlock}
-\end{tabular}
-\end{center}
+\end{centabu}
 \itemtt[\CDRCheckRed font series=auto|\CDRMeta{font series command}]
 \LaTeX{} font ‘series’ to use.
 Initially \texttt{auto}: the same as the current font.
 Example: \CDRCode|\bfseries| on the left versus \CDRCode|\mdseries| on the right.
-\begin{center}
-\setlength{\tabcolsep}{0mm}
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \CDRSet{show tags=none,font series=\bfseries}
 \begin{CDRBlock}[tags=latex, no space above]
 ⟨\lipsum[5][2]⟩
@@ -1434,76 +1435,31 @@ Example: \CDRCode|\bfseries| on the left versus \CDRCode|\mdseries| on the right
 \begin{CDRBlock}[tags=latex, no space above]
 ⟨\lipsum[5][2]⟩
 \end{CDRBlock}
-\end{tabular}
-\end{center}
+\end{centabu}
 \itemtt[\CDRCheckRed shows spaces{[=true|false]}]
-print a special character representing each space.
+print a special character representing each space and tab characters.
 Initially \CDRCode|false|: spaces not shown.
 Spaces are not shown in escaped instructions,
 unless they contain instructions to show spaces of course.
-\begin{center}
-\setlength{\tabcolsep}{0mm}
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \CDRSet{show tags=none,show spaces}
 \begin{CDRBlock}[tags=latex, no space above,pygments=true]
-\textbf{In eu orci massa}
+\textbf{In eu	orci massa}
 \end{CDRBlock}
 &
-\CDRSet{show tags=none, show spaces}
+\CDRSet{show tags=none, show spaces, tab size=3}
 \begin{CDRBlock}[tags=latex, no space above, pygments=false]
-\textbf{In eu orci massa}
+\textbf{In eu	orci massa}
 \end{CDRBlock}
-\end{tabular}
-\end{center}
-%
-\itemtt[\CDRCheckRed showtabs=true|false]
-explicitly show tab characters.
-Initially \CDRCode|false|: tab characters not shown.
-Tabs are not shown in escaped instructions.
-\begin{center}
-\setlength{\tabcolsep}{0mm}
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-\begin{minipage}[t]{0.85\linewidth}
-\CDRSet{show tags=none,show spaces}
-\begin{CDRBlock}[tags=latex,pygments=true]
-\textbf{In	eu	orci	massa}
-\end{CDRBlock}
-\end{minipage}
-&
-\CDRSet{show tags=none,show spaces}
-\begin{minipage}[t]{0.85\linewidth}
-\begin{CDRBlock}[tags=latex,pygments=false]
-\textbf{In	eu	orci	massa}
-\end{CDRBlock}
-\end{minipage}
-\end{tabular}
-\end{center}
+\end{centabu}
 %
 %\itemtt[\CDRCheckRed obeytabs=true|false]
 %position characters according to the tabs.
 %Initially false: tab characters are added to the current position.
 \itemtt[\CDRCheckRed tab size=\CDRMeta{integer}]
 number of spaces given by a tab character,
-Initially 2.
-\begin{center}
-\setlength{\tabcolsep}{0mm}
-\begin{tabular}{p{0.5\linewidth}p{0.5\linewidth}}
-\CDRSet{show tags=none,show spaces,tab size=2}
-\begin{CDRBlock}[tags=latex,pygments=true,no spaces above]
-In	eu	orci	massa
-\end{CDRBlock}
-&
-\CDRSet{show tags=none,show spaces,tab size=3}
-\begin{CDRBlock}[tags=latex,pygments=false,no spaces above]
-In	eu	orci	massa
-\end{CDRBlock}
-\end{tabular}
-\end{center}
+Initially 2, 3 in the example above on the right.
 %
-\itemtt[\CDRCheckRed defineactive=\CDRMeta{macro}]
-to define the effect of active characters.
-This allows to do some devious tricks, see the \pkg{fancyvrb} package.
-Initially empty.
 \itemtt[\CDRCheckGreen ref label=\CDRMeta{label}]
 define a label to be used with \CDRCode|\pageref|.
 Initially empty. See section \ref{sect:xrefs}.
@@ -1528,8 +1484,7 @@ Initially empty.
 \itemtt[\CDRCheckRed numbers format=\CDRMeta{format commands}]
 the format used to display line numbers (mainly font, size and color).
 \itemtt[\CDRCheckRed tags format=\CDRMeta{format commands}]
-, where \CDRMeta{format} is used
-the format used to display the tag names (mainly font, size and color),
+, where \CDRMeta{format} is used to display the tag names (mainly font, size and color),
 after it is appended to the \CDRCode|numbers format|.
 Initially empty.
 \itemtt[\CDRCheckRed show tags={[=true|false]}]
@@ -1545,13 +1500,13 @@ number of characters to suppress
 at the beginning of each line (from 0 to 9),
 mainly useful when environments are indented.
 Sole option of the \CDRCode|CDRBlockSave| environment.
-\itemtt[\CDRCheckRed baselinestretch=auto|\CDRMeta{dimension}]
-value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
-Initially \texttt{auto}: its current value just before the verbatim command.
-\itemtt[\CDRCheckRed xleftmargin=\CDRMeta{dimension}]
+%\itemtt[\CDRCheckRed baselinestretch=auto|\CDRMeta{dimension}]
+%value to give to the usual \cs{baselinestretch} \LaTeX{} parameter.
+%Initially \texttt{auto}: its current value just before the verbatim command.
+\itemtt[\CDRCheckRed +left margin=\CDRMeta{dimension}]
 indentation to add at the start of each line.
 Initially \CDRCode|0pt|: no left margin.
-\itemtt[\CDRCheckRed xrightmargin=\CDRMeta{dimension}]
+\itemtt[\CDRCheckRed +right margin=\CDRMeta{dimension}]
 right margin to add after each line.
 Initially \CDRCode|0pt|: no right margin.
 \itemtt[\CDRCheckRed list indent{[=true|false]}]
@@ -1564,6 +1519,12 @@ Initially \CDRCode|2pt|.
 \itemtt[\CDRCheckRed vspace=\MyMeta{dimension}]
 the amount of vertical space added to \CDRCode|\parskip| before and after blocks.
 Initially \CDRCode|\topsep|. See section \ref{sect:spacing}.
+\itemtt[\CDRCheckRed no space above={[=true|false]}]
+Remove the space above, usefull in table cells.
+Initially \CDRCode|false|. See section \ref{sect:spacing}.
+\itemtt[\CDRCheckRed no space below={[=true|false]}]
+Remove the space below, usefull in table cells.
+Initially \CDRCode|false|. See section \ref{sect:spacing}.
 \itemtt[\CDRCheckRed samepage{[=true|false]}]
 in very special circumstances, we may want to make sure that a block of code is not spread over multiple pages.
 To avoid a page break as far as possible, set the \CDRCode|samepage| option to \CDRCode|true|.
@@ -1586,7 +1547,7 @@ Next options are illustrated in section \ref{sect:numbering}.
 numbering of the verbatim lines.
 If requested, this numbering is done outside the verbatim environment.
 Initially none: no numbering.
-\itemtt[\CDRCheckRed numbersep=\CDRMeta{dimension}]
+\itemtt[\CDRCheckRed number sep=\CDRMeta{dimension}]
 gap between numbers and verbatim lines.
 Initially \CDRCode|1ex|.
 \itemtt[\CDRCheckRed first number=auto|last|\CDRMeta{integer}]
@@ -1600,6 +1561,20 @@ Initially 1: all lines are numbered.
 \itemtt[\CDRCheckRed numberblanklines{[=true|false]}]
 to number or not the white lines (really empty or containing blank characters only).
 Initially |true|: all lines are numbered.
+\itemtt[\CDRCheckRed number main=\meta{instructions}]
+the given \meta{instructions} are executed
+to typeset the main line numbers.
+They will receive 
+the logical line number as unique argument.
+Initially returns its argument as is.
+See \label{sect:line numbering}.
+\itemtt[\CDRCheckRed number other=\meta{instructions}]
+the given \meta{instructions} are executed
+to typeset the line numbers which are not main.
+They will receive 
+the logical line number as unique argument.
+Initially gobbles its argument.
+See \label{sect:line numbering}.
 \itemtt[\CDRCheckRed first line=\CDRMeta{integer}|\CDRMeta{regex}]
 first line to print.
 Initially empty: all lines from the first are printed.
@@ -1627,6 +1602,7 @@ it reads
 \begin{CDRBlock}[
   numbers=left,
   first number=421,
+  no space below,
 ]
 LINE 421
 LINE 422
@@ -1648,6 +1624,7 @@ it reads
   numbers=left,
   first number=last,
   dry numbers,
+  no space below,
 ]
 LINE 424
 LINE 425
@@ -1669,6 +1646,7 @@ it also reads
   numbers=left,
   first number=last,
   dry numbers,
+  no space below,
 ]
 LINE 424
 LINE 425
@@ -1709,21 +1687,23 @@ are shown:
 \end{CDRBlockSave}
 \CDRBlockUse[tags=src]{CDRBlock*}
 \CDRBlockExe{CDRBlock*}
-\begin{center}
-\setlength{\tabcolsep}{0mm}
-\begin{tabular}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
-\begin{CDRBlock}[tags=src, no space above]
+\begin{centabu}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
+\begin{CDRBlock}[tags=src, no space]
 \begin{CDRBlock*}
 There are three spaces
 \end{CDRBlock*}
 \end{CDRBlock}
 &&&
 The instructions on the left give when executed:
-\begin{CDRBlock*}[tags=src]
+\begin{CDRBlock*}[tags=src, no space below]
 There are three spaces
 \end{CDRBlock*}
-\end{tabular}
-\end{center}
+\end{centabu}
 
 This is handy if some source already contains markup commands to display verbatim text that cannot be changed easily.
+\section{Limitations}
+\begin{itemize}
+\item
+You cannot use \CDRCodeUse{CDRCode} or \CDRCodeUse{CDRBlock} in the argument of a command command: when \TeX\ parses the argument, it has no means to know that parts are verbatim code.
+\end{itemize}
 \end{document}

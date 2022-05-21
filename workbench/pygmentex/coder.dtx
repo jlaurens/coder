@@ -5272,6 +5272,14 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   font~series .code:n = \CDRTag_set:,
   font~series .value_required:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed font series=\meta{font color}]^^A
+% \LaTeX{} font color to use, argument of the |\color| command.
+% Initially \texttt{auto}: the same as the current font color.
+% Example: |\bfseries|.
+%    \begin{MacroCode}[OK]
+  font~color .code:n = \CDRTag_set:,
+  font~color .value_required:n = true,
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed format=\meta{format commands}]^^A
 % the format used to display the code (mainly font, size and color),
 % after the font has been selected.
@@ -5369,15 +5377,16 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
     font = \ttfamily,
-    font~size = auto,
+    font~size   = auto,
     font~series = auto,
-    font~shape = auto,
+    font~shape  = auto,
+    font~color  = auto,
     format  = auto,
     format* = auto,
     hook~before  = auto,
     hook~before* = auto,
-    hook~after  = auto,
-    hook~after* = auto,
+    hook~after   = auto,
+    hook~after*  = auto,
     cache = true,
     debug = false,
     show~spaces = false,
@@ -5590,19 +5599,19 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   list~indent .code:n = \CDRTag_boolean_set:x { #1 }, 
   list~indent .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed left margin*=\meta{dimension}]^^A
+% \itemtt[\CDRCheckRed +left margin=\meta{dimension}]^^A
 % indentation to add at the start of each line.
 % Initially |0pt|: no left margin.
 %    \begin{MacroCode}[OK]
-  left~margin* .code:n = \CDRTag_set:, 
-  left~margin* .value_required:n = true,
+  +left~margin .code:n = \CDRTag_set:, 
+  +left~margin .value_required:n = true,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed right margin*=\meta{dimension}]^^A
+% \itemtt[\CDRCheckRed +right margin=\meta{dimension}]^^A
 % right margin to add after each line.
 % Initially |0pt|: no right margin.
 %    \begin{MacroCode}[OK]
-  right~margin* .code:n = \CDRTag_set:, 
-  right~margin* .value_required:n = true,
+  +right~margin .code:n = \CDRTag_set:, 
+  +right~margin .value_required:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed hfuzz=\meta{dimension}]^^A
 % value to give to the \TeX{} |\hfuzz| dimension for text to format.
@@ -5777,8 +5786,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}[OK]
   __initialize .meta:n = {
     list~indent = false,
-    left~margin*  = 0pt,
-    right~margin* = 0pt,
+    +left~margin  = 0pt,
+    +right~margin = 0pt,
     hfuzz = 2pt,
     vspace = \topsep,
     same~page = false,
@@ -6184,7 +6193,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % \cs{CDR_export_set:ccn} \Arg{file name} \Arg{relative key path} \Arg{value}
 % \end{syntax}
 % Store \metatt{value}, which is further retrieved with the instruction
-% |\CDR_get_get:cc {|\metatt{file name}|}| \linebreak[3]|{|\metatt{relative key path}|}|.
+% |\CDR_get_get:cc {|\metatt{file name}|}| \\CDR@Line[3]|{|\metatt{relative key path}|}|.
 % All the affectations are made at the global \TeX{} group level.
 % \end{function}
 %    \begin{MacroCode}[OK]
@@ -7551,8 +7560,10 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % Syntax coloring with \pkg{pygments} takes precedence.
 % \end{function}
 %    \begin{MacroCode}
+\tl_new:N \l_CDR_color_tl
 \cs_new:Npn \CDR_font: {
   \frenchspacing
+  \tl_set:Nn \l_CDR_color_tl { \CDRTag_get_no_auto:c { font~color } }
   \CDRTag_get_no_auto:c { font~size }
   \CDRTag_get_no_auto:c { font~series }
   \CDRTag_get_no_auto:c { font~shape }
@@ -7698,6 +7709,21 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   no~space~above .code:n = \CDRTag_boolean_set:x { #1 },
   no~space~above .default:n = true,
 %    \end{MacroCode}
+% \itemtt[\CDRCheckRed no space below{[=true$\vert$false]}]^^A
+% When set to true, avoid the extra vertical space
+% in tabular environments. This is a hack.
+%    \begin{MacroCode}[OK]
+  no~space~below .code:n = \CDRTag_boolean_set:x { #1 },
+  no~space~below .default:n = true,
+%    \end{MacroCode}
+% \itemtt[\CDRCheckRed no space]^^A
+% Shortcut for |no space above, no space below|.
+%    \begin{MacroCode}[OK]
+  no~space .meta:n = {
+    no~space~above,
+    no~space~below,
+  },
+%    \end{MacroCode}
 % \itemtt[\CDRCheckRed obey lines{[=true$\vert$false]}]^^A
 % The displayed line numbers are exactly the physical ones.
 %    \begin{MacroCode}[OK]
@@ -7714,6 +7740,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     test   = false,
     obey~lines = false,
     no~space~above = false,
+    no~space~below = false,
   },
   __initialize .value_forbidden:n = true,
 %    \end{MacroCode}
@@ -8179,11 +8206,11 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   }
   \exp_last_unbraced:NNf
   \advance\leftmargin {
-    \CDRTag_get:c { left~margin* }
+    \CDRTag_get:c { +left~margin }
   } \relax
   \exp_last_unbraced:NNf
-  \advance\leftmargin {
-    \CDRTag_get:c { right~margin* }
+  \advance\rightmargin {
+    \CDRTag_get:c { +right~margin }
   } \relax
   \linewidth\hsize
   \advance\linewidth-\leftmargin
@@ -8312,7 +8339,6 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \CDRBlock_v_space:
     \CDRBlock_linewidth:
     \CDRBlock_interlinepenalty:
-    \frenchspacing
     \CDRBlock_format:
     \CDRBlock_strut:
     \CDR_if_pygments:TF {
@@ -8320,8 +8346,11 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     } {
       \CDRBlock_vrb_use:
     }
-    \vskip-\baselineskip
     \group_end:
+    \vskip-1\baselineskip
+    \CDRTag_if_truthy:cT { no~space~below } {
+      \vskip-\baselineskip
+    }
     \endtrivlist
     \CDRBlock_teardown:
     \CDRBlock_engine_end:
@@ -9001,12 +9030,15 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \exp_args_generate:n { nVV }
 \cs_new:Npn \CDR_line_box:nnn #1 #2 #3 {
 \CDR@Debug {\string\CDR_line_box:nnn/\tl_to_str:n{#1}/.../\tl_to_str:n{#3}/}
+  \tl_if_empty:NF \l_CDR_color_tl {
+    \color { \l_CDR_color_tl }
+  }
   \lua_now:e {
     CDR.Block:synctex_target_set( \CDR_int_use:c { \l_CDR_obey_tl } )
   }
 \CDR@Debug {\string\CDR_line_box:nnn/ \tl_to_str:V \l_CDR_p_tl, \tl_to_str:V \l_CDR_l_tl/\tl_to_str:V\hsize }
   \hbox to \hsize {
-    \tl_set:Nx \l_CDR_tl {
+    \tl_set:Nf \l_CDR_tl {
       \exp_args:NnVV
       \CDRTag_get:c
         { text~color } \l_CDR_p_tl \l_CDR_l_tl
