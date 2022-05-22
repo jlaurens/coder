@@ -2383,11 +2383,11 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \CDR@Debug{\string\end{#2}...\the\inputlineno }
     \CDRBlock_save_end:
 \CDR@Debug{CDRBlock...SETUP}
-    \CDRBlock_setup:
+    \CDRBlock_setup:N \l_CDR_kv_clist
     \CDR_if_pygments:TF {
-      \CDR@Debug{THIS\space IS\space PYGMENTS}
+      \CDR@Debug{THIS\space IS\space PYGMENTED}
     } {
-      \CDR@Debug{THIS\space IS\space NOT\space PYGMENTS}
+      \CDR@Debug{THIS\space IS\space NOT\space PYGMENTED}
     }
 \CDR@Debug{CDRBlock...USE}
     \CDRBlock_use:
@@ -2641,24 +2641,24 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \regex_new:N \l_CDR_regex
 \cs_generate_variant:Nn \regex_set:Nn { Nx, NV }
 \cs_generate_variant:Nn \tl_to_str:n { V }
-\cs_new_protected_nopar:Npn \CDRBlock_setup: {
-\CDR@Debug { \string \CDRBlock_setup: ,\tl_to_str:V \l_CDR_kv_clist }
+\cs_new_protected_nopar:Npn \CDRBlock_setup:N #1 {
+\CDR@Debug { \string \CDRBlock_setup:N ,\tl_to_str:V #1 }
   \prg_set_conditional:Nnn \CDR_if_block: { p, T, F, TF } {
     \prg_return_true:
   }
   \CDRTag_keys_set:nn { __block } { __initialize }
-  \CDRBlockTags_setup:N \l_CDR_kv_clist
-  \CDRBlock_engine_setup:N \l_CDR_kv_clist
+  \CDRBlockTags_setup:N #1
+  \CDRBlock_engine_setup:N #1
   \CDR_local_inherit:n {
     __block, __pygments.block, default.block, default.block.vrb, __numbering,
     __fancyvrb.block,
     __pygments, default
   }
-  \CDR_local_set_known:N \l_CDR_kv_clist
-  \CDRTag_provide_from_kv:V \l_CDR_kv_clist
-  \CDR_local_set_known:N \l_CDR_kv_clist
-\CDR@Debug{\string \CDRBlock_setup:.KV1:}
-  \CDR_local_set_known:N \l_CDR_kv_clist
+  \CDR_local_set_known:N #1
+  \CDRTag_provide_from_kv:V #1
+  \CDR_local_set_known:N #1
+\CDR@Debug{\string \CDRBlock_setup:N.KV1:}
+  \CDR_local_set_known:N #1
   \directlua {
     CDR.Block:pyg_setup('g_CDR_tags_clist')
   }
@@ -2754,7 +2754,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \CDRBlock_free:
   } {
     \clist_set:Nn \l_CDR_kv_clist { #1 }
-    \CDRBlock_setup:
+    \CDRBlock_setup:N \l_CDR_kv_clist
     \CDRBlock_use:
     \CDRBlock_free:
   }
