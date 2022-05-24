@@ -57,17 +57,9 @@
     \item[\ttfamily#1]
   }
 }
-
-\NewDocumentCommand \MyMeta {om} {%
-  {\normalfont$⟨${\itshape#2}$\,⟩$%
-  \IfValueT{#1}{\textsubscript{#1}}}%
-}
-\let\meta\MyMeta
-\NewDocumentCommand \MyMetatt {om} {%
-  {\normalfont$⟨${\ttfamily#2}$\,⟩$%
-  \IfValueT{#1}{\textsubscript{\ttfamily#1}}}%
-}
-\let\metatt\MyMetatt
+\let\MyMeta\CDRMeta
+\let\meta\CDRMeta
+\def\metatt{\CDRMeta*}
 
 \def\CDRCheckRed {}
 \def\CDRCheckGreen {}
@@ -75,8 +67,8 @@
 
 \colorlet{CDROptions}{magenta!66!black}
 \CDRSet{
-  only top,
-  tags/lua={
+  top tags only,
+  tags/lua|*lua={
     lang=lua,
     style=xcode,
     numbers=right,
@@ -98,7 +90,7 @@
   tags/options={
     format=\color{CDROptions}\bfseries,
   },
-  tags/xcode={
+  tags/xcode|*xcode={
     style=xcode,
     show tags=none,
     numbers=left,
@@ -134,11 +126,11 @@
 \newenvironment{my.centabu}
 {\begin{center}\setlength{\tabcolsep}{0mm}\begin{tabular}}
 {\end{tabular}\end{center}}
-\begin{document}
 \begin{CDRBlockSave}{textbf}
-\CDRCodeSave{UNIK key}?\textbf{⟨\MyMeta{text}⟩}?
+\CDRCodeSave{UNIK key}?\textbf{⟨\CDRMeta{text}⟩}?
 \end{CDRBlockSave}
 \CDRBlockExe{textbf}
+\begin{document}
 \title{\pkg{coder} user manual\\
 \LaTeX\ inside code\\
 code inside \LaTeX
@@ -148,11 +140,12 @@ code inside \LaTeX
 \tableofcontents
 %
 \section{Features}
-Here is a survey of the commands and environments defined by this package with a short description.
+Here is a survey of the commands and environments defined by the \pkg{coder} package together with a short description.
 \begin{description}
 \item[{\CDRCodeUse[tags=src]{CDRCode}}, \CDRCodeUse{CDRCodeSave}, \CDRCodeUse{CDRCodeUse}, \CDRCodeUse{CDRCodeExe}]
 commands to display, save, reuse and execute inline code snippets
-like \CDRCodeUse[tags=src]{UNIK key}, see \ref{sect:CDRCode},
+like \CDRCodeUse[tags=src]{UNIK key},
+see section \ref{sect:CDRCode},
 \item[\CDRCodeUse{CDRBlock}, \CDRCodeUse{CDRBlockSave}, \CDRCodeUse{CDRBlockUse}, \CDRCodeUse{CDRBlockExe}] environments
 and commands to display, save, reuse and execute\footnote{when these are \LaTeX\ instructions} block code snippets, see \ref{sect:CDRBlock}.
 Figure \ref{fig:First example} compares \pkg{lua} or \pkg{python} syntax while computing recursively the factorial of an integer.
@@ -213,11 +206,11 @@ see section \ref{sect:CDRMeta}.
 \itemtt[
 \CDRCodeUse{CDRCodeNewCommand},
 \CDRCodeUse{CDRCodeRenewCommand},
-] allow to define customized commands similar to \CDRCodeUse{CDRCode} with a different name, see section \ref{sect:custom}.
+] to define customized commands similar to \CDRCodeUse{CDRCode} with a different name, see section \ref{sect:custom}.
 \itemtt[
 \CDRCodeUse{CDRBlockNewEnvironment},
 \CDRCodeUse{CDRBlockRenewEnvironment}
-] allow to define customized environments similar to  \CDRCodeUse{CDRBlock} with a different name, see section \ref{sect:custom}.
+] to define customized environments similar to  \CDRCodeUse{CDRBlock} with a different name, see section \ref{sect:custom}.
 \end{description}
 
 \section{Installation}
@@ -225,15 +218,21 @@ This Lua\LaTeX\ package is available on CTAN and is part of any standard \TeX{} 
 \begin{CDRBlock}[numbers=none,lang=latex,style=autumn]
 \RequirePackage{coder}
 \end{CDRBlock}
-and run Lua\LaTeX{}. In order to have syntax highlighting like above, you must enable shell escape in Lua\TeX\footnote{There is a \texttt{--shell-escape} option on the command line, and editors may provide a check box in their preference section.} and have \pkg{pygments} installed with shell command \texttt{pip install pygments}(see \url{https://pygments.org} for that purpose) but this is not a requirement for the other features of the \pkg{coder} package.
+and run Lua\LaTeX{}.
+In order to have syntax highlighting like above,
+you must enable shell escape in Lua\TeX\footnote{There is a \texttt{--shell-escape} option on the command line, and editors may provide a check box in their preference section.}
+and have \pkg{pygments} installed with shell command
+\texttt{pip install pygments}
+(see \url{https://pygments.org} for that purpose)
+but this is not a requirement for the other features of the \pkg{coder} package.
 
 In order to test \pkg{pygments} installation, you can successively run from a terminal the commands
 \\[0.25\baselineskip]
-\verb|pygmentize -O full -o |\MyMeta{file name}\verb|-colorized.tex |\MyMeta{file name}\verb|.tex|
+\verb|pygmentize -O full -o |\CDRMeta{file name}\verb|-colorized.tex |\CDRMeta{file name}\verb|.tex|
 \\[0.1\baselineskip]
-\verb|latex |\MyMeta{file name}\verb|-colorized.tex|.
+\verb|latex |\CDRMeta{file name}\verb|-colorized.tex|.
 \\[0.25\baselineskip]
-The colorized code is then found in \MyMeta{file name}\verb|-colorized.pdf|%
+The colorized code is then found in \CDRMeta{file name}\verb|-colorized.pdf|%
 
 To test the installation for an editor, the next document should output a small diagnostic page with informations about paths.
 \CDRSet{numbers=none}
@@ -269,7 +268,7 @@ Pygments is available
 \end{my.centabu}
 To use \pkg{pygments}, some editors need to be launched from a terminal, like \TeX{}works on OSX for example. An alternate solution is to add to the preamble of each document
 \begin{CDRBlock}[tags=src]
-\CDRSet{python path=⟨\MyMeta{path to python with pygmentize}⟩}
+\CDRSet{python path=⟨\CDRMeta{path to python with pygmentize}⟩}
 \end{CDRBlock}
 Notice that such a command can be put in a \verb|coder.cfg| file accessible to Lua\LaTeX. When available this configuration file is automatically loaded by package \pkg{coder}.
 
@@ -280,6 +279,8 @@ To install the \pkg{coder} package from source, download and typeset \verb|coder
 \item scripts/coder/coder-tool.py
 \item scripts/coder/coder-driver-raw.lua
 \item scripts/coder/coder-driver-lua.lua
+\item scripts/coder/coder-driver-c.lua
+\item scripts/coder/coder-driver-py.lua
 \end{itemize}
 %
 \section{Display code}
@@ -287,14 +288,14 @@ To install the \pkg{coder} package from source, download and typeset \verb|coder
 \label{sect:CDRCode}
 Inserting code as inline text is possible with the command \CDRCode[tags=src]|\CDRCode| which syntax is
 \begin{CDRBlock}[tags=src]
-\CDRCode[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]?⟨\MyMeta{inline code chunk}⟩?
+\CDRCode[⟨\CDRMeta[1]{key}=\CDRMeta[1]{value},\CDRMeta[2]{key}=\CDRMeta[2]{value},...⟩]?⟨\CDRMeta{inline code chunk}⟩?
 \end{CDRBlock}
 
-Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \MyMeta{inline code chunk} and is not a \CDRCode|[| of course. Similarly, we can save a code snippet for later use:
+Here the question mark \CDRCode|?| stands for quite any unicode character, at least one that is not in \CDRMeta{inline code chunk} and is not a \CDRCode|[| of course. Similarly, we can save a code snippet for later use:
 \CDRBlockUse[tags=src]{textbf}
 With next instruction,
 \begin{CDRBlock}[tags=src]
-\CDRCodeUse[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]{UNIK key}
+\CDRCodeUse[⟨\CDRMeta[1]{key}=\CDRMeta[1]{value},\CDRMeta[2]{key}=\CDRMeta[2]{value},...⟩]{UNIK key}
 \end{CDRBlock}
 we can display the code snippet with different styles like \CDRCodeUse[tags=src,style=autumn]{UNIK key} or \CDRCodeUse[tags=src,style=default,ref label=UNIK key]{UNIK key}, and even use it in a footnote\footnote{Here is the aspect when \pkg{pygments} is not available: \CDRCodeUse[tags=src,pygments=false]{UNIK key}}.
 Code snippets must be saved before they are used, in particular, possibly before the table of contents is built.
@@ -303,51 +304,138 @@ For that purpose, \CDRCode|\CDRCodeSave| is allowed in the document preamble, on
 The available options are collected in section \ref{sect:options} because they are shared.
 \subsection{The \texorpdfstring{\CDRCodeUse{CDRBlock}}{CDRBlock} environment}
 \label{sect:CDRBlock}
-Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line literally consisting  of \CDRCode[lang=tex]|\end{CDRBlock}|, with no extra space.
+\subsubsection{Simple usage}
+Code chunks are put in a \texttt{CDRBlock} \LaTeX{} environment. Like many verbatim envitonments, the closing command is a full line literally consisting  of \CDRCode[lang=tex]|\end{CDRBlock}|, with some space constrains.
 Optional key--value options are enclosed with square brackets. The opening bracket must follow the \CDRCode[lang=tex]|\begin{CDRBlock}| instruction, on the very same line. For the first examples of figure \ref{fig:First example}, the input was
 \begin{figure}[H]
 \begin{my.centabu}{p{0.45\linewidth}p{0.05\linewidth}|p{0.05\linewidth}p{0.45\linewidth}}
-\begin{CDRBlock}[tags=lua, no space]
-\begin{⟨CDRBlock⟩}[tags=lua]
-function factorial(n)
-  --[[Compute n!]]
-  if n > 1 then
-    return n * factorial(n-1)
+\begin{CDRBlock}[tags=lua, no space, gobble=2]
+  \begin{CDRBlock}[tags=lua]
+  function factorial(n)
+    --[[Compute n!]]
+    if n > 1 then
+      return n * factorial(n-1)
+    end
+    return 1
   end
-  return 1
-end
-\end{⟨CDRBlock⟩}
+  \end{⟨CDRBlock⟩}
 \end{CDRBlock}
 &&&
-\begin{CDRBlock}[tags=py, no space, ]
-\begin{⟨CDRBlock⟩}[tags=py]
-def factorial(n):
-  '''Compute n!'''
-  if n > 1:
-    return n * factorial(n-1)
-  return 1
-\end{⟨CDRBlock⟩}
+\begin{CDRBlock}[tags=py, no space, gobble=2]
+  \begin{CDRBlock}[tags=py]
+  def factorial(n):
+    '''Compute n!'''
+    if n > 1:
+      return n * factorial(n-1)
+    return 1
+  \end{CDRBlock}
 \end{CDRBlock}
 \end{my.centabu}
 \caption{Source of figure \ref{fig:First example}}
 \end{figure}
+\subsubsection{\texorpdfstring{\CDRCodeUse{CDRBlock}}{CDRBlock} within \texorpdfstring{\CDRCodeUse{CDRBlock}}{CDRBlock}}
+The above right block was entered with command
+\begin{CDRBlock}[tags=py, gobble=2]
+  \begin{CDRBlock}[tags=py, no space, gobble=2]
+    \begin{CDRBlock}[tags=py]
+    def factorial(n):
+      '''Compute n!'''
+      if n > 1:
+        return n * factorial(n-1)
+      return 1
+    \end{CDRBlock}
+  \end{CDRBlock}
+\end{CDRBlock}
+Notice how we indented the inner \CDRCode|CDRBlock| environment by 2 spaces in order to tell the scanner not to stop on the first \CDRCode|\end{CDRBlock}| but on the second which is properly indented. These extra spaces are removed by the \CDRCode[tags=options]|gobble=2| option. We apply this technique in next section.
+\subsubsection{Saving}
 Similarly to \CDRCode|\CDRCodeSave| there is a \CDRCode|CDRBlockSave| environment which unique mandatory argument is an identifier
 \begin{CDRBlock}[tags=src]
-\begin{CDRBlockSave}{⟨\MyMeta{block identifier}⟩}
+\begin{CDRBlockSave}{⟨\CDRMeta{block identifier}⟩}
 ...
 \end{CDRBlockSave}
 \end{CDRBlock}
 Next command allows to display that saved source with any option available
 \begin{CDRBlock}[tags=src]
-\CDRBlockUse[⟨\MyMeta[1]{key}=\MyMeta[1]{value},\MyMeta[2]{key}=\MyMeta[2]{value},...⟩]{⟨\MyMeta{block identifier}⟩}
+\CDRBlockUse[⟨\CDRMeta[1]{key}=\CDRMeta[1]{value},\CDRMeta[2]{key}=\CDRMeta[2]{value},...⟩]{⟨\CDRMeta{block identifier}⟩}
 \end{CDRBlock}
 If the source is a \LaTeX{} code, it can be executed with
 \begin{CDRBlock}[tags=src]
-\CDRBlockExe[⟨\metatt{makeatletter[=true|false]}⟩]{⟨\MyMeta{block identifier}⟩}
+\CDRBlockExe[⟨\metatt{makeatletter[=true|false]}⟩]{⟨\CDRMeta{block identifier}⟩}
 \end{CDRBlock}
-This command is widely used in this manual.
-
-Notice that the \CDRCodeUse{CDRBlockSave} environment must only be used in the document body.
+This command is widely used in this manual, for example next block defines a
+\CDRCode|CDRBlock| environment inside a \CDRCode|CDRBlockSave| environment
+which is itself in a \CDRCode|CDRBlockSave| environment.
+\begin{CDRBlockSave}[gobble=2]{?}
+  \begin{CDRBlockSave}[gobble=2]{?}
+    \begin{CDRBlockSave}{?}
+    \begin{CDRBlock}[
+      escape inside=(),
+      no space,
+    ]
+    (\lipsum[7][2])
+    \end{CDRBlock}
+    \end{CDRBlockSave}
+  \end{CDRBlockSave}
+\end{CDRBlockSave}
+\CDRBlockUse{?}
+Here is how we can use this, on the left are the instructions and on the right the typeset result:
+\begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
+\begin{CDRBlock}[
+  tags=*latex,
+  numbers=none,
+  no space above,
+]
+\CDRBlockExe{?}
+\CDRBlockUse[
+  first number=2,
+]{?}
+\end{CDRBlock}
+&
+\CDRBlockExe{?}
+\CDRBlockUse[
+  tags=*src,
+  no space above,
+  first number=2,
+  numbers=left,
+]{?}
+\\
+\begin{CDRBlock}[
+  tags=*latex,
+  numbers=none,
+  no space above,
+]
+\CDRBlockExe{?}
+\CDRBlockUse[
+  first number=3,
+  escape inside=(),
+  numbers=left,
+]{?}
+\end{CDRBlock}
+&
+\CDRBlockExe{?}
+\CDRBlockUse[
+  tags=*src,
+  first number=3,
+  escape inside=(),
+  no space above,
+  numbers=left,
+]{?}
+\\
+\begin{CDRBlock}[
+  tags=*latex,
+  numbers=none,
+  no space above,
+]
+\CDRBlockExe[first number=7]{?}
+\end{CDRBlock}
+&
+\CDRBlockExe[
+  tags=*latex,
+  first number=7,
+  numbers=left,
+]{?}
+\end{my.centabu}
+Options passed to the \CDRCodeUse{CDRBlockExe} are forwarded to any \CDRCodeUse{CDRBlock} or \CDRCodeUse{CDRBlockSave} environments.
 %
 \section{Export code with \texorpdfstring{\CDRCodeUse{CDRBlockExport}}{CDRBlockExport}}
 \label{sect:CDRBlockExport}
@@ -355,44 +443,46 @@ Notice that the \CDRCodeUse{CDRBlockSave} environment must only be used in the d
 The syntax for the \CDRCode|\CDRBlockExport| command is the following, where the \CDRCode|file| key must be provided with a non empty value,
 \begin{CDRBlock}[tags=src]
 \CDRBlockExport{
-  file={⟨\MyMeta{output file path}⟩},
-  tags=⟨{\color{CDROptions}\MyMeta[1]{tag}}|\MyMeta[2]{tag}|...⟩,
+  file={⟨\CDRMeta{output file path}⟩},
+  tags=⟨{\color{CDROptions}\CDRMeta[1]{tag}}|\CDRMeta[2]{tag}|...⟩,
 }
 \end{CDRBlock}
-At the end of the typesetting process, all the code snippets with {\color{CDROptions}\MyMeta[1]{tag}} like
+At the end of the typesetting process, all the code snippets with {\color{CDROptions}\CDRMeta[1]{tag}} like
 \begin{CDRBlock}[tags=src]
-\begin{⟨CDRBlock⟩}[tags=⟨\MyMeta{some tag}|{\color{CDROptions}\MyMeta[1]{tag}}|\MyMeta{other tag}|...⟩]
+\begin{⟨CDRBlock⟩}[tags=⟨\CDRMeta{some tag}|{\color{CDROptions}\CDRMeta[1]{tag}}|\CDRMeta{other tag}|...⟩]
 ...
 \end{⟨CDRBlock⟩}
 \end{CDRBlock}
-are collected in the order of the source, then all the code chunks with \MyMeta[2]{tag} are collected in turn,... Finally, the result is written to \MyMeta{output file path}.
+are collected in the order of the source, then all the code chunks with \CDRMeta[2]{tag} are collected in turn,... Finally, the result is written to \CDRMeta{output file path}.
 
 If the \CDRCode|tags| list is void, no exportation takes place. This exportation list can contain macros.
 \subsection{Options}
 \begin{description}
-\itemtt[lang=\MyMeta{language}]
+\itemtt[lang=\CDRMeta{language}]
 One of the languages \pkg{pygments} is aware of, the list of officially supported languages is available at \url{https://pygments.org/languages/}.
 Initially \CDRCode|tex|.
 Every subsequent code chunk which first tag is in the exportation list will have the same \CDRCode|lang| option, unil the next change. 
-\itemtt[preamble=\MyMeta{preamble text}, preamble file=\MyMeta{preamble file path}]
-The \MyMeta{preamble text} is saved before the collected code chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \MyMeta{preamble file path}
-is given, then the \MyMeta{preamble text} is taken from the file instead.
+\itemtt[preamble=\CDRMeta{preamble text}, preamble file=\CDRMeta{preamble file path}]
+The \CDRMeta{preamble text} is saved before the collected code chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \CDRMeta{preamble file path}
+is given, then the \CDRMeta{preamble text} is taken from the file instead.
 Initially empty.
-\itemtt[postamble=\MyMeta{postamble text}, postamble file=\MyMeta{postamble file path}]
-\MyMeta{postamble text} is saved after the code collected chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \MyMeta{preamble file path}
-is given, then the \MyMeta{preamble text} is taken from the file instead. Initially empty.
-\itemtt[escape inside=\MyMeta{delimiters}]
+\itemtt[postamble=\CDRMeta{postamble text}, postamble file=\CDRMeta{postamble file path}]
+\CDRMeta{postamble text} is saved after the code collected chunks unless the \CDRCode|raw| option is set to \CDRCode|true|. When a \CDRMeta{preamble file path}
+is given, then the \CDRMeta{preamble text} is taken from the file instead. Initially empty.
+\itemtt[escape inside=\CDRMeta{delimiters}]
 the preamble and the postamble can contain \LaTeX\ instructions enclosed between the delimiters,
 these will be executed before exportation.
 Not any command is suitable here, macros containing text, \CDRCode|\date| may be convenient here.
-When the \MyMeta{delimiters} is void, no escaping occurs.
-When \MyMeta{delimiters} contains only one character, it is used both as opening and closing delimiter. When it contains at leat two characers, the first one is used as opening delimiter, the second one as closing delimiter.
+When the \CDRMeta{delimiters} is void, no escaping occurs.
+When \CDRMeta{delimiters} contains only one character, it is used both as opening and closing delimiter. When it contains at leat two characers, the first one is used as opening delimiter, the second one as closing delimiter.
 \itemtt[raw{[=true|false]}]
-When \CDRCode|true|, a preamble and postamble will be added to all the collected code chunks. Initially \CDRCode|false|.
+When \CDRCode|true|, a global preamble and global postamble
+will be added to all the collected code chunks.
+Initially \CDRCode|false|.
 \itemtt[once{[=true|false]}]
 Consider for example the exportation \CDRCode|tags| list
-\MyMeta[1]{tag}|\MyMeta[2]{tag}.
-If a block code chunk has exactly the same tag list, then it should be exported when \MyMeta[1]{tag} codes are collected but also when \MyMeta[2]{tag} codes are collected.
+\CDRMeta[1]{tag}|\CDRMeta[2]{tag}.
+If a block code chunk has exactly the same tag list, then it should be exported when \CDRMeta[1]{tag} codes are collected but also when \CDRMeta[2]{tag} codes are collected.
 If the \CDRCode|once| option is set to \CDRCode|true|,
 such a code chunk will only be exported the first time, and will be ignored afterwards.
 Initially \CDRCode|true|: export only once.
@@ -405,7 +495,8 @@ Initially \CDRCode|true|: export only once.
 %
 \section{Decorations}
 \subsection{Tags}
-For the \CDRCode|CDRBlock| environment, the \CDRCode|show tags| option allows to display the list of tags, see section \ref{sect:tags} for more details about tags.
+\label{sect:Decorations/Tags}
+For the \CDRCode|CDRBlock| environment, the \CDRCode[tags=options]|show tags| option allows to display the list of tags, see section \ref{sect:tags} for more details about tags.
 The possible choices are illustrated hereafter below each source.
 \setlength{\columnsep}{15mm}
 \begin{multicols}{3}
@@ -615,7 +706,7 @@ Above, the intermediate line numbers were displayed by the \CDRCode[tags=options
 Similarly, the \CDRCode[tags=options]|number main| instructions display the main line numbers with the help of the \pkg{mboxfill} package:
 \begin{CDRBlock}[tags=src]
 number main={%
-  \color{⟨\MyMeta{color}⟩}
+  \color{⟨\CDRMeta{color}⟩}
   \bfseries#1
   \color{.!25!white}%
   \makebox[4mm]{\mboxfill[0.75mm]{.}}%
@@ -692,11 +783,11 @@ and the suffix of line 4 goes here\tikzmark{from suffix 4}, after at least two t
 We now explain the \LaTeX\ code for this source:
 \CDRBlockUse[pygments]{5 lines}
 
-The \CDRCode|line color| options is used for the color alternation of the background. Here \CDRCode|#1| stands for the
+The \CDRCode[tags=options]|line color| options is used for the color alternation of the background. Here \CDRCode|#1| stands for the
 physical line number, whereas \CDRCode|#2| would stand for the logical line number (the one displayed if any). The \CDRCode|\ifnumodd| command comes from the \pkg{etoolbox} package.
 
-The \CDRCode|line prefix|, \CDRCode|line postfix|
-and \CDRCode|line suffix| options
+The \CDRCode[tags=options]|line prefix|, \CDRCode[tags=options]|line postfix|
+and \CDRCode[tags=options]|line suffix| options
 may contain instructions that are executed where the arrows point. Once again, \CDRCode|#1| stands for the
 physical line number, whereas \CDRCode|#2| stands for the logical line number (the one displayed if any).
 Here we conditionally insert a \CDRCode|\tikzmark|
@@ -714,7 +805,7 @@ We finally create the arrows in an overlay \pkg{tikz} picture:
 %
 \subsubsection{Inline code}
 \label{sect:CDRCodeEngine}
-When the \pkg{efbox} package is loaded, inline code can be framed by adding the option \CDRCode|engine=efbox|: \CDRCode[
+When the \pkg{efbox} package is loaded, inline code can be framed by adding the option \CDRCode[tags=options]|engine=efbox|: \CDRCode[
   engine=efbox,
   efbox engine options={
     backgroundcolor=magenta!5!white,
@@ -735,12 +826,12 @@ It is possible to pass any option of the \pkg{efbox} package with the key \CDRCo
 \end{CDRBlock}
 This engine named \CDRCode|efbox| was declared by next command
 \begin{CDRBlock}[tags=src]
-\CDRCodeEngineNew {⟨\MyMeta{engine name}⟩} {
-  ⟨\MyMeta{engine instructions}⟩
+\CDRCodeEngineNew {⟨\CDRMeta{engine name}⟩} {
+  ⟨\CDRMeta{engine instructions}⟩
 }
 \end{CDRBlock}
-with \CDRCode|efbox| as \MyMeta{engine name},
-and \CDRCode[tags=src]|\efbox[#1]{#2}| as \MyMeta{engine instructions}. It can be used to define a custom display engine as well.
+with \CDRCode|efbox| as \CDRMeta{engine name},
+and \CDRCode[tags=src]|\efbox[#1]{#2}| as \CDRMeta{engine instructions}. It can be used to define a custom display engine as well.
 
 There is an engine named \CDRCode[tags=src]|default| which is always available and used by default. The command \CDRCode[tags=src]|\CDRCodeEngineRenew| will be used to redefine engines, with a similar syntax.
 
@@ -784,14 +875,14 @@ It is possible to pass any option of the \pkg{tcolorbox} package with the key \C
 \end{CDRBlock}
 This engine named \CDRCode|tcbox| was declared by next command
 \begin{CDRBlock}[tags=src]
-\CDRBlockEngineNew {⟨\MyMeta{engine name}⟩} {
-  ⟨\MyMeta{begin engine instructions}⟩
+\CDRBlockEngineNew {⟨\CDRMeta{engine name}⟩} {
+  ⟨\CDRMeta{begin engine instructions}⟩
 } {
-  ⟨\MyMeta{end engine instructions}⟩
+  ⟨\CDRMeta{end engine instructions}⟩
 }
 \end{CDRBlock}
-with \CDRCode|tcbox| as \MyMeta{engine name},
-\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \MyMeta{begin engine instructions}, where \CDRCode[tags=src]|#1| will be replaced by whatever is provided for key \CDRCode[tags=options]|⟨\MyMetatt{engine name}⟩ engine options|, and as \MyMeta{end engine instructions}
+with \CDRCode|tcbox| as \CDRMeta{engine name},
+\CDRCode[tags=src]|\begin{tcolorbox}[#1]| as \CDRMeta{begin engine instructions}, where \CDRCode[tags=src]|#1| will be replaced by whatever is provided for key \CDRCode[tags=options]|⟨\CDRMeta*{engine name}⟩ engine options|, and as \CDRMeta{end engine instructions}
 \CDRCode[tags=src]|\end{tcolorbox}|. This command is availale to define a custom display engine as well.
 
 There is an engine named \CDRCode[tags=src]|default| which is always available and used by default.
@@ -913,7 +1004,7 @@ One line⟨\mboxfill{.}⟩
   show tags=left,
   +left margin=3cm,
   +right margin=2cm,
-  only top=false,
+  top tags only=false,
   number sep=\dimexpr1ex+\CDRGetOption{+left margin}\relax,
   escape inside=⟨⟩,
 ]
@@ -923,12 +1014,12 @@ The vertical alignment of the first and last tags on their right side
 is obtained with option \CDRCode[tags=options]|number sep=\dimexpr1ex+\CDRGetOption{+left margin}\relax|
 for the third block.
 Notice the usage of \CDRCode|\CDRGetOption| to retrieve the value for the 
-\CDRCode[tags=src]|+left margin| key.
+\CDRCode[tags=options]|+left margin| key.
 
 The vertical space before and after the blocks is governed by \CDRCode[tags=src]|\topsep|, \CDRCode[tags=src]|\partopsep| and \CDRCode[tags=src]|\parskip| like standard list are.
-Like for standard lists, an extra space is generated above the \CDRCode|CDRlock| environment when in a tabular cell. A workaround is to use a wrapping minipage environment or us the \CDRCode[tags=options]|no space above| option.
+Like for standard lists, an extra space is generated above the \CDRCode|CDRlock| environment when in a tabular cell. A workaround is to use a wrapping minipage environment or use the \CDRCode[tags=options]|no space above| option.
 The \CDRCode[tags=options]|no space below| option removes
-the space below.
+the space below whereas the \CDRCode[tags=options]|no space| option removes both.
 %In addition, the \CDRCode[tags=options]|vspace|
 %options, which initial value is exactly \CDRCode[tags=src]|\topsep|, allows a supplemental adjustment:
 %\begin{center}
@@ -1031,19 +1122,21 @@ Line of code⟨\mboxfill{.}⟩
 %
 \subsection{Escaping to \LaTeX}
 When some part of the code does not belong to the programming language,
-it is possible to break temporarily the syntax coloring process with the \CDRCode[tags=options]|escape inside={⟨\MyMeta{delimiters}⟩}| where \MyMeta{delimiters} is a placeholder for a string composed of two different characters, possibly without surrounding braces. 
+it is possible to break temporarily the syntax coloring process with the \CDRCode[tags=options]|escape inside={⟨\CDRMeta{delimiters}⟩}| where \CDRMeta{delimiters} is a placeholder for a string composed of two different characters, possibly without surrounding braces. 
 The delimiters are removed and what is between them is typeset by \LaTeX. 
 
 The source code for the previous instruction was entered with
 \begin{CDRBlock}[tags=src]
-\CDRCode[escape inside={()},...]|escape inside={(\MyMeta{delimiters})}|
+\CDRCode[escape inside={()},...]|escape inside={(\CDRMeta{delimiters})}|
 \end{CDRBlock}
-Where \CDRCode[tags=src]|\MyMeta| is a private command.
+Where \CDRCode[tags=src]|\CDRMeta| is a private command.
 The delimiters must not be part of the code, the unicode characters $\langle$ and $\rangle$ are suitable amongst many others.
 
 \subsection{Cross references}
 \label{sect:xrefs}
-We can always refer to the page of a specific code extract with the \CDRCode|ref label=⟨\MyMeta{label name}⟩| option. This is how we know that \CDRCodeUse[tags=src,style=default]{UNIK key} was also used on page \pageref{UNIK key}. For block code, this is similar:
+We can always refer to the page of a specific code extract with the
+\CDRCode[tags=options]|ref label=⟨\CDRMeta{label name}⟩| option.
+This is how we know that \CDRCodeUse[tags=src,style=default]{UNIK key} was also used on page \pageref{UNIK key}. For block code, this is similar:
 \begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \begin{CDRBlock}[
   tags=src,
@@ -1058,7 +1151,7 @@ We can always refer to the page of a specific code extract with the \CDRCode|ref
 On the second typeset run, the reference is resolved
 \CDRCode[tags=src]|\pageref{My}| = \pageref{My}.
 \end{my.centabu}
-Line references are also available: \CDRCode|escape inside| is used to define 2 characters that will delimit some \LaTeX{} instructions to be executed, here \CDRCode[tags=latex]|\label{line.421}|.
+Line references are also available: \CDRCode[tags=options]|escape inside| is used to define 2 characters that will delimit some \LaTeX{} instructions to be executed, here \CDRCode[tags=latex]|\label{line.421}|.
 \begin{my.centabu}{p{0.5\linewidth}p{0.5\linewidth}}
 \begin{CDRBlock}[tags=src, no space,]
 \begin{⟨CDRBlock⟩}[
@@ -1162,8 +1255,8 @@ which reads
 ]{MyBlock}
 \end{tabular}
 \end{center}
-We get for the first use, \CDRCode|\ref*{line.A}| = \ref*{line.A}
-and for the second use \CDRCode|\ref*{line.B}| = \ref*{line.B}.
+We get for the first use, the cross reference is resolved as \CDRCode|\ref*{line.A}| = \ref*{line.A}
+and for the second use, the cross reference is resolved as \CDRCode|\ref*{line.B}| = \ref*{line.B}.
 %
 \subsection{The \texorpdfstring{\CDRCodeUse[tags=src]{CDRMeta}}{CDRMeta} command}
 \label{sect:CDRMeta}
@@ -1203,11 +1296,15 @@ It allows to input a source file and typeset the embedded documentation in \LaTe
 \endtrivlist
 }%
 Here is the raw content of file \pkg{coder-driver-c.lua} typeset with \pkg{pygments} xcode style:
-\CDRBlockImport[tags=lua|xcode,first imported line=18]{coder-driver-c.lua}
+\CDRBlockImport[
+  tags=driver-c|*lua|*xcode,
+  first imported line=18,
+  show tags=mirror,
+]{coder-driver-c.lua}
 \egroup
 This was input with command
 \begin{CDRBlock}[tags=src]
-\CDRBlockImport[tags=lua,first imported line=18]{coder-driver-c.lua}
+\CDRBlockImport[tags=driver-c|...,first imported line=18]{coder-driver-c.lua}
 \end{CDRBlock}
 The lines from 1 to 17 are hidden due to the
 \CDRCode|first imported line=18| option, they contain metadata from the \pkg{docstrip} utility.
@@ -1223,7 +1320,11 @@ If we add the option \CDRCode|driver=lua| to \CDRCodeUse{CDRBlockImport}, then t
 }
 \end{CDRBlockSave}
 \CDRBlockExe{coder environment}
-\CDRBlockImport[tags=lua|xcode,first imported line=18,driver=lua]{coder-driver-c.lua}
+\CDRBlockImport[
+  tags=driver-c|*lua|*xcode,
+  first imported line=18,
+  driver=lua,
+]{coder-driver-c.lua}
 Beforehands, next instructions defined the \CDRCode|coder| environment to display a box, more elaborate solutions need to be invented.
 \CDRBlockUse[tags=src]{coder environment}
 
@@ -1286,7 +1387,7 @@ Like tag names, engine names must start and end with a unicode letter, moreover 
 Engine options are provided to the \CDRCode[tags=src]?CDRBlock? environment and the \CDRCode[tags=src]?\CDRCode? , \CDRCode[tags=src]?\CDRCodeUse? and \CDRCode[tags=src]?\CDRBlockUse? commands with key \CDRCode[tags=src]?engine options?. This does not refer to the engine name and is not suitable for the 
 \CDRCode[tags=src]?\CDRSet? command argument.
 Instead, one will use the key
-\CDRCode[tags=src,mbox=false]?⟨\color{CDROptions}\MyMetatt{engine name}⟩ engine options? to distinguish between the engines.
+\CDRCode[tags=src,mbox=false]?⟨\color{CDROptions}\CDRMeta*{engine name}⟩ engine options? to distinguish between the engines.
 
 \subsection{Options}
 \label{sect:options}
@@ -1312,7 +1413,7 @@ Initially empty, depends on the engine used.
 \itemtt[\CDRCheckGreen engine options=\CDRMeta{engine options}]
 options forwarded to the engine, see section \ref{sect:frames}.
 They are appended to the options
-given with key \CDRCode|⟨\MyMetatt{engine name}⟩ engine options|.
+given with key \CDRCode|⟨\CDRMeta*{engine name}⟩ engine options|.
 Mainly a convenient user interface shortcut.
 Suitable for \CDRCode|\CDRCode| and \CDRCode|CDRBlock| but not for \CDRCode|\CDRSet|.
 %%%% default
@@ -1355,15 +1456,14 @@ where \CDRMeta{language name} is recognized by \pkg{pygments}, including a void 
 where \CDRMeta{style name} is recognized by \pkg{pygments}, including a void string,
 \itemtt[\CDRCheckRed cache{[=true|false]}]
 Set to \CDRCode|true| if the \pkg{coder} package should use already existing files
-instead of creating new ones. When using \pkg{pygments} for syntax coloring the file \CDRCode|⟨\MyMetatt{file name}⟩.tex|, the companion script \verb|coder-tool.py| creates a folder named \CDRCode[tags=options]|⟨\MyMetatt{file name}⟩.pygd|. This is where intermediate files are stored and kept from one typesetting process to the next, which happens to save processing time. This folder can safely be removed, besides it will automatically be cleaned if there is no \CDRCode|⟨\MyMetatt{file name}⟩.aux| file yet.
+instead of creating new ones. When using \pkg{pygments} for syntax coloring the file \CDRCode|⟨\CDRMeta*{file name}⟩.tex|, the companion script \verb|coder-tool.py| creates a folder named \CDRCode[tags=options]|⟨\CDRMeta*{file name}⟩.pygd|. This is where intermediate files are stored and kept from one typesetting process to the next, which happens to save processing time. This folder can safely be removed, besides it will automatically be cleaned if there is no \CDRCode|⟨\CDRMeta*{file name}⟩.aux| file yet.
 The option \CDRCode|cache=false| will disable this caching feature.
 
 Initially \CDRCode|true|.
 \itemtt[\CDRCheckRed escape inside=\CDRMeta{delimiters}]
-If set to a string of length 2, enables escaping to \LaTeX{}. Text
-       delimited by these 2 characters is read as \LaTeX{} code and
-       typeset accordingly. It has no effect in string literals when
-       \pkg{pygments} is used.
+If set to a string of length 2, enables escaping to \LaTeX{}. Text on a line delimited by these 2 characters is read
+as \LaTeX{} code and typeset accordingly.
+It has no effect in string literals when \pkg{pygments} is used.
 Initially empty.
 \itemtt[\CDRCheckRed font=auto|\CDRMeta{font command}]
 font family to use.
@@ -1494,7 +1594,7 @@ Initially \CDRCode|true|: no line breaking.
 \begin{description}
 \itemtt[\CDRCheckRed no~export{[=true|false]}]
 to ignore this code snippet at export time.
-\itemtt[\CDRCheckRed no export format=\MyMeta{format commands}]
+\itemtt[\CDRCheckRed no export format=\CDRMeta{format commands}]
 a list of formatting instructions appended to \CDRCode|format|, \CDRCode|tags format| and \CDRCode|numbers format|
 when \CDRCode|no export| is \CDRCode|true|.
 Initially empty.
@@ -1504,11 +1604,15 @@ the format used to display line numbers (mainly font, size and color).
 , where \CDRMeta{format} is used to display the tag names (mainly font, size and color),
 after it is appended to the \CDRCode|numbers format|.
 Initially empty.
-\itemtt[\CDRCheckRed show tags={[=true|false]}]
-whether tags should be displayed.
-\itemtt[\CDRCheckRed only top{[=true|false]}]
+\itemtt[\CDRCheckRed show tags={[=none, left, right, \textbf{same}, mirror, dry]}]
+whether and where tags should be displayed.
+Defaults to same.
+See \ref{sect:Decorations/Tags}
+\itemtt[\CDRCheckRed top tags only{[=true|false]}]
 to avoid chunk tags repetitions, if on the same page,
-two consecutive code chunks have the same list of tags, the second names are not displayed.
+two consecutive code chunks have the same list of tags,
+the second names are not displayed.
+Initially true.
 \itemtt[\CDRCheckRed commentchar=\CDRMeta{character}]
 lines starting with this character are ignored.
 Initially empty.
@@ -1533,7 +1637,7 @@ Initially \CDRCode|true|.
 value to give to the \TeX{} \CDRCode|\hfuzz| dimension for text to format.
 This can be used to avoid seeing some unimportant overfull box messages.
 Initially \CDRCode|2pt|.
-\itemtt[\CDRCheckRed vspace=\MyMeta{dimension}]
+\itemtt[\CDRCheckRed vspace=\CDRMeta{dimension}]
 the amount of vertical space added to \CDRCode|\parskip| before and after blocks.
 Initially \CDRCode|\topsep|. See section \ref{sect:spacing}.
 \itemtt[\CDRCheckRed no space above={[=true|false]}]
@@ -1551,9 +1655,9 @@ Initially \CDRCode|false|.
 label(s) to print on top, bottom or both, frame lines.
 If the label(s) contains special characters, comma or equal sign,
 it must be placed inside a group.
-If an optional \MyMeta{top string} is given between square brackets,
-it will be used for the top line and \MyMeta{string} for the bottom line.
-Otherwise, \MyMeta{string} is used for both the top or bottom lines.
+If an optional \CDRMeta{top string} is given between square brackets,
+it will be used for the top line and \CDRMeta{string} for the bottom line.
+Otherwise, \CDRMeta{string} is used for both the top or bottom lines.
 Label(s) are printed only if the \texttt{frame} parameter is one of
 \CDRCode|topline|, \CDRCode|bottomline|, \CDRCode|lines| or \CDRCode|single|.
 Initially empty: no label.
@@ -1678,10 +1782,12 @@ the intermediate block with the \CDRCode[tags=options]|dry numbers|.
 first line to import.
 Initially 1: all lines from the first are imported.
 Non positive values count from the end.
+See section \ref{sect:CDRBlockImport}.
 \itemtt[\CDRCheckRed last imported line=\CDRMeta{integer}]
 last line to import.
 Initially 0: all lines until the last one are imported.
 Non positive values count from the end.
+See section \ref{sect:CDRBlockImport}.
 \end{description}
 %    __block, default.block, __pygments.block,
 %    __fancyvrb.block __fancyvrb.frame, __fancyvrb.number, __fancyvrb,
@@ -1721,6 +1827,6 @@ This is handy if some source already contains markup commands to display verbati
 \section{Limitations}
 \begin{itemize}
 \item
-You cannot use \CDRCodeUse{CDRCode} or \CDRCodeUse{CDRBlock} in the argument of a command command: when \TeX\ parses the argument, it has no means to know that parts are verbatim code.
+You cannot use \CDRCodeUse{CDRCode} or \CDRCodeUse{CDRBlock} in the argument of a command: when \TeX\ parses the argument, it has no means to know that some parts are verbatim code.
 \end{itemize}
 \end{document}

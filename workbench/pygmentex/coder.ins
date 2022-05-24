@@ -87,7 +87,7 @@ and the derived files           \jobname.ins,
 }
 \usepreamble\PreambleLua
 \def\MetaPrefix{--}
-\usedir{scripts/coder}
+\usedir{tex/latex/coder}
 \generate{
   \file{\jobname-util.lua}{\from{\jobname.dtx}{lua}}
 }
@@ -108,7 +108,7 @@ and the derived files           \jobname.ins,
 \catcode`\#=11
 \global\def\MetaPrefix{#}
 }
-\usedir{scripts/coder}
+\usedir{tex/latex/coder}
 \generate{
   \file{\jobname-tool.py}{\from{\jobname.dtx}{py}}
 }

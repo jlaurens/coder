@@ -22,15 +22,18 @@ local md5   = _ENV.md5
 local kpse  = _ENV.kpse
 local rep   = string.rep
 local json  = require('lualibs-util-jsn')
-local ltb = _ENV.luatexbase
+local ltb   = _ENV.luatexbase
 local ltb_add_to_callback      = ltb.add_to_callback
 local ltb_remove_from_callback = ltb.remove_from_callback
+local utf8  = _ENV.unicode.utf8
 local lpeg  = require("lpeg")
 local C       = lpeg.C
+local Cc      = lpeg.Cc
 local Cg      = lpeg.Cg
 local Cp      = lpeg.Cp
 local Ct      = lpeg.Ct
 local P       = lpeg.P
+local S       = lpeg.S
 local V       = lpeg.V
 ltb.provides_module{
   name = 'coder',
@@ -40,7 +43,6 @@ ltb.provides_module{
 }
 local CDR = {}
 local TEST = {}
-local utf8  = _ENV.unicode.utf8
 local PYTHON_PATH, PYGMENTIZE_PATH
 local CDR_PY_PATH = kpse.find_file('coder-tool.py')
 local function f_noop (...)
@@ -511,7 +513,7 @@ function Block:__index(k)
     return ans
   elseif k == 'gobble' then
     ans = token.get_macro('l_CDR_gobble_tl')
-    return ans
+    return tonumber(ans)
   elseif k == '.arguments' then
     ans = {
       __cls__ = 'Arguments',
@@ -565,8 +567,7 @@ function CDR:Block_free()
 end
 function Block:save_begin ()
   local env = assert(self.env)
-  local safe_env = env:gsub('[%%%^%$%(%)%.%[%]%*%+%-%?]', '%%%0')
-debug_msg('Block:save_begin, environment name:', env, safe_env)
+debug_msg('Block:save_begin, environment name:', env, self.gobble, type(self.gobble))
   local lines = {}
   self.lines = lines
   assert(lines == self.lines)
@@ -580,7 +581,7 @@ debug_msg('Block:save_begin, environment name:', env, safe_env)
         return ([[\CDRPackageError{Missing `\end{%s}'}{See %s documentation }]]):format(env, env)
       end
     end,
-    'CDRBlock',
+    'CDRBlockSave',
     1
   )
   if debug_msg ~= f_debug_msg then
@@ -603,36 +604,45 @@ debug_msg('Block:save_begin, environment name:', env, safe_env)
     end
     pop()
   end
-  local f_start, f_options, f_body, f_line
-  f_line = function (input)
+  local f_start, f_options
+  local f_line = self.gobble and self.gobble > 0 and function (input)
+    lines[#lines+1] = utf8.sub(input, 1+self.gobble)
+    return [[\relax]]
+  end or function (input)
     lines[#lines+1] = input
     return [[\relax]]
   end
+  local indent = 2^31
+  local end_pattern = S(' \t')^0
+    * Cp() / function(n) return n-1 end
+    * ('\\end' * S(' \t')^0 *'{'*env*'}'*Cc(true)
+      * Cg(( P(1)-'%' )^0)
+    )^-1
   f_start = function (input)
 debug_msg('CALLBACK:IN_START', '<'..input..'>')
     f_current = f_line
     token.set_char('l_CDR_before_eol_bool', 0)
-    if input:match([[^%s*\end%s*]]
-      ..'{'..safe_env..'}') then
+    local ndnt, end_env = end_pattern:match(input)
+    if end_env and ndnt < math.max(indent,1) then
 debug_msg('WILL remove_from_callback')
       remove_from_callback()
 debug_msg('SCAN:end', '<'..input..'>')
       return input
-    else
-debug_msg('CALLBACK:START', '<'..input..'>')
-      return f_line(input)
     end
+    if ndnt < indent then
+      indent = ndnt
+    end
+debug_msg('CALLBACK:START', '<'..input..'>')
+    return f_line(input)
   end
   f_current = f_start
   f_options = function (input)
 debug_msg('CALLBACK:IN_OPTIONS', '<'..input..'>')
-    local d, v, b = input:match([[^%s*(\\end)%s*]]
-      ..'({'..safe_env..'})'..[[([^%]*)]])
-    if d then
+    local ndnt, end_env, after = end_pattern:match(input)
+    if end_env and ndnt < math.max(indent,1) then
       remove_from_callback()--[
 debug_msg('CALLBACK:END', '<'..input..'>')
-      return ']'
-        ..d..v
+      return ']\\end{'..env..'}'
         ..[[\CDRPackageError]]
         ..[[{Unterminated\space options}]]
         ..'{'..[[a\space]]--}[
@@ -640,23 +650,27 @@ debug_msg('CALLBACK:END', '<'..input..'>')
         ..[[\space is\space missing\space]]
         ..[[before\space\end]]..'{'..env..'}'--{
         ..'}'
-        ..b
-    else
-      return input
+        ..after
     end
+    if ndnt < indent then
+      indent = ndnt
+    end
+    return input
   end
-  f_body = function (input)
+  local f_body = function (input)
 debug_msg('CALLBACK:IN_BODY', '<'..input..'>')
     token.set_char('l_CDR_before_eol_bool', 0)
-    if input:match([[^%s*\end%s*]]
-      ..'{'..safe_env..'}') then
+    local ndnt, end_env = end_pattern:match(input)
+    if end_env and ndnt < math.max(indent,1) then
 debug_msg('WILL remove_from_callback 2', [[\relax]]..input)
       remove_from_callback()
       return [[\relax]]..input
-    else
-      lines[#lines+1] = input
-      return [[\relax]]
     end
+    if ndnt < indent then
+      indent = ndnt
+    end
+debug_msg('NO WAY')
+    return f_line(input)
   end
   self.enter_body = function (this)
 debug_msg('Block:enter_body')
@@ -998,8 +1012,6 @@ local function escape_inside_old (text, delimiters)
   return text
 end
 function Object:escape_inside_maker (kvargs)
-  local p_1 = P(1)
-  local pattern
   local escape_f  = kvargs.escape_f
   local do_escape = escape_f and function (s)
 debug_msg('do_escape =', s)
@@ -1023,7 +1035,9 @@ debug_msg('do_active =', s)
   end or f_noop
   local ds = self.delimiters
   local n = utf8.len(ds)
+  local pattern
   if n>0 then
+    local p_1 = P(1)
     local p_l = assert(P(utf8.sub(ds, 1, 1)))
     local p_u = C((p_1 - p_l)^0) / do_active
     local p_e
@@ -1051,7 +1065,7 @@ debug_msg('do_active =', s)
   pattern = Ct( pattern )
   return function (l)
     local t = pattern:match(l)
-debug_msg(t, #t)
+debug_msg('escape_inside_made', t, #t)
     for _,v in ipairs(t) do
       v[1](v[2])
     end
@@ -1260,9 +1274,11 @@ function CDR:cache_clean_unused()
 debug_msg('CACHE CLEAN UNUSED', dir_p)
   local to_remove = {}
   for f in lfs.dir(dir_p) do
-    f = dir_p .. f
-    if not style_set[f] and not colored_set[f] then
-      to_remove[f] = true
+    if f:sub(1,1) ~= '.' then
+      f = dir_p .. f
+      if not style_set[f] and not colored_set[f] then
+        to_remove[f] = true
+      end
     end
   end
   for f,_ in pairs(to_remove) do

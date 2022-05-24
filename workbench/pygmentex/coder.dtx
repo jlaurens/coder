@@ -124,7 +124,7 @@ and the derived files           \jobname.ins,
 }
 \usepreamble\PreambleLua
 \def\MetaPrefix{--}
-\usedir{scripts/coder}
+\usedir{tex/latex/coder}
 \generate{
   \file{\jobname-util.lua}{\from{\jobname.dtx}{lua}}
 }
@@ -145,7 +145,7 @@ and the derived files           \jobname.ins,
 \catcode`\#=11
 \global\def\MetaPrefix{#}
 }
-\usedir{scripts/coder}
+\usedir{tex/latex/coder}
 \generate{
   \file{\jobname-tool.py}{\from{\jobname.dtx}{py}}
 }
@@ -434,7 +434,7 @@ and the derived files           \jobname.ins,
 % their names.
 % When a name contains |_pyg_| it is related to \pkg{pygments},
 % there is a |_vrb_| counterpart used with no \pkg{pygments}.
-% Both are equivalent except in a small area.
+% Both are equivalent except in a very small area that will even shrink in the future.
 %
 % \lua{} objects (functions and variables) are collected
 % in the \texttt{CDR} table automatically created
@@ -469,17 +469,21 @@ local md5   = _ENV.md5
 local kpse  = _ENV.kpse
 local rep   = string.rep
 local json  = require('lualibs-util-jsn')
-local ltb = _ENV.luatexbase
+local ltb   = _ENV.luatexbase
 local ltb_add_to_callback      = ltb.add_to_callback
 local ltb_remove_from_callback = ltb.remove_from_callback
+local utf8  = _ENV.unicode.utf8
 local lpeg  = require("lpeg")
 local C       = lpeg.C
+local Cc      = lpeg.Cc
 local Cg      = lpeg.Cg
 local Cp      = lpeg.Cp
 local Ct      = lpeg.Ct
 local P       = lpeg.P
+local S       = lpeg.S
 local V       = lpeg.V
 %    \end{MacroCode}
+%
 % \section{Module declaration}
 %    \begin{MacroCode}[OK]
 ltb.provides_module{
@@ -497,13 +501,6 @@ local CDR = {}
 local TEST = {}
 %    \end{MacroCode}
 % \end{variable}
-%
-% \section{Utf8 support}
-% The \pkg{lpeg} related material will eventually end up
-% as a separate library.
-%    \begin{MacroCode}[OK]
-local utf8  = _ENV.unicode.utf8
-%    \end{MacroCode}
 %
 % \section{General purpose material}
 % \begin{variable}{CDR_PY_PATH}
@@ -1302,7 +1299,7 @@ function Block:__index(k)
     return ans
   elseif k == 'gobble' then
     ans = token.get_macro('l_CDR_gobble_tl')
-    return ans
+    return tonumber(ans)
   elseif k == '.arguments' then
     ans = {
       __cls__ = 'Arguments',
@@ -1453,8 +1450,7 @@ end
 %    \begin{MacroCode}
 function Block:save_begin ()
   local env = assert(self.env)
-  local safe_env = env:gsub('[%%%^%$%(%)%.%[%]%*%+%-%?]', '%%%0')
-debug_msg('Block:save_begin, environment name:', env, safe_env)
+debug_msg('Block:save_begin, environment name:', env, self.gobble, type(self.gobble))
   local lines = {}
   self.lines = lines
   assert(lines == self.lines)
@@ -1468,7 +1464,7 @@ debug_msg('Block:save_begin, environment name:', env, safe_env)
         return ([[\CDRPackageError{Missing `\end{%s}'}{See %s documentation }]]):format(env, env)
       end
     end,
-    'CDRBlock',
+    'CDRBlockSave',
     1
   )
   if debug_msg ~= f_debug_msg then
@@ -1496,7 +1492,7 @@ debug_msg('Block:save_begin, environment name:', env, safe_env)
 % It is defined by one of next functions.
 % State changes are below.
 %    \begin{MacroCode}
-  local f_start, f_options, f_body, f_line
+  local f_start, f_options
 %    \end{MacroCode}
 % The start state of the callback called iff there is
 % no option after de |\begin{...}| instruction.
@@ -1507,16 +1503,25 @@ debug_msg('Block:save_begin, environment name:', env, safe_env)
 % This is only called through |f_current|: it is called
 % first and only once.
 %    \begin{MacroCode}
-  f_line = function (input)
+  local f_line = self.gobble and self.gobble > 0 and function (input)
+    lines[#lines+1] = utf8.sub(input, 1+self.gobble)
+    return [[\relax]]    
+  end or function (input)
     lines[#lines+1] = input
     return [[\relax]]    
   end
+  local indent = 2^31
+  local end_pattern = S(' \t')^0
+    * Cp() / function(n) return n-1 end
+    * ('\\end' * S(' \t')^0 *'{'*env*'}'*Cc(true)
+      * Cg(( P(1)-'%' )^0)
+    )^-1
   f_start = function (input)
 debug_msg('CALLBACK:IN_START', '<'..input..'>')
     f_current = f_line
     token.set_char('l_CDR_before_eol_bool', 0)
-    if input:match([[^%s*\end%s*]]
-      ..'{'..safe_env..'}') then
+    local ndnt, end_env = end_pattern:match(input)
+    if end_env and ndnt < math.max(indent,1) then
 %    \end{MacroCode}
 % No option, no body: terminante environment.
 %    \begin{MacroCode}
@@ -1524,10 +1529,12 @@ debug_msg('WILL remove_from_callback')
       remove_from_callback()
 debug_msg('SCAN:end', '<'..input..'>')
       return input
-    else
-debug_msg('CALLBACK:START', '<'..input..'>')
-      return f_line(input)
+    end   
+    if ndnt < indent then
+      indent = ndnt
     end
+debug_msg('CALLBACK:START', '<'..input..'>')
+    return f_line(input)
   end
   f_current = f_start
 %    \end{MacroCode}
@@ -1537,14 +1544,12 @@ debug_msg('CALLBACK:START', '<'..input..'>')
 % \LaTeX{} side.
 %    \begin{MacroCode}
   f_options = function (input)
-debug_msg('CALLBACK:IN_OPTIONS', '<'..input..'>')
-    local d, v, b = input:match([[^%s*(\\end)%s*]]
-      ..'({'..safe_env..'})'..[[([^%]*)]])
-    if d then
+debug_msg('CALLBACK:IN_OPTIONS', '<'..input..'>')  
+    local ndnt, end_env, after = end_pattern:match(input)
+    if end_env and ndnt < math.max(indent,1) then
       remove_from_callback()--[
 debug_msg('CALLBACK:END', '<'..input..'>')
-      return ']'
-        ..d..v
+      return ']\\end{'..env..'}'
         ..[[\CDRPackageError]]
         ..[[{Unterminated\space options}]]
         ..'{'..[[a\space]]--}[
@@ -1552,10 +1557,12 @@ debug_msg('CALLBACK:END', '<'..input..'>')
         ..[[\space is\space missing\space]]
         ..[[before\space\end]]..'{'..env..'}'--{
         ..'}'
-        ..b
-    else
-      return input
+        ..after
     end
+    if ndnt < indent then
+      indent = ndnt
+    end
+    return input
   end
 %    \end{MacroCode}
 % Scanning the body of the environment:
@@ -1563,18 +1570,20 @@ debug_msg('CALLBACK:END', '<'..input..'>')
 % otherwise store it and return a fake |%| instead.
 % after real options.
 %    \begin{MacroCode}
-  f_body = function (input)
+  local f_body = function (input)
 debug_msg('CALLBACK:IN_BODY', '<'..input..'>')
     token.set_char('l_CDR_before_eol_bool', 0)
-    if input:match([[^%s*\end%s*]]
-      ..'{'..safe_env..'}') then
+    local ndnt, end_env = end_pattern:match(input)
+    if end_env and ndnt < math.max(indent,1) then
 debug_msg('WILL remove_from_callback 2', [[\relax]]..input)
       remove_from_callback()
       return [[\relax]]..input
-    else
-      lines[#lines+1] = input
-      return [[\relax]]
     end
+    if ndnt < indent then
+      indent = ndnt
+    end
+debug_msg('NO WAY')
+    return f_line(input)
   end
   self.enter_body = function (this)
 debug_msg('Block:enter_body')
@@ -2104,7 +2113,7 @@ end
 % CDR.Object:escape_inside\{\meta{kvargs}\}
 % \end{syntax}
 % Return a function that parses some text and applies filters
-% to its parts. Attributes of \metatt{kvargs}.
+% to its parts. Attributes of \metatt{kvargs}:
 % \begin{description}
 % \item[delimiters, escape_f, alter_f] for the escape inside feature.
 % What is between the 2 first chars of |delimiters| is extracted
@@ -2117,8 +2126,6 @@ end
 % \end{function}
 %    \begin{MacroCode}[OK]
 function Object:escape_inside_maker (kvargs)
-  local p_1 = P(1)
-  local pattern
   local escape_f  = kvargs.escape_f
   local do_escape = escape_f and function (s)
 debug_msg('do_escape =', s)
@@ -2142,7 +2149,9 @@ debug_msg('do_active =', s)
   end or f_noop
   local ds = self.delimiters
   local n = utf8.len(ds)
+  local pattern
   if n>0 then
+    local p_1 = P(1)
     local p_l = assert(P(utf8.sub(ds, 1, 1)))
     local p_u = C((p_1 - p_l)^0) / do_active
     local p_e
@@ -2170,7 +2179,7 @@ debug_msg('do_active =', s)
   pattern = Ct( pattern )
   return function (l)
     local t = pattern:match(l)
-debug_msg(t, #t)
+debug_msg('escape_inside_made', t, #t)
     for _,v in ipairs(t) do
       v[1](v[2])
     end
@@ -2538,10 +2547,12 @@ function CDR:cache_clean_unused()
 debug_msg('CACHE CLEAN UNUSED', dir_p)
   local to_remove = {}
   for f in lfs.dir(dir_p) do
-    f = dir_p .. f
-    if not style_set[f] and not colored_set[f] then
-      to_remove[f] = true
-    end 
+    if f:sub(1,1) ~= '.' then
+      f = dir_p .. f
+      if not style_set[f] and not colored_set[f] then
+        to_remove[f] = true
+      end
+    end
   end
   for f,_ in pairs(to_remove) do
 debug_msg('OS.REMOVE', f)
@@ -3456,10 +3467,10 @@ if __name__ == '__main__':
 % \cs{CDRMetaFormat} can be redefined by the user to add color for example.
 % \end{function}
 %    \begin{MacroCode}
-\DeclareDocumentCommand \CDRMeta { s m }
-  { \CDR_meta:nn {#1} { #2 } }
-\cs_new_protected:Npn \CDR_meta:nn #1 #2 {
-  \tl_set:Nn \l_CDR_a_tl {#2}
+\DeclareDocumentCommand \CDRMeta { s o m }
+  { \CDR_meta:nnn {#1} {#2} {#3} }
+\cs_new_protected:Npn \CDR_meta:nnn #1 #2 #3 {
+  \tl_set:Nn \l_CDR_a_tl {#3}
   \tl_map_inline:nn {
     3 4 7 8 { 11 } { 12 } { 13 }
   } {
@@ -3471,6 +3482,7 @@ if __name__ == '__main__':
       { \CDRMeta_sub:n }
   }
   \exp_args:NnV \CDRMeta_angle:nn { #1 } \l_CDR_a_tl
+  \IfValueT{#2}{\textsubscript{\CDRMetaFormat:n { #1 }#2}}
 }
 \cs_new_protected:Npn \CDRMeta_sub:n #1 {
   \ensuremath { \sb {#1} }
@@ -3983,8 +3995,11 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \clist_new:N \g_CDR_tags_main_clist
 \clist_new:N \g_CDR_tags_all_clist
 \clist_new:N \g_CDR_tags_last_clist
+\bool_new:N  \g_CDR_tags_top_repeat_bool
+\bool_gset_true:N \g_CDR_tags_top_repeat_bool
 \AddToHook { shipout/before } {
   \clist_gclear:N \g_CDR_tags_last_clist
+  \bool_gset_true:N \g_CDR_tags_top_repeat_bool
 }
 %    \end{MacroCode}
 % \end{variable}
@@ -5661,12 +5676,13 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     { \CDRTag_choices_set: },
   show~tags .default:n = same,
 %    \end{MacroCode}
-% \itemtt[\CDRCheckRed only top{[=true$\vert$false]}]^^A
+% \itemtt[\CDRCheckRed top tags only{[=true$\vert$false]}]^^A
 % to avoid chunk tags repetitions, if on the same page,
 % two consecutive code chunks have the same tag names, the second names are not displayed.
+% Initially |true|.
 %    \begin{MacroCode}[OK]
-  only~top .code:n = \CDRTag_boolean_set:x { #1 },
-  only~top .default:n = true,
+  top~tags~only .code:n = \CDRTag_boolean_set:x { #1 },
+  top~tags~only .default:n = true,
 %    \end{MacroCode}
 % \itemtt[\CDRCheckRed line color=\meta{color}]^^A
 % when non empty, the background color of each line.
@@ -5798,7 +5814,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     obey~tabs = false,
     tab~size = 2,
     show~tags = same,
-    only~top = true,
+    top~tags~only   = true,
     use~margin = true,
     numbers~format = {
       \sffamily
@@ -6436,15 +6452,15 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 % of forthcoming code blocks if the |default tags| is not set.
 %    \begin{MacroCode}[OK]
     \prop_get:NnNTF \l_CDR_export_prop { tags } \l_CDR_clist {
-      \clist_clear:N \l_CDR_clist
-      \clist_map_inline:Nn \g_CDR_tags_clist {
+      \clist_gclear:N \g_CDR_tags_clist
+      \clist_map_inline:Nn \l_CDR_clist {
         \regex_match:nnF { ^\* } { ##1 } {
-          \clist_put_right:Nn \g_CDR_tags_clist { ##1 }
+          \clist_gput_right:Nn \g_CDR_tags_clist { ##1 }
         }
       }
-      \clist_if_empty:NF \l_CDR_clist {
-        \clist_remove_duplicates:N \g_CDR_tags_clist
-        \clist_put_left:NV \g_CDR_tags_all_clist \l_CDR_clist
+      \clist_if_empty:NF \g_CDR_tags_clist {
+        \clist_gremove_duplicates:N \g_CDR_tags_clist
+        \clist_put_left:NV \g_CDR_tags_all_clist \g_CDR_tags_clist
         \clist_remove_duplicates:N \g_CDR_tags_all_clist
 %    \end{MacroCode}
 % If a |lang| is given, forwards the declaration
@@ -6456,8 +6472,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
           }
         }
       }
-      \seq_put_left:NV \g_CDR_export_seq \l_CDR_file_tl
-      \seq_remove_duplicates:N \g_CDR_export_seq
+      \seq_gput_left:NV \g_CDR_export_seq \l_CDR_file_tl
+      \seq_gremove_duplicates:N \g_CDR_export_seq
     } {
       \CDR_export_if_exist:ccF { \l_CDR_file_tl } { tags }  {
         \PackageWarning
@@ -7660,6 +7676,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
         CDR.Code:synctex_sprint_line()
       },
     }
+    \savecatcodetable \c_CDR_escape_cctab
     \CDRCode_format:
     \CDRCode_hook_before:
     \CDR_whitespace_setup:
@@ -8013,16 +8030,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   } {
 \CDR@Debug{\string\end{#2}...\the\inputlineno }
     \CDRBlock_save_end:
-\CDR@Debug{CDRBlock...SETUP}
     \CDRBlock_setup:N \l_CDR_kv_clist
-    \CDR_if_pygments:TF {
-      \CDR@Debug{THIS\space IS\space PYGMENTED}
-    } {
-      \CDR@Debug{THIS\space IS\space NOT\space PYGMENTED}
-    }
-\CDR@Debug{CDRBlock...USE}
     \CDRBlock_use:
-\CDR@Debug{CDRBlock...FREE}
     \CDRBlock_free:
 \CDR@Debug{\string\end{#2}...DONE}
   }
@@ -8350,7 +8359,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \CDRTag_if_truthy:cT { no~space~above } {
       \@minipagetrue
     }
-    \trivlist\item
+    \begin{trivlist}
+    \item
     \group_begin:
     \CDRBlock_format:
     \CDRBlock_v_space:
@@ -8370,7 +8380,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \vskip-\baselineskip
     }
     \group_end:
-    \endtrivlist
+    \end{trivlist}
     \CDRBlock_teardown:
     \CDRBlock_engine_end:
 %    \group_align_safe_end:
@@ -8434,7 +8444,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDR_set_conditional:Nn \CDR_if_number_on:
     { ! \CDRTag_if_eq_p:cn { numbers } { none } }
   \CDR_set_conditional:Nn \CDRBlockTags_if_already: {
-    \CDRTag_if_truthy_p:c { only~top } &&
+    \CDRTag_if_truthy_p:c { top~tags~only } &&
     \CDR_clist_if_eq_p:NN \g_CDR_tags_main_clist \g_CDR_tags_last_clist
   }
   \CDR_if_number_on:T {
@@ -8517,13 +8527,17 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %
 % Now the |CDRBlockSave| environment.
 %    \begin{MacroCode}
-\NewDocumentEnvironment { CDRBlockSave } { m } {
+\NewDocumentEnvironment { CDRBlockSave } { O{} m } {
 \CDR@Debug{\@currenvir...\the\inputlineno }
-  \CDRBlock_new:c { #1 }
+  \CDRBlock_new:c { #2 }
+  \CDR_local_inherit:n { CDRBlockSave }
+  \clist_set:Nn \l_CDR_kv_clist { #1 }
+  \CDR_local_set_known:N \l_CDR_kv_clist
+  \CDRTag_get:cN { gobble } \l_CDR_gobble_tl
   \CDRBlock_save_begin:n { }
 }{
   \CDRBlock_save_end:
-\CDR@Debug{\the\inputlineno...\@currenvir}
+\CDR@Debug{\the\inputlineno...\@currenvir, \l_CDR_kv_clist}
 }
 %    \end{MacroCode}
 %
@@ -8541,13 +8555,12 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \CDRPackageError
       { Unknown~block~identifier:~#2 }
       { See~CDRBlockUse~documentation. }
-    \CDRBlock_free:
   } {
     \clist_set:Nn \l_CDR_kv_clist { #1 }
     \CDRBlock_setup:N \l_CDR_kv_clist
     \CDRBlock_use:
-    \CDRBlock_free:
   }
+  \CDRBlock_free:
 }
 %    \end{MacroCode}
 %
@@ -8586,12 +8599,16 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       CDR.Block:synctex_save();
       CDR.Block:exe_begin();
     }
-    \exp_args:Nnx
-    \keys_set:nn { CDRBlockExe } {
-      \tl_if_empty:nTF { #1 }
-        { makeatletter=false }
-        { #1 }
+    \tl_if_empty:nTF { #1 } {
+      \clist_set:Nn \l_CDR_kv_clist { makeatletter=false }
+    } {
+      \clist_set:Nn \l_CDR_kv_clist { #1 }
     }
+    \exp_args:NnV
+    \keys_set_known:nnN {
+      CDRBlockExe
+    } \l_CDR_kv_clist \l_CDR_import_clist
+    
     \CDR@Setup {
       synctex_tag  = \directlua {
         CDR.Block:synctex_sprint_tag()
@@ -9319,6 +9336,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
           { Unknown~show~tags~options~:~ \CDRTag_get:c { show~tags } }
           { See~the~coder~manual }
     }
+    \bool_gset_false:N \g_CDR_tags_top_repeat_bool
   }
 %    \end{MacroCode}
 % By default, the next line is displayed with no tag, but the real content may
@@ -9380,8 +9398,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 %    \begin{MacroCode}
 \cs_new_protected:Npn \CDRBlock_vrb_use: {
 \CDR@Debug {\string\CDRBlock_vrb_use:}
-  \makeatletter
   \savecatcodetable \c_CDR_escape_cctab
+  \makeatletter
   \CDR_whitespace_setup:
   \CDR_whitespace_define:
   \CDRBlock_hook_before:
@@ -9521,9 +9539,9 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     }
   }
 %    \end{MacroCode}
-% For each \metatt{tag name}, create an \pkg{l3int} variable and initialize it to 1.
+% For each main \metatt{tag name}, create an \pkg{l3int} variable and initialize it to 1.
 %    \begin{MacroCode}
-  \clist_map_inline:Nn \g_CDR_tags_clist {
+  \clist_map_inline:Nn \g_CDR_tags_main_clist {
     \CDR_int_if_exist:cF { ##1 } {
       \CDR_int_new:cn { ##1 } { 1 }
     }

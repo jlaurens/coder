@@ -63,10 +63,10 @@
 \DeclareDocumentCommand \CDRPackageError { } {
   \PackageError{coder}
 }
-\DeclareDocumentCommand \CDRMeta { s m }
-  { \CDR_meta:nn {#1} { #2 } }
-\cs_new_protected:Npn \CDR_meta:nn #1 #2 {
-  \tl_set:Nn \l_CDR_a_tl {#2}
+\DeclareDocumentCommand \CDRMeta { s o m }
+  { \CDR_meta:nnn {#1} {#2} {#3} }
+\cs_new_protected:Npn \CDR_meta:nnn #1 #2 #3 {
+  \tl_set:Nn \l_CDR_a_tl {#3}
   \tl_map_inline:nn {
     3 4 7 8 { 11 } { 12 } { 13 }
   } {
@@ -78,6 +78,7 @@
       { \CDRMeta_sub:n }
   }
   \exp_args:NnV \CDRMeta_angle:nn { #1 } \l_CDR_a_tl
+  \IfValueT{#2}{\textsubscript{\CDRMetaFormat:n { #1 }#2}}
 }
 \cs_new_protected:Npn \CDRMeta_sub:n #1 {
   \ensuremath { \sb {#1} }
@@ -301,8 +302,11 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 \clist_new:N \g_CDR_tags_main_clist
 \clist_new:N \g_CDR_tags_all_clist
 \clist_new:N \g_CDR_tags_last_clist
+\bool_new:N  \g_CDR_tags_top_repeat_bool
+\bool_gset_true:N \g_CDR_tags_top_repeat_bool
 \AddToHook { shipout/before } {
   \clist_gclear:N \g_CDR_tags_last_clist
+  \bool_gset_true:N \g_CDR_tags_top_repeat_bool
 }
 \prg_new_conditional:Nnn \CDR_clist_if_eq:NN { p, T, F, TF } {
   \tl_if_eq:NNTF #1 #2 {
@@ -1121,8 +1125,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     { none, left, right, same, mirror, dry }
     { \CDRTag_choices_set: },
   show~tags .default:n = same,
-  only~top .code:n = \CDRTag_boolean_set:x { #1 },
-  only~top .default:n = true,
+  top~tags~only .code:n = \CDRTag_boolean_set:x { #1 },
+  top~tags~only .default:n = true,
   line~color .code:n = \CDRTag_set_nn:,
   line~color .value_required:n = true,
   text~color .code:n = \CDRTag_set_nn:,
@@ -1159,7 +1163,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     obey~tabs = false,
     tab~size = 2,
     show~tags = same,
-    only~top = true,
+    top~tags~only   = true,
     use~margin = true,
     numbers~format = {
       \sffamily
@@ -1412,15 +1416,15 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \CDR_export_gset:Vcn \l_CDR_file_tl { ##1 } { ##2 }
     }
     \prop_get:NnNTF \l_CDR_export_prop { tags } \l_CDR_clist {
-      \clist_clear:N \l_CDR_clist
-      \clist_map_inline:Nn \g_CDR_tags_clist {
+      \clist_gclear:N \g_CDR_tags_clist
+      \clist_map_inline:Nn \l_CDR_clist {
         \regex_match:nnF { ^\* } { ##1 } {
-          \clist_put_right:Nn \g_CDR_tags_clist { ##1 }
+          \clist_gput_right:Nn \g_CDR_tags_clist { ##1 }
         }
       }
-      \clist_if_empty:NF \l_CDR_clist {
-        \clist_remove_duplicates:N \g_CDR_tags_clist
-        \clist_put_left:NV \g_CDR_tags_all_clist \l_CDR_clist
+      \clist_if_empty:NF \g_CDR_tags_clist {
+        \clist_gremove_duplicates:N \g_CDR_tags_clist
+        \clist_put_left:NV \g_CDR_tags_all_clist \g_CDR_tags_clist
         \clist_remove_duplicates:N \g_CDR_tags_all_clist
         \CDR_export_get:ccNT { \l_CDR_file_tl } { lang } \l_CDR_a_tl {
           \clist_map_inline:Nn \g_CDR_tags_clist {
@@ -1428,8 +1432,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
           }
         }
       }
-      \seq_put_left:NV \g_CDR_export_seq \l_CDR_file_tl
-      \seq_remove_duplicates:N \g_CDR_export_seq
+      \seq_gput_left:NV \g_CDR_export_seq \l_CDR_file_tl
+      \seq_gremove_duplicates:N \g_CDR_export_seq
     } {
       \CDR_export_if_exist:ccF { \l_CDR_file_tl } { tags }  {
         \PackageWarning
@@ -2214,6 +2218,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
         CDR.Code:synctex_sprint_line()
       },
     }
+    \savecatcodetable \c_CDR_escape_cctab
     \CDRCode_format:
     \CDRCode_hook_before:
     \CDR_whitespace_setup:
@@ -2382,16 +2387,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   } {
 \CDR@Debug{\string\end{#2}...\the\inputlineno }
     \CDRBlock_save_end:
-\CDR@Debug{CDRBlock...SETUP}
     \CDRBlock_setup:N \l_CDR_kv_clist
-    \CDR_if_pygments:TF {
-      \CDR@Debug{THIS\space IS\space PYGMENTED}
-    } {
-      \CDR@Debug{THIS\space IS\space NOT\space PYGMENTED}
-    }
-\CDR@Debug{CDRBlock...USE}
     \CDRBlock_use:
-\CDR@Debug{CDRBlock...FREE}
     \CDRBlock_free:
 \CDR@Debug{\string\end{#2}...DONE}
   }
@@ -2614,7 +2611,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \CDRTag_if_truthy:cT { no~space~above } {
       \@minipagetrue
     }
-    \trivlist\item
+    \begin{trivlist}
+    \item
     \group_begin:
     \CDRBlock_format:
     \CDRBlock_v_space:
@@ -2634,7 +2632,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \vskip-\baselineskip
     }
     \group_end:
-    \endtrivlist
+    \end{trivlist}
     \CDRBlock_teardown:
     \CDRBlock_engine_end:
 }
@@ -2673,7 +2671,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
   \CDR_set_conditional:Nn \CDR_if_number_on:
     { ! \CDRTag_if_eq_p:cn { numbers } { none } }
   \CDR_set_conditional:Nn \CDRBlockTags_if_already: {
-    \CDRTag_if_truthy_p:c { only~top } &&
+    \CDRTag_if_truthy_p:c { top~tags~only } &&
     \CDR_clist_if_eq_p:NN \g_CDR_tags_main_clist \g_CDR_tags_last_clist
   }
   \CDR_if_number_on:T {
@@ -2735,13 +2733,17 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \CDRTag_choices_set:
   },
 }
-\NewDocumentEnvironment { CDRBlockSave } { m } {
+\NewDocumentEnvironment { CDRBlockSave } { O{} m } {
 \CDR@Debug{\@currenvir...\the\inputlineno }
-  \CDRBlock_new:c { #1 }
+  \CDRBlock_new:c { #2 }
+  \CDR_local_inherit:n { CDRBlockSave }
+  \clist_set:Nn \l_CDR_kv_clist { #1 }
+  \CDR_local_set_known:N \l_CDR_kv_clist
+  \CDRTag_get:cN { gobble } \l_CDR_gobble_tl
   \CDRBlock_save_begin:n { }
 }{
   \CDRBlock_save_end:
-\CDR@Debug{\the\inputlineno...\@currenvir}
+\CDR@Debug{\the\inputlineno...\@currenvir, \l_CDR_kv_clist}
 }
 \NewDocumentCommand\CDRBlockUse{ O{} m } {
 \CDR@Debug{\string\CDRBlockUse/#2}
@@ -2751,13 +2753,12 @@ CDR.debug('code_cctab', CDR.escape_cctab);
     \CDRPackageError
       { Unknown~block~identifier:~#2 }
       { See~CDRBlockUse~documentation. }
-    \CDRBlock_free:
   } {
     \clist_set:Nn \l_CDR_kv_clist { #1 }
     \CDRBlock_setup:N \l_CDR_kv_clist
     \CDRBlock_use:
-    \CDRBlock_free:
   }
+  \CDRBlock_free:
 }
 \keys_define:nn { CDRBlockExe } {
   makeatletter .choices:nn =
@@ -2786,12 +2787,16 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       CDR.Block:synctex_save();
       CDR.Block:exe_begin();
     }
-    \exp_args:Nnx
-    \keys_set:nn { CDRBlockExe } {
-      \tl_if_empty:nTF { #1 }
-        { makeatletter=false }
-        { #1 }
+    \tl_if_empty:nTF { #1 } {
+      \clist_set:Nn \l_CDR_kv_clist { makeatletter=false }
+    } {
+      \clist_set:Nn \l_CDR_kv_clist { #1 }
     }
+    \exp_args:NnV
+    \keys_set_known:nnN {
+      CDRBlockExe
+    } \l_CDR_kv_clist \l_CDR_import_clist
+
     \CDR@Setup {
       synctex_tag  = \directlua {
         CDR.Block:synctex_sprint_tag()
@@ -3357,6 +3362,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
           { Unknown~show~tags~options~:~ \CDRTag_get:c { show~tags } }
           { See~the~coder~manual }
     }
+    \bool_gset_false:N \g_CDR_tags_top_repeat_bool
   }
   \exp_args:Nx
   \str_case:nnF { \CDRTag_get:c { numbers } } {
@@ -3395,8 +3401,8 @@ CDR.debug('code_cctab', CDR.escape_cctab);
 }
 \cs_new_protected:Npn \CDRBlock_vrb_use: {
 \CDR@Debug {\string\CDRBlock_vrb_use:}
-  \makeatletter
   \savecatcodetable \c_CDR_escape_cctab
+  \makeatletter
   \CDR_whitespace_setup:
   \CDR_whitespace_define:
   \CDRBlock_hook_before:
@@ -3482,7 +3488,7 @@ CDR.debug('code_cctab', CDR.escape_cctab);
       \clist_put_right:Nn \g_CDR_tags_main_clist { ##1 }
     }
   }
-  \clist_map_inline:Nn \g_CDR_tags_clist {
+  \clist_map_inline:Nn \g_CDR_tags_main_clist {
     \CDR_int_if_exist:cF { ##1 } {
       \CDR_int_new:cn { ##1 } { 1 }
     }
