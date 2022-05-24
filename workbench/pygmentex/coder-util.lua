@@ -1036,8 +1036,8 @@ debug_msg('do_active =', s)
   local ds = self.delimiters
   local n = utf8.len(ds)
   local pattern
+  local p_1 = P(1)
   if n>0 then
-    local p_1 = P(1)
     local p_l = assert(P(utf8.sub(ds, 1, 1)))
     local p_u = C((p_1 - p_l)^0) / do_active
     local p_e
